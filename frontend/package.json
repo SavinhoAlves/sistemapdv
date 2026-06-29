@@ -1,0 +1,22 @@
+{
+  "name": "restaurante-pdv-frontend",
+  "private": true,
+  "scripts": {
+    "build": "nuxt build",
+    "dev": "nuxt dev",
+    "generate": "nuxt generate",
+    "preview": "nuxt preview",
+    "start": "node .output/server/index.mjs"
+  },
+  "dependencies": {
+    "@pinia/nuxt": "^0.5.4",
+    "pinia": "^2.3.1",
+    "socket.io-client": "^4.6.2",
+    "vue": "^3.4.0"
+  },
+  "devDependencies": {
+    "@nuxt/devtools": "latest",
+    "@nuxtjs/tailwindcss": "^6.10.3",
+    "nuxt": "^3.10.0"
+  }
+}

@@ -1,0 +1,7 @@
+{
+  // Estende as configurações geradas automaticamente pelo Nuxt 3
+  "extends": "./.nuxt/tsconfig.json",
+  "compilerOptions": {
+    "types": ["node"]
+  }
+}

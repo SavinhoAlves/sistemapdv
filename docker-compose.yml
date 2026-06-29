@@ -1,0 +1,76 @@
+version: '3.8'
+
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: pdv_mysql
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root123}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-restaurante_pdv}
+      MYSQL_USER: ${MYSQL_USER:-pdv_user}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-pdv_pass123}
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./backend/migrations/schema.sql:/docker-entrypoint-initdb.d/01_schema.sql
+      - ./backend/seeds/seed.sql:/docker-entrypoint-initdb.d/02_seed.sql
+    networks:
+      - pdv_network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: pdv_backend
+    restart: always
+    environment:
+      NODE_ENV: production
+      PORT: 3001
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_NAME: ${MYSQL_DATABASE:-restaurante_pdv}
+      DB_USER: ${MYSQL_USER:-pdv_user}
+      DB_PASSWORD: ${MYSQL_PASSWORD:-pdv_pass123}
+      JWT_SECRET: ${JWT_SECRET:-super_secret_jwt_key_change_in_production}
+      JWT_EXPIRES_IN: 8h
+      CORS_ORIGIN: http://localhost:3000
+    ports:
+      - "3001:3001"
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - pdv_network
+    volumes:
+      - ./backend/logs:/app/logs
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: pdv_frontend
+    restart: always
+    environment:
+      NUXT_PUBLIC_API_URL: http://localhost:3001
+      NUXT_PUBLIC_SOCKET_URL: http://localhost:3001
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+    networks:
+      - pdv_network
+
+volumes:
+  mysql_data:
+    driver: local
+
+networks:
+  pdv_network:
+    driver: bridge

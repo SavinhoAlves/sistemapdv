@@ -70,8 +70,8 @@
               {{ p.ativo ? 'Ativo' : 'Inativo' }}
             </span>
             <span
-              v-if="p.gerenciar_estoque && p.estoque_atual <= p.estoque_minimo"
-              class="text-[10px] font-black text-orange-500 bg-orange-50 px-2.5 py-1 rounded-full"
+              v-if="(p.gerenciar_estoque || p.estoque_atual > 0) && p.estoque_minimo > 0 && p.estoque_atual <= p.estoque_minimo"
+              class="text-[10px] font-black text-orange-500 bg-orange-50 dark:bg-orange-950/40 dark:text-orange-400 px-2.5 py-1 rounded-full"
             >
               Baixo estoque
             </span>
@@ -84,9 +84,9 @@
           <p class="text-xs text-neutral-400 dark:text-neutral-600 mt-1 font-medium">{{ p.categoria || '—' }}</p>
 
           <!-- ESTOQUE -->
-          <div v-if="p.gerenciar_estoque" class="mt-3 text-xs text-neutral-500 dark:text-neutral-500">
+          <div v-if="p.gerenciar_estoque || p.estoque_atual > 0" class="mt-3 text-xs text-neutral-500 dark:text-neutral-500">
             Estoque: <b class="text-neutral-700 dark:text-neutral-300">{{ p.estoque_atual }}</b>
-            <span class="text-neutral-300 dark:text-neutral-700"> / mín. {{ p.estoque_minimo }}</span>
+            <span v-if="p.estoque_minimo > 0" class="text-neutral-300 dark:text-neutral-700"> / mín. {{ p.estoque_minimo }}</span>
           </div>
 
           <!-- RODAPÉ -->
@@ -117,7 +117,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { Search, Plus, Package } from 'lucide-vue-next'
 import ModalProduto from '@/components/modals/ModalProduto.vue'
 import { useApi } from '~/services/api'
@@ -172,5 +172,20 @@ const produtosFiltrados = computed(() =>
   )
 )
 
-onMounted(listarProdutos)
+let pollingTimer: ReturnType<typeof setInterval> | null = null
+
+function onVisibilityChange() {
+  if (!document.hidden) listarProdutos()
+}
+
+onMounted(() => {
+  listarProdutos()
+  pollingTimer = setInterval(() => { if (!document.hidden) listarProdutos() }, 20000)
+  document.addEventListener('visibilitychange', onVisibilityChange)
+})
+
+onUnmounted(() => {
+  if (pollingTimer) clearInterval(pollingTimer)
+  document.removeEventListener('visibilitychange', onVisibilityChange)
+})
 </script>

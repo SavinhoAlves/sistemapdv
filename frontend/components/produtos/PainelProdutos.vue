@@ -141,7 +141,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useApi } from '~/services/api'
 import { useToastStore } from '~/stores/toast'
 import { useCaixaStore } from '~/stores/caixa'
@@ -204,7 +204,16 @@ const carregarProdutos = async () => {
   }
 }
 
-onMounted(carregarProdutos)
+let pollingTimer: ReturnType<typeof setInterval> | null = null
+
+onMounted(() => {
+  carregarProdutos()
+  pollingTimer = setInterval(carregarProdutos, 20000)
+})
+
+onUnmounted(() => {
+  if (pollingTimer) clearInterval(pollingTimer)
+})
 
 // Agrupa por categoria respeitando a busca
 const secoes = computed(() => {

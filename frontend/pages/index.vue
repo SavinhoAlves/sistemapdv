@@ -2,8 +2,8 @@
   <div class="min-h-screen bg-neutral-100 dark:bg-neutral-950 transition-colors duration-200">
 
     <!-- HEADER DA PÁGINA -->
-    <div class="bg-white dark:bg-neutral-900 border-b border-neutral-200 dark:border-neutral-800 px-8 py-6">
-      <div class="max-w-7xl mx-auto flex items-center justify-between">
+    <div class="bg-white dark:bg-neutral-900 border-b border-neutral-200 dark:border-neutral-800 px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
+      <div class="max-w-7xl mx-auto flex items-center justify-between gap-3">
         <div>
           <h1 class="text-2xl font-black text-neutral-900 dark:text-white tracking-tight">Dashboard</h1>
           <p class="text-sm text-neutral-400 dark:text-neutral-500 mt-0.5">
@@ -22,19 +22,19 @@
       </div>
     </div>
 
-    <div class="max-w-7xl mx-auto px-8 py-8 space-y-8">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-6 sm:space-y-8">
 
       <!-- CARDS DE STATS -->
       <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
 
-        <div class="bg-white dark:bg-neutral-900 rounded-2xl p-6 border border-neutral-200 dark:border-neutral-800 shadow-sm">
+        <div class="bg-white dark:bg-neutral-900 rounded-2xl p-4 sm:p-6 border border-neutral-200 dark:border-neutral-800 shadow-sm">
           <div class="flex items-start justify-between mb-4">
             <span class="text-xs font-black uppercase tracking-widest text-neutral-400 dark:text-neutral-500">Faturamento Hoje</span>
             <div class="w-8 h-8 rounded-xl bg-green-50 dark:bg-green-950/50 flex items-center justify-center">
               <TrendingUp :size="15" class="text-green-600 dark:text-green-500" />
             </div>
           </div>
-          <p class="text-3xl font-black text-neutral-900 dark:text-white leading-none">
+          <p class="text-xl sm:text-3xl font-black text-neutral-900 dark:text-white leading-none">
             <span v-if="carregando" class="inline-block w-32 h-8 bg-neutral-100 dark:bg-neutral-800 animate-pulse rounded-lg"></span>
             <span v-else>R$ {{ fmtMoeda(stats.faturamentoHoje) }}</span>
           </p>
@@ -43,42 +43,42 @@
           </p>
         </div>
 
-        <div class="bg-white dark:bg-neutral-900 rounded-2xl p-6 border border-neutral-200 dark:border-neutral-800 shadow-sm">
+        <div class="bg-white dark:bg-neutral-900 rounded-2xl p-4 sm:p-6 border border-neutral-200 dark:border-neutral-800 shadow-sm">
           <div class="flex items-start justify-between mb-4">
             <span class="text-xs font-black uppercase tracking-widest text-neutral-400 dark:text-neutral-500">Mesas Abertas</span>
             <div class="w-8 h-8 rounded-xl bg-orange-50 dark:bg-orange-950/50 flex items-center justify-center">
               <LayoutGrid :size="15" class="text-orange-500" />
             </div>
           </div>
-          <p class="text-3xl font-black text-neutral-900 dark:text-white leading-none">
+          <p class="text-xl sm:text-3xl font-black text-neutral-900 dark:text-white leading-none">
             <span v-if="carregando" class="inline-block w-16 h-8 bg-neutral-100 dark:bg-neutral-800 animate-pulse rounded-lg"></span>
             <span v-else>{{ stats.mesasAbertas }}</span>
           </p>
           <p class="text-xs text-neutral-400 dark:text-neutral-600 mt-2 font-medium">em atendimento agora</p>
         </div>
 
-        <div class="bg-white dark:bg-neutral-900 rounded-2xl p-6 border border-neutral-200 dark:border-neutral-800 shadow-sm">
+        <div class="bg-white dark:bg-neutral-900 rounded-2xl p-4 sm:p-6 border border-neutral-200 dark:border-neutral-800 shadow-sm">
           <div class="flex items-start justify-between mb-4">
             <span class="text-xs font-black uppercase tracking-widest text-neutral-400 dark:text-neutral-500">Pedidos Hoje</span>
             <div class="w-8 h-8 rounded-xl bg-blue-50 dark:bg-blue-950/50 flex items-center justify-center">
               <ClipboardList :size="15" class="text-blue-500" />
             </div>
           </div>
-          <p class="text-3xl font-black text-neutral-900 dark:text-white leading-none">
+          <p class="text-xl sm:text-3xl font-black text-neutral-900 dark:text-white leading-none">
             <span v-if="carregando" class="inline-block w-16 h-8 bg-neutral-100 dark:bg-neutral-800 animate-pulse rounded-lg"></span>
             <span v-else>{{ stats.pedidosHoje }}</span>
           </p>
           <p class="text-xs text-neutral-400 dark:text-neutral-600 mt-2 font-medium">comandas abertas no dia</p>
         </div>
 
-        <div class="bg-white dark:bg-neutral-900 rounded-2xl p-6 border border-neutral-200 dark:border-neutral-800 shadow-sm">
+        <div class="bg-white dark:bg-neutral-900 rounded-2xl p-4 sm:p-6 border border-neutral-200 dark:border-neutral-800 shadow-sm">
           <div class="flex items-start justify-between mb-4">
             <span class="text-xs font-black uppercase tracking-widest text-neutral-400 dark:text-neutral-500">Ticket Médio</span>
             <div class="w-8 h-8 rounded-xl bg-purple-50 dark:bg-purple-950/50 flex items-center justify-center">
               <Receipt :size="15" class="text-purple-500" />
             </div>
           </div>
-          <p class="text-3xl font-black text-neutral-900 dark:text-white leading-none">
+          <p class="text-xl sm:text-3xl font-black text-neutral-900 dark:text-white leading-none">
             <span v-if="carregando" class="inline-block w-28 h-8 bg-neutral-100 dark:bg-neutral-800 animate-pulse rounded-lg"></span>
             <span v-else>R$ {{ fmtMoeda(stats.ticketMedio) }}</span>
           </p>
@@ -202,7 +202,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import {
   TrendingUp, LayoutGrid, ClipboardList, Receipt,
@@ -294,8 +294,21 @@ async function carregar() {
   }
 }
 
+let pollingTimer: ReturnType<typeof setInterval> | null = null
+
+function onVisibilityChange() {
+  if (!document.hidden) carregar()
+}
+
 onMounted(() => {
   if (!authStore.isAuthenticated) return router.push('/login')
   carregar()
+  pollingTimer = setInterval(() => { if (!document.hidden) carregar() }, 30000)
+  document.addEventListener('visibilitychange', onVisibilityChange)
+})
+
+onUnmounted(() => {
+  if (pollingTimer) clearInterval(pollingTimer)
+  document.removeEventListener('visibilitychange', onVisibilityChange)
 })
 </script>

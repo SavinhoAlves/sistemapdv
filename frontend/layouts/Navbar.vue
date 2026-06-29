@@ -12,21 +12,23 @@
         </span>
       </div>
 
-      <!-- NAVEGAÇÃO CENTRAL -->
-      <nav class="flex items-center gap-0.5 bg-neutral-100 dark:bg-neutral-900 rounded-xl p-1 border border-neutral-200 dark:border-neutral-800">
-        <button
-          v-for="item in navItems"
-          :key="item.rota"
-          @click="router.push(item.rota)"
-          class="flex items-center gap-1.5 h-7 px-3 rounded-lg text-xs font-bold transition-all"
-          :class="isAtivo(item.rota)
-            ? 'bg-orange-500 text-white shadow-sm shadow-orange-500/30'
-            : 'text-neutral-500 hover:text-neutral-800 dark:hover:text-neutral-200'"
-        >
-          <component :is="item.icon" :size="12" stroke-width="2.2" />
-          <span>{{ item.label }}</span>
-        </button>
-      </nav>
+      <!-- NAVEGAÇÃO CENTRAL (sm+) -->
+      <div class="hidden sm:flex flex-1 min-w-0 overflow-x-auto nav-scroll justify-center">
+        <nav class="flex items-center gap-0.5 bg-neutral-100 dark:bg-neutral-900 rounded-xl p-1 border border-neutral-200 dark:border-neutral-800 w-max">
+          <button
+            v-for="item in navItems"
+            :key="item.rota"
+            @click="router.push(item.rota)"
+            class="flex items-center gap-1.5 h-7 px-3 rounded-lg text-xs font-bold transition-all whitespace-nowrap"
+            :class="isAtivo(item.rota)
+              ? 'bg-orange-500 text-white shadow-sm shadow-orange-500/30'
+              : 'text-neutral-500 hover:text-neutral-800 dark:hover:text-neutral-200'"
+          >
+            <component :is="item.icon" :size="12" stroke-width="2.2" />
+            <span>{{ item.label }}</span>
+          </button>
+        </nav>
+      </div>
 
       <!-- DIREITA -->
       <div class="flex items-center gap-2 shrink-0">
@@ -44,7 +46,8 @@
               class="w-1.5 h-1.5 rounded-full shrink-0"
               :class="caixaAberto ? 'bg-green-500 animate-pulse' : 'bg-neutral-400 dark:bg-neutral-600'"
             ></span>
-            {{ caixaAberto ? 'Caixa Aberto' : 'Abrir Caixa' }}
+            <span class="sm:hidden">{{ caixaAberto ? 'Aberto' : 'Abrir' }}</span>
+            <span class="hidden sm:inline">{{ caixaAberto ? 'Caixa Aberto' : 'Abrir Caixa' }}</span>
           </button>
           <div class="w-px h-5 bg-neutral-200 dark:bg-neutral-800"></div>
         </template>
@@ -116,6 +119,25 @@
 
       </div>
     </div>
+
+    <!-- NAVEGAÇÃO MOBILE (< sm) -->
+    <div class="sm:hidden overflow-x-auto nav-scroll border-t border-neutral-100 dark:border-neutral-800">
+      <div class="flex items-center gap-1 px-2 py-1.5 w-max">
+        <button
+          v-for="item in navItems"
+          :key="'mob-' + item.rota"
+          @click="router.push(item.rota)"
+          class="flex items-center gap-1.5 h-8 px-3 rounded-lg text-xs font-bold transition-all whitespace-nowrap"
+          :class="isAtivo(item.rota)
+            ? 'bg-orange-500 text-white shadow-sm shadow-orange-500/30'
+            : 'bg-neutral-100 dark:bg-neutral-800 text-neutral-500 dark:text-neutral-400'"
+        >
+          <component :is="item.icon" :size="12" stroke-width="2.2" />
+          <span>{{ item.label }}</span>
+        </button>
+      </div>
+    </div>
+
   </header>
 
   <!-- MODAL RFID -->
@@ -188,6 +210,8 @@
 <style scoped>
 .fade-enter-active, .fade-leave-active { transition: opacity .15s; }
 .fade-enter-from, .fade-leave-to { opacity: 0; }
+.nav-scroll::-webkit-scrollbar { display: none; }
+.nav-scroll { -ms-overflow-style: none; scrollbar-width: none; }
 </style>
 
 <script setup lang="ts">
@@ -349,12 +373,11 @@ const confirmarAbertura = async () => {
 const sincronizarCaixa = async () => {
   try {
     const resposta = await api.get<any>('/caixa/atual')
-    caixaStore.$patch({
-      aberto:     resposta?.aberto || false,
-      caixaAtual: resposta?.caixa  || null
-    })
+    caixaStore.aberto     = resposta?.aberto || false
+    caixaStore.caixaAtual = resposta?.caixa  || null
   } catch {
-    caixaStore.$patch({ aberto: false, caixaAtual: null })
+    caixaStore.aberto     = false
+    caixaStore.caixaAtual = null
   }
 }
 

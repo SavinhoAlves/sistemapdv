@@ -7,14 +7,14 @@
         @click.self="$emit('fechar')"
       >
         <Transition name="slide-up-modal" appear>
-          <div class="bg-white w-full max-w-lg rounded-3xl overflow-hidden flex flex-col max-h-[90vh]">
+          <div class="bg-white dark:bg-neutral-900 w-full max-w-lg rounded-3xl overflow-hidden flex flex-col max-h-[90vh]">
 
             <!-- HEADER -->
-            <div class="p-6 border-b flex items-center justify-between shrink-0">
-              <h2 class="text-2xl font-black">Pagamento</h2>
+            <div class="p-6 border-b border-neutral-200 dark:border-neutral-800 flex items-center justify-between shrink-0">
+              <h2 class="text-2xl font-black text-neutral-900 dark:text-white">Pagamento</h2>
               <button
                 @click="$emit('fechar')"
-                class="w-10 h-10 rounded-xl bg-neutral-100 hover:bg-red-50 hover:text-red-500 flex items-center justify-center transition-all"
+                class="w-10 h-10 rounded-xl bg-neutral-100 dark:bg-neutral-800 hover:bg-red-50 dark:hover:bg-red-950/40 hover:text-red-500 text-neutral-600 dark:text-neutral-400 flex items-center justify-center transition-all"
               >
                 <X :size="18" />
               </button>
@@ -23,13 +23,13 @@
             <div class="overflow-y-auto flex-1 p-6 space-y-6">
 
               <!-- RESUMO -->
-              <div class="bg-neutral-50 rounded-2xl p-5">
+              <div class="bg-neutral-50 dark:bg-neutral-800 rounded-2xl p-5">
                 <p class="text-xs font-black uppercase tracking-widest text-neutral-400 mb-1">
                   Mesa #{{ mesa?.nome_mesa || mesa?.numero || mesa?.id }}
                 </p>
                 <div class="flex items-end justify-between">
-                  <span class="text-sm text-neutral-500">Total a pagar</span>
-                  <span class="text-4xl font-black text-neutral-900">
+                  <span class="text-sm text-neutral-500 dark:text-neutral-400">Total a pagar</span>
+                  <span class="text-4xl font-black text-neutral-900 dark:text-white">
                     R$ {{ total.toFixed(2) }}
                   </span>
                 </div>
@@ -42,7 +42,7 @@
                 </p>
 
                 <div v-if="carregandoMetodos" class="grid grid-cols-2 gap-3">
-                  <div v-for="n in 4" :key="n" class="h-20 rounded-2xl bg-neutral-100 animate-pulse" />
+                  <div v-for="n in 4" :key="n" class="h-20 rounded-2xl bg-neutral-100 dark:bg-neutral-800 animate-pulse" />
                 </div>
 
                 <div v-else class="grid grid-cols-2 gap-3">
@@ -52,8 +52,8 @@
                     @click="metodoSelecionado = metodo"
                     class="h-20 rounded-2xl border-2 flex flex-col items-center justify-center gap-2 transition-all active:scale-95 font-bold text-sm"
                     :class="metodoSelecionado?.id === metodo.id
-                      ? 'border-orange-500 bg-orange-50 text-orange-700'
-                      : 'border-neutral-200 hover:border-orange-300 text-neutral-600'"
+                      ? 'border-orange-500 bg-orange-50 dark:bg-orange-950/30 text-orange-600 dark:text-orange-400'
+                      : 'border-neutral-200 dark:border-neutral-700 hover:border-orange-300 dark:hover:border-orange-600 text-neutral-600 dark:text-neutral-400'"
                   >
                     <component :is="iconeMetodo(metodo.nome)" :size="22" stroke-width="1.5" />
                     {{ metodo.nome }}
@@ -75,19 +75,19 @@
                       min="0"
                       step="0.01"
                       placeholder="0,00"
-                      class="w-full h-14 pl-10 pr-4 border-2 border-neutral-200 focus:border-orange-400 rounded-2xl text-xl font-black outline-none"
+                      class="w-full h-14 pl-10 pr-4 border-2 border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-900 dark:text-white focus:border-orange-400 dark:focus:border-orange-500 rounded-2xl text-xl font-black outline-none"
                     />
                   </div>
                   <div
                     v-if="troco >= 0 && valorRecebidoNum > 0"
-                    class="flex justify-between items-center bg-green-50 rounded-2xl p-4"
+                    class="flex justify-between items-center bg-green-50 dark:bg-green-950/30 rounded-2xl p-4"
                   >
-                    <span class="text-sm font-bold text-green-700">Troco</span>
-                    <span class="text-2xl font-black text-green-700">R$ {{ troco.toFixed(2) }}</span>
+                    <span class="text-sm font-bold text-green-700 dark:text-green-400">Troco</span>
+                    <span class="text-2xl font-black text-green-700 dark:text-green-400">R$ {{ troco.toFixed(2) }}</span>
                   </div>
                   <div
                     v-if="valorRecebidoNum > 0 && valorRecebidoNum < total"
-                    class="bg-red-50 rounded-2xl p-3 text-center text-sm font-bold text-red-600"
+                    class="bg-red-50 dark:bg-red-950/30 rounded-2xl p-3 text-center text-sm font-bold text-red-600 dark:text-red-400"
                   >
                     Valor insuficiente — faltam R$ {{ (total - valorRecebidoNum).toFixed(2) }}
                   </div>
@@ -97,7 +97,7 @@
             </div>
 
             <!-- FOOTER -->
-            <div class="p-6 border-t shrink-0">
+            <div class="p-6 border-t border-neutral-200 dark:border-neutral-800 shrink-0">
               <button
                 @click="confirmar"
                 :disabled="!podePagar || salvando"

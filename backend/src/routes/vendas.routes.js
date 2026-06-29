@@ -42,13 +42,45 @@ router.post('/', authenticate, async (req, res) => {
       )
       const pedidoId = pedRes.insertId
 
-      // Insere itens (status = pronto, não passa pela cozinha)
+      // Insere itens e desconta estoque (status = pronto, não passa pela cozinha)
       for (const item of itens) {
+        const [prodRows] = await conn.execute(
+          `SELECT id, gerenciar_estoque, estoque_atual FROM produtos WHERE id = ? AND ativo = 1 LIMIT 1 FOR UPDATE`,
+          [item.produto_id]
+        )
+
+        if (!prodRows || prodRows.length === 0) {
+          throw new Error(`Produto "${item.nome_produto || item.produto_id}" não encontrado`)
+        }
+
+        const prod = prodRows[0]
+        const qtd  = Number(item.quantidade)
+
+        const estoqueAtual = Number(prod.estoque_atual)
+        const temEstoque   = prod.gerenciar_estoque || estoqueAtual > 0
+
+        // Bloqueia venda apenas quando gerenciar_estoque está ativo e o estoque é insuficiente
+        if (prod.gerenciar_estoque && estoqueAtual < qtd) {
+          throw new Error(
+            estoqueAtual <= 0
+              ? `"${item.nome_produto}" sem estoque disponível`
+              : `Estoque insuficiente para "${item.nome_produto}". Disponível: ${estoqueAtual}`
+          )
+        }
+
         await conn.execute(
           `INSERT INTO pedido_itens (pedido_id, produto_id, quantidade, preco_unitario, preco_total, status)
            VALUES (?, ?, ?, ?, ?, 'pronto')`,
-          [pedidoId, item.produto_id, item.quantidade, item.preco_unit, Number(item.preco_unit) * Number(item.quantidade)]
+          [pedidoId, item.produto_id, qtd, item.preco_unit, Number(item.preco_unit) * qtd]
         )
+
+        // Decrementa sempre que o produto tem estoque configurado (>0) ou gerenciar_estoque ativo
+        if (temEstoque) {
+          await conn.execute(
+            `UPDATE produtos SET estoque_atual = GREATEST(0, estoque_atual - ?) WHERE id = ?`,
+            [qtd, item.produto_id]
+          )
+        }
       }
 
       // Registro em pagamentos

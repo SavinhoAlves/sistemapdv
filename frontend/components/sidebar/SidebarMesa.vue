@@ -3,7 +3,7 @@
 
     <aside
       v-if="modelValue"
-      class="fixed right-0 top-0 w-[420px] h-screen bg-white dark:bg-neutral-900 border-l border-neutral-200 dark:border-neutral-800 shadow-2xl flex flex-col overflow-hidden z-30"
+      class="fixed right-0 top-0 w-full lg:w-[420px] h-screen bg-white dark:bg-neutral-900 border-l border-neutral-200 dark:border-neutral-800 shadow-2xl flex flex-col overflow-hidden z-30"
     >
 
       <!-- HEADER -->
@@ -408,6 +408,7 @@
 <script setup lang="ts">
 import { ref, computed, watch, nextTick, onBeforeUnmount } from 'vue'
 import { useCaixaStore } from '~/stores/caixa'
+import { useConfigStore } from '~/stores/configuracoes'
 import {
   X,
   PrinterIcon,
@@ -433,6 +434,7 @@ const emit = defineEmits(['update:modelValue', 'abrir-produtos', 'estoque-atuali
 const api         = useApi()
 const toastStore  = useToastStore()
 const caixaStore  = useCaixaStore()
+const configStore = useConfigStore()
 const caixaAberto = computed(() => caixaStore.aberto)
 
 function exigirCaixa() {
@@ -550,6 +552,25 @@ function onPago() {
 }
 
 // ─── Impressão ────────────────────────────────────────────
+function imprimirHtml(html: string) {
+  const iframe = document.createElement('iframe')
+  iframe.style.cssText = 'position:fixed;top:-9999px;left:-9999px;width:1px;height:1px;border:none;'
+  document.body.appendChild(iframe)
+
+  iframe.onload = () => {
+    setTimeout(() => {
+      iframe.contentWindow!.focus()
+      iframe.contentWindow!.print()
+      setTimeout(() => document.body.removeChild(iframe), 2000)
+    }, 250)
+  }
+
+  const doc = iframe.contentDocument!
+  doc.open()
+  doc.write(html)
+  doc.close()
+}
+
 function imprimir() {
   const mesa   = props.mesa
   const itens  = produtos.value
@@ -609,11 +630,9 @@ function imprimir() {
       ${abats.length ? `<tr class="liquido"><td colspan="3">Total a pagar</td><td style="text-align:right">R$ ${liquido.toFixed(2)}</td></tr>` : ''}
     </tbody>
   </table>
-  <script>window.onload=()=>{window.print();window.close()}<\/script>
   </body></html>`
 
-  const win = window.open('', '_blank', 'width=380,height=600')
-  if (win) { win.document.write(html); win.document.close() }
+  imprimirHtml(html)
 }
 
 // ─── Swipe ────────────────────────────────────────────────
@@ -902,9 +921,77 @@ function handleRemover() {
   fecharRadial()
 }
 
-function handleReimprimir() {
+async function handleReimprimir() {
+  const produto = produtoSelecionado.value
   fecharRadial()
-  toastStore.info('Reimprimindo ficha...')
+  if (!produto) return
+
+  await configStore.carregar()
+
+  const nomeRest = configStore.nome_restaurante || 'Restaurante PDV'
+  const logo     = configStore.logo_base64
+  const mensagem = configStore.mensagem_ficha || 'Obrigado pela preferência!'
+  const mm     = configStore.impressora_largura === 58 ? 58 : 80
+  const copias = Math.max(1, configStore.impressora_copias || 1)
+
+  const mesa    = props.mesa
+  const dataStr = new Date().toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })
+  const ref     = `P${String(produto.pedido_id).padStart(6, '0')}`
+
+  const logoHtml = logo
+    ? `<img src="${logo}" style="height:10mm;object-fit:contain;margin-bottom:2mm;" />`
+    : ''
+
+  const fichas: string[] = []
+  for (let u = 0; u < produto.quantidade; u++) {
+    for (let c = 0; c < copias; c++) {
+      fichas.push(`
+        <div class="ticket">
+          ${logoHtml}
+          <div class="restaurante">${nomeRest}</div>
+          <div class="info">${dataStr} · ${mesa?.nome_mesa || `Mesa ${mesa?.id}`}</div>
+          <div class="sep"></div>
+          <div class="produto">${produto.nome}</div>
+          <div class="sep"></div>
+          <div class="codigo">${ref}</div>
+          <div class="mensagem">${mensagem}</div>
+        </div>
+      `)
+    }
+  }
+
+  const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Reimpressão</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: monospace; background: #fff; }
+    @page { size: ${mm}mm auto; margin: 0; }
+    .ticket {
+      width: ${mm}mm;
+      margin: 0 auto;
+      padding: 4mm 3mm 5mm;
+      text-align: center;
+      page-break-after: always;
+    }
+    .ticket:last-child { page-break-after: avoid; }
+    .restaurante { font-size: ${mm < 70 ? 7 : 8}pt; font-weight: 900; letter-spacing: 0.1em; text-transform: uppercase; }
+    .info { font-size: 6pt; color: #666; margin-top: 1mm; }
+    .sep { border-top: 1px dashed #000; margin: 3mm 0; }
+    .produto {
+      font-size: ${mm < 70 ? 16 : 20}pt;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: 0.02em;
+      padding: 3mm 1mm;
+      word-break: break-word;
+      line-height: 1.15;
+    }
+    .codigo { font-size: 6pt; color: #aaa; margin-top: 1mm; }
+    .mensagem { font-size: 6pt; color: #888; font-style: italic; margin-top: 2mm; }
+  </style></head><body>
+  ${fichas.join('')}
+  </body></html>`
+
+  imprimirHtml(html)
 }
 
 // ─── API ─────────────────────────────────────────────────

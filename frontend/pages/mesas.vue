@@ -12,19 +12,19 @@
       <main class="flex-1 overflow-hidden">
 
         <!-- LISTA DE MESAS -->
-        <div v-if="!modoProdutos" class="h-full overflow-auto p-8">
+        <div v-if="!modoProdutos" class="h-full overflow-auto p-4 sm:p-6 lg:p-8">
 
           <!-- HEADER -->
-          <div class="flex items-center justify-between mb-8">
+          <div class="flex flex-wrap items-center justify-between gap-3 mb-6 lg:mb-8">
             <div>
-              <h1 class="text-3xl font-black text-neutral-900 dark:text-white">Mesas</h1>
+              <h1 class="text-2xl sm:text-3xl font-black text-neutral-900 dark:text-white">Mesas</h1>
               <p class="text-sm text-neutral-500 dark:text-neutral-400 mt-1">
                 {{ mesas.length }} mesa{{ mesas.length !== 1 ? 's' : '' }} em atendimento
               </p>
             </div>
             <button
               @click="caixaAberto ? modalAbrirMesa = true : toastStore.warning('Abra o caixa para iniciar atendimentos')"
-              class="h-11 px-6 rounded-2xl text-white font-black text-sm uppercase tracking-wider transition-all flex items-center gap-2"
+              class="h-11 px-6 rounded-2xl text-white font-black text-sm uppercase tracking-wider transition-all flex items-center gap-2 shrink-0"
               :class="caixaAberto
                 ? 'bg-orange-500 hover:bg-orange-600 active:scale-95'
                 : 'bg-neutral-300 dark:bg-neutral-700 cursor-not-allowed opacity-60'"
@@ -69,10 +69,10 @@
               v-for="mesa in mesas"
               :key="mesa.id"
               @click="abrirMesa(mesa)"
-              class="group relative rounded-3xl border transition-all hover:-translate-y-1 active:scale-95 overflow-hidden text-left"
+              class="group relative rounded-3xl border transition-all hover:-translate-y-1 active:scale-95 overflow-hidden text-left shadow-sm shadow-black/10 dark:shadow-black/60"
               :class="mesaSelecionada?.id === mesa.id
-                ? 'bg-orange-500 border-orange-500 shadow-xl shadow-orange-200 -translate-y-1'
-                : 'bg-white dark:bg-neutral-900 border-orange-200 dark:border-neutral-700 hover:border-orange-400 dark:hover:border-orange-500 hover:shadow-lg'"
+                ? 'bg-orange-500 border-orange-500 shadow-xl shadow-orange-300/50 dark:shadow-black/70 -translate-y-1'
+                : 'bg-white dark:bg-neutral-900 border-orange-200 dark:border-neutral-700 hover:border-orange-400 dark:hover:border-orange-500 hover:shadow-lg hover:shadow-black/10 dark:hover:shadow-black/70'"
             >
               <!-- indicador ativo -->
               <div
@@ -152,7 +152,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, nextTick } from 'vue'
+import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
 import { Plus, LayoutGrid } from 'lucide-vue-next'
 
 import Navbar from '~/layouts/Navbar.vue'
@@ -226,7 +226,22 @@ const onMesaFechada = () => {
   carregarMesas()
 }
 
-onMounted(carregarMesas)
+let pollingTimer: ReturnType<typeof setInterval> | null = null
+
+function onVisibilityChange() {
+  if (!document.hidden) carregarMesas()
+}
+
+onMounted(() => {
+  carregarMesas()
+  pollingTimer = setInterval(() => { if (!document.hidden) carregarMesas() }, 20000)
+  document.addEventListener('visibilitychange', onVisibilityChange)
+})
+
+onUnmounted(() => {
+  if (pollingTimer) clearInterval(pollingTimer)
+  document.removeEventListener('visibilitychange', onVisibilityChange)
+})
 </script>
 
 <style scoped>
@@ -234,7 +249,9 @@ onMounted(carregarMesas)
   transition: padding-right 0.28s cubic-bezier(0.16, 1, 0.3, 1);
   will-change: padding-right;
 }
-.pagina-mesas.sidebar-open {
-  padding-right: 420px;
+@media (min-width: 1024px) {
+  .pagina-mesas.sidebar-open {
+    padding-right: 420px;
+  }
 }
 </style>

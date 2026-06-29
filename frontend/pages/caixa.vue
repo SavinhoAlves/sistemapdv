@@ -1,5 +1,8 @@
 <template>
-  <div class="h-screen flex flex-col bg-neutral-100 dark:bg-neutral-950 overflow-hidden transition-colors duration-200">
+  <div
+    class="h-screen flex flex-col bg-neutral-100 dark:bg-neutral-950 overflow-hidden transition-colors duration-200"
+    :class="caixaAberto && !isAdmin ? 'lg:pr-72 xl:pr-80' : ''"
+  >
     <Navbar />
 
     <!-- CAIXA FECHADO -->
@@ -11,33 +14,136 @@
       <p class="text-sm text-neutral-400">O administrador precisa abrir o caixa para iniciar as vendas.</p>
     </div>
 
-    <template v-else>
-      <!-- TABS -->
-      <div class="bg-white dark:bg-neutral-900 border-b border-neutral-200 dark:border-neutral-800 px-5 flex items-center gap-1 h-11 shrink-0">
-        <button @click="aba = 'venda'"
-          class="h-7 px-4 rounded-lg text-xs font-black transition-all"
-          :class="aba === 'venda' ? 'bg-orange-500 text-white' : 'text-neutral-500 dark:text-neutral-400 hover:text-neutral-800 dark:hover:text-white'">
-          Venda de Fichas
-        </button>
-        <button v-if="isAdmin" @click="aba = 'mesas'"
-          class="h-7 px-4 rounded-lg text-xs font-black transition-all"
-          :class="aba === 'mesas' ? 'bg-orange-500 text-white' : 'text-neutral-500 dark:text-neutral-400 hover:text-neutral-800 dark:hover:text-white'">
-          Fechar Mesa
-        </button>
-        <div class="ml-auto flex items-center gap-2" v-if="isAdmin">
-          <button @click="modalMovimento = 'suprimento'"
-            class="h-7 px-3 rounded-lg bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/20 text-blue-500 text-xs font-black transition-all flex items-center gap-1">
-            <ArrowDownLeft :size="11" /> Suprimento
-          </button>
-          <button @click="modalMovimento = 'sangria'"
-            class="h-7 px-3 rounded-lg bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 text-red-400 text-xs font-black transition-all flex items-center gap-1">
-            <ArrowUpRight :size="11" /> Sangria
-          </button>
+    <!-- ══ PAINEL ADMIN ══ -->
+    <template v-else-if="isAdmin">
+      <div class="flex-1 overflow-y-auto">
+
+        <!-- HEADER + AÇÕES -->
+        <div class="bg-white dark:bg-neutral-900 border-b border-neutral-200 dark:border-neutral-800 px-4 sm:px-6 py-4 flex flex-wrap items-center justify-between gap-3 shrink-0">
+          <div>
+            <h2 class="text-base font-black text-neutral-900 dark:text-white">Painel do Caixa</h2>
+            <p v-if="caixaStore.caixaAtual?.data_abertura" class="text-xs text-neutral-400 mt-0.5">
+              Aberto às {{ fmtHora(caixaStore.caixaAtual.data_abertura) }}
+            </p>
+          </div>
+          <div class="flex items-center gap-2">
+            <button @click="modalMovimento = 'suprimento'"
+              class="h-8 px-3 rounded-xl bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/20 text-blue-600 dark:text-blue-400 text-xs font-black transition-all flex items-center gap-1.5">
+              <ArrowDownLeft :size="12" /> Suprimento
+            </button>
+            <button @click="modalMovimento = 'sangria'"
+              class="h-8 px-3 rounded-xl bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 text-red-500 dark:text-red-400 text-xs font-black transition-all flex items-center gap-1.5">
+              <ArrowUpRight :size="12" /> Sangria
+            </button>
+            <button @click="buscarAdmin" :disabled="carregandoAdmin"
+              class="h-8 px-3 rounded-xl bg-neutral-100 dark:bg-neutral-800 hover:bg-neutral-200 dark:hover:bg-neutral-700 text-neutral-600 dark:text-neutral-400 text-xs font-black transition-all flex items-center gap-1.5 disabled:opacity-50">
+              <RefreshCw :size="12" :class="carregandoAdmin ? 'animate-spin' : ''" /> Atualizar
+            </button>
+          </div>
+        </div>
+
+        <div class="p-4 sm:p-6 space-y-4">
+
+          <!-- KPI: SALDO -->
+          <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
+            <div class="bg-white dark:bg-neutral-900 rounded-2xl border border-neutral-200 dark:border-neutral-800 p-4 sm:p-5">
+              <p class="text-[10px] font-black uppercase tracking-widest text-neutral-400 dark:text-neutral-600">Saldo Inicial</p>
+              <p class="text-xl sm:text-2xl font-black text-neutral-900 dark:text-white mt-2 leading-none">R$ {{ fmt(totaisCaixa?.valor_inicial) }}</p>
+            </div>
+            <div class="bg-white dark:bg-neutral-900 rounded-2xl border border-neutral-200 dark:border-neutral-800 p-4 sm:p-5">
+              <p class="text-[10px] font-black uppercase tracking-widest text-neutral-400 dark:text-neutral-600">Entradas</p>
+              <p class="text-xl sm:text-2xl font-black text-green-600 dark:text-green-400 mt-2 leading-none">R$ {{ fmt(totaisCaixa?.total_entradas) }}</p>
+            </div>
+            <div class="bg-white dark:bg-neutral-900 rounded-2xl border border-neutral-200 dark:border-neutral-800 p-4 sm:p-5">
+              <p class="text-[10px] font-black uppercase tracking-widest text-neutral-400 dark:text-neutral-600">Saídas</p>
+              <p class="text-xl sm:text-2xl font-black text-red-500 dark:text-red-400 mt-2 leading-none">R$ {{ fmt(totaisCaixa?.total_saidas) }}</p>
+            </div>
+            <div class="bg-white dark:bg-neutral-900 rounded-2xl border border-orange-200 dark:border-orange-900/60 p-4 sm:p-5">
+              <p class="text-[10px] font-black uppercase tracking-widest text-orange-400 dark:text-orange-600">Saldo Atual</p>
+              <p class="text-xl sm:text-2xl font-black text-orange-500 mt-2 leading-none">R$ {{ fmt(totaisCaixa?.saldo_atual) }}</p>
+            </div>
+          </div>
+
+          <!-- MESAS ABERTAS + MOVIMENTOS -->
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+
+            <!-- MESAS ABERTAS -->
+            <div class="bg-white dark:bg-neutral-900 rounded-2xl border border-neutral-200 dark:border-neutral-800 overflow-hidden">
+              <div class="px-5 py-4 border-b border-neutral-100 dark:border-neutral-800 flex items-center justify-between">
+                <h3 class="text-xs font-black uppercase tracking-widest text-neutral-400 dark:text-neutral-600">Mesas Abertas</h3>
+                <span class="text-xs font-black text-orange-500">{{ mesasAbertas.length }}</span>
+              </div>
+              <div v-if="carregandoAdmin" class="p-4 space-y-2">
+                <div v-for="n in 3" :key="n" class="h-12 rounded-xl bg-neutral-100 dark:bg-neutral-800 animate-pulse" />
+              </div>
+              <div v-else-if="!mesasAbertas.length" class="flex flex-col items-center justify-center py-10 text-center px-5">
+                <LayoutGrid :size="24" class="text-neutral-300 dark:text-neutral-700 mb-2" />
+                <p class="text-xs text-neutral-400">Nenhuma mesa aberta</p>
+              </div>
+              <div v-else class="divide-y divide-neutral-50 dark:divide-neutral-800 max-h-72 overflow-y-auto">
+                <div v-for="mesa in mesasAbertas" :key="mesa.id"
+                  class="flex items-center justify-between px-5 py-3 hover:bg-neutral-50 dark:hover:bg-neutral-800/50 transition-colors">
+                  <div class="min-w-0">
+                    <p class="text-sm font-black text-neutral-900 dark:text-white truncate">{{ mesa.nome_mesa }}</p>
+                    <p class="text-[11px] text-neutral-400 mt-0.5">{{ mesa.cliente || '—' }}{{ mesa.garcom ? ` · ${mesa.garcom}` : '' }}</p>
+                  </div>
+                  <p class="text-sm font-black text-orange-500 shrink-0 ml-3">R$ {{ fmt(mesa.total_liquido) }}</p>
+                </div>
+              </div>
+              <div v-if="mesasAbertas.length" class="px-5 py-3 border-t border-neutral-100 dark:border-neutral-800 flex items-center justify-between">
+                <span class="text-xs font-bold text-neutral-400">Total em aberto</span>
+                <span class="text-sm font-black text-neutral-900 dark:text-white">
+                  R$ {{ fmt(mesasAbertas.reduce((s: number, m: any) => s + Number(m.total_liquido || 0), 0)) }}
+                </span>
+              </div>
+            </div>
+
+            <!-- MOVIMENTOS -->
+            <div class="bg-white dark:bg-neutral-900 rounded-2xl border border-neutral-200 dark:border-neutral-800 overflow-hidden">
+              <div class="px-5 py-4 border-b border-neutral-100 dark:border-neutral-800 flex items-center justify-between">
+                <h3 class="text-xs font-black uppercase tracking-widest text-neutral-400 dark:text-neutral-600">Movimentos do Caixa</h3>
+                <span class="text-xs font-black text-neutral-500">{{ movimentos.length }}</span>
+              </div>
+              <div v-if="carregandoAdmin" class="p-4 space-y-2">
+                <div v-for="n in 5" :key="n" class="h-12 rounded-xl bg-neutral-100 dark:bg-neutral-800 animate-pulse" />
+              </div>
+              <div v-else-if="!movimentos.length" class="flex flex-col items-center justify-center py-10 text-center px-5">
+                <ArrowLeftRight :size="24" class="text-neutral-300 dark:text-neutral-700 mb-2" />
+                <p class="text-xs text-neutral-400">Sem movimentos registrados</p>
+              </div>
+              <div v-else class="divide-y divide-neutral-50 dark:divide-neutral-800 max-h-72 overflow-y-auto">
+                <div v-for="mov in movimentos" :key="mov.id"
+                  class="flex items-center gap-3 px-5 py-3 hover:bg-neutral-50 dark:hover:bg-neutral-800/50 transition-colors">
+                  <div class="w-8 h-8 rounded-xl flex items-center justify-center shrink-0"
+                    :class="['pagamento','suprimento'].includes(mov.tipo) ? 'bg-green-50 dark:bg-green-950/40' : 'bg-red-50 dark:bg-red-950/40'">
+                    <ArrowDownLeft v-if="['pagamento','suprimento'].includes(mov.tipo)" :size="13" class="text-green-600 dark:text-green-400" />
+                    <ArrowUpRight v-else :size="13" class="text-red-500 dark:text-red-400" />
+                  </div>
+                  <div class="flex-1 min-w-0">
+                    <p class="text-xs font-black text-neutral-900 dark:text-white">{{ labelMovimento(mov.tipo) }}</p>
+                    <p class="text-[11px] text-neutral-400 truncate">{{ mov.descricao || '—' }} · {{ mov.operador || '—' }}</p>
+                  </div>
+                  <div class="text-right shrink-0">
+                    <p class="text-sm font-black"
+                      :class="['pagamento','suprimento'].includes(mov.tipo) ? 'text-green-600 dark:text-green-400' : 'text-red-500 dark:text-red-400'">
+                      {{ ['pagamento','suprimento'].includes(mov.tipo) ? '+' : '−' }} R$ {{ fmt(mov.valor) }}
+                    </p>
+                    <p class="text-[10px] text-neutral-400">{{ fmtHora(mov.created_at) }}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+          </div>
         </div>
       </div>
+    </template>
 
-      <!-- ══ ABA: VENDA DIRETA ══ -->
-      <div v-if="aba === 'venda'" class="flex-1 flex overflow-hidden">
+    <!-- ══ POS: VENDA DE FICHAS (operador/caixa) ══ -->
+    <template v-else>
+
+      <!-- VENDA DE FICHAS -->
+      <div class="flex-1 flex overflow-hidden">
 
         <!-- PRODUTOS -->
         <div class="flex-1 flex flex-col overflow-hidden">
@@ -74,21 +180,42 @@
               <button
                 v-for="p in produtosFiltrados" :key="p.id"
                 @click="adicionarAoCarrinho(p)"
-                class="group bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl p-3.5 text-left hover:border-orange-400 dark:hover:border-orange-500 hover:shadow-md active:scale-95 transition-all"
+                class="group relative bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl p-3.5 flex flex-col items-center text-center hover:border-orange-400 dark:hover:border-orange-500 hover:shadow-md active:scale-95 transition-all"
+                :class="p.gerenciar_estoque && p.estoque_atual <= 0 ? 'opacity-50 cursor-not-allowed hover:border-neutral-200 dark:hover:border-neutral-800 hover:shadow-none' : ''"
               >
+                <!-- BADGE ESTOQUE -->
+                <span
+                  v-if="p.gerenciar_estoque && p.estoque_atual <= 0"
+                  class="absolute top-1.5 right-1.5 text-[9px] font-black bg-red-100 dark:bg-red-950/50 text-red-500 dark:text-red-400 px-1.5 py-0.5 rounded-md leading-none"
+                >Esgotado</span>
+                <span
+                  v-else-if="p.gerenciar_estoque && p.estoque_minimo > 0 && p.estoque_atual <= p.estoque_minimo"
+                  class="absolute top-1.5 right-1.5 text-[9px] font-black bg-amber-100 dark:bg-amber-950/50 text-amber-600 dark:text-amber-400 px-1.5 py-0.5 rounded-md leading-none"
+                >{{ p.estoque_atual }} un.</span>
+
                 <div class="w-8 h-8 rounded-xl bg-orange-100 dark:bg-orange-950/40 flex items-center justify-center mb-2.5">
                   <UtensilsCrossed :size="14" class="text-orange-500" />
                 </div>
                 <p class="text-xs font-black text-neutral-900 dark:text-white leading-snug line-clamp-2">{{ p.nome }}</p>
-                <p v-if="p.categoria" class="text-[10px] text-neutral-400 mt-0.5 truncate">{{ p.categoria }}</p>
+                <p v-if="p.categoria" class="text-[10px] text-neutral-400 mt-0.5 truncate w-full">{{ p.categoria }}</p>
                 <p class="text-sm font-black text-orange-500 mt-1.5">R$ {{ fmt(p.preco) }}</p>
               </button>
             </div>
           </div>
         </div>
 
+        <!-- BACKDROP CARRINHO (mobile) -->
+        <div
+          v-if="carrinhoAberto"
+          @click="carrinhoAberto = false"
+          class="fixed inset-0 bg-black/40 z-10 lg:hidden"
+        />
+
         <!-- CARRINHO -->
-        <div class="w-72 xl:w-80 bg-white dark:bg-neutral-900 border-l border-neutral-200 dark:border-neutral-800 flex flex-col shrink-0">
+        <div
+          class="fixed right-0 top-0 w-full sm:w-96 lg:w-72 xl:w-80 h-screen bg-white dark:bg-neutral-900 border-l border-neutral-200 dark:border-neutral-800 shadow-2xl dark:shadow-black/60 flex flex-col z-20 transition-transform duration-300 lg:translate-x-0"
+          :class="carrinhoAberto ? 'translate-x-0' : 'translate-x-full'"
+        >
 
           <!-- HEADER CARRINHO -->
           <div class="px-4 py-3 border-b border-neutral-100 dark:border-neutral-800 flex items-center justify-between shrink-0">
@@ -99,10 +226,16 @@
                 {{ carrinho.length }}
               </span>
             </div>
-            <button v-if="carrinho.length" @click="carrinho = []"
-              class="text-[10px] font-black text-red-400 hover:text-red-500 transition-colors">
-              Limpar
-            </button>
+            <div class="flex items-center gap-2">
+              <button v-if="carrinho.length" @click="carrinho = []"
+                class="text-[10px] font-black text-red-400 hover:text-red-500 transition-colors">
+                Limpar
+              </button>
+              <button @click="carrinhoAberto = false"
+                class="lg:hidden w-7 h-7 rounded-lg bg-neutral-100 dark:bg-neutral-800 hover:bg-neutral-200 dark:hover:bg-neutral-700 flex items-center justify-center text-neutral-500 dark:text-neutral-400 transition-colors">
+                <X :size="14" />
+              </button>
+            </div>
           </div>
 
           <!-- ITENS -->
@@ -213,108 +346,19 @@
           </div>
         </div>
       </div>
-
-      <!-- ══ ABA: MESAS ══ -->
-      <div v-else class="flex-1 overflow-y-auto p-5 space-y-5">
-
-        <!-- TOTAIS DO CAIXA -->
-        <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          <div class="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl p-4">
-            <p class="text-[10px] font-black uppercase tracking-widest text-neutral-400 mb-1">Saldo Inicial</p>
-            <p class="text-xl font-black text-neutral-700 dark:text-neutral-300">R$ {{ fmt(totais?.valor_inicial) }}</p>
-          </div>
-          <div class="bg-white dark:bg-neutral-900 border border-green-200 dark:border-green-900 rounded-2xl p-4">
-            <p class="text-[10px] font-black uppercase tracking-widest text-green-500 mb-1">Total Entradas</p>
-            <p class="text-xl font-black text-green-600 dark:text-green-400">+ R$ {{ fmt(totais?.total_entradas) }}</p>
-          </div>
-          <div class="bg-white dark:bg-neutral-900 border border-red-200 dark:border-red-900 rounded-2xl p-4">
-            <p class="text-[10px] font-black uppercase tracking-widest text-red-400 mb-1">Total Saídas</p>
-            <p class="text-xl font-black text-red-500 dark:text-red-400">− R$ {{ fmt(totais?.total_saidas) }}</p>
-          </div>
-          <div class="bg-orange-500 rounded-2xl p-4">
-            <p class="text-[10px] font-black uppercase tracking-widest text-orange-100 mb-1">Saldo Atual</p>
-            <p class="text-xl font-black text-white">R$ {{ fmt(totais?.saldo_atual) }}</p>
-          </div>
-        </div>
-
-        <!-- MESAS ABERTAS -->
-        <div>
-          <h2 class="text-xs font-black uppercase tracking-widest text-neutral-400 mb-3">Mesas para fechamento</h2>
-          <div v-if="!mesasAbertas.length" class="flex flex-col items-center justify-center py-12 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl gap-2 text-center">
-            <LayoutGrid :size="28" class="text-neutral-300 dark:text-neutral-700" />
-            <p class="text-sm text-neutral-400">Nenhuma mesa aguardando fechamento</p>
-          </div>
-          <div v-else class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
-            <button v-for="mesa in mesasAbertas" :key="mesa.id"
-              @click="abrirPagamento(mesa)"
-              class="group bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl p-5 text-left hover:border-orange-400 dark:hover:border-orange-500 hover:shadow-lg active:scale-95 transition-all">
-              <div class="flex items-start justify-between mb-4">
-                <div>
-                  <p class="text-base font-black text-neutral-900 dark:text-white">{{ mesa.nome_mesa }}</p>
-                  <p v-if="mesa.garcom" class="text-xs text-neutral-400 mt-0.5">{{ mesa.garcom }}</p>
-                </div>
-                <span class="text-[10px] font-black px-2 py-1 rounded-lg bg-orange-100 dark:bg-orange-950/40 text-orange-600 dark:text-orange-400">ABERTA</span>
-              </div>
-              <div class="flex items-end justify-between">
-                <div>
-                  <p class="text-[11px] text-neutral-400">Total</p>
-                  <p class="text-xl font-black text-neutral-900 dark:text-white">R$ {{ fmt(mesa.total_liquido) }}</p>
-                  <p v-if="Number(mesa.desconto) > 0" class="text-[11px] text-green-500 font-bold">− R$ {{ fmt(mesa.desconto) }} desc.</p>
-                </div>
-                <div class="w-10 h-10 rounded-xl bg-orange-500 group-hover:bg-orange-400 flex items-center justify-center transition-colors">
-                  <CreditCard :size="16" class="text-white" />
-                </div>
-              </div>
-              <p class="text-[10px] text-neutral-400 mt-3">{{ tempoAberta(mesa.data_abertura) }}</p>
-            </button>
-          </div>
-        </div>
-
-        <!-- EXTRATO DO CAIXA -->
-        <div class="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl overflow-hidden">
-          <div class="px-5 py-4 border-b border-neutral-100 dark:border-neutral-800 flex items-center justify-between">
-            <h2 class="text-xs font-black uppercase tracking-widest text-neutral-400">Extrato do caixa</h2>
-            <div class="flex items-center gap-2">
-              <span class="text-[11px] text-neutral-400">{{ movimentos.length }} transações</span>
-              <button @click="buscar" class="w-7 h-7 rounded-lg bg-neutral-100 dark:bg-neutral-800 flex items-center justify-center hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors">
-                <RefreshCw :size="12" :class="carregando ? 'animate-spin' : ''" class="text-neutral-500" />
-              </button>
-            </div>
-          </div>
-          <div v-if="!movimentos.length" class="flex flex-col items-center justify-center py-10 gap-2 text-neutral-400">
-            <ReceiptText :size="24" class="text-neutral-300 dark:text-neutral-700" />
-            <p class="text-sm">Nenhuma transação registrada</p>
-          </div>
-          <div v-else class="divide-y divide-neutral-100 dark:divide-neutral-800 max-h-72 overflow-auto">
-            <div v-for="mov in movimentos" :key="mov.id" class="flex items-center gap-3 px-5 py-3">
-              <div class="w-8 h-8 rounded-xl flex items-center justify-center shrink-0"
-                :class="{
-                  'bg-green-100 dark:bg-green-950/50': mov.tipo === 'pagamento',
-                  'bg-blue-100 dark:bg-blue-950/50':  mov.tipo === 'suprimento',
-                  'bg-red-100 dark:bg-red-950/50':    mov.tipo === 'sangria',
-                  'bg-orange-100 dark:bg-orange-950/50': mov.tipo === 'estorno',
-                }">
-                <component :is="iconeMovimento(mov.tipo)" :size="13"
-                  :class="{
-                    'text-green-600 dark:text-green-400': mov.tipo === 'pagamento',
-                    'text-blue-600 dark:text-blue-400':  mov.tipo === 'suprimento',
-                    'text-red-500':                      mov.tipo === 'sangria',
-                    'text-orange-500':                   mov.tipo === 'estorno',
-                  }" />
-              </div>
-              <div class="flex-1 min-w-0">
-                <p class="text-xs font-bold text-neutral-800 dark:text-neutral-200 truncate">{{ mov.descricao || labelTipo(mov.tipo) }}</p>
-                <p class="text-[10px] text-neutral-400 mt-0.5">{{ mov.operador || '—' }} · {{ fmtHora(mov.created_at) }}</p>
-              </div>
-              <span class="text-sm font-black shrink-0 w-24 text-right"
-                :class="['sangria','estorno'].includes(mov.tipo) ? 'text-red-500' : 'text-green-600 dark:text-green-400'">
-                {{ ['sangria','estorno'].includes(mov.tipo) ? '−' : '+' }} R$ {{ fmt(mov.valor) }}
-              </span>
-            </div>
-          </div>
-        </div>
-      </div>
     </template>
+
+    <!-- FAB CARRINHO (mobile, não-admin) -->
+    <button
+      v-if="!isAdmin"
+      @click="carrinhoAberto = true"
+      class="fixed bottom-6 right-6 z-30 lg:hidden w-14 h-14 rounded-2xl bg-orange-500 shadow-xl shadow-orange-500/40 flex items-center justify-center transition-all active:scale-95"
+    >
+      <ShoppingCart :size="22" class="text-white" />
+      <span v-if="carrinho.length" class="absolute -top-1.5 -right-1.5 w-6 h-6 rounded-full bg-red-500 border-2 border-white text-white text-[10px] font-black flex items-center justify-center">
+        {{ carrinho.length }}
+      </span>
+    </button>
 
     <!-- ══ MODAL FICHA ══ -->
     <Teleport to="body">
@@ -398,17 +442,6 @@
       </Transition>
     </Teleport>
 
-    <!-- MODAL PAGAMENTO MESA -->
-    <ModalPagamento
-      v-if="mesaParaPagar"
-      :aberto="!!mesaParaPagar"
-      :mesa="mesaParaPagar"
-      :pedido-id="mesaParaPagar.pedido_id ?? null"
-      :total="Number(mesaParaPagar.total_liquido ?? 0)"
-      @fechar="mesaParaPagar = null"
-      @pago="onPago"
-    />
-
     <!-- MODAL SANGRIA / SUPRIMENTO -->
     <Teleport to="body">
       <Transition name="fade">
@@ -445,15 +478,14 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, reactive } from 'vue'
+import { ref, computed, onMounted, onUnmounted, reactive } from 'vue'
 import {
   LockKeyhole, Package, ShoppingCart, Plus, Minus, CheckCircle2, Loader2,
-  CreditCard, LayoutGrid, RefreshCw, ReceiptText, Printer, Search,
+  CreditCard, Printer, Search, X, RefreshCw, LayoutGrid,
   Banknote, QrCode, Wallet, ArrowLeftRight, ArrowUpRight, ArrowDownLeft,
   UtensilsCrossed
 } from 'lucide-vue-next'
 import Navbar from '~/layouts/Navbar.vue'
-import ModalPagamento from '~/components/modals/ModalPagamento.vue'
 import { useApi } from '~/services/api'
 import { useCaixaStore }  from '~/stores/caixa'
 import { useToastStore }  from '~/stores/toast'
@@ -471,11 +503,57 @@ const configStore = useConfigStore()
 const isAdmin    = computed(() => authStore.usuario?.cargo === 'administrador')
 const caixaAberto = computed(() => caixaStore.aberto)
 
-// ══ ABA ══
-const aba = ref<'venda' | 'mesas'>('venda')
+const carrinhoAberto = ref(false)
+
+// ══ ADMIN: PAINEL DO CAIXA ══
+const movimentos      = ref<any[]>([])
+const totaisCaixa     = ref<any>(null)
+const mesasAbertas    = ref<any[]>([])
+const carregandoAdmin = ref(false)
+
+function labelMovimento(tipo: string) {
+  const map: Record<string, string> = {
+    pagamento: 'Pagamento', suprimento: 'Suprimento', sangria: 'Sangria', estorno: 'Estorno'
+  }
+  return map[tipo] || tipo
+}
+
+function fmtHora(iso: string) {
+  if (!iso) return ''
+  const d = new Date(iso)
+  return isNaN(d.getTime()) ? '' : d.toLocaleString('pt-BR', { hour: '2-digit', minute: '2-digit' })
+}
+
+async function buscarAdmin() {
+  if (!isAdmin.value) return
+  carregandoAdmin.value = true
+  try {
+    const [mov, mesas] = await Promise.all([
+      api.get<any>('/caixa/movimentos'),
+      api.get<any[]>('/caixa/mesas-abertas')
+    ])
+    movimentos.value   = mov?.movimentos || []
+    totaisCaixa.value  = mov?.totais || null
+    mesasAbertas.value = Array.isArray(mesas) ? mesas : []
+  } catch {
+    toastStore.error('Erro ao carregar dados do painel')
+  } finally {
+    carregandoAdmin.value = false
+  }
+}
 
 // ══ PRODUTOS ══
-interface Produto { id: number; nome: string; preco: number; categoria: string | null; categoria_id: number | null; ativo: number }
+interface Produto {
+  id: number
+  nome: string
+  preco: number
+  categoria: string | null
+  categoria_id: number | null
+  ativo: number
+  gerenciar_estoque: number
+  estoque_atual: number
+  estoque_minimo: number
+}
 const todosProdutos   = ref<Produto[]>([])
 const categorias      = ref<string[]>([])
 const categoriaAtiva  = ref('Todos')
@@ -497,7 +575,22 @@ const carrinho = ref<CartItem[]>([])
 
 function adicionarAoCarrinho(p: Produto) {
   const idx = carrinho.value.findIndex(i => i.produto_id === p.id)
-  if (idx >= 0) { carrinho.value[idx].quantidade++ } else {
+  const qtdNoCarrinho = idx >= 0 ? carrinho.value[idx].quantidade : 0
+
+  if (p.gerenciar_estoque) {
+    if (p.estoque_atual <= 0) {
+      toastStore.warning(`${p.nome} está sem estoque`)
+      return
+    }
+    if (qtdNoCarrinho >= p.estoque_atual) {
+      toastStore.warning(`Estoque insuficiente — disponível: ${p.estoque_atual}`)
+      return
+    }
+  }
+
+  if (idx >= 0) {
+    carrinho.value[idx].quantidade++
+  } else {
     carrinho.value.push({ produto_id: p.id, nome_produto: p.nome, preco_unit: Number(p.preco), quantidade: 1 })
   }
 }
@@ -553,7 +646,8 @@ async function confirmarVenda() {
     desconto.value = ''
     metodoSelecionado.value = null
     valorRecebido.value = ''
-    await buscar()
+    carrinhoAberto.value = false
+    await Promise.all([buscar(), carregarProdutos()])
     if (configStore.impressora_auto_imprimir) imprimirFicha()
   } catch (e: any) {
     toastStore.error('Erro ao registrar venda', e?.message)
@@ -575,11 +669,9 @@ function imprimirFicha() {
     ? `<img src="${logo}" style="height:40px;object-fit:contain;margin-bottom:6px;" />`
     : ''
 
-  // Paper width: 58mm → 220px, 80mm → 302px
-  const largura  = configStore.impressora_largura === 58 ? 220 : 302
-  const copias   = Math.max(1, configStore.impressora_copias || 1)
+  const mm     = configStore.impressora_largura === 58 ? 58 : 80
+  const copias = Math.max(1, configStore.impressora_copias || 1)
 
-  // Uma ficha por unidade por cópia
   const fichas: string[] = []
   for (const item of ficha.itens) {
     for (let u = 0; u < item.quantidade; u++) {
@@ -604,56 +696,55 @@ function imprimirFicha() {
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: monospace; background: #fff; }
-    @page { size: ${largura}px auto; margin: 0; }
+    @page { size: ${mm}mm auto; margin: 0; }
     .ticket {
-      width: ${largura}px;
+      width: ${mm}mm;
       margin: 0 auto;
-      padding: 16px 12px 20px;
+      padding: 4mm 3mm 5mm;
       text-align: center;
       page-break-after: always;
     }
     .ticket:last-child { page-break-after: avoid; }
-    .restaurante { font-size: ${largura < 250 ? 10 : 12}px; font-weight: 900; letter-spacing: 0.1em; text-transform: uppercase; }
-    .info { font-size: 9px; color: #666; margin-top: 2px; }
-    .sep { border-top: 1px dashed #000; margin: 10px 0; }
+    .restaurante { font-size: ${mm < 70 ? 7 : 8}pt; font-weight: 900; letter-spacing: 0.1em; text-transform: uppercase; }
+    .info { font-size: 6pt; color: #666; margin-top: 1mm; }
+    .sep { border-top: 1px dashed #000; margin: 3mm 0; }
     .produto {
-      font-size: ${largura < 250 ? 22 : 28}px;
+      font-size: ${mm < 70 ? 16 : 20}pt;
       font-weight: 900;
       text-transform: uppercase;
       letter-spacing: 0.02em;
-      padding: 10px 4px;
+      padding: 3mm 1mm;
       word-break: break-word;
       line-height: 1.15;
     }
-    .codigo { font-size: 9px; color: #aaa; margin-top: 4px; }
-    .mensagem { font-size: 9px; color: #888; font-style: italic; margin-top: 6px; }
+    .codigo { font-size: 6pt; color: #aaa; margin-top: 1mm; }
+    .mensagem { font-size: 6pt; color: #888; font-style: italic; margin-top: 2mm; }
   </style></head><body>
   ${fichas.join('')}
-  <script>window.onload = () => { window.print(); }<\/script>
   </body></html>`
 
-  const w = window.open('', '_blank', `width=${largura + 60},height=500`)
-  if (w) { w.document.write(html); w.document.close() }
+  imprimirHtml(html)
 }
 
-// ══ MESAS ══
-const carregando    = ref(false)
-const mesasAbertas  = ref<any[]>([])
-const movimentos    = ref<any[]>([])
-const totais        = ref<any>(null)
-const mesaParaPagar = ref<any>(null)
+function imprimirHtml(html: string) {
+  const iframe = document.createElement('iframe')
+  iframe.style.cssText = 'position:fixed;top:-9999px;left:-9999px;width:1px;height:1px;border:none;'
+  document.body.appendChild(iframe)
 
-function abrirPagamento(mesa: any) { mesaParaPagar.value = mesa }
-async function onPago() {
-  mesaParaPagar.value = null
-  toastStore.success('Pagamento registrado!')
-  await buscar()
-}
+  // onload definido ANTES de escrever o documento
+  iframe.onload = () => {
+    // delay para o browser processar @page size antes de abrir o diálogo
+    setTimeout(() => {
+      iframe.contentWindow!.focus()
+      iframe.contentWindow!.print()
+      setTimeout(() => document.body.removeChild(iframe), 2000)
+    }, 250)
+  }
 
-function tempoAberta(iso: string) {
-  const diff = Math.floor((Date.now() - new Date(iso).getTime()) / 60000)
-  if (diff < 60) return `Aberta há ${diff} min`
-  return `Aberta há ${Math.floor(diff / 60)}h${diff % 60 > 0 ? ` ${diff % 60}min` : ''}`
+  const doc = iframe.contentDocument!
+  doc.open()
+  doc.write(html)
+  doc.close()
 }
 
 // ══ MOVIMENTOS ══
@@ -669,51 +760,27 @@ async function registrarMovimento() {
     toastStore.success(`${modalMovimento.value === 'sangria' ? 'Sangria' : 'Suprimento'} registrado!`)
     modalMovimento.value = null; movForm.valor = ''; movForm.descricao = ''
     await buscar()
+    if (isAdmin.value) buscarAdmin()
   } catch (e: any) { toastStore.error('Erro', e?.message) }
   finally { salvandoMov.value = false }
 }
 
 // ══ FORMATAÇÃO ══
 const fmt = (v: any) => Number(v || 0).toFixed(2)
-function fmtHora(iso: string) {
-  if (!iso) return ''
-  const d = new Date(iso)
-  return isNaN(d.getTime()) ? '' : d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
-}
 function fmtFichaDateTime(iso: string) {
   if (!iso) return ''
   const d = new Date(iso)
   return isNaN(d.getTime()) ? '' : d.toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' })
 }
 
-function iconeMovimento(tipo: string) {
-  if (tipo === 'pagamento')  return Banknote
-  if (tipo === 'suprimento') return ArrowDownLeft
-  if (tipo === 'sangria')    return ArrowUpRight
-  return Banknote
-}
-function labelTipo(tipo: string) {
-  const m: Record<string, string> = { pagamento: 'Pagamento', suprimento: 'Suprimento', sangria: 'Sangria', estorno: 'Estorno' }
-  return m[tipo] || tipo
-}
-
 // ══ BUSCA DE DADOS ══
 async function buscar() {
-  carregando.value = true
   try {
-    const [statusCaixa, mesas, extrato] = await Promise.all([
-      api.get<any>('/caixa/atual'),
-      api.get<any[]>('/caixa/mesas-abertas'),
-      api.get<any>('/caixa/movimentos')
-    ])
-    caixaStore.$patch({ aberto: statusCaixa?.aberto || false, caixaAtual: statusCaixa?.caixa || null })
-    mesasAbertas.value = mesas
-    movimentos.value   = extrato?.movimentos ?? []
-    totais.value       = extrato?.totais ?? null
+    const statusCaixa = await api.get<any>('/caixa/atual')
+    caixaStore.aberto     = statusCaixa?.aberto || false
+    caixaStore.caixaAtual = statusCaixa?.caixa  || null
   } catch {
     toastStore.error('Erro ao carregar dados do caixa')
-  } finally {
-    carregando.value = false
   }
 }
 
@@ -732,8 +799,31 @@ async function carregarMetodos() {
   } catch {}
 }
 
+async function atualizarDados() {
+  await buscar()
+  if (isAdmin.value && caixaAberto.value) {
+    buscarAdmin()
+  } else if (!isAdmin.value && caixaAberto.value) {
+    carregarProdutos()
+  }
+}
+
+let pollingTimer: ReturnType<typeof setInterval> | null = null
+
+function onVisibilityChange() {
+  if (!document.hidden) atualizarDados()
+}
+
 onMounted(async () => {
   await Promise.all([buscar(), carregarProdutos(), carregarMetodos(), configStore.carregar()])
+  if (isAdmin.value && caixaAberto.value) buscarAdmin()
+  pollingTimer = setInterval(() => { if (!document.hidden) atualizarDados() }, 30000)
+  document.addEventListener('visibilitychange', onVisibilityChange)
+})
+
+onUnmounted(() => {
+  if (pollingTimer) clearInterval(pollingTimer)
+  document.removeEventListener('visibilitychange', onVisibilityChange)
 })
 </script>
 

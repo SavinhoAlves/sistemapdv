@@ -4,7 +4,6 @@ import { io, Socket } from 'socket.io-client'
 let socket: Socket | null = null
 
 export function useSocket() {
-  const config = useRuntimeConfig()
   const authStore = useAuthStore()
 
   function connect(mode?: string) {
@@ -21,7 +20,11 @@ export function useSocket() {
 
     if (mode) opts.query = { mode }
 
-    socket = io(config.public.socketUrl, opts)
+    const socketUrl = process.client
+      ? `http://${window.location.hostname}:3001`
+      : 'http://localhost:3001'
+
+    socket = io(socketUrl, opts)
 
     socket.on('connect', () => {
       console.log('✅ Socket conectado:', socket?.id)

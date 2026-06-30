@@ -192,6 +192,133 @@
             </div>
           </div>
 
+          <!-- ══ CARD: INTEGRAÇÕES ══ -->
+          <div class="bg-white dark:bg-neutral-900 rounded-3xl border border-neutral-200 dark:border-neutral-800 overflow-hidden">
+            <div class="px-6 py-5 border-b border-neutral-100 dark:border-neutral-800 flex items-center gap-3">
+              <div class="w-8 h-8 rounded-xl bg-emerald-100 dark:bg-emerald-950/40 flex items-center justify-center shrink-0">
+                <Plug :size="14" class="text-emerald-500" />
+              </div>
+              <div>
+                <h2 class="text-sm font-black text-neutral-900 dark:text-white">Integrações</h2>
+                <p class="text-[11px] text-neutral-400 mt-0.5">Conecte uma maquininha para enviar cobranças automaticamente</p>
+              </div>
+            </div>
+
+            <div class="p-6 space-y-6">
+
+              <!-- MERCADO PAGO POINT -->
+              <div class="rounded-2xl border border-neutral-200 dark:border-neutral-700 overflow-hidden">
+
+                <!-- cabeçalho da integração -->
+                <div class="flex items-center justify-between gap-4 px-5 py-4 bg-neutral-50 dark:bg-neutral-800/50">
+                  <div class="flex items-center gap-3">
+                    <div class="w-9 h-9 rounded-xl bg-[#009EE3]/10 flex items-center justify-center shrink-0">
+                      <CreditCard :size="16" class="text-[#009EE3]" />
+                    </div>
+                    <div>
+                      <p class="text-sm font-black text-neutral-900 dark:text-white">Mercado Pago Point</p>
+                      <p class="text-[11px] text-neutral-400">Débito, crédito e Pix direto na maquininha</p>
+                    </div>
+                  </div>
+                  <button
+                    @click="mp.ativado = !mp.ativado"
+                    class="shrink-0 w-12 h-6 rounded-full transition-all relative"
+                    :class="mp.ativado ? 'bg-emerald-500' : 'bg-neutral-300 dark:bg-neutral-700'"
+                  >
+                    <span class="absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all"
+                      :class="mp.ativado ? 'left-[26px]' : 'left-0.5'" />
+                  </button>
+                </div>
+
+                <!-- campos (visíveis só quando ativado) -->
+                <Transition name="slide-down-mp">
+                  <div v-if="mp.ativado" class="p-5 space-y-4 border-t border-neutral-200 dark:border-neutral-700">
+
+                    <!-- Access Token -->
+                    <div>
+                      <label class="block text-[10px] font-black uppercase tracking-widest text-neutral-500 mb-2">
+                        Access Token
+                      </label>
+                      <div class="flex gap-2">
+                        <div class="relative flex-1">
+                          <input
+                            v-model="mp.access_token"
+                            :type="mostrarToken ? 'text' : 'password'"
+                            :placeholder="mpStore.mp.token_salvo ? `Token salvo (•••• ${mpStore.mp.token_sufixo})` : 'APP_USR-...'"
+                            class="w-full h-11 px-4 pr-10 rounded-xl border border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-800 text-neutral-900 dark:text-white text-sm outline-none focus:border-emerald-400 transition-all font-mono"
+                          />
+                          <button
+                            @click="mostrarToken = !mostrarToken"
+                            type="button"
+                            class="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-600"
+                          >
+                            <Eye v-if="!mostrarToken" :size="15" />
+                            <EyeOff v-else :size="15" />
+                          </button>
+                        </div>
+                      </div>
+                      <p class="text-[10px] text-neutral-400 mt-1.5">
+                        Obtenha em <span class="font-mono">mercadopago.com.br → Credenciais → Access Token de produção</span>
+                      </p>
+                    </div>
+
+                    <!-- Dispositivo -->
+                    <div>
+                      <label class="block text-[10px] font-black uppercase tracking-widest text-neutral-500 mb-2">
+                        Maquininha (Device ID)
+                      </label>
+                      <div class="flex gap-2">
+                        <div class="relative flex-1">
+                          <select
+                            v-if="mp.dispositivos.length > 0"
+                            v-model="mp.device_id"
+                            class="w-full h-11 px-4 rounded-xl border border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-800 text-neutral-900 dark:text-white text-sm outline-none focus:border-emerald-400 transition-all appearance-none"
+                          >
+                            <option value="">Selecione a maquininha</option>
+                            <option v-for="d in mp.dispositivos" :key="d.id" :value="d.id">
+                              {{ d.id }} {{ d.pos_id ? `· ${d.pos_id}` : '' }}
+                            </option>
+                          </select>
+                          <input
+                            v-else
+                            v-model="mp.device_id"
+                            placeholder="PAX_A910__SMARTPOS123456"
+                            class="w-full h-11 px-4 rounded-xl border border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-800 text-neutral-900 dark:text-white text-sm outline-none focus:border-emerald-400 transition-all font-mono"
+                          />
+                        </div>
+                        <button
+                          @click="buscarDispositivos"
+                          :disabled="mp.buscandoDispositivos"
+                          class="h-11 px-4 rounded-xl bg-neutral-100 dark:bg-neutral-800 hover:bg-neutral-200 dark:hover:bg-neutral-700 text-neutral-700 dark:text-neutral-300 text-xs font-black transition-all shrink-0 flex items-center gap-1.5 disabled:opacity-50"
+                        >
+                          <Loader2 v-if="mp.buscandoDispositivos" :size="13" class="animate-spin" />
+                          <RefreshCw v-else :size="13" />
+                          Buscar
+                        </button>
+                      </div>
+                      <p v-if="mp.erroDispositivos" class="text-[10px] text-red-500 mt-1.5">{{ mp.erroDispositivos }}</p>
+                      <p class="text-[10px] text-neutral-400 mt-1.5">
+                        Clique em "Buscar" após salvar o token para listar as maquininhas vinculadas à conta.
+                      </p>
+                    </div>
+
+                    <!-- Status da integração -->
+                    <div
+                      v-if="mpStore.mp.token_salvo && mpStore.mp.device_id"
+                      class="flex items-center gap-2 text-xs font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/30 rounded-xl px-4 py-3"
+                    >
+                      <CheckCircle :size="14" />
+                      Integração configurada — maquininha pronta para receber cobranças
+                    </div>
+
+                  </div>
+                </Transition>
+
+              </div>
+
+            </div>
+          </div>
+
           <!-- SALVAR -->
           <div class="flex justify-end pb-8">
             <button
@@ -257,20 +384,40 @@
   </div>
 </template>
 
+<style scoped>
+.slide-down-mp-enter-active, .slide-down-mp-leave-active { transition: all 0.22s ease }
+.slide-down-mp-enter-from, .slide-down-mp-leave-to { opacity: 0; transform: translateY(-6px) }
+</style>
+
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue'
-import { ImageIcon, Upload, Save, Loader2, UtensilsCrossed, Printer, FileText, Eye, Minus, Plus } from 'lucide-vue-next'
+import {
+  ImageIcon, Upload, Save, Loader2, UtensilsCrossed, Printer, FileText, Eye, EyeOff,
+  Minus, Plus, Plug, CreditCard, RefreshCw, CheckCircle
+} from 'lucide-vue-next'
 import Navbar from '~/layouts/Navbar.vue'
-import { useConfigStore } from '~/stores/configuracoes'
-import { useToastStore }  from '~/stores/toast'
+import { useConfigStore }      from '~/stores/configuracoes'
+import { useIntegracoesStore } from '~/stores/integracoes'
+import { useToastStore }       from '~/stores/toast'
 
 definePageMeta({ layout: false })
 
 const configStore = useConfigStore()
+const mpStore     = useIntegracoesStore()
 const toastStore  = useToastStore()
 
 const inputLogoRef = ref<HTMLInputElement | null>(null)
 const salvando     = ref(false)
+const mostrarToken = ref(false)
+
+const mp = reactive({
+  ativado:             false,
+  access_token:        '',
+  device_id:           null as string | null,
+  dispositivos:        [] as any[],
+  buscandoDispositivos: false,
+  erroDispositivos:    ''
+})
 
 const larguras = [
   { value: 58, label: '58 mm', desc: 'Bobina pequena' },
@@ -294,7 +441,25 @@ onMounted(async () => {
   form.impressora_largura       = configStore.impressora_largura
   form.impressora_copias        = configStore.impressora_copias
   form.impressora_auto_imprimir = configStore.impressora_auto_imprimir
+
+  await mpStore.carregar()
+  mp.ativado   = mpStore.mp.ativado
+  mp.device_id = mpStore.mp.device_id
 })
+
+async function buscarDispositivos() {
+  mp.buscandoDispositivos = true
+  mp.erroDispositivos     = ''
+  try {
+    const data = await mpStore.listarDispositivos()
+    mp.dispositivos = data?.devices ?? []
+    if (mp.dispositivos.length === 0) mp.erroDispositivos = 'Nenhuma maquininha encontrada nesta conta'
+  } catch (e: any) {
+    mp.erroDispositivos = e?.message || 'Erro ao buscar dispositivos'
+  } finally {
+    mp.buscandoDispositivos = false
+  }
+}
 
 function onLogoChange(e: Event) {
   const file = (e.target as HTMLInputElement).files?.[0]
@@ -316,14 +481,24 @@ async function salvar() {
   }
   salvando.value = true
   try {
-    await configStore.salvar({
-      nome_restaurante:         form.nome_restaurante.trim(),
-      logo_base64:              form.logo_base64,
-      mensagem_ficha:           form.mensagem_ficha.trim() || 'Obrigado pela preferência!',
-      impressora_largura:       form.impressora_largura,
-      impressora_copias:        form.impressora_copias,
-      impressora_auto_imprimir: form.impressora_auto_imprimir
-    })
+    await Promise.all([
+      configStore.salvar({
+        nome_restaurante:         form.nome_restaurante.trim(),
+        logo_base64:              form.logo_base64,
+        mensagem_ficha:           form.mensagem_ficha.trim() || 'Obrigado pela preferência!',
+        impressora_largura:       form.impressora_largura,
+        impressora_copias:        form.impressora_copias,
+        impressora_auto_imprimir: form.impressora_auto_imprimir
+      }),
+      mpStore.salvar({
+        ativado:      mp.ativado,
+        access_token: mp.access_token || undefined,
+        device_id:    mp.device_id || null
+      })
+    ])
+    mp.access_token = ''
+    mpStore.carregado = false
+    await mpStore.carregar()
     toastStore.success('Configurações salvas!')
   } catch (e: any) {
     toastStore.error('Erro ao salvar', e?.message)

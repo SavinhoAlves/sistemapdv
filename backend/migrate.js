@@ -124,6 +124,14 @@ async function migrate() {
     `)
     console.log('✓ Coluna caixa_id adicionada a mesas (ou já existia)')
 
+    await conn.execute(`
+      ALTER TABLE configuracoes
+        ADD COLUMN IF NOT EXISTS mp_ativado      TINYINT(1)   DEFAULT 0   AFTER impressora_auto_imprimir,
+        ADD COLUMN IF NOT EXISTS mp_access_token TEXT         DEFAULT NULL AFTER mp_ativado,
+        ADD COLUMN IF NOT EXISTS mp_device_id    VARCHAR(255) DEFAULT NULL AFTER mp_access_token
+    `)
+    console.log('✓ Colunas Mercado Pago adicionadas a configuracoes (ou já existiam)')
+
     console.log('\nMigração concluída com sucesso!')
   } finally {
     conn.release()

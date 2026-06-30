@@ -1,6 +1,7 @@
 const express = require('express')
 const path = require('path')
 const cors = require('cors')
+const os = require('os')
 require('dotenv').config()
 
 const app = express()
@@ -19,6 +20,7 @@ const sistemaRoutes     = require('./src/routes/sistema.routes')
 const usersRoutes       = require('./src/routes/users.routes')
 const vendasRoutes          = require('./src/routes/vendas.routes')
 const configuracoesRoutes   = require('./src/routes/configuracoes.routes')
+const integracoesRoutes     = require('./src/routes/integracoes.routes')
 
 /*
 |--------------------------------------------------------------------------
@@ -26,13 +28,7 @@ const configuracoesRoutes   = require('./src/routes/configuracoes.routes')
 |--------------------------------------------------------------------------
 */
 
-// Em desenvolvimento aceita qualquer origem; em produção usa CORS_ORIGIN
-app.use(cors({
-  origin: process.env.NODE_ENV === 'production'
-    ? process.env.CORS_ORIGIN
-    : true,
-  credentials: true
-}))
+app.use(cors({ origin: true, credentials: true }))
 
 app.use(express.json())
 
@@ -75,6 +71,7 @@ app.use('/api/sistema',   sistemaRoutes)
 app.use('/api/users',     usersRoutes)
 app.use('/api/vendas',         vendasRoutes)
 app.use('/api/configuracoes',  configuracoesRoutes)
+app.use('/api/integracoes',   integracoesRoutes)
 /*
 |--------------------------------------------------------------------------
 | START SERVER
@@ -84,6 +81,14 @@ app.use('/api/configuracoes',  configuracoesRoutes)
 const PORT = process.env.PORT || 3001
 
 app.listen(PORT, '0.0.0.0', () => {
-  console.log(`Servidor rodando:`)
-  console.log(`http://192.168.1.8:${PORT}`)
+  const nets = os.networkInterfaces()
+  const ips = Object.values(nets)
+    .flat()
+    .filter(n => n.family === 'IPv4' && !n.internal)
+    .map(n => n.address)
+
+  console.log(`\nServidor rodando na porta ${PORT}`)
+  console.log(`  Local:   http://localhost:${PORT}`)
+  ips.forEach(ip => console.log(`  Rede:    http://${ip}:${PORT}`))
+  console.log('')
 })

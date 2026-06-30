@@ -5,12 +5,11 @@ import { useRouter, useRuntimeConfig } from '#imports'
 let logoutEmAndamento = false
 
 export function useApi() {
-  const config = useRuntimeConfig()
   const router = useRouter()
   const authStore = useAuthStore()
 
-  const baseURL = config.public.apiUrl
-    ? `${config.public.apiUrl}/api`
+  const baseURL = process.client
+    ? `http://${window.location.hostname}:3001/api`
     : 'http://localhost:3001/api'
 
   async function request<T>(

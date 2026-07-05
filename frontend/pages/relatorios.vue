@@ -1,5 +1,6 @@
 <template>
-  <div class="min-h-screen bg-neutral-100 dark:bg-neutral-950 transition-colors duration-200">
+  <div class="min-h-screen bg-neutral-100 dark:bg-neutral-950 transition-colors duration-200 com-sidebar">
+    <Sidebar />
     <Navbar />
 
     <main class="p-6 max-w-7xl mx-auto">
@@ -15,7 +16,7 @@
           </p>
         </div>
 
-        <div class="flex flex-wrap items-center gap-2">
+        <div class="flex flex-wrap items-center gap-2 no-print">
           <div class="flex bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl p-1 gap-0.5">
             <button v-for="a in atalhos" :key="a.label" @click="aplicarAtalho(a)"
               class="h-7 px-3 rounded-lg text-xs font-black transition-all"
@@ -35,11 +36,19 @@
             class="h-9 px-4 rounded-xl bg-orange-500 hover:bg-orange-600 disabled:opacity-50 text-white text-xs font-black transition-all active:scale-95 flex items-center gap-1.5">
             <RefreshCw :size="13" :class="carregando ? 'animate-spin' : ''" /> Atualizar
           </button>
+          <button @click="imprimirRelatorio" title="Imprimir ou salvar como PDF"
+            class="h-9 px-3 rounded-xl bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 text-neutral-600 dark:text-neutral-400 text-xs font-black transition-all active:scale-95 flex items-center gap-1.5 hover:text-neutral-900 dark:hover:text-white no-print">
+            <Printer :size="13" /> Imprimir
+          </button>
+          <button @click="exportarCSV" title="Exportar a aba atual em CSV (abre no Excel)"
+            class="h-9 px-3 rounded-xl bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 text-neutral-600 dark:text-neutral-400 text-xs font-black transition-all active:scale-95 flex items-center gap-1.5 hover:text-neutral-900 dark:hover:text-white no-print">
+            <Download :size="13" /> CSV
+          </button>
         </div>
       </div>
 
       <!-- TABS + FILTROS -->
-      <div class="flex flex-col sm:flex-row sm:items-center gap-3 mb-6">
+      <div class="flex flex-col sm:flex-row sm:items-center gap-3 mb-6 no-print">
         <div class="flex gap-1 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl p-1 w-fit shrink-0">
           <button v-for="tab in tabs" :key="tab.id" @click="abaAtiva = tab.id"
             class="flex items-center gap-1.5 h-8 px-3 rounded-lg text-xs font-black transition-all"
@@ -537,6 +546,48 @@
           </template>
         </div>
 
+        <!-- ═══ AUDITORIA ════════════════════════════════════════════ -->
+        <div v-else-if="abaAtiva === 'auditoria'">
+          <div v-if="!auditoria || !auditoria.length" class="flex flex-col items-center justify-center py-20 text-center">
+            <div class="w-14 h-14 rounded-2xl bg-neutral-100 dark:bg-neutral-900 flex items-center justify-center mb-4">
+              <ShieldCheck :size="24" class="text-neutral-300 dark:text-neutral-700" />
+            </div>
+            <h3 class="text-base font-black text-neutral-700 dark:text-neutral-300">Nenhum registro no período</h3>
+            <p class="text-sm text-neutral-400 mt-1">Operações sensíveis (cancelamentos, descontos, caixa) aparecem aqui.</p>
+          </div>
+          <div v-else class="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl overflow-hidden">
+            <div class="px-5 py-4 border-b border-neutral-100 dark:border-neutral-800 flex items-center justify-between">
+              <h2 class="text-xs font-black uppercase tracking-widest text-neutral-400 dark:text-neutral-600">Trilha de Auditoria</h2>
+              <span class="text-[11px] text-neutral-400">{{ auditoria.length }} registro(s)</span>
+            </div>
+            <div class="overflow-auto max-h-[32rem]">
+              <table class="w-full text-sm">
+                <thead class="bg-neutral-50 dark:bg-neutral-800/50 sticky top-0">
+                  <tr>
+                    <th class="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-neutral-400">Data</th>
+                    <th class="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-neutral-400">Usuário</th>
+                    <th class="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-neutral-400">Ação</th>
+                    <th class="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-neutral-400">Detalhes</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="reg in auditoria" :key="reg.id"
+                    class="border-t border-neutral-100 dark:border-neutral-800 hover:bg-neutral-50 dark:hover:bg-neutral-800/40 transition-colors">
+                    <td class="px-4 py-3 text-[11px] text-neutral-500 whitespace-nowrap">{{ fmtDateTime(reg.created_at) }}</td>
+                    <td class="px-4 py-3 text-xs font-bold text-neutral-700 dark:text-neutral-300">{{ reg.usuario || '—' }}</td>
+                    <td class="px-4 py-3">
+                      <span class="text-[10px] font-black px-2 py-0.5 rounded-full whitespace-nowrap" :class="infoAcao(reg.acao).cor">
+                        {{ infoAcao(reg.acao).label }}
+                      </span>
+                    </td>
+                    <td class="px-4 py-3 text-xs text-neutral-600 dark:text-neutral-400">{{ fmtDetalhes(reg.detalhes) }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
       </template>
     </main>
   </div>
@@ -546,16 +597,20 @@
 import { ref, computed, onMounted } from 'vue'
 import {
   CalendarDays, RefreshCw, BarChart2, Package, LayoutGrid, Landmark,
-  Users, CreditCard, Tag, UserCheck, X
+  Users, CreditCard, Tag, UserCheck, X, ShieldCheck, Printer, Download
 } from 'lucide-vue-next'
 import Navbar from '~/layouts/Navbar.vue'
+import Sidebar from '~/components/Sidebar.vue'
 import { useApi } from '~/services/api'
 import { useToastStore } from '~/stores/toast'
+import { useAuthStore } from '~/stores/auth'
 
 definePageMeta({ layout: false })
 
 const api        = useApi()
 const toastStore = useToastStore()
+const authStore  = useAuthStore()
+const isAdmin    = computed(() => authStore.usuario?.cargo === 'administrador')
 
 const hoje    = new Date()
 const dataFim = ref(hoje.toISOString().slice(0, 10))
@@ -573,12 +628,13 @@ function limparFiltros() {
   buscarTudo()
 }
 
-const tabs = [
+const tabs = computed(() => [
   { id: 'geral',    label: 'Visão Geral', icon: BarChart2  },
   { id: 'produtos', label: 'Produtos',    icon: Package    },
   { id: 'mesas',    label: 'Mesas',       icon: LayoutGrid },
-  { id: 'caixa',    label: 'Caixa',       icon: Landmark   }
-]
+  { id: 'caixa',    label: 'Caixa',       icon: Landmark   },
+  ...(isAdmin.value ? [{ id: 'auditoria', label: 'Auditoria', icon: ShieldCheck }] : [])
+])
 const atalhos = [
   { label: 'Hoje',    dias: 0 },
   { label: '7 dias',  dias: 6 },
@@ -597,6 +653,7 @@ const geral    = ref<GeralData | null>(null)
 const produtos = ref<ProdutosData | null>(null)
 const mesas    = ref<MesasData | null>(null)
 const caixa    = ref<CaixaData | null>(null)
+const auditoria = ref<any[] | null>(null)
 
 const totalRegistros = computed(() => geral.value?.resumo.qtdPagamentos ?? null)
 
@@ -634,6 +691,15 @@ async function buscarTudo() {
   } finally {
     carregando.value = false
   }
+
+  // Auditoria: separada para um 403 (não-admin) não derrubar os demais relatórios
+  if (isAdmin.value) {
+    try {
+      auditoria.value = await api.get<any[]>(
+        `/relatorios/auditoria?dataInicio=${dataInicio.value}&dataFim=${dataFim.value}&limite=300`
+      )
+    } catch { auditoria.value = null }
+  }
 }
 
 async function carregarFiltros() {
@@ -643,10 +709,14 @@ async function carregarFiltros() {
 const fmt = (v: any) => Number(v || 0).toFixed(2)
 
 function fmtDia(iso: string) {
-  return new Date(iso + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit' })
+  const d = new Date(String(iso).slice(0, 10) + 'T12:00:00')
+  if (isNaN(d.getTime())) return '—'
+  return d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit' })
 }
 function fmtDiaCurto(iso: string) {
-  return new Date(iso + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })
+  const d = new Date(String(iso).slice(0, 10) + 'T12:00:00')
+  if (isNaN(d.getTime())) return '—'
+  return d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })
 }
 function fmtDateTime(iso: string | null | undefined) {
   if (!iso) return '—'
@@ -680,6 +750,33 @@ function horasCompletas(horarios: any[]) {
 function maxHorario(horarios: any[]) {
   return Math.max(...horarios.map(h => Number(h.qtd)), 1)
 }
+const ACOES: Record<string, { label: string; cor: string }> = {
+  caixa_abrir:      { label: 'Abertura de caixa',   cor: 'bg-green-100 dark:bg-green-950/50 text-green-700 dark:text-green-400' },
+  caixa_fechar:     { label: 'Fechamento de caixa', cor: 'bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400' },
+  caixa_sangria:    { label: 'Sangria',             cor: 'bg-red-100 dark:bg-red-950/50 text-red-600 dark:text-red-400' },
+  caixa_suprimento: { label: 'Suprimento',          cor: 'bg-blue-100 dark:bg-blue-950/50 text-blue-700 dark:text-blue-400' },
+  item_excluir:     { label: 'Item excluído',       cor: 'bg-red-100 dark:bg-red-950/50 text-red-600 dark:text-red-400' },
+  item_decrementar: { label: 'Item decrementado',   cor: 'bg-orange-100 dark:bg-orange-950/50 text-orange-600 dark:text-orange-400' },
+  pedido_abater:    { label: 'Abatimento',          cor: 'bg-amber-100 dark:bg-amber-950/50 text-amber-700 dark:text-amber-400' },
+  venda_desconto:   { label: 'Venda c/ desconto',   cor: 'bg-amber-100 dark:bg-amber-950/50 text-amber-700 dark:text-amber-400' }
+}
+function infoAcao(acao: string) {
+  return ACOES[acao] || { label: acao, cor: 'bg-neutral-100 dark:bg-neutral-800 text-neutral-500' }
+}
+function fmtDetalhes(d: any) {
+  if (!d) return '—'
+  return Object.entries(d)
+    .filter(([, v]) => v !== null && v !== undefined)
+    .map(([k, v]) => {
+      const nome = k.replace(/_/g, ' ')
+      const valor = typeof v === 'number' && ['valor', 'valor inicial', 'valor fechamento', 'desconto', 'subtotal'].includes(nome)
+        ? 'R$ ' + Number(v).toFixed(2)
+        : String(v)
+      return `${nome}: ${valor}`
+    })
+    .join(' · ')
+}
+
 function corMovimento(tipo: string) {
   if (tipo === 'pagamento')  return 'bg-green-100 dark:bg-green-950/50 text-green-700 dark:text-green-400'
   if (tipo === 'suprimento') return 'bg-blue-100 dark:bg-blue-950/50 text-blue-700 dark:text-blue-400'
@@ -688,8 +785,77 @@ function corMovimento(tipo: string) {
   return 'bg-neutral-100 dark:bg-neutral-800 text-neutral-500'
 }
 
+// ─── imprimir / exportar ─────────────────────────────────
+function imprimirRelatorio() {
+  window.print()
+}
+
+function csvEscape(v: any) {
+  const s = v === null || v === undefined ? '' : String(v)
+  return /[";\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s
+}
+
+function linhasCSV(titulo: string, cabecalho: string[], linhas: any[][]) {
+  if (!linhas.length) return []
+  return [titulo, cabecalho.join(';'), ...linhas.map(l => l.map(csvEscape).join(';')), '']
+}
+
+function exportarCSV() {
+  const partes: string[] = []
+  const num = (v: any) => Number(v || 0).toFixed(2).replace('.', ',')
+
+  if (abaAtiva.value === 'geral' && geral.value) {
+    partes.push(...linhasCSV('Evolução diária', ['Dia', 'Total (R$)', 'Pagamentos'],
+      geral.value.evolucao.map(d => [fmtDia(d.dia), num(d.total), d.qtd])))
+    partes.push(...linhasCSV('Por método de pagamento', ['Método', 'Qtd', 'Total (R$)'],
+      geral.value.metodos.map(m => [m.metodo, m.qtd, num(m.total)])))
+    partes.push(...linhasCSV('Por funcionário', ['Funcionário', 'Qtd', 'Total (R$)'],
+      (geral.value.porFuncionario || []).map(f => [f.nome, f.qtd, num(f.total)])))
+  } else if (abaAtiva.value === 'produtos' && produtos.value) {
+    partes.push(...linhasCSV('Ranking de produtos', ['Produto', 'Categoria', 'Qtd vendida', 'Total (R$)'],
+      produtos.value.ranking.map(p => [p.nome, p.categoria || '—', p.qtd, num(p.total)])))
+    partes.push(...linhasCSV('Sem venda no período', ['Produto', 'Categoria'],
+      produtos.value.semVenda.map(p => [p.nome, p.categoria || '—'])))
+  } else if (abaAtiva.value === 'mesas' && mesas.value) {
+    partes.push(...linhasCSV('Ranking de mesas', ['Mesa', 'Atendimentos', 'Total (R$)'],
+      mesas.value.ranking.map(m => [m.nome_mesa || m.mesa || m.id, m.qtd ?? m.atendimentos ?? '', num(m.total)])))
+  } else if (abaAtiva.value === 'caixa' && caixa.value) {
+    partes.push(...linhasCSV('Histórico de caixas', ['Operador', 'Abertura', 'Fechamento', 'Inicial (R$)', 'Final (R$)', 'Status'],
+      caixa.value.historico.map(c => [c.operador || '—', fmtDateTime(c.data_abertura), fmtDateTime(c.fechado_em), num(c.valor_inicial), c.valor_fechamento != null ? num(c.valor_fechamento) : '', c.status])))
+    partes.push(...linhasCSV('Movimentos', ['Tipo', 'Operador', 'Descrição', 'Valor (R$)', 'Data'],
+      caixa.value.movimentos.map(m => [m.tipo, m.operador || '—', m.descricao || '', num(m.valor), fmtDateTime(m.created_at)])))
+  } else if (abaAtiva.value === 'auditoria' && auditoria.value) {
+    partes.push(...linhasCSV('Trilha de auditoria', ['Data', 'Usuário', 'Ação', 'Detalhes'],
+      auditoria.value.map(r => [fmtDateTime(r.created_at), r.usuario || '—', infoAcao(r.acao).label, fmtDetalhes(r.detalhes)])))
+  }
+
+  if (!partes.length) {
+    toastStore.error('Nada para exportar', 'A aba atual não tem dados no período selecionado.')
+    return
+  }
+
+  const nome = `relatorio-${abaAtiva.value}-${dataInicio.value}-a-${dataFim.value}.csv`
+  // BOM para o Excel abrir com acentuação correta
+  const blob = new Blob(['﻿' + partes.join('\n')], { type: 'text/csv;charset=utf-8' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = nome
+  a.click()
+  URL.revokeObjectURL(url)
+}
+
 onMounted(async () => {
   await carregarFiltros()
   await buscarTudo()
 })
 </script>
+
+<style>
+@media print {
+  .no-print, nav, aside, header { display: none !important; }
+  body, .min-h-screen { background: white !important; }
+  .min-h-screen { padding-left: 0 !important; }
+  main { max-width: 100% !important; padding: 0 !important; }
+}
+</style>

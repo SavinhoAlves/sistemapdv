@@ -112,6 +112,7 @@ CREATE TABLE IF NOT EXISTS mesas (
 -- ============================================================
 -- PEDIDOS
 -- ============================================================
+-- Obs.: pedidos.taxa_pct (taxa de serviço) adicionada em add_taxa_servico.sql
 CREATE TABLE IF NOT EXISTS pedidos (
   id INT AUTO_INCREMENT PRIMARY KEY,
   mesa_id INT NOT NULL,

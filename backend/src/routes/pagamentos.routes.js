@@ -14,16 +14,16 @@ router.get('/metodos', authenticate, async (req, res) => {
   }
 })
 
-// POST / — registrar pagamento e fechar pedido/mesa
+// POST / — registrar pagamento (total ou parcial); fecha pedido/mesa ao quitar
 router.post('/', authenticate, async (req, res) => {
   try {
-    const { mesa_id, pedido_id, metodo_id, valor_pago, caixa_id } = req.body
+    const { mesa_id, pedido_id, metodo_id, valor_pago, valor_recebido } = req.body
 
-    if (!mesa_id || !metodo_id || !valor_pago) {
+    if (!mesa_id || !metodo_id || !valor_pago || Number(valor_pago) <= 0) {
       return res.status(400).json({ error: 'mesa_id, metodo_id e valor_pago são obrigatórios' })
     }
 
-    await transaction(async (conn) => {
+    const resultado = await transaction(async (conn) => {
       // Busca caixa aberto (independente do que o frontend enviou)
       const [caixas] = await conn.execute(
         `SELECT id FROM caixa WHERE status = 'aberto' ORDER BY id DESC LIMIT 1`
@@ -32,7 +32,7 @@ router.post('/', authenticate, async (req, res) => {
 
       // Busca pedido aberto da mesa
       const [pedidos] = await conn.execute(`
-        SELECT id, total, desconto FROM pedidos
+        SELECT id, total, desconto, taxa_pct FROM pedidos
         WHERE mesa_id = ? AND status != 'fechado'
         ORDER BY id DESC LIMIT 1 FOR UPDATE
       `, [mesa_id])
@@ -41,10 +41,28 @@ router.post('/', authenticate, async (req, res) => {
         const err = new Error('Nenhum pedido aberto para esta mesa'); err.status = 404; throw err
       }
 
-      const pedido   = pedidos[0]
-      const pedId    = pedido_id || pedido.id
-      const totalLiq = Number(pedido.total) - Number(pedido.desconto)
-      const troco    = Math.max(0, Number(valor_pago) - totalLiq)
+      const pedido     = pedidos[0]
+      const pedId      = pedido_id || pedido.id
+      const liquido    = Number(pedido.total) - Number(pedido.desconto)
+      const taxaValor  = Math.round(liquido * Number(pedido.taxa_pct)) / 100
+      const totalConta = liquido + taxaValor
+
+      // Quanto já foi pago (divisão de conta = vários pagamentos parciais)
+      const [pagos] = await conn.execute(`
+        SELECT COALESCE(SUM(valor), 0) AS pago FROM pagamentos
+        WHERE pedido_id = ? AND status = 'confirmado'
+      `, [pedId])
+      const jaPago   = Number(pagos[0].pago)
+      const restante = Math.max(0, Math.round((totalConta - jaPago) * 100) / 100)
+
+      if (restante <= 0) {
+        const err = new Error('Esta conta já está quitada'); err.status = 400; throw err
+      }
+
+      // Aplica no máximo o restante; troco calculado sobre o que foi entregue
+      const valorAplicado = Math.min(Number(valor_pago), restante)
+      const recebido      = Number(valor_recebido) || valorAplicado
+      const troco         = Math.max(0, Math.round((recebido - valorAplicado) * 100) / 100)
 
       // Busca nome do método para registrar na descrição
       const [metodos] = await conn.execute(
@@ -55,20 +73,28 @@ router.post('/', authenticate, async (req, res) => {
       await conn.execute(`
         INSERT INTO pagamentos (mesa_id, pedido_id, metodo_id, valor, troco, caixa_id, usuario_id, status)
         VALUES (?, ?, ?, ?, ?, ?, ?, 'confirmado')
-      `, [mesa_id, pedId, metodo_id, totalLiq, troco, caixaId, req.user.id])
+      `, [mesa_id, pedId, metodo_id, valorAplicado, troco, caixaId, req.user.id])
 
-      await conn.execute(`UPDATE pedidos SET status = 'fechado' WHERE id = ?`, [pedId])
-      await conn.execute(`UPDATE mesas SET status = 'fechada', data_fechamento = NOW() WHERE id = ?`, [mesa_id])
+      const novoRestante = Math.max(0, Math.round((restante - valorAplicado) * 100) / 100)
+      const quitado      = novoRestante <= 0.009
+
+      if (quitado) {
+        await conn.execute(`UPDATE pedidos SET status = 'fechado' WHERE id = ?`, [pedId])
+        await conn.execute(`UPDATE mesas SET status = 'fechada', data_fechamento = NOW() WHERE id = ?`, [mesa_id])
+      }
 
       if (caixaId) {
+        const desc = `${metodo?.nome || 'Pagamento'} · Mesa ${mesa_id}${quitado ? '' : ' (parcial)'}`
         await conn.execute(`
           INSERT INTO movimentos_caixa (caixa_id, tipo, valor, descricao, usuario_id)
           VALUES (?, 'pagamento', ?, ?, ?)
-        `, [caixaId, totalLiq, `${metodo?.nome || 'Pagamento'} · Mesa ${mesa_id}`, req.user.id])
+        `, [caixaId, valorAplicado, desc, req.user.id])
       }
+
+      return { quitado, restante: quitado ? 0 : novoRestante, valor_aplicado: valorAplicado, troco }
     })
 
-    return res.json({ success: true })
+    return res.json({ success: true, ...resultado })
   } catch (error) {
     return res.status(error.status || 500).json({ error: error.message })
   }

@@ -93,6 +93,14 @@
               <p class="text-sm font-black text-neutral-800 dark:text-neutral-200">{{ cat.nome }}</p>
             </div>
             <div class="flex items-center gap-1 shrink-0">
+              <button @click="alternarCozinha(cat)"
+                :title="cat.vai_cozinha ? 'Itens vão para a cozinha — clique para desativar' : 'Itens NÃO vão para a cozinha — clique para ativar'"
+                class="h-7 px-2 rounded-lg flex items-center gap-1 justify-center text-[10px] font-black transition-all"
+                :class="cat.vai_cozinha
+                  ? 'bg-orange-100 dark:bg-orange-950/40 text-orange-600 dark:text-orange-400 hover:bg-orange-200'
+                  : 'text-neutral-300 dark:text-neutral-700 hover:bg-neutral-100 dark:hover:bg-neutral-800 hover:text-neutral-500'">
+                <ChefHat :size="12" />
+              </button>
               <button @click="abrirModalCat(cat)"
                 class="h-7 w-7 rounded-lg flex items-center justify-center text-neutral-400 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-all">
                 <Pencil :size="12" />
@@ -260,7 +268,7 @@
 
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue'
-import { Users, Tag, CreditCard, Plus, Pencil, Trash2 } from 'lucide-vue-next'
+import { Users, Tag, CreditCard, Plus, Pencil, Trash2, ChefHat } from 'lucide-vue-next'
 import Navbar from '~/layouts/Navbar.vue'
 import Sidebar from '~/components/Sidebar.vue'
 import { useApi } from '~/services/api'
@@ -338,6 +346,20 @@ const catForm      = reactive({ id: null as number | null, nome: '' })
 
 async function carregarCategorias() {
   try { categorias.value = await api.get<any[]>('/categorias') } catch {}
+}
+
+async function alternarCozinha(cat: any) {
+  try {
+    const res = await api.patch<{ vai_cozinha: number }>(`/categorias/${cat.id}/cozinha`, {
+      vai_cozinha: !cat.vai_cozinha
+    })
+    cat.vai_cozinha = res.vai_cozinha
+    toastStore.success(cat.vai_cozinha
+      ? `Itens de "${cat.nome}" agora aparecem na cozinha`
+      : `Itens de "${cat.nome}" não vão mais para a cozinha`)
+  } catch (e: any) {
+    toastStore.error(e?.message || 'Erro ao atualizar categoria')
+  }
 }
 
 function abrirModalCat(c: any) {

@@ -85,15 +85,28 @@
                 <p class="text-[11px] text-neutral-400 mt-0.5">Texto exibido ao final de cada ficha impressa</p>
               </div>
             </div>
-            <div class="p-6">
-              <label for="mensagem-ficha" class="block text-[10px] font-black uppercase tracking-widest text-neutral-500 mb-2">
-                Mensagem de rodapé
-              </label>
-              <input
-                id="mensagem-ficha" v-model="form.mensagem_ficha"
-                type="text" maxlength="200" placeholder="Ex: Obrigado pela preferência!"
-                class="w-full h-12 px-4 rounded-2xl border border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-800 text-neutral-900 dark:text-white font-bold text-sm outline-none focus:border-orange-500 transition-all"
-              />
+            <div class="p-6 grid grid-cols-1 sm:grid-cols-2 gap-6">
+              <div>
+                <label for="mensagem-ficha" class="block text-[10px] font-black uppercase tracking-widest text-neutral-500 mb-2">
+                  Mensagem de rodapé
+                </label>
+                <input
+                  id="mensagem-ficha" v-model="form.mensagem_ficha"
+                  type="text" maxlength="200" placeholder="Ex: Obrigado pela preferência!"
+                  class="w-full h-12 px-4 rounded-2xl border border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-800 text-neutral-900 dark:text-white font-bold text-sm outline-none focus:border-orange-500 transition-all"
+                />
+              </div>
+              <div>
+                <label for="taxa-servico" class="block text-[10px] font-black uppercase tracking-widest text-neutral-500 mb-2">
+                  Taxa de serviço (%)
+                </label>
+                <input
+                  id="taxa-servico" name="taxa-servico" v-model.number="form.taxa_servico_pct"
+                  type="number" min="0" max="30" step="0.5" placeholder="10"
+                  class="w-full h-12 px-4 rounded-2xl border border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-800 text-neutral-900 dark:text-white font-bold text-sm outline-none focus:border-orange-500 transition-all"
+                />
+                <p class="text-[10px] text-neutral-400 mt-1.5">Percentual sugerido ao aplicar a taxa na conta da mesa (opcional para o cliente).</p>
+              </div>
             </div>
           </div>
 
@@ -500,7 +513,8 @@ const form = reactive({
   impressora_auto_imprimir: false,
   impressora_tipo:          'navegador' as 'navegador' | 'rede' | 'windows',
   impressora_host:          '',
-  impressora_porta:         9100
+  impressora_porta:         9100,
+  taxa_servico_pct:         10
 })
 
 onMounted(async () => {
@@ -514,6 +528,7 @@ onMounted(async () => {
   form.impressora_tipo          = configStore.impressora_tipo
   form.impressora_host          = configStore.impressora_host
   form.impressora_porta         = configStore.impressora_porta
+  form.taxa_servico_pct         = configStore.taxa_servico_pct
 
   await mpStore.carregar()
   mp.ativado   = mpStore.mp.ativado
@@ -576,7 +591,8 @@ async function salvar() {
         impressora_auto_imprimir: form.impressora_auto_imprimir,
         impressora_tipo:          form.impressora_tipo,
         impressora_host:          form.impressora_host.trim(),
-        impressora_porta:         form.impressora_porta || 9100
+        impressora_porta:         form.impressora_porta || 9100,
+        taxa_servico_pct:         Math.min(30, Math.max(0, Number(form.taxa_servico_pct) || 0))
       }),
       mpStore.salvar({
         ativado:      mp.ativado,

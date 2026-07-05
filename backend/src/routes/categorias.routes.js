@@ -7,7 +7,7 @@ const { authenticate, authorize } = require('../middlewares/auth.middleware')
 // GET / — listar todas
 router.get('/', authenticate, async (req, res) => {
   try {
-    const rows = await query('SELECT id, nome FROM categorias ORDER BY nome ASC')
+    const rows = await query('SELECT id, nome, vai_cozinha FROM categorias ORDER BY nome ASC')
     return res.json(rows)
   } catch (error) {
     console.error(error)
@@ -44,6 +44,18 @@ router.put('/:id', authenticate, authorize('administrador'), async (req, res) =>
     if (error.code === 'ER_DUP_ENTRY') {
       return res.status(409).json({ error: 'Já existe uma categoria com esse nome' })
     }
+    console.error(error)
+    return res.status(500).json({ error: 'Erro ao atualizar categoria' })
+  }
+})
+
+// PATCH /:id/cozinha — define se os itens da categoria vão para o painel da cozinha
+router.patch('/:id/cozinha', authenticate, authorize('administrador'), async (req, res) => {
+  try {
+    const vai = req.body.vai_cozinha ? 1 : 0
+    await query('UPDATE categorias SET vai_cozinha = ? WHERE id = ?', [vai, req.params.id])
+    return res.json({ success: true, vai_cozinha: vai })
+  } catch (error) {
     console.error(error)
     return res.status(500).json({ error: 'Erro ao atualizar categoria' })
   }

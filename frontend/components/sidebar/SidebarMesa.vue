@@ -194,15 +194,45 @@
 
         <!-- MODO NORMAL -->
         <div v-if="!modoSelecao" class="p-5">
-          <div class="flex items-center justify-between mb-1">
-            <span class="text-xs font-black uppercase tracking-widest text-neutral-400">Total</span>
-            <span class="text-3xl font-black text-neutral-900 dark:text-white">R$ {{ totalLiquido.toFixed(2) }}</span>
-          </div>
-          <div v-if="desconto > 0" class="flex items-center justify-between mb-4">
+          <div v-if="desconto > 0" class="flex items-center justify-between mb-1">
             <span class="text-xs text-green-600 font-bold">Abatimento</span>
             <span class="text-sm text-green-600 font-bold">− R$ {{ desconto.toFixed(2) }}</span>
           </div>
-          <div v-else class="mb-4" />
+
+          <!-- TAXA DE SERVIÇO -->
+          <div class="flex items-center justify-between mb-1">
+            <button
+              @click="alternarTaxa"
+              :disabled="alternandoTaxa || !pedidoId"
+              class="flex items-center gap-1.5 text-xs font-bold transition-colors disabled:opacity-40"
+              :class="taxaPct > 0 ? 'text-blue-600 dark:text-blue-400' : 'text-neutral-400 hover:text-blue-500'"
+            >
+              <span
+                class="w-8 h-4.5 rounded-full relative transition-all shrink-0"
+                :class="taxaPct > 0 ? 'bg-blue-500' : 'bg-neutral-300 dark:bg-neutral-700'"
+                style="height: 18px"
+              >
+                <span class="absolute top-0.5 w-3.5 h-3.5 rounded-full bg-white shadow transition-all"
+                  :class="taxaPct > 0 ? 'left-[16px]' : 'left-0.5'" />
+              </span>
+              Taxa de serviço{{ taxaPct > 0 ? ` (${taxaPct}%)` : '' }}
+            </button>
+            <span v-if="taxaPct > 0" class="text-sm font-bold text-blue-600 dark:text-blue-400">
+              + R$ {{ taxaValor.toFixed(2) }}
+            </span>
+          </div>
+
+          <div v-if="valorPago > 0" class="flex items-center justify-between mb-1">
+            <span class="text-xs text-orange-500 font-bold">Já pago</span>
+            <span class="text-sm text-orange-500 font-bold">− R$ {{ valorPago.toFixed(2) }}</span>
+          </div>
+
+          <div class="flex items-center justify-between mb-4 mt-1">
+            <span class="text-xs font-black uppercase tracking-widest text-neutral-400">
+              {{ valorPago > 0 ? 'Restante' : 'Total' }}
+            </span>
+            <span class="text-3xl font-black text-neutral-900 dark:text-white">R$ {{ restante.toFixed(2) }}</span>
+          </div>
 
           <div class="grid grid-cols-2 gap-2 mb-2">
             <button
@@ -394,9 +424,10 @@
     :aberto="modalPagamento"
     :mesa="mesa"
     :pedido-id="pedidoId"
-    :total="totalLiquido"
+    :total="restante"
     @fechar="modalPagamento = false"
     @pago="onPago"
+    @parcial="onParcial"
   />
 
   <!-- RADIAL (acionado por long press) -->
@@ -480,6 +511,33 @@ const desconto       = computed(() => abatimentos.value.reduce((s, a) => s + Num
 const valorAbaterNum = computed(() => parseFloat(valorAbater.value) || 0)
 const totalLiquido   = computed(() => Math.max(0, totalGeral.value - desconto.value))
 
+// ─── Taxa de serviço + pagamentos parciais ────────────────
+const taxaPct       = ref(0)
+const valorPago     = ref(0)
+const alternandoTaxa = ref(false)
+
+const taxaValor  = computed(() => Math.round(totalLiquido.value * taxaPct.value) / 100)
+const totalConta = computed(() => totalLiquido.value + taxaValor.value)
+const restante   = computed(() => Math.max(0, Math.round((totalConta.value - valorPago.value) * 100) / 100))
+
+async function alternarTaxa() {
+  if (!pedidoId.value || alternandoTaxa.value) return
+  alternandoTaxa.value = true
+  try {
+    const res = await api.patch<{ taxa_pct: number }>(`/pedidos/${pedidoId.value}/taxa-servico`, {
+      aplicar: taxaPct.value === 0
+    })
+    taxaPct.value = Number(res.taxa_pct)
+    toastStore.success(taxaPct.value > 0
+      ? `Taxa de serviço de ${taxaPct.value}% aplicada`
+      : 'Taxa de serviço removida')
+  } catch (err: any) {
+    toastStore.error(err?.message || 'Erro ao alterar taxa de serviço')
+  } finally {
+    alternandoTaxa.value = false
+  }
+}
+
 function fecharModalAbater() {
   modalAbater.value = false
   valorAbater.value = ''
@@ -556,6 +614,11 @@ function onPago() {
   fechar()
 }
 
+// Pagamento parcial (divisão de conta): recarrega totais e mantém a mesa aberta
+function onParcial() {
+  carregarProdutos()
+}
+
 // ─── Impressão ────────────────────────────────────────────
 function imprimirHtml(html: string) {
   const iframe = document.createElement('iframe')
@@ -600,6 +663,19 @@ function imprimir() {
     </tr>`
   ).join('')
 
+  const linhaTaxa = taxaPct.value > 0
+    ? `<tr>
+        <td colspan="3">Taxa de serviço (${taxaPct.value}%)</td>
+        <td style="text-align:right">+ R$ ${taxaValor.value.toFixed(2)}</td>
+      </tr>`
+    : ''
+  const linhaPago = valorPago.value > 0
+    ? `<tr>
+        <td colspan="3">Já pago</td>
+        <td style="text-align:right">− R$ ${valorPago.value.toFixed(2)}</td>
+      </tr>`
+    : ''
+
   const html = `<!DOCTYPE html><html><head><meta charset="utf-8">
   <title>Ficha - Mesa ${mesa?.nome_mesa || mesa?.id}</title>
   <style>
@@ -632,7 +708,11 @@ function imprimir() {
         <td style="text-align:right">R$ ${total.toFixed(2)}</td>
       </tr>
       ${linhasAbat}
-      ${abats.length ? `<tr class="liquido"><td colspan="3">Total a pagar</td><td style="text-align:right">R$ ${liquido.toFixed(2)}</td></tr>` : ''}
+      ${linhaTaxa}
+      ${linhaPago}
+      ${(abats.length || taxaPct.value > 0 || valorPago.value > 0)
+        ? `<tr class="liquido"><td colspan="3">Total a pagar</td><td style="text-align:right">R$ ${restante.value.toFixed(2)}</td></tr>`
+        : ''}
     </tbody>
   </table>
   </body></html>`
@@ -1007,10 +1087,12 @@ const carregarProdutos = async () => {
     produtos.value = []
     const [itens, pedido] = await Promise.all([
       api.get<ProdutoMesa[]>(`/mesas/${props.mesa.id}/produtos`),
-      api.get<{ abatimentos: Abatimento[] } | null>(`/pedidos/mesa/${props.mesa.id}`)
+      api.get<{ abatimentos: Abatimento[]; taxa_pct: number; pago: number } | null>(`/pedidos/mesa/${props.mesa.id}`)
     ])
     produtos.value    = Array.isArray(itens) ? itens : []
     abatimentos.value = pedido?.abatimentos ?? []
+    taxaPct.value     = Number(pedido?.taxa_pct ?? 0)
+    valorPago.value   = Number(pedido?.pago ?? 0)
   } catch (error) {
     console.error(error)
     produtos.value = []

@@ -17,7 +17,7 @@ router.get('/', authenticate, async (req, res) => {
     const rows = await query(`
       SELECT nome_restaurante, logo_base64, mensagem_ficha,
              impressora_largura, impressora_copias, impressora_auto_imprimir,
-             impressora_tipo, impressora_host, impressora_porta
+             impressora_tipo, impressora_host, impressora_porta, taxa_servico_pct
       FROM configuracoes WHERE id = 1
     `)
     const row = rows[0] ?? {}
@@ -30,7 +30,8 @@ router.get('/', authenticate, async (req, res) => {
       impressora_auto_imprimir: Boolean(row.impressora_auto_imprimir),
       impressora_tipo:          row.impressora_tipo          ?? 'navegador',
       impressora_host:          row.impressora_host          ?? '',
-      impressora_porta:         Number(row.impressora_porta  ?? 9100)
+      impressora_porta:         Number(row.impressora_porta  ?? 9100),
+      taxa_servico_pct:         Number(row.taxa_servico_pct  ?? 10)
     })
   } catch (e) {
     return res.status(500).json({ error: e.message })
@@ -47,14 +48,16 @@ router.put('/', authenticate, async (req, res) => {
     const {
       nome_restaurante, logo_base64, mensagem_ficha,
       impressora_largura, impressora_copias, impressora_auto_imprimir,
-      impressora_tipo, impressora_host, impressora_porta
+      impressora_tipo, impressora_host, impressora_porta, taxa_servico_pct
     } = req.body
     const tipo = ['navegador', 'rede', 'windows'].includes(impressora_tipo) ? impressora_tipo : 'navegador'
+    const taxaPct = Math.min(30, Math.max(0, Number(taxa_servico_pct) ?? 10))
     await query(
       `UPDATE configuracoes
        SET nome_restaurante = ?, logo_base64 = ?, mensagem_ficha = ?,
            impressora_largura = ?, impressora_copias = ?, impressora_auto_imprimir = ?,
-           impressora_tipo = ?, impressora_host = ?, impressora_porta = ?
+           impressora_tipo = ?, impressora_host = ?, impressora_porta = ?,
+           taxa_servico_pct = ?
        WHERE id = 1`,
       [
         nome_restaurante?.trim()  || 'Restaurante PDV',
@@ -65,7 +68,8 @@ router.put('/', authenticate, async (req, res) => {
         impressora_auto_imprimir ? 1 : 0,
         tipo,
         impressora_host?.trim()   || null,
-        Number(impressora_porta)  || 9100
+        Number(impressora_porta)  || 9100,
+        isNaN(taxaPct) ? 10 : taxaPct
       ]
     )
     return res.json({ success: true })

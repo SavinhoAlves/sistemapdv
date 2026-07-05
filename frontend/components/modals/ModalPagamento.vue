@@ -38,6 +38,37 @@
                   </div>
                 </div>
 
+                <!-- DIVIDIR CONTA -->
+                <div>
+                  <p class="text-xs font-black uppercase tracking-widest text-neutral-400 mb-3">
+                    Dividir conta
+                  </p>
+                  <div class="flex gap-2 flex-wrap">
+                    <button
+                      v-for="n in [1, 2, 3, 4, 5, 6]"
+                      :key="n"
+                      @click="pessoas = n"
+                      class="h-10 min-w-[2.5rem] px-3 rounded-xl border-2 font-black text-sm transition-all active:scale-95"
+                      :class="pessoas === n
+                        ? 'border-orange-500 bg-orange-50 dark:bg-orange-950/30 text-orange-600 dark:text-orange-400'
+                        : 'border-neutral-200 dark:border-neutral-700 text-neutral-500 dark:text-neutral-400 hover:border-orange-300'"
+                    >
+                      {{ n === 1 ? 'Não' : `${n}×` }}
+                    </button>
+                  </div>
+                  <div
+                    v-if="pessoas > 1"
+                    class="mt-3 flex justify-between items-center bg-blue-50 dark:bg-blue-950/30 rounded-2xl px-4 py-3"
+                  >
+                    <span class="text-sm font-bold text-blue-700 dark:text-blue-400">
+                      Cobrando agora (1 de {{ pessoas }})
+                    </span>
+                    <span class="text-xl font-black text-blue-700 dark:text-blue-400">
+                      R$ {{ cobranca.toFixed(2) }}
+                    </span>
+                  </div>
+                </div>
+
                 <!-- BADGE MAQUININHA ATIVA -->
                 <div
                   v-if="mpStore.mpAtivo"
@@ -100,10 +131,10 @@
                       <span class="text-2xl font-black text-green-700 dark:text-green-400">R$ {{ troco.toFixed(2) }}</span>
                     </div>
                     <div
-                      v-if="valorRecebidoNum > 0 && valorRecebidoNum < total"
+                      v-if="valorRecebidoNum > 0 && valorRecebidoNum < cobranca"
                       class="bg-red-50 dark:bg-red-950/30 rounded-2xl p-3 text-center text-sm font-bold text-red-600 dark:text-red-400"
                     >
-                      Valor insuficiente — faltam R$ {{ (total - valorRecebidoNum).toFixed(2) }}
+                      Valor insuficiente — faltam R$ {{ (cobranca - valorRecebidoNum).toFixed(2) }}
                     </div>
                   </div>
                 </Transition>
@@ -246,7 +277,7 @@ const props = defineProps<{
   total: number
 }>()
 
-const emit = defineEmits(['fechar', 'pago'])
+const emit = defineEmits(['fechar', 'pago', 'parcial'])
 
 interface Metodo { id: number; nome: string }
 
@@ -264,12 +295,20 @@ const intentIdAtual       = ref<string | null>(null)
 let   pollingInterval: ReturnType<typeof setInterval> | null = null
 
 const valorRecebidoNum = computed(() => parseFloat(valorRecebido.value) || 0)
-const troco = computed(() => Math.max(0, valorRecebidoNum.value - props.total))
+
+// Divisão de conta: quantia cobrada nesta rodada (1 pessoa = conta inteira)
+const pessoas  = ref(1)
+const cobranca = computed(() => {
+  if (pessoas.value <= 1) return props.total
+  return Math.min(props.total, Math.ceil((props.total * 100) / pessoas.value) / 100)
+})
+
+const troco = computed(() => Math.max(0, valorRecebidoNum.value - cobranca.value))
 
 const podePagar = computed(() => {
   if (!metodoSelecionado.value) return false
   if (metodoSelecionado.value.nome === 'Dinheiro') {
-    return valorRecebidoNum.value >= props.total
+    return valorRecebidoNum.value >= cobranca.value
   }
   return true
 })
@@ -314,17 +353,24 @@ async function confirmar() {
   if (!podePagar.value || salvando.value || !props.mesa?.id) return
   salvando.value = true
   try {
-    await api.post('/pagamentos', {
-      mesa_id:    props.mesa.id,
-      pedido_id:  props.pedidoId,
-      metodo_id:  metodoSelecionado.value!.id,
-      caixa_id:   caixaStore.caixaAtual?.id ?? null,
-      valor_pago: metodoSelecionado.value!.nome === 'Dinheiro'
-        ? valorRecebidoNum.value
-        : props.total
+    const ehDinheiro = metodoSelecionado.value!.nome === 'Dinheiro'
+    const res = await api.post<{ quitado: boolean; restante: number }>('/pagamentos', {
+      mesa_id:        props.mesa.id,
+      pedido_id:      props.pedidoId,
+      metodo_id:      metodoSelecionado.value!.id,
+      caixa_id:       caixaStore.caixaAtual?.id ?? null,
+      valor_pago:     cobranca.value,
+      valor_recebido: ehDinheiro ? valorRecebidoNum.value : cobranca.value
     })
-    toastStore.success('Pagamento confirmado!')
-    emit('pago')
+    if (res.quitado) {
+      toastStore.success('Pagamento confirmado!')
+      emit('pago')
+    } else {
+      toastStore.success(`Parte registrada — restam R$ ${Number(res.restante).toFixed(2)}`)
+      valorRecebido.value     = ''
+      metodoSelecionado.value = null
+      emit('parcial')
+    }
   } catch (err: any) {
     toastStore.error(err?.message || 'Erro ao registrar pagamento')
   } finally {
@@ -337,7 +383,7 @@ async function enviarParaMaquininha() {
   estado.value = 'aguardando'
   try {
     const intent = await mpStore.criarPagamento({
-      valor:     props.total,
+      valor:     cobranca.value,
       tipo:      tipoMp(metodoSelecionado.value.nome),
       descricao: `Mesa ${props.mesa.nome_mesa || props.mesa.id}`,
       referencia: `mesa-${props.mesa.id}-${Date.now()}`
@@ -382,15 +428,22 @@ async function verificarStatus() {
 async function confirmarAposMaquininha() {
   salvando.value = true
   try {
-    await api.post('/pagamentos', {
+    const res = await api.post<{ quitado: boolean; restante: number }>('/pagamentos', {
       mesa_id:    props.mesa.id,
       pedido_id:  props.pedidoId,
       metodo_id:  metodoSelecionado.value!.id,
       caixa_id:   caixaStore.caixaAtual?.id ?? null,
-      valor_pago: props.total
+      valor_pago: cobranca.value
     })
-    toastStore.success('Pagamento aprovado pela maquininha!')
-    emit('pago')
+    if (res.quitado) {
+      toastStore.success('Pagamento aprovado pela maquininha!')
+      emit('pago')
+    } else {
+      toastStore.success(`Parte aprovada — restam R$ ${Number(res.restante).toFixed(2)}`)
+      metodoSelecionado.value = null
+      estado.value = 'selecao'
+      emit('parcial')
+    }
   } catch (err: any) {
     toastStore.error(err?.message || 'Erro ao registrar pagamento')
     estado.value = 'selecao'
@@ -415,6 +468,7 @@ watch(() => props.aberto, (v) => {
   if (v) {
     metodoSelecionado.value = null
     valorRecebido.value     = ''
+    pessoas.value           = 1
     estado.value            = 'selecao'
     erroMaquininha.value    = ''
     intentIdAtual.value     = null

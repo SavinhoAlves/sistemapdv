@@ -52,9 +52,11 @@ router.post('/adicionar', authenticate, async (req, res) => {
 
       // Busca e trava o produto para leitura de estoque segura
       const [prodRows] = await conn.execute(`
-        SELECT id, preco, estoque_atual, gerenciar_estoque
-        FROM produtos
-        WHERE id = ? AND ativo = 1
+        SELECT p.id, p.preco, p.estoque_atual, p.gerenciar_estoque,
+               COALESCE(c.vai_cozinha, 1) AS vai_cozinha
+        FROM produtos p
+        LEFT JOIN categorias c ON c.id = p.categoria_id
+        WHERE p.id = ? AND p.ativo = 1
         LIMIT 1
         FOR UPDATE
       `, [produto_id])
@@ -118,10 +120,12 @@ router.post('/adicionar', authenticate, async (req, res) => {
           WHERE id = ?
         `, [quantidade, preco * quantidade, existente[0].id])
       } else {
+        // Itens de categorias que não vão à cozinha (ex.: bebidas) já nascem prontos
+        const statusInicial = prod.vai_cozinha ? 'pendente' : 'pronto'
         await conn.execute(`
-          INSERT INTO pedido_itens (pedido_id, produto_id, quantidade, preco_unitario, preco_total)
-          VALUES (?, ?, ?, ?, ?)
-        `, [pedidoId, produto_id, quantidade, preco, preco * quantidade])
+          INSERT INTO pedido_itens (pedido_id, produto_id, quantidade, preco_unitario, preco_total, status)
+          VALUES (?, ?, ?, ?, ?, ?)
+        `, [pedidoId, produto_id, quantidade, preco, preco * quantidade, statusInicial])
       }
 
       // Desconta estoque se o produto controla estoque
@@ -299,7 +303,7 @@ router.delete('/itens/:itemId', authenticate, async (req, res) => {
 router.get('/mesa/:mesaId', authenticate, async (req, res) => {
   try {
     const rows = await query(`
-      SELECT id, total, desconto
+      SELECT id, total, desconto, taxa_pct
       FROM pedidos
       WHERE mesa_id = ? AND status != 'fechado'
       ORDER BY id DESC LIMIT 1
@@ -313,7 +317,49 @@ router.get('/mesa/:mesaId', authenticate, async (req, res) => {
       WHERE pedido_id = ? ORDER BY id ASC
     `, [pedido.id])
 
-    return res.json({ ...pedido, abatimentos })
+    // Taxa de serviço e pagamentos parciais já registrados
+    const liquido    = Number(pedido.total) - Number(pedido.desconto)
+    const taxa_valor = Math.round(liquido * Number(pedido.taxa_pct)) / 100
+    const [pagos] = await query(`
+      SELECT COALESCE(SUM(valor), 0) AS pago FROM pagamentos
+      WHERE pedido_id = ? AND status = 'confirmado'
+    `, [pedido.id])
+    const pago     = Number(pagos.pago)
+    const restante = Math.max(0, liquido + taxa_valor - pago)
+
+    return res.json({ ...pedido, abatimentos, taxa_valor, pago, restante })
+  } catch (error) {
+    return res.status(500).json({ error: error.message })
+  }
+})
+
+// ======================
+// TAXA DE SERVIÇO (aplicar/remover)
+// ======================
+router.patch('/:id/taxa-servico', authenticate, async (req, res) => {
+  try {
+    const aplicar = !!req.body.aplicar
+
+    let pct = 0
+    if (aplicar) {
+      const [cfg] = await query(`SELECT taxa_servico_pct FROM configuracoes WHERE id = 1`)
+      pct = Number(cfg?.taxa_servico_pct ?? 10)
+      if (pct <= 0) pct = 10
+    }
+
+    const resultado = await query(
+      `UPDATE pedidos SET taxa_pct = ? WHERE id = ? AND status != 'fechado'`,
+      [pct, req.params.id]
+    )
+    if (!resultado.affectedRows) {
+      return res.status(404).json({ error: 'Pedido não encontrado ou já fechado' })
+    }
+
+    if (!aplicar) {
+      registrarAuditoria(req.user.id, 'taxa_remover', 'pedido', Number(req.params.id), null)
+    }
+
+    return res.json({ success: true, taxa_pct: pct })
   } catch (error) {
     return res.status(500).json({ error: error.message })
   }
@@ -385,8 +431,10 @@ router.get('/cozinha', authenticate, async (req, res) => {
       FROM pedido_itens pi
       JOIN pedidos ped ON ped.id = pi.pedido_id AND ped.status != 'fechado'
       JOIN produtos p   ON p.id  = pi.produto_id
+      LEFT JOIN categorias c ON c.id = p.categoria_id
       JOIN mesas m      ON m.id  = ped.mesa_id
       WHERE pi.status IN ('pendente', 'preparando')
+        AND COALESCE(c.vai_cozinha, 1) = 1
       ORDER BY pi.created_at ASC
     `)
 

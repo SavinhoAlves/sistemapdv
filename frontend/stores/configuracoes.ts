@@ -11,6 +11,7 @@ interface Config {
   impressora_tipo: 'navegador' | 'rede' | 'windows'
   impressora_host: string
   impressora_porta: number
+  taxa_servico_pct: number
 }
 
 export const useConfigStore = defineStore('configuracoes', {
@@ -24,6 +25,7 @@ export const useConfigStore = defineStore('configuracoes', {
     impressora_tipo:          'navegador',
     impressora_host:          '',
     impressora_porta:         9100,
+    taxa_servico_pct:         10,
     carregado: false
   }),
 
@@ -42,6 +44,7 @@ export const useConfigStore = defineStore('configuracoes', {
         this.impressora_tipo          = data.impressora_tipo                  || 'navegador'
         this.impressora_host          = data.impressora_host                  || ''
         this.impressora_porta         = Number(data.impressora_porta)         || 9100
+        this.taxa_servico_pct         = Number(data.taxa_servico_pct ?? 10)
         this.carregado = true
       } catch {}
     },

@@ -2,6 +2,7 @@ const express = require('express')
 const router = express.Router()
 const { transaction } = require('../database/connection')
 const { authenticate } = require('../middlewares/auth.middleware')
+const { registrarAuditoria } = require('../services/auditoria.service')
 
 // POST / — Venda direta (ficha de balcão, sem mesa)
 router.post('/', authenticate, async (req, res) => {
@@ -116,6 +117,11 @@ router.post('/', authenticate, async (req, res) => {
       }
     })
 
+    if (desc > 0) {
+      registrarAuditoria(req.user.id, 'venda_desconto', 'pedido', ficha.pedido_id, {
+        desconto: desc, subtotal
+      })
+    }
     return res.json({ success: true, ficha })
   } catch (error) {
     console.error('ERRO VENDA DIRETA:', error)

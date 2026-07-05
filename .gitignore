@@ -30,6 +30,9 @@ Thumbs.db
 # Uploads
 backend/uploads/
 
+# Backups do banco
+backend/backups/
+
 # Temporários
 *.tmp
 *.temp

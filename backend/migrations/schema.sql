@@ -174,6 +174,21 @@ CREATE TABLE IF NOT EXISTS pdv_config (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- ============================================================
+-- AUDITORIA DE OPERAÇÕES SENSÍVEIS
+-- ============================================================
+CREATE TABLE IF NOT EXISTS auditoria (
+  id          INT AUTO_INCREMENT PRIMARY KEY,
+  usuario_id  INT NULL,
+  acao        VARCHAR(50) NOT NULL,
+  entidade    VARCHAR(50) NULL,
+  entidade_id INT NULL,
+  detalhes    TEXT NULL,
+  created_at  DATETIME DEFAULT CURRENT_TIMESTAMP,
+  INDEX idx_auditoria_acao (acao),
+  INDEX idx_auditoria_created (created_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- ============================================================
 -- ÍNDICES DE PERFORMANCE
 -- ============================================================
 CREATE INDEX idx_pedidos_mesa ON pedidos(mesa_id);

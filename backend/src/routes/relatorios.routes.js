@@ -2,7 +2,49 @@ const express = require('express')
 const router = express.Router()
 
 const { query } = require('../database/connection')
-const { authenticate } = require('../middlewares/auth.middleware')
+const { authenticate, authorize } = require('../middlewares/auth.middleware')
+
+// ─── auditoria ───────────────────────────────────────────
+// GET /auditoria?acao=&dataInicio=&dataFim=&limite=
+router.get('/auditoria', authenticate, authorize('administrador'), async (req, res) => {
+  try {
+    const clausulas = []
+    const params = []
+
+    if (req.query.acao) {
+      clausulas.push('a.acao = ?')
+      params.push(req.query.acao)
+    }
+    if (req.query.dataInicio) {
+      clausulas.push('DATE(a.created_at) >= ?')
+      params.push(req.query.dataInicio)
+    }
+    if (req.query.dataFim) {
+      clausulas.push('DATE(a.created_at) <= ?')
+      params.push(req.query.dataFim)
+    }
+
+    const where = clausulas.length ? `WHERE ${clausulas.join(' AND ')}` : ''
+    const limite = Math.min(Number(req.query.limite) || 200, 1000)
+
+    const registros = await query(`
+      SELECT a.id, a.acao, a.entidade, a.entidade_id, a.detalhes, a.created_at,
+             u.nome AS usuario
+      FROM auditoria a
+      LEFT JOIN usuarios u ON u.id = a.usuario_id
+      ${where}
+      ORDER BY a.created_at DESC, a.id DESC
+      LIMIT ${limite}
+    `, params)
+
+    return res.json(registros.map(r => ({
+      ...r,
+      detalhes: r.detalhes ? JSON.parse(r.detalhes) : null
+    })))
+  } catch (error) {
+    return res.status(500).json({ error: error.message })
+  }
+})
 
 // ─── helpers ─────────────────────────────────────────────
 function periodo(req) {

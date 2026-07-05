@@ -3,6 +3,7 @@ const router = express.Router()
 
 const { query, transaction } = require('../database/connection')
 const { authenticate } = require('../middlewares/auth.middleware')
+const { registrarAuditoria } = require('../services/auditoria.service')
 
 // ======================
 // ADICIONAR PRODUTO
@@ -222,9 +223,12 @@ router.patch('/itens/:itemId/decrementar', authenticate, async (req, res) => {
         WHERE id = ? AND gerenciar_estoque = 1
       `, [item.produto_id])
 
-      return { total, deletado: item.quantidade <= 1 }
+      return { total, deletado: item.quantidade <= 1, produto_id: item.produto_id, pedido_id: pedidoId }
     })
 
+    registrarAuditoria(req.user.id, 'item_decrementar', 'pedido_item', Number(itemId), {
+      pedido_id: resultado.pedido_id, produto_id: resultado.produto_id, excluido: resultado.deletado
+    })
     return res.json({ success: true, ...resultado })
 
   } catch (error) {
@@ -241,7 +245,7 @@ router.delete('/itens/:itemId', authenticate, async (req, res) => {
   try {
     const { itemId } = req.params
 
-    await transaction(async (conn) => {
+    const info = await transaction(async (conn) => {
       const [rows] = await conn.execute(`
         SELECT pedido_id, produto_id, quantidade
         FROM pedido_itens WHERE id = ? LIMIT 1 FOR UPDATE
@@ -273,8 +277,13 @@ router.delete('/itens/:itemId', authenticate, async (req, res) => {
         UPDATE produtos SET estoque_atual = estoque_atual + ?
         WHERE id = ? AND gerenciar_estoque = 1
       `, [quantidade, produto_id])
+
+      return { pedidoId, produto_id, quantidade }
     })
 
+    registrarAuditoria(req.user.id, 'item_excluir', 'pedido_item', Number(itemId), {
+      pedido_id: info.pedidoId, produto_id: info.produto_id, quantidade: info.quantidade
+    })
     return res.json({ success: true })
 
   } catch (error) {
@@ -346,6 +355,9 @@ router.patch('/:id/abater', authenticate, async (req, res) => {
       return { id: ins.insertId, valor: v, motivo }
     })
 
+    registrarAuditoria(req.user.id, 'pedido_abater', 'pedido', Number(req.params.id), {
+      valor: resultado.valor, motivo: resultado.motivo
+    })
     return res.json({ success: true, abatimento: resultado })
   } catch (error) {
     return res.status(error.status || 500).json({ error: error.message })

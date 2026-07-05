@@ -16,7 +16,8 @@ router.get('/', authenticate, async (req, res) => {
     await singleton()
     const rows = await query(`
       SELECT nome_restaurante, logo_base64, mensagem_ficha,
-             impressora_largura, impressora_copias, impressora_auto_imprimir
+             impressora_largura, impressora_copias, impressora_auto_imprimir,
+             impressora_tipo, impressora_host, impressora_porta
       FROM configuracoes WHERE id = 1
     `)
     const row = rows[0] ?? {}
@@ -26,7 +27,10 @@ router.get('/', authenticate, async (req, res) => {
       mensagem_ficha:           row.mensagem_ficha           ?? 'Obrigado pela preferência!',
       impressora_largura:       Number(row.impressora_largura ?? 80),
       impressora_copias:        Number(row.impressora_copias  ?? 1),
-      impressora_auto_imprimir: Boolean(row.impressora_auto_imprimir)
+      impressora_auto_imprimir: Boolean(row.impressora_auto_imprimir),
+      impressora_tipo:          row.impressora_tipo          ?? 'navegador',
+      impressora_host:          row.impressora_host          ?? '',
+      impressora_porta:         Number(row.impressora_porta  ?? 9100)
     })
   } catch (e) {
     return res.status(500).json({ error: e.message })
@@ -42,12 +46,15 @@ router.put('/', authenticate, async (req, res) => {
     await singleton()
     const {
       nome_restaurante, logo_base64, mensagem_ficha,
-      impressora_largura, impressora_copias, impressora_auto_imprimir
+      impressora_largura, impressora_copias, impressora_auto_imprimir,
+      impressora_tipo, impressora_host, impressora_porta
     } = req.body
+    const tipo = ['navegador', 'rede', 'windows'].includes(impressora_tipo) ? impressora_tipo : 'navegador'
     await query(
       `UPDATE configuracoes
        SET nome_restaurante = ?, logo_base64 = ?, mensagem_ficha = ?,
-           impressora_largura = ?, impressora_copias = ?, impressora_auto_imprimir = ?
+           impressora_largura = ?, impressora_copias = ?, impressora_auto_imprimir = ?,
+           impressora_tipo = ?, impressora_host = ?, impressora_porta = ?
        WHERE id = 1`,
       [
         nome_restaurante?.trim()  || 'Restaurante PDV',
@@ -55,7 +62,10 @@ router.put('/', authenticate, async (req, res) => {
         mensagem_ficha?.trim()    || 'Obrigado pela preferência!',
         Number(impressora_largura)        || 80,
         Math.max(1, Number(impressora_copias) || 1),
-        impressora_auto_imprimir ? 1 : 0
+        impressora_auto_imprimir ? 1 : 0,
+        tipo,
+        impressora_host?.trim()   || null,
+        Number(impressora_porta)  || 9100
       ]
     )
     return res.json({ success: true })

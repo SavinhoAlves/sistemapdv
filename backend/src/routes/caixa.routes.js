@@ -3,6 +3,7 @@ const router = express.Router()
 
 const { query } = require('../database/connection')
 const { authenticate } = require('../middlewares/auth.middleware')
+const { registrarAuditoria } = require('../services/auditoria.service')
 
 // GET /atual
 router.get('/atual', authenticate, async (req, res) => {
@@ -45,6 +46,7 @@ router.post('/abrir', authenticate, async (req, res) => {
     `, [resultado.insertId, saldo, usuario_id ?? req.user.id])
 
     const [caixa] = await query(`SELECT * FROM caixa WHERE id = ?`, [resultado.insertId])
+    registrarAuditoria(req.user.id, 'caixa_abrir', 'caixa', resultado.insertId, { valor_inicial: saldo })
     return res.json({ success: true, caixa })
   } catch (error) {
     console.error('ERRO ABRIR CAIXA:', error)
@@ -86,6 +88,9 @@ router.post('/fechar', authenticate, async (req, res) => {
       WHERE id = ?
     `, [saldo?.valor_fechamento ?? 0, id])
 
+    registrarAuditoria(req.user.id, 'caixa_fechar', 'caixa', id, {
+      valor_fechamento: Number(saldo?.valor_fechamento ?? 0)
+    })
     return res.json({ success: true })
   } catch (error) {
     console.error('ERRO FECHAR CAIXA:', error)
@@ -111,6 +116,9 @@ router.post('/movimento', authenticate, async (req, res) => {
       `INSERT INTO movimentos_caixa (caixa_id, tipo, valor, descricao, usuario_id) VALUES (?, ?, ?, ?, ?)`,
       [caixas[0].id, tipo, Number(valor), descricao || null, req.user.id]
     )
+    registrarAuditoria(req.user.id, `caixa_${tipo}`, 'caixa', caixas[0].id, {
+      valor: Number(valor), descricao: descricao || null
+    })
     return res.json({ success: true })
   } catch (error) {
     return res.status(500).json({ error: error.message })

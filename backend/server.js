@@ -78,6 +78,7 @@ app.use('/api/users',     usersRoutes)
 app.use('/api/vendas',         vendasRoutes)
 app.use('/api/configuracoes',  configuracoesRoutes)
 app.use('/api/integracoes',   integracoesRoutes)
+app.use('/api/impressao',      require('./src/routes/impressao.routes'))
 /*
 |--------------------------------------------------------------------------
 | START SERVER
@@ -97,4 +98,7 @@ app.listen(PORT, '0.0.0.0', () => {
   console.log(`  Local:   http://localhost:${PORT}`)
   ips.forEach(ip => console.log(`  Rede:    http://${ip}:${PORT}`))
   console.log('')
+
+  // Backup automático diário do banco de dados
+  require('./src/services/backup.service').agendarBackupDiario()
 })

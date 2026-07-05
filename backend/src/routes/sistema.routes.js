@@ -2,6 +2,25 @@ const express = require('express')
 const router  = express.Router()
 const { query } = require('../database/connection')
 const { verificarLicenca, limparCacheLicenca, SEGREDO } = require('../services/licenca.service')
+const { authenticate, authorize } = require('../middlewares/auth.middleware')
+const { executarBackup, listarBackups } = require('../services/backup.service')
+
+// ──────────────────────────────────────────────────
+// BACKUP (somente administrador)
+// ──────────────────────────────────────────────────
+router.post('/backup', authenticate, authorize('administrador'), async (req, res) => {
+  try {
+    const resultado = await executarBackup()
+    return res.json({ success: true, ...resultado })
+  } catch (err) {
+    console.error('[BACKUP] Erro manual:', err.message)
+    return res.status(500).json({ error: err.message })
+  }
+})
+
+router.get('/backups', authenticate, authorize('administrador'), (req, res) => {
+  return res.json(listarBackups())
+})
 
 // ──────────────────────────────────────────────────
 // POST /api/sistema/ativar

@@ -58,7 +58,14 @@ app.get('/', (req, res) => {
 |--------------------------------------------------------------------------
 */
 
+// Rotas livres de licença: autenticação e ativação/status do sistema
 app.use('/api/auth', authRoutes)
+app.use('/api/sistema', sistemaRoutes)
+
+// Daqui para baixo, tudo exige licença válida
+const { exigirLicenca } = require('./src/middlewares/licenca.middleware')
+app.use('/api', exigirLicenca)
+
 app.use('/api/caixa', caixaRoutes)
 app.use('/api/mesas', mesasRoutes)
 app.use('/api/pedidos', pedidosRoutes)
@@ -67,7 +74,6 @@ app.use('/api/categorias', categoriasRoutes)
 app.use('/api/pagamentos', pagamentosRoutes)
 app.use('/api/dashboard', dashboardRoutes)
 app.use('/api/relatorios', relatoriosRoutes)
-app.use('/api/sistema',   sistemaRoutes)
 app.use('/api/users',     usersRoutes)
 app.use('/api/vendas',         vendasRoutes)
 app.use('/api/configuracoes',  configuracoesRoutes)

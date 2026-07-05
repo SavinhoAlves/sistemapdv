@@ -57,7 +57,12 @@ export function useApi() {
         try {
           const errorData = await response.json()
           console.error(`[API Error ${response.status}]`, errorData)
-          
+
+          // Backend bloqueou por licença ausente/expirada/inválida
+          if (response.status === 403 && errorData.licenca === false) {
+            router.push('/ativacao')
+          }
+
           // ✅ AJUSTADO: Adicionado 'mensagem' para capturar o erro exato do seu backend
           errorMsg = errorData.mensagem || errorData.error || errorData.message || errorMsg
         } catch {}

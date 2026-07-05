@@ -1,21 +1,45 @@
 /*
  Navicat Premium Dump SQL
 
- Source Server         : AppFinances
+ Source Server         : PDV
  Source Server Type    : MySQL
- Source Server Version : 100432 (10.4.32-MariaDB)
+ Source Server Version : 80046 (8.0.46)
  Source Host           : localhost:3306
  Source Schema         : restaurante_pdv
 
  Target Server Type    : MySQL
- Target Server Version : 100432 (10.4.32-MariaDB)
+ Target Server Version : 80046 (8.0.46)
  File Encoding         : 65001
 
- Date: 28/06/2026 21:26:17
+ Date: 05/07/2026 11:41:01
 */
 
 SET NAMES utf8mb4;
 SET FOREIGN_KEY_CHECKS = 0;
+
+-- ----------------------------
+-- Table structure for auditoria
+-- ----------------------------
+DROP TABLE IF EXISTS `auditoria`;
+CREATE TABLE `auditoria`  (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `usuario_id` int NULL DEFAULT NULL,
+  `acao` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL,
+  `entidade` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL,
+  `entidade_id` int NULL DEFAULT NULL,
+  `detalhes` text CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL,
+  `created_at` datetime NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`) USING BTREE,
+  INDEX `idx_auditoria_acao`(`acao` ASC) USING BTREE,
+  INDEX `idx_auditoria_created`(`created_at` ASC) USING BTREE
+) ENGINE = InnoDB AUTO_INCREMENT = 4 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci ROW_FORMAT = Dynamic;
+
+-- ----------------------------
+-- Records of auditoria
+-- ----------------------------
+INSERT INTO `auditoria` VALUES (1, 5, 'caixa_sangria', 'caixa', 5, '{\"valor\":0.5,\"descricao\":\"teste auditoria\"}', '2026-07-05 02:47:08');
+INSERT INTO `auditoria` VALUES (2, 5, 'caixa_fechar', 'caixa', 5, '{\"valor_fechamento\":372.4}', '2026-07-05 02:47:08');
+INSERT INTO `auditoria` VALUES (3, 5, 'taxa_remover', 'pedido', 19, NULL, '2026-07-05 04:05:12');
 
 -- ----------------------------
 -- Table structure for caixa
@@ -26,13 +50,13 @@ CREATE TABLE `caixa`  (
   `funcionario_id` int NULL DEFAULT NULL,
   `valor_inicial` decimal(10, 2) NOT NULL,
   `valor_fechamento` decimal(10, 2) NULL DEFAULT NULL,
-  `data_abertura` datetime NULL DEFAULT current_timestamp,
+  `data_abertura` datetime NULL DEFAULT CURRENT_TIMESTAMP,
   `fechado_em` timestamp NULL DEFAULT NULL,
   `status` enum('aberto','fechado') CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT 'aberto',
   PRIMARY KEY (`id`) USING BTREE,
   INDEX `caixa_ibfk_1`(`funcionario_id` ASC) USING BTREE,
   CONSTRAINT `caixa_ibfk_1` FOREIGN KEY (`funcionario_id`) REFERENCES `usuarios` (`id`) ON DELETE CASCADE ON UPDATE RESTRICT
-) ENGINE = InnoDB AUTO_INCREMENT = 6 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 6 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci ROW_FORMAT = DYNAMIC;
 
 -- ----------------------------
 -- Records of caixa
@@ -46,17 +70,18 @@ DROP TABLE IF EXISTS `categorias`;
 CREATE TABLE `categorias`  (
   `id` int NOT NULL AUTO_INCREMENT,
   `nome` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
-  `created_at` timestamp NOT NULL DEFAULT current_timestamp,
+  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `vai_cozinha` tinyint(1) NOT NULL DEFAULT 1,
   PRIMARY KEY (`id`) USING BTREE,
   UNIQUE INDEX `nome`(`nome` ASC) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 4 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 4 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci ROW_FORMAT = DYNAMIC;
 
 -- ----------------------------
 -- Records of categorias
 -- ----------------------------
-INSERT INTO `categorias` VALUES (1, 'Comidas', '2026-06-27 14:57:58');
-INSERT INTO `categorias` VALUES (2, 'Bebidas', '2026-06-27 14:58:08');
-INSERT INTO `categorias` VALUES (3, 'Lanches', '2026-06-27 14:58:18');
+INSERT INTO `categorias` VALUES (1, 'Comidas', '2026-06-27 14:57:58', 1);
+INSERT INTO `categorias` VALUES (2, 'Bebidas', '2026-06-27 14:58:08', 0);
+INSERT INTO `categorias` VALUES (3, 'Lanches', '2026-06-27 14:58:18', 1);
 
 -- ----------------------------
 -- Table structure for configuracoes
@@ -67,17 +92,21 @@ CREATE TABLE `configuracoes`  (
   `nome_restaurante` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'Restaurante PDV',
   `logo_base64` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL,
   `mensagem_ficha` varchar(200) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT 'Obrigado pela preferência!',
-  `updated_at` timestamp NOT NULL DEFAULT current_timestamp ON UPDATE CURRENT_TIMESTAMP,
+  `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   `impressora_largura` int NOT NULL DEFAULT 80,
   `impressora_copias` int NOT NULL DEFAULT 1,
   `impressora_auto_imprimir` tinyint(1) NOT NULL DEFAULT 0,
+  `impressora_tipo` enum('navegador','rede','windows') CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT 'navegador',
+  `impressora_host` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL,
+  `impressora_porta` int NULL DEFAULT 9100,
+  `taxa_servico_pct` decimal(5, 2) NOT NULL DEFAULT 10.00,
   PRIMARY KEY (`id`) USING BTREE
-) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci ROW_FORMAT = DYNAMIC;
 
 -- ----------------------------
 -- Records of configuracoes
 -- ----------------------------
-INSERT INTO `configuracoes` VALUES (1, 'Restaurante PDV', NULL, 'Obrigado pela preferência!', '2026-06-28 21:16:58', 80, 1, 0);
+INSERT INTO `configuracoes` VALUES (1, 'Restaurante PDV', NULL, 'Obrigado pela preferência!', '2026-07-05 04:08:39', 58, 1, 1, 'windows', NULL, 9100, 10.00);
 
 -- ----------------------------
 -- Table structure for mesas
@@ -93,22 +122,22 @@ CREATE TABLE `mesas`  (
   `caixa_id` int NULL DEFAULT NULL,
   `data_abertura` datetime NULL DEFAULT NULL,
   `data_fechamento` datetime NULL DEFAULT NULL,
-  `criado_em` timestamp NOT NULL DEFAULT current_timestamp,
-  `atualizado_em` timestamp NOT NULL DEFAULT current_timestamp ON UPDATE CURRENT_TIMESTAMP,
+  `criado_em` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `atualizado_em` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`) USING BTREE,
   INDEX `fk_mesas_garcom`(`garcom_id` ASC) USING BTREE,
   CONSTRAINT `fk_mesas_garcom` FOREIGN KEY (`garcom_id`) REFERENCES `usuarios` (`id`) ON DELETE SET NULL ON UPDATE RESTRICT
-) ENGINE = InnoDB AUTO_INCREMENT = 23 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 25 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci ROW_FORMAT = DYNAMIC;
 
 -- ----------------------------
 -- Records of mesas
 -- ----------------------------
-INSERT INTO `mesas` VALUES (13, '1', NULL, 4, '', 2, NULL, '2026-05-02 15:49:53', '2026-06-27 17:48:32', '2026-05-02 15:49:53', '2026-06-27 17:48:32');
-INSERT INTO `mesas` VALUES (14, '2', NULL, 4, '', 3, NULL, '2026-05-02 15:53:05', '2026-06-27 18:05:10', '2026-05-02 15:53:05', '2026-06-27 18:05:10');
-INSERT INTO `mesas` VALUES (15, '3', NULL, 4, '', 4, NULL, '2026-05-02 15:56:01', '2026-06-27 18:12:49', '2026-05-15 14:16:45', '2026-06-27 18:12:49');
+INSERT INTO `mesas` VALUES (13, '1', NULL, 4, 'fechada', 2, NULL, '2026-05-02 15:49:53', '2026-06-27 17:48:32', '2026-05-02 15:49:53', '2026-06-27 17:48:32');
+INSERT INTO `mesas` VALUES (14, '2', NULL, 4, 'fechada', 3, NULL, '2026-05-02 15:53:05', '2026-06-27 18:05:10', '2026-05-02 15:53:05', '2026-06-27 18:05:10');
+INSERT INTO `mesas` VALUES (15, '3', NULL, 4, 'fechada', 4, NULL, '2026-05-02 15:56:01', '2026-06-27 18:12:49', '2026-05-15 14:16:45', '2026-06-27 18:12:49');
 INSERT INTO `mesas` VALUES (16, '4', NULL, 4, 'fechada', 5, NULL, '2026-05-15 14:42:25', '2026-05-19 09:01:36', '2026-05-15 14:42:25', '2026-05-21 11:01:59');
-INSERT INTO `mesas` VALUES (17, NULL, 'Appolo', 4, '', 5, NULL, '2026-06-27 18:15:31', '2026-06-27 18:16:14', '2026-06-27 18:15:31', '2026-06-27 18:16:14');
-INSERT INTO `mesas` VALUES (18, NULL, 'Appolo', 4, '', 5, NULL, '2026-06-27 18:17:12', '2026-06-27 18:17:31', '2026-06-27 18:17:12', '2026-06-27 18:17:31');
+INSERT INTO `mesas` VALUES (17, NULL, 'Appolo', 4, 'fechada', 5, NULL, '2026-06-27 18:15:31', '2026-06-27 18:16:14', '2026-06-27 18:15:31', '2026-06-27 18:16:14');
+INSERT INTO `mesas` VALUES (18, NULL, 'Appolo', 4, 'fechada', 5, NULL, '2026-06-27 18:17:12', '2026-06-27 18:17:31', '2026-06-27 18:17:12', '2026-06-27 18:17:31');
 INSERT INTO `mesas` VALUES (19, NULL, 'Sávio', 4, 'fechada', 5, 3, '2026-06-27 18:21:17', '2026-06-27 18:22:30', '2026-06-27 18:21:17', '2026-06-27 18:22:30');
 INSERT INTO `mesas` VALUES (20, NULL, 'Appolo', 4, 'fechada', 2, 5, '2026-06-28 13:43:47', '2026-06-28 13:45:42', '2026-06-28 13:43:47', '2026-06-28 13:45:42');
 INSERT INTO `mesas` VALUES (21, NULL, 'Appolo', 4, 'aberta', 2, 5, '2026-06-28 20:07:16', NULL, '2026-06-28 20:07:16', '2026-06-28 20:07:16');
@@ -123,7 +152,7 @@ CREATE TABLE `metodos_pagamento`  (
   `nome` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
   `ativo` tinyint(1) NULL DEFAULT 1,
   PRIMARY KEY (`id`) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 6 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 6 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci ROW_FORMAT = DYNAMIC;
 
 -- ----------------------------
 -- Records of metodos_pagamento
@@ -144,14 +173,14 @@ CREATE TABLE `movimentos_caixa`  (
   `tipo` enum('pagamento','suprimento','sangria','estorno') CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
   `valor` decimal(10, 2) NOT NULL,
   `descricao` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL,
-  `created_at` timestamp NOT NULL DEFAULT current_timestamp,
+  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `usuario_id` int NULL DEFAULT NULL,
   PRIMARY KEY (`id`) USING BTREE,
   INDEX `caixa_id`(`caixa_id` ASC) USING BTREE,
   INDEX `fk_mov_caixa_user`(`usuario_id` ASC) USING BTREE,
-  CONSTRAINT `movimentos_caixa_ibfk_1` FOREIGN KEY (`caixa_id`) REFERENCES `caixa` (`id`) ON DELETE CASCADE ON UPDATE RESTRICT,
-  CONSTRAINT `fk_mov_caixa_user` FOREIGN KEY (`usuario_id`) REFERENCES `usuarios` (`id`) ON DELETE RESTRICT ON UPDATE RESTRICT
-) ENGINE = InnoDB AUTO_INCREMENT = 8 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci ROW_FORMAT = Dynamic;
+  CONSTRAINT `fk_mov_caixa_user` FOREIGN KEY (`usuario_id`) REFERENCES `usuarios` (`id`) ON DELETE RESTRICT ON UPDATE RESTRICT,
+  CONSTRAINT `movimentos_caixa_ibfk_1` FOREIGN KEY (`caixa_id`) REFERENCES `caixa` (`id`) ON DELETE CASCADE ON UPDATE RESTRICT
+) ENGINE = InnoDB AUTO_INCREMENT = 11 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci ROW_FORMAT = DYNAMIC;
 
 -- ----------------------------
 -- Records of movimentos_caixa
@@ -176,7 +205,7 @@ CREATE TABLE `pagamentos`  (
   `caixa_id` int NULL DEFAULT NULL,
   `usuario_id` int NOT NULL,
   `status` enum('pendente','confirmado','estornado') CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT 'confirmado',
-  `created_at` timestamp NOT NULL DEFAULT current_timestamp,
+  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`) USING BTREE,
   INDEX `fk_pag_mesa`(`mesa_id` ASC) USING BTREE,
   INDEX `fk_pag_metodo`(`metodo_id` ASC) USING BTREE,
@@ -184,7 +213,7 @@ CREATE TABLE `pagamentos`  (
   CONSTRAINT `fk_pag_mesa` FOREIGN KEY (`mesa_id`) REFERENCES `mesas` (`id`) ON DELETE RESTRICT ON UPDATE RESTRICT,
   CONSTRAINT `fk_pag_metodo` FOREIGN KEY (`metodo_id`) REFERENCES `metodos_pagamento` (`id`) ON DELETE RESTRICT ON UPDATE RESTRICT,
   CONSTRAINT `fk_pag_user` FOREIGN KEY (`usuario_id`) REFERENCES `usuarios` (`id`) ON DELETE RESTRICT ON UPDATE RESTRICT
-) ENGINE = InnoDB AUTO_INCREMENT = 5 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 7 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci ROW_FORMAT = DYNAMIC;
 
 -- ----------------------------
 -- Records of pagamentos
@@ -204,15 +233,15 @@ CREATE TABLE `pdv_config`  (
   `status_licenca` enum('ativado','pendente','bloqueado') CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT 'pendente',
   `data_ativacao` datetime NULL DEFAULT NULL,
   `data_vencimento` datetime NULL DEFAULT NULL,
-  `ultima_verificacao` datetime NULL DEFAULT current_timestamp ON UPDATE CURRENT_TIMESTAMP,
+  `ultima_verificacao` datetime NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   `host_fingerprint` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL COMMENT 'ID único da máquina servidora',
   PRIMARY KEY (`id`) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 4 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 4 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci ROW_FORMAT = DYNAMIC;
 
 -- ----------------------------
 -- Records of pdv_config
 -- ----------------------------
-INSERT INTO `pdv_config` VALUES (3, 'eyJjIjoiQmFycmFjYSBkbyBCb2RlIiwiZCI6MzY1LCJzIjoibm92YTIwMjAqIn0=', 'ativado', '2026-06-28 11:50:58', '2027-06-28 11:50:58', '2026-06-28 21:22:41', NULL);
+INSERT INTO `pdv_config` VALUES (3, 'eyJjIjoiQmFycmFjYSBkbyBCb2RlIiwiZCI6MzY1LCJzIjoibm92YTIwMjAqIn0=', 'ativado', '2026-06-28 11:50:58', '2027-06-28 11:50:58', '2026-07-05 04:04:50', NULL);
 
 -- ----------------------------
 -- Table structure for pedido_abatimentos
@@ -223,11 +252,11 @@ CREATE TABLE `pedido_abatimentos`  (
   `pedido_id` int NOT NULL,
   `valor` decimal(10, 2) NOT NULL,
   `motivo` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL,
-  `created_at` timestamp NOT NULL DEFAULT current_timestamp,
+  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`) USING BTREE,
   INDEX `fk_abat_pedido`(`pedido_id` ASC) USING BTREE,
   CONSTRAINT `fk_abat_pedido` FOREIGN KEY (`pedido_id`) REFERENCES `pedidos` (`id`) ON DELETE RESTRICT ON UPDATE RESTRICT
-) ENGINE = InnoDB AUTO_INCREMENT = 3 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 3 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci ROW_FORMAT = DYNAMIC;
 
 -- ----------------------------
 -- Records of pedido_abatimentos
@@ -248,11 +277,11 @@ CREATE TABLE `pedido_itens`  (
   `preco_total` decimal(10, 2) NOT NULL,
   `observacao` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL,
   `status` enum('pendente','em_preparo','pronto','entregue','cancelado') CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT 'pendente',
-  `created_at` timestamp NOT NULL DEFAULT current_timestamp,
+  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`) USING BTREE,
   INDEX `pedido_id`(`pedido_id` ASC) USING BTREE,
   CONSTRAINT `pedido_itens_ibfk_1` FOREIGN KEY (`pedido_id`) REFERENCES `pedidos` (`id`) ON DELETE CASCADE ON UPDATE RESTRICT
-) ENGINE = InnoDB AUTO_INCREMENT = 61 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 64 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci ROW_FORMAT = DYNAMIC;
 
 -- ----------------------------
 -- Records of pedido_itens
@@ -260,7 +289,7 @@ CREATE TABLE `pedido_itens`  (
 INSERT INTO `pedido_itens` VALUES (1, 19, 1, 1, 4.00, 4.00, NULL, 'pendente', '2026-06-28 20:08:36');
 INSERT INTO `pedido_itens` VALUES (2, 19, 4, 1, 10.00, 10.00, NULL, 'pendente', '2026-06-28 20:08:36');
 INSERT INTO `pedido_itens` VALUES (3, 19, 5, 1, 7.00, 7.00, NULL, 'pendente', '2026-06-28 20:08:36');
-INSERT INTO `pedido_itens` VALUES (4, 19, 9, 2, 15.00, 30.00, NULL, 'pendente', '2026-06-28 20:08:37');
+INSERT INTO `pedido_itens` VALUES (4, 19, 9, 3, 15.00, 45.00, NULL, 'pendente', '2026-06-28 20:08:37');
 INSERT INTO `pedido_itens` VALUES (50, 29, 1, 1, 4.00, 4.00, NULL, 'pronto', '2026-06-28 20:25:28');
 INSERT INTO `pedido_itens` VALUES (51, 29, 9, 1, 15.00, 15.00, NULL, 'pronto', '2026-06-28 20:25:28');
 INSERT INTO `pedido_itens` VALUES (52, 29, 2, 1, 6.00, 6.00, NULL, 'pronto', '2026-06-28 20:25:28');
@@ -285,30 +314,31 @@ CREATE TABLE `pedidos`  (
   `status` enum('aberto','preparando','pronto','entregue','fechado','cancelado') CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT 'aberto',
   `total` decimal(10, 2) NULL DEFAULT 0.00,
   `desconto` decimal(10, 2) NOT NULL DEFAULT 0.00,
-  `criado_em` timestamp NOT NULL DEFAULT current_timestamp,
+  `criado_em` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `caixa_id` int NULL DEFAULT NULL,
+  `taxa_pct` decimal(5, 2) NOT NULL DEFAULT 0.00,
   PRIMARY KEY (`id`) USING BTREE,
   INDEX `mesa_id`(`mesa_id` ASC) USING BTREE,
   INDEX `funcionario_id`(`funcionario_id` ASC) USING BTREE,
   CONSTRAINT `pedidos_ibfk_1` FOREIGN KEY (`mesa_id`) REFERENCES `mesas` (`id`) ON DELETE RESTRICT ON UPDATE RESTRICT,
   CONSTRAINT `pedidos_ibfk_2` FOREIGN KEY (`funcionario_id`) REFERENCES `usuarios` (`id`) ON DELETE RESTRICT ON UPDATE RESTRICT
-) ENGINE = InnoDB AUTO_INCREMENT = 33 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 35 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci ROW_FORMAT = DYNAMIC;
 
 -- ----------------------------
 -- Records of pedidos
 -- ----------------------------
-INSERT INTO `pedidos` VALUES (1, 13, NULL, NULL, 'fechado', 150.40, 92.40, '2026-05-23 02:25:48', NULL);
-INSERT INTO `pedidos` VALUES (3, 14, 5, NULL, 'fechado', 14.00, 0.00, '2026-06-27 18:02:28', NULL);
-INSERT INTO `pedidos` VALUES (4, 15, 5, NULL, 'fechado', 46.00, 0.00, '2026-06-27 18:12:31', NULL);
-INSERT INTO `pedidos` VALUES (5, 17, 5, NULL, 'fechado', 14.00, 0.00, '2026-06-27 18:16:06', NULL);
-INSERT INTO `pedidos` VALUES (6, 18, 5, NULL, 'fechado', 34.00, 0.00, '2026-06-27 18:17:18', NULL);
-INSERT INTO `pedidos` VALUES (7, 19, 5, NULL, 'fechado', 37.00, 0.00, '2026-06-27 18:22:21', NULL);
-INSERT INTO `pedidos` VALUES (8, 20, 2, NULL, 'fechado', 58.00, 0.00, '2026-06-28 13:45:01', NULL);
-INSERT INTO `pedidos` VALUES (19, 21, 3, NULL, 'aberto', 51.00, 0.00, '2026-06-28 20:08:36', NULL);
-INSERT INTO `pedidos` VALUES (29, NULL, 3, NULL, 'fechado', 25.00, 0.00, '2026-06-28 20:25:28', NULL);
-INSERT INTO `pedidos` VALUES (30, 22, 3, NULL, 'aberto', 14.00, 0.00, '2026-06-28 20:31:53', NULL);
-INSERT INTO `pedidos` VALUES (31, NULL, 3, NULL, 'fechado', 39.00, 0.00, '2026-06-28 20:49:40', NULL);
-INSERT INTO `pedidos` VALUES (32, NULL, 3, NULL, 'fechado', 22.00, 0.00, '2026-06-28 20:55:11', NULL);
+INSERT INTO `pedidos` VALUES (1, 13, NULL, NULL, 'fechado', 150.40, 92.40, '2026-05-23 02:25:48', NULL, 0.00);
+INSERT INTO `pedidos` VALUES (3, 14, 5, NULL, 'fechado', 14.00, 0.00, '2026-06-27 18:02:28', NULL, 0.00);
+INSERT INTO `pedidos` VALUES (4, 15, 5, NULL, 'fechado', 46.00, 0.00, '2026-06-27 18:12:31', NULL, 0.00);
+INSERT INTO `pedidos` VALUES (5, 17, 5, NULL, 'fechado', 14.00, 0.00, '2026-06-27 18:16:06', NULL, 0.00);
+INSERT INTO `pedidos` VALUES (6, 18, 5, NULL, 'fechado', 34.00, 0.00, '2026-06-27 18:17:18', NULL, 0.00);
+INSERT INTO `pedidos` VALUES (7, 19, 5, NULL, 'fechado', 37.00, 0.00, '2026-06-27 18:22:21', NULL, 0.00);
+INSERT INTO `pedidos` VALUES (8, 20, 2, NULL, 'fechado', 58.00, 0.00, '2026-06-28 13:45:01', NULL, 0.00);
+INSERT INTO `pedidos` VALUES (19, 21, 3, NULL, 'aberto', 66.00, 0.00, '2026-06-28 20:08:36', NULL, 10.00);
+INSERT INTO `pedidos` VALUES (29, NULL, 3, NULL, 'fechado', 25.00, 0.00, '2026-06-28 20:25:28', NULL, 0.00);
+INSERT INTO `pedidos` VALUES (30, 22, 3, NULL, 'aberto', 14.00, 0.00, '2026-06-28 20:31:53', NULL, 0.00);
+INSERT INTO `pedidos` VALUES (31, NULL, 3, NULL, 'fechado', 39.00, 0.00, '2026-06-28 20:49:40', NULL, 0.00);
+INSERT INTO `pedidos` VALUES (32, NULL, 3, NULL, 'fechado', 22.00, 0.00, '2026-06-28 20:55:11', NULL, 0.00);
 
 -- ----------------------------
 -- Table structure for produtos
@@ -321,7 +351,7 @@ CREATE TABLE `produtos`  (
   `categoria` varchar(60) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL,
   `categoria_id` int NULL DEFAULT NULL,
   `ativo` tinyint(1) NULL DEFAULT 1,
-  `criado_em` timestamp NOT NULL DEFAULT current_timestamp,
+  `criado_em` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `estoque_atual` int NULL DEFAULT 0,
   `estoque_minimo` int NULL DEFAULT 5,
   `gerenciar_estoque` tinyint(1) NULL DEFAULT 0,
@@ -329,7 +359,7 @@ CREATE TABLE `produtos`  (
   PRIMARY KEY (`id`) USING BTREE,
   INDEX `fk_produtos_categoria`(`categoria_id` ASC) USING BTREE,
   CONSTRAINT `fk_produtos_categoria` FOREIGN KEY (`categoria_id`) REFERENCES `categorias` (`id`) ON DELETE SET NULL ON UPDATE RESTRICT
-) ENGINE = InnoDB AUTO_INCREMENT = 13 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 13 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci ROW_FORMAT = DYNAMIC;
 
 -- ----------------------------
 -- Records of produtos
@@ -342,7 +372,7 @@ INSERT INTO `produtos` VALUES (5, 'Suco Natural', 7.00, 'bebidas', 2, 1, '2026-0
 INSERT INTO `produtos` VALUES (6, 'Espetinho Carne', 12.00, 'comida', 1, 1, '2026-03-31 13:46:24', 48, 5, 1, NULL);
 INSERT INTO `produtos` VALUES (7, 'Espetinho Frango', 10.00, 'comida', 1, 1, '2026-03-31 13:46:24', 57, 5, 1, NULL);
 INSERT INTO `produtos` VALUES (8, 'Espetinho Linguiça', 10.00, 'comida', 1, 1, '2026-03-31 13:46:24', 68, 5, 1, NULL);
-INSERT INTO `produtos` VALUES (9, 'Batata Frita', 15.00, 'comida', 1, 1, '2026-03-31 13:46:24', 14, 5, 1, NULL);
+INSERT INTO `produtos` VALUES (9, 'Batata Frita', 15.00, 'comida', 1, 1, '2026-03-31 13:46:24', 13, 5, 1, NULL);
 INSERT INTO `produtos` VALUES (10, 'Hambúrguer', 18.00, 'comida', 3, 1, '2026-03-31 13:46:24', 76, 5, 1, NULL);
 INSERT INTO `produtos` VALUES (11, 'Hambúrguer Gourmet', 35.90, 'Lanches', 3, 1, '2026-05-16 01:23:20', 20, 5, 1, NULL);
 INSERT INTO `produtos` VALUES (12, 'Teste', 6.50, 'Comida', 1, 1, '2026-05-23 03:44:57', 149, 10, 1, NULL);
@@ -357,15 +387,15 @@ CREATE TABLE `usuarios`  (
   `cargo` enum('administrador','garcom','caixa','cozinha') CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
   `cartao_rfid` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL,
   `ativo` tinyint(1) NULL DEFAULT 1,
-  `criado_em` timestamp NOT NULL DEFAULT current_timestamp,
+  `criado_em` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `email` varchar(120) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL,
   `senha_hash` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
   `ultimo_login` datetime NULL DEFAULT NULL,
-  `created_at` timestamp NOT NULL DEFAULT current_timestamp,
+  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`) USING BTREE,
   UNIQUE INDEX `email`(`email` ASC) USING BTREE,
   UNIQUE INDEX `cartao_rfid`(`cartao_rfid` ASC) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 6 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 6 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci ROW_FORMAT = DYNAMIC;
 
 -- ----------------------------
 -- Records of usuarios

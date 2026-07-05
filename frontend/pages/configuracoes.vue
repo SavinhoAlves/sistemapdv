@@ -1,5 +1,6 @@
 <template>
-  <div class="min-h-screen bg-neutral-100 dark:bg-neutral-950 transition-colors duration-200">
+  <div class="min-h-screen bg-neutral-100 dark:bg-neutral-950 transition-colors duration-200 com-sidebar">
+    <Sidebar />
     <Navbar />
 
     <main class="max-w-6xl mx-auto px-6 py-8">
@@ -187,6 +188,56 @@
                   <span class="absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all"
                     :class="form.impressora_auto_imprimir ? 'left-[26px]' : 'left-0.5'" />
                 </button>
+              </div>
+
+              <!-- CONEXÃO DA IMPRESSORA (ESC/POS) -->
+              <div class="border-t border-neutral-100 dark:border-neutral-800 pt-6">
+                <label class="block text-[10px] font-black uppercase tracking-widest text-neutral-500 mb-3">
+                  Conexão da impressora térmica
+                </label>
+                <div class="grid grid-cols-3 gap-3 mb-4">
+                  <button v-for="op in tiposImpressora" :key="op.value"
+                    @click="form.impressora_tipo = op.value"
+                    class="p-3 rounded-2xl border-2 transition-all text-left"
+                    :class="form.impressora_tipo === op.value
+                      ? 'border-orange-500 bg-orange-50 dark:bg-orange-950/20'
+                      : 'border-neutral-200 dark:border-neutral-700 hover:border-neutral-300 dark:hover:border-neutral-600'">
+                    <p class="text-xs font-black"
+                      :class="form.impressora_tipo === op.value ? 'text-orange-600 dark:text-orange-400' : 'text-neutral-800 dark:text-neutral-200'">
+                      {{ op.label }}
+                    </p>
+                    <p class="text-[10px] text-neutral-400 mt-0.5 leading-tight">{{ op.desc }}</p>
+                  </button>
+                </div>
+
+                <div v-if="form.impressora_tipo === 'rede'" class="grid grid-cols-3 gap-3">
+                  <div class="col-span-2">
+                    <label for="imp-host" class="block text-[10px] font-black uppercase tracking-widest text-neutral-500 mb-2">IP da impressora</label>
+                    <input id="imp-host" name="imp-host" v-model="form.impressora_host" type="text" placeholder="Ex: 192.168.1.200"
+                      class="w-full h-11 px-4 rounded-xl border border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-800 text-neutral-900 dark:text-white text-sm font-mono outline-none focus:border-orange-500 transition-all" />
+                  </div>
+                  <div>
+                    <label for="imp-porta" class="block text-[10px] font-black uppercase tracking-widest text-neutral-500 mb-2">Porta</label>
+                    <input id="imp-porta" name="imp-porta" v-model.number="form.impressora_porta" type="number" placeholder="9100"
+                      class="w-full h-11 px-4 rounded-xl border border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-800 text-neutral-900 dark:text-white text-sm font-mono outline-none focus:border-orange-500 transition-all" />
+                  </div>
+                </div>
+
+                <div v-if="form.impressora_tipo === 'windows'">
+                  <label for="imp-share" class="block text-[10px] font-black uppercase tracking-widest text-neutral-500 mb-2">Nome do compartilhamento</label>
+                  <input id="imp-share" name="imp-share" v-model="form.impressora_host" type="text" placeholder="Ex: CUPOM (compartilhe a impressora no Windows com este nome)"
+                    class="w-full h-11 px-4 rounded-xl border border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-800 text-neutral-900 dark:text-white text-sm outline-none focus:border-orange-500 transition-all" />
+                </div>
+
+                <div v-if="form.impressora_tipo !== 'navegador'" class="mt-4 flex items-center gap-3">
+                  <button @click="testarImpressora" :disabled="testandoImpressora"
+                    class="h-10 px-5 rounded-xl bg-purple-500 hover:bg-purple-600 disabled:opacity-50 text-white text-xs font-black transition-all active:scale-95 flex items-center gap-1.5">
+                    <Loader2 v-if="testandoImpressora" :size="13" class="animate-spin" />
+                    <Printer v-else :size="13" />
+                    {{ testandoImpressora ? 'Imprimindo...' : 'Imprimir teste' }}
+                  </button>
+                  <p class="text-[10px] text-neutral-400 leading-tight">Salve as configurações antes de testar.<br>Funciona com qualquer impressora ESC/POS (Epson, Elgin, Bematech, Tanca…).</p>
+                </div>
               </div>
 
             </div>
@@ -402,15 +453,18 @@ import {
   Minus, Plus, Plug, CreditCard, RefreshCw, CheckCircle
 } from 'lucide-vue-next'
 import Navbar from '~/layouts/Navbar.vue'
+import Sidebar from '~/components/Sidebar.vue'
 import { useConfigStore }      from '~/stores/configuracoes'
 import { useIntegracoesStore } from '~/stores/integracoes'
 import { useToastStore }       from '~/stores/toast'
+import { useApi }              from '~/services/api'
 
 definePageMeta({ layout: false })
 
 const configStore = useConfigStore()
 const mpStore     = useIntegracoesStore()
 const toastStore  = useToastStore()
+const api         = useApi()
 
 const inputLogoRef = ref<HTMLInputElement | null>(null)
 const salvando     = ref(false)
@@ -430,13 +484,23 @@ const larguras = [
   { value: 80, label: '80 mm', desc: 'Bobina padrão' }
 ]
 
+const tiposImpressora = [
+  { value: 'navegador' as const, label: 'Navegador', desc: 'Janela de impressão do navegador' },
+  { value: 'rede' as const,      label: 'Rede',      desc: 'Térmica com Ethernet/Wi-Fi (porta 9100)' },
+  { value: 'windows' as const,   label: 'USB',       desc: 'Térmica USB compartilhada no Windows' }
+]
+const testandoImpressora = ref(false)
+
 const form = reactive({
   nome_restaurante:         '',
   logo_base64:              null as string | null,
   mensagem_ficha:           '',
   impressora_largura:       80,
   impressora_copias:        1,
-  impressora_auto_imprimir: false
+  impressora_auto_imprimir: false,
+  impressora_tipo:          'navegador' as 'navegador' | 'rede' | 'windows',
+  impressora_host:          '',
+  impressora_porta:         9100
 })
 
 onMounted(async () => {
@@ -447,6 +511,9 @@ onMounted(async () => {
   form.impressora_largura       = configStore.impressora_largura
   form.impressora_copias        = configStore.impressora_copias
   form.impressora_auto_imprimir = configStore.impressora_auto_imprimir
+  form.impressora_tipo          = configStore.impressora_tipo
+  form.impressora_host          = configStore.impressora_host
+  form.impressora_porta         = configStore.impressora_porta
 
   await mpStore.carregar()
   mp.ativado   = mpStore.mp.ativado
@@ -480,6 +547,18 @@ function onLogoChange(e: Event) {
   ;(e.target as HTMLInputElement).value = ''
 }
 
+async function testarImpressora() {
+  testandoImpressora.value = true
+  try {
+    await api.post('/impressao/teste')
+    toastStore.success('Cupom de teste enviado!', 'Verifique a impressora.')
+  } catch (e: any) {
+    toastStore.error('Falha na impressão', e?.message)
+  } finally {
+    testandoImpressora.value = false
+  }
+}
+
 async function salvar() {
   if (!form.nome_restaurante.trim()) {
     toastStore.error('Informe o nome do estabelecimento')
@@ -494,7 +573,10 @@ async function salvar() {
         mensagem_ficha:           form.mensagem_ficha.trim() || 'Obrigado pela preferência!',
         impressora_largura:       form.impressora_largura,
         impressora_copias:        form.impressora_copias,
-        impressora_auto_imprimir: form.impressora_auto_imprimir
+        impressora_auto_imprimir: form.impressora_auto_imprimir,
+        impressora_tipo:          form.impressora_tipo,
+        impressora_host:          form.impressora_host.trim(),
+        impressora_porta:         form.impressora_porta || 9100
       }),
       mpStore.salvar({
         ativado:      mp.ativado,

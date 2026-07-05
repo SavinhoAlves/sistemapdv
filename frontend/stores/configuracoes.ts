@@ -8,6 +8,9 @@ interface Config {
   impressora_largura: number
   impressora_copias: number
   impressora_auto_imprimir: boolean
+  impressora_tipo: 'navegador' | 'rede' | 'windows'
+  impressora_host: string
+  impressora_porta: number
 }
 
 export const useConfigStore = defineStore('configuracoes', {
@@ -18,6 +21,9 @@ export const useConfigStore = defineStore('configuracoes', {
     impressora_largura:       80,
     impressora_copias:        1,
     impressora_auto_imprimir: false,
+    impressora_tipo:          'navegador',
+    impressora_host:          '',
+    impressora_porta:         9100,
     carregado: false
   }),
 
@@ -33,6 +39,9 @@ export const useConfigStore = defineStore('configuracoes', {
         this.impressora_largura       = Number(data.impressora_largura)       || 80
         this.impressora_copias        = Number(data.impressora_copias)        || 1
         this.impressora_auto_imprimir = Boolean(data.impressora_auto_imprimir)
+        this.impressora_tipo          = data.impressora_tipo                  || 'navegador'
+        this.impressora_host          = data.impressora_host                  || ''
+        this.impressora_porta         = Number(data.impressora_porta)         || 9100
         this.carregado = true
       } catch {}
     },

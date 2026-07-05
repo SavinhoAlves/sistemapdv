@@ -1,5 +1,6 @@
 <template>
-  <div class="min-h-screen bg-neutral-950 transition-colors duration-200">
+  <div class="min-h-screen bg-neutral-950 transition-colors duration-200 com-sidebar">
+    <Sidebar />
     <Navbar />
 
     <main class="p-4 max-w-screen-2xl mx-auto">
@@ -111,6 +112,7 @@
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { RefreshCw, ChefHat } from 'lucide-vue-next'
 import Navbar from '~/layouts/Navbar.vue'
+import Sidebar from '~/components/Sidebar.vue'
 import { useApi } from '~/services/api'
 import { useToastStore } from '~/stores/toast'
 

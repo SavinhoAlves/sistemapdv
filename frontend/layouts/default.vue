@@ -1,7 +1,8 @@
 <template>
-  <div class="min-h-screen bg-neutral-50 dark:bg-neutral-950 flex flex-col transition-colors duration-200">
+  <div class="min-h-screen bg-neutral-50 dark:bg-neutral-950 flex flex-col transition-colors duration-200 com-sidebar">
 
-    <!-- NAVBAR GLOBAL -->
+    <!-- SIDEBAR + NAVBAR GLOBAIS -->
+    <Sidebar />
     <Navbar />
 
     <!-- CONTEÚDO DAS PÁGINAS -->
@@ -16,6 +17,7 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import Navbar from './Navbar.vue'
+import Sidebar from '~/components/Sidebar.vue'
 
 const router = useRouter()
 

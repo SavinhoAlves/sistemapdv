@@ -1,5 +1,7 @@
 <template>
-  <div class="h-screen overflow-hidden bg-neutral-100 dark:bg-neutral-950 transition-colors duration-200">
+  <div class="h-screen overflow-hidden bg-neutral-100 dark:bg-neutral-950 transition-colors duration-200 com-sidebar">
+
+    <Sidebar />
 
     <!-- ÁREA PRINCIPAL -->
     <div

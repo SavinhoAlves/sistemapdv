@@ -1,5 +1,6 @@
 <template>
-  <div class="min-h-screen bg-neutral-100 dark:bg-neutral-950 transition-colors duration-200">
+  <div class="min-h-screen bg-neutral-100 dark:bg-neutral-950 transition-colors duration-200 com-sidebar">
+    <Sidebar />
     <Navbar />
 
     <main class="p-6 max-w-5xl mx-auto">
@@ -261,6 +262,7 @@
 import { ref, reactive, onMounted } from 'vue'
 import { Users, Tag, CreditCard, Plus, Pencil, Trash2 } from 'lucide-vue-next'
 import Navbar from '~/layouts/Navbar.vue'
+import Sidebar from '~/components/Sidebar.vue'
 import { useApi } from '~/services/api'
 import { useToastStore } from '~/stores/toast'
 

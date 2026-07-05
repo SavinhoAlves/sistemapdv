@@ -2,8 +2,8 @@
   <div class="min-h-screen bg-neutral-100 dark:bg-neutral-950 transition-colors duration-200">
 
     <!-- HEADER DA PÁGINA -->
-    <div class="bg-white dark:bg-neutral-900 border-b border-neutral-200 dark:border-neutral-800 px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
-      <div class="max-w-7xl mx-auto flex items-center justify-between gap-3">
+    <div class="pt-6 sm:pt-8 pb-0">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between gap-3">
         <div>
           <h1 class="text-2xl font-black text-neutral-900 dark:text-white tracking-tight">Dashboard</h1>
           <p class="text-sm text-neutral-400 dark:text-neutral-500 mt-0.5">
@@ -22,7 +22,7 @@
       </div>
     </div>
 
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-6 sm:space-y-8">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5 sm:py-6 space-y-6 sm:space-y-8">
 
       <!-- CARDS DE STATS -->
       <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">

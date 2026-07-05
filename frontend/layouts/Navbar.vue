@@ -2,33 +2,18 @@
   <header class="w-full bg-white dark:bg-neutral-950 border-b border-neutral-200 dark:border-neutral-800 shrink-0 transition-colors duration-200">
     <div class="h-14 px-5 flex items-center justify-between gap-4">
 
-      <!-- LOGO -->
-      <div class="flex items-center gap-2.5 shrink-0">
+      <!-- LOGO (só no mobile — em telas maiores ela vive na Sidebar) -->
+      <div class="flex sm:hidden items-center gap-2.5 shrink-0">
         <div class="w-7 h-7 rounded-lg bg-orange-500 flex items-center justify-center">
           <UtensilsCrossed :size="13" class="text-white" />
         </div>
-        <span class="text-sm font-black text-neutral-900 dark:text-white tracking-tight hidden sm:block">
+        <span class="text-sm font-black text-neutral-900 dark:text-white tracking-tight">
           Restaurante <span class="text-orange-500">PDV</span>
         </span>
       </div>
 
-      <!-- NAVEGAÇÃO CENTRAL (sm+) -->
-      <div class="hidden sm:flex flex-1 min-w-0 overflow-x-auto nav-scroll justify-center">
-        <nav class="flex items-center gap-0.5 bg-neutral-100 dark:bg-neutral-900 rounded-xl p-1 border border-neutral-200 dark:border-neutral-800 w-max">
-          <button
-            v-for="item in navItems"
-            :key="item.rota"
-            @click="router.push(item.rota)"
-            class="flex items-center gap-1.5 h-7 px-3 rounded-lg text-xs font-bold transition-all whitespace-nowrap"
-            :class="isAtivo(item.rota)
-              ? 'bg-orange-500 text-white shadow-sm shadow-orange-500/30'
-              : 'text-neutral-500 hover:text-neutral-800 dark:hover:text-neutral-200'"
-          >
-            <component :is="item.icon" :size="12" stroke-width="2.2" />
-            <span>{{ item.label }}</span>
-          </button>
-        </nav>
-      </div>
+      <!-- espaço central -->
+      <div class="flex-1"></div>
 
       <!-- DIREITA -->
       <div class="flex items-center gap-2 shrink-0">
@@ -219,9 +204,7 @@
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import {
-  LayoutGrid, Package, LogOut,
-  UtensilsCrossed, BarChart2, FileText, Sun, Moon, ChevronDown,
-  Landmark, ChefHat, ShieldCheck, Settings
+  LogOut, UtensilsCrossed, Sun, Moon, ChevronDown, Landmark
 } from 'lucide-vue-next'
 
 import { useAuthStore }  from '~/stores/auth'
@@ -245,34 +228,6 @@ const isAdmin  = computed(() => cargo.value === 'administrador')
 const isGarcom = computed(() => cargo.value === 'garcom')
 const isCaixa  = computed(() => cargo.value === 'caixa')
 const isCozinha = computed(() => cargo.value === 'cozinha')
-
-const navItems = computed(() => {
-  if (isAdmin.value) return [
-    { rota: '/',               label: 'Dashboard',    icon: BarChart2   },
-    { rota: '/mesas',          label: 'Mesas',        icon: LayoutGrid  },
-    { rota: '/produtos',       label: 'Produtos',     icon: Package     },
-    { rota: '/caixa',          label: 'Caixa',        icon: Landmark    },
-    { rota: '/relatorios',     label: 'Relatórios',   icon: FileText    },
-    { rota: '/admin',          label: 'Admin',        icon: ShieldCheck },
-    { rota: '/configuracoes',  label: 'Config',       icon: Settings    }
-  ]
-  if (isGarcom.value) return [
-    { rota: '/mesas',    label: 'Mesas',    icon: LayoutGrid },
-    { rota: '/produtos', label: 'Produtos', icon: Package    }
-  ]
-  if (isCaixa.value) return [
-    { rota: '/caixa', label: 'Caixa', icon: Landmark }
-  ]
-  if (isCozinha.value) return [
-    { rota: '/cozinha', label: 'Cozinha', icon: ChefHat }
-  ]
-  return []
-})
-
-function isAtivo(rota: string) {
-  if (rota === '/') return route.path === '/'
-  return route.path.startsWith(rota)
-}
 
 const inicial      = computed(() => (authStore.usuario?.nome || 'U')[0].toUpperCase())
 const primeiroNome = computed(() => authStore.usuario?.nome?.split(' ')[0] || '')

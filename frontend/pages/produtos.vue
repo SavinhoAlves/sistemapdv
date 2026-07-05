@@ -2,7 +2,7 @@
   <div class="h-screen flex flex-col bg-neutral-100 dark:bg-neutral-950 transition-colors duration-200">
 
     <!-- HEADER -->
-    <div class="px-8 py-5 bg-white dark:bg-neutral-900 border-b border-neutral-200 dark:border-neutral-800 flex items-center justify-between">
+    <div class="px-6 pt-6 pb-4 flex items-center justify-between">
       <div>
         <h1 class="text-2xl font-black text-neutral-900 dark:text-white">Produtos</h1>
         <p class="text-sm text-neutral-500 dark:text-neutral-400 mt-0.5">Controle de cardápio e estoque</p>
@@ -31,7 +31,7 @@
     </div>
 
     <!-- LISTA -->
-    <div class="flex-1 overflow-auto p-6">
+    <div class="flex-1 overflow-auto p-6 pt-1">
 
       <!-- LOADING -->
       <div v-if="loading" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">

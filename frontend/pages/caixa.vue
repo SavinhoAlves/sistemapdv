@@ -1,8 +1,9 @@
 <template>
   <div
-    class="h-screen flex flex-col bg-neutral-100 dark:bg-neutral-950 overflow-hidden transition-colors duration-200"
+    class="h-screen flex flex-col bg-neutral-100 dark:bg-neutral-950 overflow-hidden transition-colors duration-200 com-sidebar"
     :class="caixaAberto && !isAdmin ? 'lg:pr-72 xl:pr-80' : ''"
   >
+    <Sidebar />
     <Navbar />
 
     <!-- CAIXA FECHADO -->
@@ -19,7 +20,7 @@
       <div class="flex-1 overflow-y-auto">
 
         <!-- HEADER + AÇÕES -->
-        <div class="bg-white dark:bg-neutral-900 border-b border-neutral-200 dark:border-neutral-800 px-4 sm:px-6 py-4 flex flex-wrap items-center justify-between gap-3 shrink-0">
+        <div class="px-4 sm:px-6 pt-5 pb-3 flex flex-wrap items-center justify-between gap-3 shrink-0">
           <div>
             <h2 class="text-base font-black text-neutral-900 dark:text-white">Painel do Caixa</h2>
             <p v-if="caixaStore.caixaAtual?.data_abertura" class="text-xs text-neutral-400 mt-0.5">
@@ -42,7 +43,7 @@
           </div>
         </div>
 
-        <div class="p-4 sm:p-6 space-y-4">
+        <div class="px-4 sm:px-6 pb-4 sm:pb-6 pt-1 space-y-4">
 
           <!-- KPI: SALDO -->
           <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
@@ -486,6 +487,7 @@ import {
   UtensilsCrossed
 } from 'lucide-vue-next'
 import Navbar from '~/layouts/Navbar.vue'
+import Sidebar from '~/components/Sidebar.vue'
 import { useApi } from '~/services/api'
 import { useCaixaStore }  from '~/stores/caixa'
 import { useToastStore }  from '~/stores/toast'

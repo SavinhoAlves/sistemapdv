@@ -53,7 +53,7 @@
                     <p class="text-[10px] text-neutral-400 leading-relaxed max-w-[160px]">
                       PNG ou JPG. Recomendado: 200×200 px, fundo transparente.
                     </p>
-                    <input ref="inputLogoRef" type="file" accept="image/png,image/jpeg,image/webp" class="hidden" @change="onLogoChange" />
+                    <input id="input-logo" name="input-logo" ref="inputLogoRef" type="file" accept="image/png,image/jpeg,image/webp" class="hidden" aria-label="Enviar logo" @change="onLogoChange" />
                   </div>
                 </div>
               </div>
@@ -236,12 +236,14 @@
 
                     <!-- Access Token -->
                     <div>
-                      <label class="block text-[10px] font-black uppercase tracking-widest text-neutral-500 mb-2">
+                      <label for="mp-access-token" class="block text-[10px] font-black uppercase tracking-widest text-neutral-500 mb-2">
                         Access Token
                       </label>
                       <div class="flex gap-2">
                         <div class="relative flex-1">
                           <input
+                            id="mp-access-token"
+                            name="mp-access-token"
                             v-model="mp.access_token"
                             :type="mostrarToken ? 'text' : 'password'"
                             :placeholder="mpStore.mp.token_salvo ? `Token salvo (•••• ${mpStore.mp.token_sufixo})` : 'APP_USR-...'"
@@ -264,13 +266,15 @@
 
                     <!-- Dispositivo -->
                     <div>
-                      <label class="block text-[10px] font-black uppercase tracking-widest text-neutral-500 mb-2">
+                      <label for="mp-device-id" class="block text-[10px] font-black uppercase tracking-widest text-neutral-500 mb-2">
                         Maquininha (Device ID)
                       </label>
                       <div class="flex gap-2">
                         <div class="relative flex-1">
                           <select
                             v-if="mp.dispositivos.length > 0"
+                            id="mp-device-id"
+                            name="mp-device-id"
                             v-model="mp.device_id"
                             class="w-full h-11 px-4 rounded-xl border border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-800 text-neutral-900 dark:text-white text-sm outline-none focus:border-emerald-400 transition-all appearance-none"
                           >
@@ -281,6 +285,8 @@
                           </select>
                           <input
                             v-else
+                            id="mp-device-id"
+                            name="mp-device-id"
                             v-model="mp.device_id"
                             placeholder="PAX_A910__SMARTPOS123456"
                             class="w-full h-11 px-4 rounded-xl border border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-800 text-neutral-900 dark:text-white text-sm outline-none focus:border-emerald-400 transition-all font-mono"

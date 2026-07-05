@@ -25,16 +25,16 @@
 
         <!-- NOME -->
         <div class="col-span-2">
-          <label class="label">Nome</label>
-          <input v-model="form.nome" class="input" />
+          <label for="prod-nome" class="label">Nome</label>
+          <input id="prod-nome" name="prod-nome" v-model="form.nome" class="input" />
         </div>
 
         <!-- CATEGORIA -->
         <div>
-          <label class="label">Categoria</label>
+          <label for="prod-categoria" class="label">Categoria</label>
 
           <div v-if="!novaCategoria" class="flex gap-2 mt-1">
-            <select v-model="form.categoria_id" class="input flex-1 mt-0">
+            <select id="prod-categoria" name="prod-categoria" v-model="form.categoria_id" class="input flex-1 mt-0">
               <option :value="null">Sem categoria</option>
               <option
                 v-for="cat in categorias"
@@ -55,9 +55,12 @@
 
           <div v-else class="flex gap-2 mt-1">
             <input
+              id="prod-nova-categoria"
+              name="prod-nova-categoria"
               v-model="nomeNovaCategoria"
               class="input flex-1 mt-0"
               placeholder="Nome da categoria"
+              aria-label="Nome da nova categoria"
               @keydown.enter="criarCategoria"
               @keydown.escape="novaCategoria = false"
             />
@@ -79,19 +82,19 @@
 
         <!-- PREÇO -->
         <div>
-          <label class="label">Preço</label>
-          <input v-model="form.preco" type="number" class="input" />
+          <label for="prod-preco" class="label">Preço</label>
+          <input id="prod-preco" name="prod-preco" v-model="form.preco" type="number" class="input" />
         </div>
 
         <!-- ESTOQUE -->
         <div>
-          <label class="label">Estoque atual</label>
-          <input v-model="form.estoque_atual" type="number" class="input" />
+          <label for="prod-estoque-atual" class="label">Estoque atual</label>
+          <input id="prod-estoque-atual" name="prod-estoque-atual" v-model="form.estoque_atual" type="number" class="input" />
         </div>
 
         <div>
-          <label class="label">Estoque mínimo</label>
-          <input v-model="form.estoque_minimo" type="number" class="input" />
+          <label for="prod-estoque-minimo" class="label">Estoque mínimo</label>
+          <input id="prod-estoque-minimo" name="prod-estoque-minimo" v-model="form.estoque_minimo" type="number" class="input" />
         </div>
 
         <!-- GERENCIAR ESTOQUE -->

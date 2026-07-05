@@ -76,12 +76,14 @@
                 <!-- TROCO (só para Dinheiro) -->
                 <Transition name="slide-down">
                   <div v-if="metodoSelecionado?.nome === 'Dinheiro'" class="space-y-3">
-                    <p class="text-xs font-black uppercase tracking-widest text-neutral-400">
+                    <label for="pagamento-valor-recebido" class="block text-xs font-black uppercase tracking-widest text-neutral-400">
                       Valor recebido
-                    </p>
+                    </label>
                     <div class="relative">
                       <span class="absolute left-4 top-1/2 -translate-y-1/2 font-black text-neutral-400">R$</span>
                       <input
+                        id="pagamento-valor-recebido"
+                        name="pagamento-valor-recebido"
                         v-model="valorRecebido"
                         type="number"
                         min="0"

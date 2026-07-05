@@ -125,8 +125,11 @@
             </p>
 
             <input
+              id="rfid-input"
+              name="rfid-input"
               ref="rfidInputRef"
               v-model="rfidBuffer"
+              aria-label="Leitor de cartão RFID"
               @input="onRfidInput"
               @keyup.enter="onRfidEnter"
               @focus="rfidFocused = true"
@@ -140,14 +143,17 @@
           <form v-else key="manual" @submit.prevent="handleManualLogin" class="space-y-4">
 
             <div class="space-y-2">
-              <label class="text-[10px] font-black uppercase tracking-widest text-neutral-500 block">
+              <label for="login-email" class="text-[10px] font-black uppercase tracking-widest text-neutral-500 block">
                 E-mail
               </label>
               <div class="relative">
                 <Mail :size="16" class="absolute left-4 top-1/2 -translate-y-1/2 text-neutral-600 pointer-events-none" />
                 <input
+                  id="login-email"
+                  name="email"
                   ref="emailRef"
                   v-model="form.email"
+                  autocomplete="email"
                   type="email"
                   placeholder="exemplo@pdv.com"
                   class="w-full h-13 pl-11 pr-4 bg-neutral-800 border border-neutral-700 rounded-2xl text-white placeholder-neutral-600 font-medium text-sm focus:outline-none focus:border-orange-500 focus:bg-neutral-750 transition-all"
@@ -157,13 +163,16 @@
             </div>
 
             <div class="space-y-2">
-              <label class="text-[10px] font-black uppercase tracking-widest text-neutral-500 block">
+              <label for="login-senha" class="text-[10px] font-black uppercase tracking-widest text-neutral-500 block">
                 Senha
               </label>
               <div class="relative">
                 <Lock :size="16" class="absolute left-4 top-1/2 -translate-y-1/2 text-neutral-600 pointer-events-none" />
                 <input
+                  id="login-senha"
+                  name="senha"
                   v-model="form.senha"
+                  autocomplete="current-password"
                   :type="showPass ? 'text' : 'password'"
                   placeholder="••••••••"
                   class="w-full h-13 pl-11 pr-12 bg-neutral-800 border border-neutral-700 rounded-2xl text-white placeholder-neutral-600 font-medium text-sm focus:outline-none focus:border-orange-500 transition-all"

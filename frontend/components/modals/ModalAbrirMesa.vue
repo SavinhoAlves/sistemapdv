@@ -37,11 +37,13 @@
 
           <!-- CLIENTE -->
           <div>
-            <label class="text-xs font-black uppercase tracking-wider text-neutral-500 block mb-2">
+            <label for="mesa-cliente" class="text-xs font-black uppercase tracking-wider text-neutral-500 block mb-2">
               Nome do Cliente
             </label>
 
             <input
+              id="mesa-cliente"
+              name="mesa-cliente"
               v-model="form.cliente"
               type="text"
               placeholder="Opcional"

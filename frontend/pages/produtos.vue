@@ -12,8 +12,11 @@
         <div class="relative">
           <Search :size="16" class="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400 dark:text-neutral-500" />
           <input
+            id="busca-produto-pagina"
+            name="busca-produto-pagina"
             v-model="busca"
             placeholder="Buscar produto..."
+            aria-label="Buscar produto"
             class="h-10 w-72 pl-9 pr-4 border border-neutral-200 dark:border-neutral-700 rounded-xl text-sm focus:outline-none focus:border-orange-400 bg-white dark:bg-neutral-800 text-neutral-900 dark:text-white placeholder-neutral-400 dark:placeholder-neutral-600"
           />
         </div>

@@ -21,9 +21,12 @@
       </div>
 
       <input
+        id="painel-busca-produto"
+        name="painel-busca-produto"
         v-model="busca"
         type="text"
         placeholder="Buscar produto..."
+        aria-label="Buscar produto"
         class="w-[320px] h-12 px-4 rounded-xl border focus:outline-none focus:border-orange-400"
       />
 

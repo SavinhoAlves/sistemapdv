@@ -266,10 +266,12 @@
             </div>
 
             <div>
-              <label class="text-xs font-black text-neutral-500 uppercase tracking-widest">Valor a abater</label>
+              <label for="valor-abater" class="text-xs font-black text-neutral-500 uppercase tracking-widest">Valor a abater</label>
               <div class="relative mt-2">
                 <span class="absolute left-4 top-1/2 -translate-y-1/2 font-black text-neutral-400">R$</span>
                 <input
+                  id="valor-abater"
+                  name="valor-abater"
                   ref="inputAbaterRef"
                   v-model="valorAbater"
                   type="number"
@@ -346,8 +348,11 @@
                 {{ modoDesconto === 'pct' ? '%' : 'R$' }}
               </span>
               <input
+                id="valor-desconto"
+                name="valor-desconto"
                 ref="inputDescontoRef"
                 v-model="valorDesconto"
+                aria-label="Valor do desconto"
                 type="number"
                 min="0.01"
                 :max="modoDesconto === 'pct' ? 100 : totalLiquido"

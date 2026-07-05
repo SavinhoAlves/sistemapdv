@@ -171,6 +171,7 @@
           </label>
           <input
             id="saldoInput"
+            name="saldoInput"
             v-model="saldoInicial"
             type="number"
             min="0.01"

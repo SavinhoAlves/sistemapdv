@@ -4,17 +4,17 @@
     @click.self="fechar"
   >
 
-    <div class="bg-white w-full max-w-2xl rounded-3xl overflow-hidden max-h-[90vh] flex flex-col">
+    <div class="bg-white dark:bg-neutral-900 w-full max-w-2xl rounded-3xl overflow-hidden max-h-[90vh] flex flex-col">
 
       <!-- HEADER -->
-      <div class="p-6 border-b flex justify-between items-center">
-        <h2 class="text-2xl font-black">
+      <div class="p-6 border-b border-neutral-200 dark:border-neutral-800 flex justify-between items-center">
+        <h2 class="text-2xl font-black text-neutral-900 dark:text-white">
           {{ form.id ? 'Editar Produto' : 'Novo Produto' }}
         </h2>
 
         <button
           @click="fechar"
-          class="w-10 h-10 rounded-xl bg-neutral-100 hover:bg-red-50"
+          class="w-10 h-10 rounded-xl bg-neutral-100 dark:bg-neutral-800 hover:bg-red-50 dark:hover:bg-red-950/40 text-neutral-600 dark:text-neutral-400"
         >
           ✕
         </button>
@@ -83,26 +83,32 @@
         <!-- PREÇO -->
         <div>
           <label for="prod-preco" class="label">Preço</label>
-          <input id="prod-preco" name="prod-preco" v-model="form.preco" type="number" class="input" />
+          <input id="prod-preco" name="prod-preco" v-model="form.preco" type="number" min="0" step="0.01" class="input" />
         </div>
 
         <!-- ESTOQUE -->
         <div>
           <label for="prod-estoque-atual" class="label">Estoque atual</label>
-          <input id="prod-estoque-atual" name="prod-estoque-atual" v-model="form.estoque_atual" type="number" class="input" />
+          <input id="prod-estoque-atual" name="prod-estoque-atual" v-model="form.estoque_atual" type="number" min="0" step="1" class="input" />
+          <p v-if="form.id" class="text-[11px] text-neutral-400 dark:text-neutral-600 mt-1">
+            Alterações aqui entram no histórico como ajuste
+          </p>
         </div>
 
         <div>
           <label for="prod-estoque-minimo" class="label">Estoque mínimo</label>
-          <input id="prod-estoque-minimo" name="prod-estoque-minimo" v-model="form.estoque_minimo" type="number" class="input" />
+          <input id="prod-estoque-minimo" name="prod-estoque-minimo" v-model="form.estoque_minimo" type="number" min="0" step="1" class="input" />
+          <p class="text-[11px] text-neutral-400 dark:text-neutral-600 mt-1">
+            Abaixo disso o produto é marcado como "baixo estoque"
+          </p>
         </div>
 
         <!-- GERENCIAR ESTOQUE -->
-        <div class="col-span-2 flex items-center justify-between bg-neutral-50 p-4 rounded-xl">
+        <div class="col-span-2 flex items-center justify-between bg-neutral-50 dark:bg-neutral-800/60 p-4 rounded-xl">
 
           <div>
-            <p class="font-bold">Gerenciar estoque</p>
-            <p class="text-sm text-neutral-500">
+            <p class="font-bold text-neutral-900 dark:text-white">Gerenciar estoque</p>
+            <p class="text-sm text-neutral-500 dark:text-neutral-400">
               Se ativado, o sistema bloqueia vendas sem estoque
             </p>
           </div>
@@ -121,11 +127,11 @@
         </div>
 
         <!-- ATIVO -->
-        <div class="col-span-2 flex items-center justify-between bg-neutral-50 p-4 rounded-xl">
+        <div class="col-span-2 flex items-center justify-between bg-neutral-50 dark:bg-neutral-800/60 p-4 rounded-xl">
 
           <div>
-            <p class="font-bold">Produto ativo</p>
-            <p class="text-sm text-neutral-500">
+            <p class="font-bold text-neutral-900 dark:text-white">Produto ativo</p>
+            <p class="text-sm text-neutral-500 dark:text-neutral-400">
               Aparece na tela de vendas
             </p>
           </div>
@@ -146,9 +152,9 @@
       </div>
 
       <!-- FOOTER -->
-      <div class="p-6 border-t flex justify-end gap-3">
+      <div class="p-6 border-t border-neutral-200 dark:border-neutral-800 flex justify-end gap-3">
 
-        <button @click="fechar" class="px-5 py-2 bg-gray-200 rounded-xl font-bold">
+        <button @click="fechar" class="px-5 py-2 bg-gray-200 dark:bg-neutral-800 dark:text-neutral-300 rounded-xl font-bold">
           Cancelar
         </button>
 
@@ -268,11 +274,27 @@ onMounted(carregarCategorias)
   padding: 0 12px;
   margin-top: 4px;
   outline: none;
+  background: #fff;
+  color: #171717;
+}
+
+.input:focus {
+  border-color: #fb923c;
 }
 
 .label {
   font-size: 12px;
   font-weight: 700;
   color: #666;
+}
+
+:global(.dark) .input {
+  border-color: #404040;
+  background: #262626;
+  color: #fff;
+}
+
+:global(.dark) .label {
+  color: #a3a3a3;
 }
 </style>

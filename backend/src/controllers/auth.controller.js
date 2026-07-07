@@ -145,6 +145,19 @@ const loginPIN = async (req, res) => {
   }
 };
 
+// ♻️ Renovar token — telas sempre ligadas (KDS da cozinha) renovam
+// a sessão durante o turno sem passar pelo login de novo
+const renovar = async (req, res) => {
+  try {
+    // req.user vem do authenticate: usuário já revalidado no banco (ativo)
+    const token = gerarToken(req.user);
+    res.json({ token, usuario: req.user });
+  } catch (error) {
+    console.error('Erro renovar:', error);
+    res.status(500).json({ error: 'Erro interno' });
+  }
+};
+
 // 👤 Usuário autenticado
 const me = async (req, res) => {
   try {
@@ -164,5 +177,6 @@ module.exports = {
   loginRFID,
   loginSenha,
   loginPIN,
+  renovar,
   me
 };

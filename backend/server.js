@@ -2,9 +2,15 @@ const express = require('express')
 const path = require('path')
 const cors = require('cors')
 const os = require('os')
+const http = require('http')
 require('dotenv').config()
 
 const app = express()
+const server = http.createServer(app)
+
+// Tempo real (KDS da cozinha e afins)
+const { iniciarSocket } = require('./src/services/socket.service')
+iniciarSocket(server)
 
 // ✅ IMPORTA AS ROTAS
 const authRoutes = require('../backend/src/routes/auth.routes')
@@ -87,7 +93,7 @@ app.use('/api/impressao',      require('./src/routes/impressao.routes'))
 
 const PORT = process.env.PORT || 3001
 
-app.listen(PORT, '0.0.0.0', () => {
+server.listen(PORT, '0.0.0.0', () => {
   const nets = os.networkInterfaces()
   const ips = Object.values(nets)
     .flat()

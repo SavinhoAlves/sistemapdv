@@ -3,6 +3,7 @@ const router = express.Router()
 const { transaction } = require('../database/connection')
 const { authenticate } = require('../middlewares/auth.middleware')
 const { registrarAuditoria } = require('../services/auditoria.service')
+const { registrarMovEstoque } = require('../services/estoque.service')
 
 // POST / — Venda direta (ficha de balcão, sem mesa)
 router.post('/', authenticate, async (req, res) => {
@@ -24,11 +25,16 @@ router.post('/', authenticate, async (req, res) => {
     const numero   = `F${Date.now()}`
 
     const ficha = await transaction(async (conn) => {
-      // Caixa aberto
+      // Caixa aberto é obrigatório — sem ele a venda não entraria no extrato
       const [caixas] = await conn.execute(
         `SELECT id FROM caixa WHERE status = 'aberto' ORDER BY id DESC LIMIT 1`
       )
-      const caixaId = caixas[0]?.id ?? null
+      if (!caixas.length) {
+        const err = new Error('Caixa fechado — abra o caixa antes de registrar vendas')
+        err.status = 400
+        throw err
+      }
+      const caixaId = caixas[0].id
 
       // Método de pagamento
       const [mets] = await conn.execute(
@@ -81,25 +87,32 @@ router.post('/', authenticate, async (req, res) => {
             `UPDATE produtos SET estoque_atual = GREATEST(0, estoque_atual - ?) WHERE id = ?`,
             [qtd, item.produto_id]
           )
+          const resultante = Math.max(0, estoqueAtual - qtd)
+          await registrarMovEstoque(conn, {
+            produto_id: item.produto_id,
+            tipo: 'venda',
+            quantidade: resultante - estoqueAtual,
+            estoque_resultante: resultante,
+            motivo: `Venda ${numero}`,
+            usuario_id: req.user.id
+          })
         }
       }
 
       // Registro em pagamentos
-      await conn.execute(
+      const [pagRes] = await conn.execute(
         `INSERT INTO pagamentos (mesa_id, pedido_id, metodo_id, valor, troco, caixa_id, usuario_id, status)
          VALUES (NULL, ?, ?, ?, ?, ?, ?, 'confirmado')`,
         [pedidoId, metodo_id, liquido, troco, caixaId, req.user.id]
       )
 
-      // Registro no extrato do caixa
-      if (caixaId) {
-        const itensDesc = itens.map(i => `${i.quantidade}x ${i.nome_produto}`).join(', ')
-        await conn.execute(
-          `INSERT INTO movimentos_caixa (caixa_id, tipo, valor, descricao, usuario_id)
-           VALUES (?, 'pagamento', ?, ?, ?)`,
-          [caixaId, liquido, `${metodoNome} · ${numero} · ${itensDesc}`.substring(0, 254), req.user.id]
-        )
-      }
+      // Registro no extrato do caixa, vinculado ao pagamento (permite estorno)
+      const itensDesc = itens.map(i => `${i.quantidade}x ${i.nome_produto}`).join(', ')
+      await conn.execute(
+        `INSERT INTO movimentos_caixa (caixa_id, tipo, valor, descricao, usuario_id, pagamento_id)
+         VALUES (?, 'pagamento', ?, ?, ?, ?)`,
+        [caixaId, liquido, `${metodoNome} · ${numero} · ${itensDesc}`.substring(0, 254), req.user.id, pagRes.insertId]
+      )
 
       return {
         id: numero,
@@ -125,7 +138,7 @@ router.post('/', authenticate, async (req, res) => {
     return res.json({ success: true, ficha })
   } catch (error) {
     console.error('ERRO VENDA DIRETA:', error)
-    return res.status(500).json({ error: error.message })
+    return res.status(error.status || 500).json({ error: error.message })
   }
 })
 

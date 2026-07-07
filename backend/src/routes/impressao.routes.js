@@ -1,8 +1,9 @@
 const express = require('express')
 const router = express.Router()
 const { query } = require('../database/connection')
-const { authenticate, authorize } = require('../middlewares/auth.middleware')
-const { montarCupomTeste, montarFichas, montarConta, enviarParaImpressora } = require('../services/impressao.service')
+const { authenticate, authorize, permissoes } = require('../middlewares/auth.middleware')
+const { montarCupomTeste, montarFichas, montarConta, montarFechamento, enviarParaImpressora } = require('../services/impressao.service')
+const { resumoCaixa } = require('../services/caixa.service')
 
 async function carregarConfig() {
   const rows = await query(`SELECT * FROM configuracoes WHERE id = 1`)
@@ -49,6 +50,25 @@ router.post('/conta', authenticate, async (req, res) => {
     }
     const config = await carregarConfig()
     const cupom = montarConta(config, conta)
+    await enviarParaImpressora(cupom, config)
+    return res.json({ success: true })
+  } catch (err) {
+    return res.status(400).json({ error: err.message })
+  }
+})
+
+// POST /api/impressao/fechamento — resumo de fechamento do caixa
+// body: { caixa_id }
+router.post('/fechamento', authenticate, permissoes.gerenciarCaixa, async (req, res) => {
+  try {
+    const { caixa_id } = req.body
+    if (!caixa_id) return res.status(400).json({ error: 'Informe o caixa' })
+
+    const resumo = await resumoCaixa(Number(caixa_id))
+    if (!resumo) return res.status(404).json({ error: 'Caixa não encontrado' })
+
+    const config = await carregarConfig()
+    const cupom = montarFechamento(config, resumo)
     await enviarParaImpressora(cupom, config)
     return res.json({ success: true })
   } catch (err) {

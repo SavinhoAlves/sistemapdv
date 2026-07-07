@@ -191,6 +191,157 @@
       </div>
     </Transition>
   </Teleport>
+
+  <!-- MODAL CONFERÊNCIA DE FECHAMENTO -->
+  <Teleport to="body">
+    <Transition name="fade">
+      <div
+        v-if="modalConferencia"
+        class="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4"
+      >
+        <div class="bg-white dark:bg-neutral-900 rounded-3xl p-6 w-full max-w-sm shadow-2xl">
+          <div class="flex items-center gap-3 mb-5">
+            <div class="w-10 h-10 rounded-2xl bg-red-100 dark:bg-red-950/50 flex items-center justify-center shrink-0">
+              <Landmark :size="18" class="text-red-500 dark:text-red-400" />
+            </div>
+            <div>
+              <h2 class="text-base font-black text-neutral-900 dark:text-white">Fechar caixa</h2>
+              <p class="text-[11px] text-neutral-400 mt-0.5">Conte o dinheiro da gaveta e informe o valor</p>
+            </div>
+          </div>
+
+          <label for="valorContadoInput" class="block text-[10px] font-black uppercase tracking-widest text-neutral-500 mb-2">
+            Dinheiro contado (R$) <span class="text-red-400">*</span>
+          </label>
+          <input
+            id="valorContadoInput" name="valorContadoInput"
+            v-model="valorContado" type="number" min="0" step="0.01" placeholder="0,00" autofocus
+            @keyup.enter="confirmarFechamento"
+            class="w-full h-12 px-4 bg-neutral-100 dark:bg-neutral-800 border rounded-2xl text-neutral-900 dark:text-white font-bold text-base outline-none transition-all mb-3"
+            :class="fechamentoErro
+              ? 'border-red-400 focus:border-red-400'
+              : 'border-neutral-200 dark:border-neutral-700 focus:border-orange-500'"
+          />
+
+          <label for="obsFechamentoInput" class="block text-[10px] font-black uppercase tracking-widest text-neutral-500 mb-2">
+            Observação (opcional)
+          </label>
+          <input
+            id="obsFechamentoInput" name="obsFechamentoInput"
+            v-model="obsFechamento" type="text" maxlength="255" placeholder="Ex: falta justificada por vale"
+            class="w-full h-12 px-4 bg-neutral-100 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-2xl text-neutral-900 dark:text-white font-medium text-sm outline-none focus:border-orange-500 transition-all mb-1"
+          />
+          <p v-if="fechamentoErro" class="text-[11px] text-red-400 font-bold mb-4">{{ fechamentoErro }}</p>
+          <div v-else class="mb-4" />
+
+          <div class="flex gap-3">
+            <button
+              @click="cancelarFechamento"
+              class="flex-1 h-12 rounded-2xl border border-neutral-200 dark:border-neutral-700 text-neutral-600 dark:text-neutral-400 text-sm font-black transition-all hover:bg-neutral-50 dark:hover:bg-neutral-800"
+            >
+              Cancelar
+            </button>
+            <button
+              @click="confirmarFechamento"
+              :disabled="fechandoCaixa"
+              class="flex-1 h-12 rounded-2xl bg-red-500 hover:bg-red-400 disabled:opacity-50 text-white text-sm font-black transition-all active:scale-95"
+            >
+              {{ fechandoCaixa ? 'Fechando...' : 'Fechar Caixa' }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </Transition>
+  </Teleport>
+
+  <!-- MODAL RESUMO DO FECHAMENTO -->
+  <Teleport to="body">
+    <Transition name="fade">
+      <div
+        v-if="resumoFechamento"
+        class="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4"
+      >
+        <div class="bg-white dark:bg-neutral-900 rounded-3xl p-6 w-full max-w-sm shadow-2xl max-h-[90vh] overflow-y-auto">
+          <div class="text-center mb-5">
+            <div class="w-12 h-12 rounded-2xl bg-green-100 dark:bg-green-950/50 flex items-center justify-center mx-auto mb-3">
+              <Landmark :size="20" class="text-green-600 dark:text-green-400" />
+            </div>
+            <h2 class="text-base font-black text-neutral-900 dark:text-white">Caixa fechado</h2>
+            <p class="text-[11px] text-neutral-400 mt-0.5">Resumo do caixa #{{ resumoFechamento.caixa.id }}</p>
+          </div>
+
+          <!-- CONFERÊNCIA -->
+          <div class="rounded-2xl p-4 mb-3"
+            :class="Math.abs(Number(resumoFechamento.caixa.diferenca || 0)) < 0.005
+              ? 'bg-green-50 dark:bg-green-950/30'
+              : 'bg-red-50 dark:bg-red-950/30'">
+            <div class="flex justify-between text-xs text-neutral-500 dark:text-neutral-400 mb-1">
+              <span>Esperado em gaveta</span><span>R$ {{ fmtValor(resumoFechamento.totais.esperado_dinheiro) }}</span>
+            </div>
+            <div class="flex justify-between text-xs text-neutral-500 dark:text-neutral-400 mb-1">
+              <span>Contado</span><span>R$ {{ fmtValor(resumoFechamento.caixa.valor_contado) }}</span>
+            </div>
+            <div class="flex justify-between text-sm font-black"
+              :class="Number(resumoFechamento.caixa.diferenca || 0) < -0.005
+                ? 'text-red-500'
+                : 'text-green-600 dark:text-green-400'">
+              <span>Diferença</span>
+              <span>{{ Number(resumoFechamento.caixa.diferenca || 0) >= 0 ? '+' : '−' }} R$ {{ fmtValor(Math.abs(Number(resumoFechamento.caixa.diferenca || 0))) }}</span>
+            </div>
+          </div>
+
+          <!-- VENDAS POR MÉTODO -->
+          <div class="bg-neutral-50 dark:bg-neutral-800/60 rounded-2xl p-4 mb-3 space-y-1">
+            <p class="text-[10px] font-black uppercase tracking-widest text-neutral-400 mb-2">Vendas por método</p>
+            <div v-if="!resumoFechamento.porMetodo?.length" class="text-xs text-neutral-400">Sem vendas registradas</div>
+            <div v-for="m in resumoFechamento.porMetodo" :key="m.metodo" class="flex justify-between text-xs">
+              <span class="text-neutral-500 dark:text-neutral-400">{{ m.metodo }} ({{ m.qtd }})</span>
+              <span class="font-bold text-neutral-800 dark:text-neutral-200">R$ {{ fmtValor(m.total) }}</span>
+            </div>
+            <div v-if="resumoFechamento.vendas" class="flex justify-between text-xs pt-1 border-t border-neutral-200 dark:border-neutral-700 mt-1">
+              <span class="text-neutral-500 dark:text-neutral-400">{{ resumoFechamento.vendas.quantidade }} vendas · ticket médio</span>
+              <span class="font-bold text-neutral-800 dark:text-neutral-200">R$ {{ fmtValor(resumoFechamento.vendas.ticket_medio) }}</span>
+            </div>
+          </div>
+
+          <!-- TOTAIS -->
+          <div class="bg-neutral-50 dark:bg-neutral-800/60 rounded-2xl p-4 mb-5 space-y-1">
+            <div class="flex justify-between text-xs">
+              <span class="text-neutral-500 dark:text-neutral-400">Saldo inicial</span>
+              <span class="font-bold text-neutral-800 dark:text-neutral-200">R$ {{ fmtValor(resumoFechamento.totais.valor_inicial) }}</span>
+            </div>
+            <div class="flex justify-between text-xs">
+              <span class="text-neutral-500 dark:text-neutral-400">Entradas</span>
+              <span class="font-bold text-green-600 dark:text-green-400">+ R$ {{ fmtValor(resumoFechamento.totais.total_entradas) }}</span>
+            </div>
+            <div class="flex justify-between text-xs">
+              <span class="text-neutral-500 dark:text-neutral-400">Saídas</span>
+              <span class="font-bold text-red-500">− R$ {{ fmtValor(resumoFechamento.totais.total_saidas) }}</span>
+            </div>
+            <div class="flex justify-between text-sm font-black text-neutral-900 dark:text-white pt-1 border-t border-neutral-200 dark:border-neutral-700">
+              <span>Saldo final</span>
+              <span>R$ {{ fmtValor(resumoFechamento.totais.saldo_atual) }}</span>
+            </div>
+          </div>
+
+          <div class="flex gap-3">
+            <button
+              @click="imprimirFechamento"
+              class="flex-1 h-12 rounded-2xl bg-neutral-100 dark:bg-neutral-800 hover:bg-neutral-200 dark:hover:bg-neutral-700 text-neutral-700 dark:text-neutral-300 text-sm font-black transition-all active:scale-95"
+            >
+              Imprimir
+            </button>
+            <button
+              @click="resumoFechamento = null"
+              class="flex-1 h-12 rounded-2xl bg-orange-500 hover:bg-orange-400 text-white text-sm font-black transition-all active:scale-95"
+            >
+              Concluir
+            </button>
+          </div>
+        </div>
+      </div>
+    </Transition>
+  </Teleport>
 </template>
 
 <style scoped>
@@ -207,12 +358,13 @@ import {
   LogOut, UtensilsCrossed, Sun, Moon, ChevronDown, Landmark
 } from 'lucide-vue-next'
 
-import { useAuthStore }  from '~/stores/auth'
-import { useToastStore } from '~/stores/toast'
-import { useCaixaStore } from '~/stores/caixa'
-import { useThemeStore } from '~/stores/theme'
-import { useApi }        from '~/services/api'
-import ModalRfidAuth     from '~/components/modals/ModalRfidAuth.vue'
+import { useAuthStore }   from '~/stores/auth'
+import { useToastStore }  from '~/stores/toast'
+import { useCaixaStore }  from '~/stores/caixa'
+import { useThemeStore }  from '~/stores/theme'
+import { useConfigStore } from '~/stores/configuracoes'
+import { useApi }         from '~/services/api'
+import ModalRfidAuth      from '~/components/modals/ModalRfidAuth.vue'
 
 const router      = useRouter()
 const route       = useRoute()
@@ -220,6 +372,7 @@ const authStore   = useAuthStore()
 const toastStore  = useToastStore()
 const caixaStore  = useCaixaStore()
 const themeStore  = useThemeStore()
+const configStore = useConfigStore()
 const api         = useApi()
 const config      = useRuntimeConfig()
 
@@ -291,10 +444,11 @@ const handleRfidCaixa = async (rfidBuffer: string) => {
       saldoErro.value = ''
       modalSaldoInicial.value = true
     } else if (acaoCaixa.value === 'fechar') {
-      await api.post('/caixa/fechar', { caixa_id: caixaStore.caixaAtual?.id })
-      toastStore.success('Caixa fechado com sucesso')
-      acaoCaixa.value = null
-      await sincronizarCaixa()
+      // Fechamento cego: conta a gaveta antes de ver o valor esperado
+      valorContado.value = ''
+      obsFechamento.value = ''
+      fechamentoErro.value = ''
+      modalConferencia.value = true
     }
 
   } catch (error: any) {
@@ -302,6 +456,128 @@ const handleRfidCaixa = async (rfidBuffer: string) => {
     acaoCaixa.value = null
     await sincronizarCaixa()
   }
+}
+
+// ======================
+// FECHAMENTO COM CONFERÊNCIA
+// ======================
+const modalConferencia = ref(false)
+const valorContado     = ref('')
+const obsFechamento    = ref('')
+const fechamentoErro   = ref('')
+const fechandoCaixa    = ref(false)
+const resumoFechamento = ref<any>(null)
+
+const fmtValor = (v: any) => Number(v || 0).toFixed(2)
+
+const cancelarFechamento = () => {
+  modalConferencia.value = false
+  acaoCaixa.value = null
+}
+
+const confirmarFechamento = async () => {
+  const valor = Number(valorContado.value)
+  if (valorContado.value === '' || isNaN(valor) || valor < 0) {
+    fechamentoErro.value = 'Informe o valor contado na gaveta'
+    return
+  }
+  fechandoCaixa.value = true
+  fechamentoErro.value = ''
+  try {
+    const resp = await api.post<any>('/caixa/fechar', {
+      caixa_id: caixaStore.caixaAtual?.id,
+      valor_contado: valor,
+      observacao: obsFechamento.value || undefined
+    })
+    modalConferencia.value = false
+    resumoFechamento.value = resp.resumo
+    toastStore.success('Caixa fechado com sucesso')
+  } catch (error: any) {
+    fechamentoErro.value = error?.message || 'Erro ao fechar o caixa'
+  } finally {
+    fechandoCaixa.value = false
+    acaoCaixa.value = null
+    await sincronizarCaixa()
+  }
+}
+
+const imprimirFechamento = async () => {
+  const resumo = resumoFechamento.value
+  if (!resumo) return
+  await configStore.carregar()
+
+  // Térmica direta via backend
+  if (configStore.impressaoDireta) {
+    try {
+      await api.post('/impressao/fechamento', { caixa_id: resumo.caixa.id })
+      toastStore.success('Resumo enviado à impressora')
+    } catch (e: any) {
+      toastStore.error('Falha na impressão', e?.message)
+    }
+    return
+  }
+
+  // Impressão pelo navegador
+  const mm  = configStore.impressora_largura === 58 ? 58 : 80
+  const dif = Number(resumo.caixa.diferenca || 0)
+  const fmtData = (v: any) => v ? new Date(v).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' }) : '—'
+  const linha = (esq: string, dir: string, bold = false) =>
+    `<div class="par${bold ? ' bold' : ''}"><span>${esq}</span><span>${dir}</span></div>`
+
+  const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Fechamento</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: monospace; background: #fff; }
+    @page { size: ${mm}mm auto; margin: 0; }
+    .cupom { width: ${mm}mm; margin: 0 auto; padding: 4mm 3mm 6mm; font-size: 7pt; }
+    .centro { text-align: center; }
+    .titulo { font-size: 8pt; font-weight: 900; text-transform: uppercase; letter-spacing: 0.08em; }
+    .sep { border-top: 1px dashed #000; margin: 2mm 0; }
+    .par { display: flex; justify-content: space-between; gap: 2mm; }
+    .bold { font-weight: 900; }
+    .secao { font-weight: 900; margin-top: 1mm; }
+  </style></head><body>
+  <div class="cupom">
+    <div class="centro titulo">${configStore.nome_restaurante}</div>
+    <div class="centro bold">FECHAMENTO DE CAIXA</div>
+    <div class="centro">Caixa #${resumo.caixa.id}</div>
+    <div class="sep"></div>
+    ${linha('Abertura', fmtData(resumo.caixa.data_abertura))}
+    ${linha('Fechamento', fmtData(resumo.caixa.fechado_em))}
+    ${resumo.caixa.operador ? linha('Aberto por', resumo.caixa.operador) : ''}
+    ${resumo.caixa.fechado_por_nome ? linha('Fechado por', resumo.caixa.fechado_por_nome) : ''}
+    <div class="sep"></div>
+    ${linha('Saldo inicial', 'R$ ' + fmtValor(resumo.totais.valor_inicial))}
+    ${linha('Entradas', '+R$ ' + fmtValor(resumo.totais.total_entradas))}
+    ${linha('Saidas', '-R$ ' + fmtValor(resumo.totais.total_saidas))}
+    ${linha('Saldo final', 'R$ ' + fmtValor(resumo.totais.saldo_atual), true)}
+    <div class="sep"></div>
+    <div class="secao">VENDAS POR METODO</div>
+    ${(resumo.porMetodo || []).map((m: any) => linha(`${m.metodo} (${m.qtd})`, 'R$ ' + fmtValor(m.total))).join('')}
+    ${resumo.vendas ? linha('Vendas / ticket medio', `${resumo.vendas.quantidade} / R$ ${fmtValor(resumo.vendas.ticket_medio)}`) : ''}
+    <div class="sep"></div>
+    <div class="secao">CONFERENCIA (DINHEIRO)</div>
+    ${linha('Esperado em gaveta', 'R$ ' + fmtValor(resumo.totais.esperado_dinheiro))}
+    ${linha('Contado', 'R$ ' + fmtValor(resumo.caixa.valor_contado))}
+    ${linha('Diferenca', (dif >= 0 ? '+' : '-') + 'R$ ' + fmtValor(Math.abs(dif)), true)}
+    ${resumo.caixa.observacao_fechamento ? `<div class="sep"></div><div>Obs: ${resumo.caixa.observacao_fechamento}</div>` : ''}
+  </div>
+  </body></html>`
+
+  const iframe = document.createElement('iframe')
+  iframe.style.cssText = 'position:fixed;top:-9999px;left:-9999px;width:1px;height:1px;border:none;'
+  document.body.appendChild(iframe)
+  iframe.onload = () => {
+    setTimeout(() => {
+      iframe.contentWindow!.focus()
+      iframe.contentWindow!.print()
+      setTimeout(() => document.body.removeChild(iframe), 2000)
+    }, 250)
+  }
+  const doc = iframe.contentDocument!
+  doc.open()
+  doc.write(html)
+  doc.close()
 }
 
 const confirmarAbertura = async () => {

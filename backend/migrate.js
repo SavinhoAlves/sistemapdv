@@ -121,6 +121,48 @@ async function migrate() {
     await addColumn(conn, 'configuracoes', 'mp_access_token', 'TEXT DEFAULT NULL AFTER mp_ativado')
     await addColumn(conn, 'configuracoes', 'mp_device_id', 'VARCHAR(255) DEFAULT NULL AFTER mp_access_token')
 
+    await conn.execute(`
+      CREATE TABLE IF NOT EXISTS estoque_movimentacoes (
+        id                 INT AUTO_INCREMENT PRIMARY KEY,
+        produto_id         INT NOT NULL,
+        tipo               ENUM('entrada','saida','ajuste','venda','cancelamento') NOT NULL,
+        quantidade         INT NOT NULL,
+        estoque_resultante INT DEFAULT NULL,
+        motivo             VARCHAR(150) DEFAULT NULL,
+        usuario_id         INT DEFAULT NULL,
+        created_at         TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        CONSTRAINT fk_estmov_produto FOREIGN KEY (produto_id) REFERENCES produtos(id),
+        INDEX idx_estmov_produto (produto_id, created_at)
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+    `)
+    console.log('✓ Tabela estoque_movimentacoes criada (ou já existia)')
+
+    // Caixa administrativo: conferência de fechamento e vínculo movimento ↔ pagamento
+    await addColumn(conn, 'caixa', 'valor_contado', 'DECIMAL(10,2) DEFAULT NULL')
+    await addColumn(conn, 'caixa', 'diferenca', 'DECIMAL(10,2) DEFAULT NULL')
+    await addColumn(conn, 'caixa', 'observacao_fechamento', 'VARCHAR(255) DEFAULT NULL')
+    await addColumn(conn, 'caixa', 'fechado_por', 'INT DEFAULT NULL')
+    await addColumn(conn, 'movimentos_caixa', 'pagamento_id', 'INT DEFAULT NULL')
+
+    // KDS: quando o item mudou de status (ex.: "pronto há 5min" na expedição)
+    await addColumn(conn, 'pedido_itens', 'updated_at',
+      'TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP')
+
+    // Bases antigas usavam 'em_preparo' no enum, mas o código inteiro usa 'preparando' —
+    // o botão "Iniciar" da cozinha falhava com "Data truncated". Converte em 3 passos seguros.
+    await conn.execute(`
+      ALTER TABLE pedido_itens MODIFY COLUMN status
+        ENUM('pendente','em_preparo','preparando','pronto','entregue','cancelado')
+        NOT NULL DEFAULT 'pendente'
+    `)
+    await conn.execute(`UPDATE pedido_itens SET status = 'preparando' WHERE status = 'em_preparo'`)
+    await conn.execute(`
+      ALTER TABLE pedido_itens MODIFY COLUMN status
+        ENUM('pendente','preparando','pronto','entregue','cancelado')
+        NOT NULL DEFAULT 'pendente'
+    `)
+    console.log("✓ Enum de status de pedido_itens padronizado ('em_preparo' → 'preparando')")
+
     console.log('\nMigração concluída com sucesso!')
   } finally {
     conn.release()

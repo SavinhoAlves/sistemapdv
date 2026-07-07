@@ -24,11 +24,16 @@ router.post('/', authenticate, async (req, res) => {
     }
 
     const resultado = await transaction(async (conn) => {
-      // Busca caixa aberto (independente do que o frontend enviou)
+      // Caixa aberto é obrigatório — sem ele o pagamento não entraria no extrato
       const [caixas] = await conn.execute(
         `SELECT id FROM caixa WHERE status = 'aberto' ORDER BY id DESC LIMIT 1`
       )
-      const caixaId = caixas[0]?.id ?? null
+      if (!caixas.length) {
+        const err = new Error('Caixa fechado — abra o caixa para receber pagamentos')
+        err.status = 400
+        throw err
+      }
+      const caixaId = caixas[0].id
 
       // Busca pedido aberto da mesa
       const [pedidos] = await conn.execute(`
@@ -70,7 +75,7 @@ router.post('/', authenticate, async (req, res) => {
       )
       const metodo = metodos[0]
 
-      await conn.execute(`
+      const [pagRes] = await conn.execute(`
         INSERT INTO pagamentos (mesa_id, pedido_id, metodo_id, valor, troco, caixa_id, usuario_id, status)
         VALUES (?, ?, ?, ?, ?, ?, ?, 'confirmado')
       `, [mesa_id, pedId, metodo_id, valorAplicado, troco, caixaId, req.user.id])
@@ -83,13 +88,11 @@ router.post('/', authenticate, async (req, res) => {
         await conn.execute(`UPDATE mesas SET status = 'fechada', data_fechamento = NOW() WHERE id = ?`, [mesa_id])
       }
 
-      if (caixaId) {
-        const desc = `${metodo?.nome || 'Pagamento'} · Mesa ${mesa_id}${quitado ? '' : ' (parcial)'}`
-        await conn.execute(`
-          INSERT INTO movimentos_caixa (caixa_id, tipo, valor, descricao, usuario_id)
-          VALUES (?, 'pagamento', ?, ?, ?)
-        `, [caixaId, valorAplicado, desc, req.user.id])
-      }
+      const desc = `${metodo?.nome || 'Pagamento'} · Mesa ${mesa_id}${quitado ? '' : ' (parcial)'}`
+      await conn.execute(`
+        INSERT INTO movimentos_caixa (caixa_id, tipo, valor, descricao, usuario_id, pagamento_id)
+        VALUES (?, 'pagamento', ?, ?, ?, ?)
+      `, [caixaId, valorAplicado, desc, req.user.id, pagRes.insertId])
 
       return { quitado, restante: quitado ? 0 : novoRestante, valor_aplicado: valorAplicado, troco }
     })

@@ -214,4 +214,65 @@ function montarConta(config, conta) {
   return c.buffer()
 }
 
-module.exports = { CupomEscPos, enviarParaImpressora, montarCupomTeste, montarFichas, montarConta }
+// ============================================================
+// Resumo de fechamento de caixa
+// ============================================================
+
+function dataHora(v) {
+  const d = v ? new Date(v) : new Date()
+  return isNaN(d.getTime()) ? '' : d.toLocaleString('pt-BR', {
+    day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit'
+  })
+}
+
+function montarFechamento(config, resumo) {
+  const { caixa, totais, porMetodo, vendas } = resumo
+  const c = new CupomEscPos(Number(config.impressora_largura) || 80)
+
+  c.alinhar(1)
+  c.duplo(true).linha(config.nome_restaurante || 'Restaurante PDV').duplo(false)
+  c.negrito(true).linha('FECHAMENTO DE CAIXA').negrito(false)
+  c.linha(`Caixa #${caixa.id}`)
+  c.alinhar(0).separador()
+  c.parQuantia('Abertura', dataHora(caixa.data_abertura))
+  c.parQuantia('Fechamento', dataHora(caixa.fechado_em))
+  if (caixa.operador) c.parQuantia('Aberto por', caixa.operador)
+  if (caixa.fechado_por_nome) c.parQuantia('Fechado por', caixa.fechado_por_nome)
+  c.separador()
+  c.parQuantia('Saldo inicial', dinheiro(totais.valor_inicial))
+  c.parQuantia('Entradas', '+' + dinheiro(totais.total_entradas))
+  c.parQuantia('  Suprimentos', '+' + dinheiro(totais.total_suprimentos))
+  c.parQuantia('Saidas', '-' + dinheiro(totais.total_saidas))
+  c.parQuantia('  Sangrias', '-' + dinheiro(totais.total_sangrias))
+  c.parQuantia('  Estornos', '-' + dinheiro(totais.total_estornos))
+  c.negrito(true).parQuantia('Saldo final', dinheiro(totais.saldo_atual)).negrito(false)
+  c.separador()
+  c.negrito(true).linha('VENDAS POR METODO').negrito(false)
+  for (const m of porMetodo || []) {
+    c.parQuantia(`${m.metodo} (${m.qtd})`, dinheiro(m.total))
+  }
+  if (vendas) {
+    c.parQuantia('Total de vendas', String(vendas.quantidade))
+    c.parQuantia('Ticket medio', dinheiro(vendas.ticket_medio))
+  }
+  c.separador()
+  c.negrito(true).linha('CONFERENCIA (DINHEIRO)').negrito(false)
+  c.parQuantia('Esperado em gaveta', dinheiro(totais.esperado_dinheiro))
+  if (caixa.valor_contado !== null && caixa.valor_contado !== undefined) {
+    c.parQuantia('Contado', dinheiro(caixa.valor_contado))
+    const dif = Number(caixa.diferenca || 0)
+    c.negrito(true).parQuantia('Diferenca', (dif >= 0 ? '+' : '-') + dinheiro(Math.abs(dif))).negrito(false)
+  } else {
+    c.linha('Fechado sem conferencia')
+  }
+  if (caixa.observacao_fechamento) {
+    c.separador()
+    c.linha(`Obs: ${caixa.observacao_fechamento}`)
+  }
+  c.pular()
+  c.alinhar(1).linha(dataHora())
+  c.cortar()
+  return c.buffer()
+}
+
+module.exports = { CupomEscPos, enviarParaImpressora, montarCupomTeste, montarFichas, montarConta, montarFechamento }

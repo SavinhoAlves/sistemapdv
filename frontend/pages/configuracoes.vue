@@ -237,8 +237,8 @@
                 </div>
 
                 <div v-if="form.impressora_tipo === 'windows'">
-                  <label for="imp-share" class="block text-[10px] font-black uppercase tracking-widest text-neutral-500 mb-2">Nome do compartilhamento</label>
-                  <input id="imp-share" name="imp-share" v-model="form.impressora_host" type="text" placeholder="Ex: CUPOM (compartilhe a impressora no Windows com este nome)"
+                  <label for="imp-share" class="block text-[10px] font-black uppercase tracking-widest text-neutral-500 mb-2">Nome da impressora no Windows</label>
+                  <input id="imp-share" name="imp-share" v-model="form.impressora_host" type="text" placeholder="Ex: EPSON TM-T20 Receipt (como aparece em Impressoras e Scanners)"
                     class="w-full h-11 px-4 rounded-xl border border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-800 text-neutral-900 dark:text-white text-sm outline-none focus:border-orange-500 transition-all" />
                 </div>
 
@@ -500,7 +500,7 @@ const larguras = [
 const tiposImpressora = [
   { value: 'navegador' as const, label: 'Navegador', desc: 'Janela de impressão do navegador' },
   { value: 'rede' as const,      label: 'Rede',      desc: 'Térmica com Ethernet/Wi-Fi (porta 9100)' },
-  { value: 'windows' as const,   label: 'USB',       desc: 'Térmica USB compartilhada no Windows' }
+  { value: 'windows' as const,   label: 'USB',       desc: 'Térmica USB instalada no Windows' }
 ]
 const testandoImpressora = ref(false)
 

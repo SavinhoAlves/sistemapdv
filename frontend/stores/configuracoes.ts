@@ -29,6 +29,11 @@ export const useConfigStore = defineStore('configuracoes', {
     carregado: false
   }),
 
+  getters: {
+    // Impressão direta configurada (térmica via backend, sem diálogo do navegador)
+    impressaoDireta: (state) => state.impressora_tipo !== 'navegador'
+  },
+
   actions: {
     async carregar() {
       if (this.carregado) return

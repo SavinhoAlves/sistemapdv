@@ -660,9 +660,24 @@ async function confirmarVenda() {
 
 function fecharFicha() { fichaAtual.value = null }
 
-function imprimirFicha() {
+async function imprimirFicha() {
   if (!fichaAtual.value) return
   const ficha    = fichaAtual.value
+
+  // Impressão direta na térmica via backend — sem diálogo do navegador
+  if (configStore.impressaoDireta) {
+    try {
+      await api.post('/impressao/ficha', {
+        itens:  ficha.itens.map((i: any) => ({ nome: i.nome_produto, quantidade: i.quantidade })),
+        info:   `${fmtFichaDateTime(ficha.createdAt)} · ${ficha.operador || '—'}`,
+        codigo: ficha.numero
+      })
+    } catch (e: any) {
+      toastStore.error('Falha na impressão', e?.message)
+    }
+    return
+  }
+
   const nomeRest = configStore.nome_restaurante || 'Restaurante PDV'
   const logo     = configStore.logo_base64
   const mensagem = configStore.mensagem_ficha || 'Obrigado pela preferência!'

@@ -1,6 +1,25 @@
 require('dotenv').config()
 const { pool } = require('./src/database/connection')
 
+async function columnExists(conn, table, column) {
+  const [rows] = await conn.execute(
+    `SELECT COUNT(*) AS total FROM information_schema.columns
+     WHERE table_schema = DATABASE() AND table_name = ? AND column_name = ?`,
+    [table, column]
+  )
+  return rows[0].total > 0
+}
+
+// MySQL não suporta "ADD COLUMN IF NOT EXISTS" (só MariaDB) — checa antes
+async function addColumn(conn, table, column, definition) {
+  if (await columnExists(conn, table, column)) {
+    console.log(`✓ Coluna ${column} em ${table} já existia`)
+    return
+  }
+  await conn.execute(`ALTER TABLE ${table} ADD COLUMN ${column} ${definition}`)
+  console.log(`✓ Coluna ${column} adicionada a ${table}`)
+}
+
 async function migrate() {
   const conn = await pool.getConnection()
   try {
@@ -15,11 +34,7 @@ async function migrate() {
     `)
     console.log('✓ Tabela categorias criada (ou já existia)')
 
-    await conn.execute(`
-      ALTER TABLE produtos
-        ADD COLUMN IF NOT EXISTS categoria_id INT DEFAULT NULL AFTER categoria
-    `)
-    console.log('✓ Coluna categoria_id adicionada (ou já existia)')
+    await addColumn(conn, 'produtos', 'categoria_id', 'INT DEFAULT NULL AFTER categoria')
 
     try {
       await conn.execute(`
@@ -38,11 +53,7 @@ async function migrate() {
       }
     }
 
-    await conn.execute(`
-      ALTER TABLE pedidos
-        ADD COLUMN IF NOT EXISTS desconto DECIMAL(10,2) NOT NULL DEFAULT 0.00 AFTER total
-    `)
-    console.log('✓ Coluna desconto adicionada a pedidos (ou já existia)')
+    await addColumn(conn, 'pedidos', 'desconto', "DECIMAL(10,2) NOT NULL DEFAULT 0.00 AFTER total")
 
     await conn.execute(`
       CREATE TABLE IF NOT EXISTS pedido_abatimentos (
@@ -56,11 +67,7 @@ async function migrate() {
     `)
     console.log('✓ Tabela pedido_abatimentos criada (ou já existia)')
 
-    await conn.execute(`
-      ALTER TABLE pedido_abatimentos
-        ADD COLUMN IF NOT EXISTS motivo VARCHAR(100) DEFAULT NULL AFTER valor
-    `)
-    console.log('✓ Coluna motivo em pedido_abatimentos (ou já existia)')
+    await addColumn(conn, 'pedido_abatimentos', 'motivo', 'VARCHAR(100) DEFAULT NULL AFTER valor')
 
     await conn.execute(`
       CREATE TABLE IF NOT EXISTS metodos_pagamento (
@@ -106,31 +113,13 @@ async function migrate() {
       console.log('✓ Métodos de pagamento já existem')
     }
 
-    await conn.execute(`
-      ALTER TABLE pedidos
-        ADD COLUMN IF NOT EXISTS garcom_id INT DEFAULT NULL AFTER mesa_id
-    `)
-    console.log('✓ Coluna garcom_id adicionada a pedidos (ou já existia)')
+    await addColumn(conn, 'pedidos', 'garcom_id', 'INT DEFAULT NULL AFTER mesa_id')
+    await addColumn(conn, 'mesas', 'cliente', 'VARCHAR(120) DEFAULT NULL AFTER nome_mesa')
+    await addColumn(conn, 'mesas', 'caixa_id', 'INT DEFAULT NULL AFTER garcom_id')
 
-    await conn.execute(`
-      ALTER TABLE mesas
-        ADD COLUMN IF NOT EXISTS cliente VARCHAR(120) DEFAULT NULL AFTER nome_mesa
-    `)
-    console.log('✓ Coluna cliente adicionada a mesas (ou já existia)')
-
-    await conn.execute(`
-      ALTER TABLE mesas
-        ADD COLUMN IF NOT EXISTS caixa_id INT DEFAULT NULL AFTER garcom_id
-    `)
-    console.log('✓ Coluna caixa_id adicionada a mesas (ou já existia)')
-
-    await conn.execute(`
-      ALTER TABLE configuracoes
-        ADD COLUMN IF NOT EXISTS mp_ativado      TINYINT(1)   DEFAULT 0   AFTER impressora_auto_imprimir,
-        ADD COLUMN IF NOT EXISTS mp_access_token TEXT         DEFAULT NULL AFTER mp_ativado,
-        ADD COLUMN IF NOT EXISTS mp_device_id    VARCHAR(255) DEFAULT NULL AFTER mp_access_token
-    `)
-    console.log('✓ Colunas Mercado Pago adicionadas a configuracoes (ou já existiam)')
+    await addColumn(conn, 'configuracoes', 'mp_ativado', 'TINYINT(1) DEFAULT 0 AFTER impressora_auto_imprimir')
+    await addColumn(conn, 'configuracoes', 'mp_access_token', 'TEXT DEFAULT NULL AFTER mp_ativado')
+    await addColumn(conn, 'configuracoes', 'mp_device_id', 'VARCHAR(255) DEFAULT NULL AFTER mp_access_token')
 
     console.log('\nMigração concluída com sucesso!')
   } finally {

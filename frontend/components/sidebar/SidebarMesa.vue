@@ -639,13 +639,32 @@ function imprimirHtml(html: string) {
   doc.close()
 }
 
-function imprimir() {
+async function imprimir() {
   const mesa   = props.mesa
   const itens  = produtos.value
   const abats  = abatimentos.value
   const total  = totalGeral.value
   const liquido = totalLiquido.value
   const data   = new Date().toLocaleString('pt-BR')
+
+  // Impressão direta na térmica via backend — sem diálogo do navegador
+  if (configStore.impressaoDireta) {
+    try {
+      await api.post('/impressao/conta', {
+        mesa: `Mesa ${mesa?.nome_mesa || mesa?.numero || mesa?.id}`,
+        itens: itens.map(p => ({ nome: p.nome, quantidade: p.quantidade, total: p.total })),
+        subtotal: total,
+        abatimentos: abats.map(a => ({ motivo: a.motivo, valor: a.valor })),
+        taxa_pct: taxaPct.value,
+        taxa_valor: taxaValor.value,
+        pago: valorPago.value,
+        restante: restante.value
+      })
+    } catch (err: any) {
+      toastStore.error('Falha na impressão', err?.message)
+    }
+    return
+  }
 
   const linhasItens = itens.map(p =>
     `<tr>
@@ -1013,15 +1032,29 @@ async function handleReimprimir() {
 
   await configStore.carregar()
 
+  const mesa    = props.mesa
+  const dataStr = new Date().toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })
+  const ref     = `P${String(produto.pedido_id).padStart(6, '0')}`
+
+  // Impressão direta na térmica via backend — sem diálogo do navegador
+  if (configStore.impressaoDireta) {
+    try {
+      await api.post('/impressao/ficha', {
+        itens:  [{ nome: produto.nome, quantidade: produto.quantidade }],
+        info:   `${dataStr} · ${mesa?.nome_mesa || `Mesa ${mesa?.id}`}`,
+        codigo: ref
+      })
+    } catch (err: any) {
+      toastStore.error('Falha na impressão', err?.message)
+    }
+    return
+  }
+
   const nomeRest = configStore.nome_restaurante || 'Restaurante PDV'
   const logo     = configStore.logo_base64
   const mensagem = configStore.mensagem_ficha || 'Obrigado pela preferência!'
   const mm     = configStore.impressora_largura === 58 ? 58 : 80
   const copias = Math.max(1, configStore.impressora_copias || 1)
-
-  const mesa    = props.mesa
-  const dataStr = new Date().toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })
-  const ref     = `P${String(produto.pedido_id).padStart(6, '0')}`
 
   const logoHtml = logo
     ? `<img src="${logo}" style="height:10mm;object-fit:contain;margin-bottom:2mm;" />`

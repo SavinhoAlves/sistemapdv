@@ -35,6 +35,10 @@ class CupomEscPos {
     this.partes.push(Buffer.from([GS, 0x21, on ? 0x11 : 0x00]))
     return this
   }
+  alto(on) { // altura dupla, largura normal — preserva as colunas
+    this.partes.push(Buffer.from([GS, 0x21, on ? 0x01 : 0x00]))
+    return this
+  }
   linha(s = '') { this._txt(s); return this }
   separador() { this._txt('-'.repeat(this.colunas)); return this }
   parQuantia(esq, dir) {
@@ -73,19 +77,36 @@ function enviarRede(buffer, host, porta = 9100) {
   })
 }
 
-// Impressora USB compartilhada no Windows (nome do compartilhamento)
-function enviarWindows(buffer, compartilhamento) {
+// Impressora instalada no Windows: envia RAW direto ao spooler pelo nome
+// da impressora (não precisa estar compartilhada). Caminhos UNC (\\pc\nome)
+// continuam funcionando via copy /b para impressoras de outra máquina.
+function enviarWindows(buffer, impressora) {
   return new Promise((resolve, reject) => {
     const tmp = path.join(os.tmpdir(), `pdv-print-${Date.now()}.bin`)
     fs.writeFileSync(tmp, buffer)
-    const destino = compartilhamento.startsWith('\\\\')
-      ? compartilhamento
-      : `\\\\localhost\\${compartilhamento}`
-    execFile('cmd.exe', ['/c', 'copy', '/b', tmp, destino], (err, _out, stderr) => {
+
+    if (impressora.startsWith('\\\\')) {
+      execFile('cmd.exe', ['/c', 'copy', '/b', tmp, impressora], (err, _out, stderr) => {
+        fs.unlink(tmp, () => {})
+        if (err) {
+          return reject(new Error(
+            `Falha ao imprimir em "${impressora}". Verifique se o compartilhamento existe e está acessível. ${stderr || err.message}`
+          ))
+        }
+        resolve()
+      })
+      return
+    }
+
+    const script = path.join(__dirname, '..', '..', 'scripts', 'print-raw.ps1')
+    execFile('powershell.exe', [
+      '-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass',
+      '-File', script, '-PrinterName', impressora, '-FilePath', tmp
+    ], (err, _out, stderr) => {
       fs.unlink(tmp, () => {})
       if (err) {
         return reject(new Error(
-          `Falha ao imprimir em "${destino}". A impressora precisa estar compartilhada no Windows. ${stderr || err.message}`
+          `Falha ao imprimir em "${impressora}". Confira se o nome é exatamente o da impressora instalada no Windows. ${stderr || err.message}`
         ))
       }
       resolve()
@@ -99,7 +120,7 @@ async function enviarParaImpressora(buffer, config) {
     return enviarRede(buffer, config.impressora_host, Number(config.impressora_porta) || 9100)
   }
   if (config.impressora_tipo === 'windows') {
-    if (!config.impressora_host) throw new Error('Informe o nome do compartilhamento da impressora nas configurações')
+    if (!config.impressora_host) throw new Error('Informe o nome da impressora instalada no Windows nas configurações')
     return enviarWindows(buffer, config.impressora_host)
   }
   throw new Error('Impressão direta desativada — o tipo configurado é "navegador"')
@@ -129,4 +150,68 @@ function montarCupomTeste(config) {
   return c.buffer()
 }
 
-module.exports = { CupomEscPos, enviarParaImpressora, montarCupomTeste }
+// ============================================================
+// Fichas de produto (caixa e reimpressão da mesa)
+// Uma ficha por unidade × cópias configuradas, com corte entre elas.
+// ============================================================
+
+function montarFichas(config, { itens, info, codigo }) {
+  const copias = Math.max(1, Number(config.impressora_copias) || 1)
+  const c = new CupomEscPos(Number(config.impressora_largura) || 80)
+  for (const item of itens) {
+    const unidades = Math.max(1, Number(item.quantidade) || 1)
+    for (let u = 0; u < unidades; u++) {
+      for (let k = 0; k < copias; k++) {
+        c.alinhar(1)
+        c.negrito(true).linha(config.nome_restaurante || 'Restaurante PDV').negrito(false)
+        if (info) c.linha(info)
+        c.separador()
+        c.duplo(true).negrito(true).linha(String(item.nome).toUpperCase()).negrito(false).duplo(false)
+        c.separador()
+        if (codigo) c.linha(codigo)
+        c.linha(config.mensagem_ficha || 'Obrigado pela preferencia!')
+        c.cortar()
+      }
+    }
+  }
+  return c.buffer()
+}
+
+// ============================================================
+// Conta da mesa
+// ============================================================
+
+function dinheiro(v) {
+  return 'R$ ' + Number(v || 0).toFixed(2).replace('.', ',')
+}
+
+function montarConta(config, conta) {
+  const c = new CupomEscPos(Number(config.impressora_largura) || 80)
+  c.alinhar(1)
+  c.duplo(true).linha(config.nome_restaurante || 'Restaurante PDV').duplo(false)
+  c.negrito(true).linha('CONTA DA MESA').negrito(false)
+  c.linha(`${conta.mesa || ''}  ${new Date().toLocaleString('pt-BR')}`.trim())
+  c.alinhar(0).separador()
+  for (const item of conta.itens || []) {
+    c.parQuantia(`${item.quantidade}x ${item.nome}`, dinheiro(item.total))
+  }
+  c.separador()
+  c.negrito(true).parQuantia('Subtotal', dinheiro(conta.subtotal)).negrito(false)
+  for (const a of conta.abatimentos || []) {
+    c.parQuantia(a.motivo || 'Abatimento', '-' + dinheiro(a.valor))
+  }
+  if (Number(conta.taxa_pct) > 0) {
+    c.parQuantia(`Taxa de servico (${conta.taxa_pct}%)`, '+' + dinheiro(conta.taxa_valor))
+  }
+  if (Number(conta.pago) > 0) {
+    c.parQuantia('Ja pago', '-' + dinheiro(conta.pago))
+  }
+  c.separador()
+  c.negrito(true).alto(true).parQuantia('TOTAL', dinheiro(conta.restante)).alto(false).negrito(false)
+  c.pular()
+  c.alinhar(1).linha(config.mensagem_ficha || 'Obrigado pela preferencia!')
+  c.cortar()
+  return c.buffer()
+}
+
+module.exports = { CupomEscPos, enviarParaImpressora, montarCupomTeste, montarFichas, montarConta }

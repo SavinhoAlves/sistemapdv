@@ -2,7 +2,7 @@ const express = require('express')
 const router = express.Router()
 const { query } = require('../database/connection')
 const { authenticate, authorize } = require('../middlewares/auth.middleware')
-const { montarCupomTeste, enviarParaImpressora } = require('../services/impressao.service')
+const { montarCupomTeste, montarFichas, montarConta, enviarParaImpressora } = require('../services/impressao.service')
 
 async function carregarConfig() {
   const rows = await query(`SELECT * FROM configuracoes WHERE id = 1`)
@@ -16,6 +16,41 @@ router.post('/teste', authenticate, authorize('administrador'), async (req, res)
     const cupom = montarCupomTeste(config)
     await enviarParaImpressora(cupom, config)
     return res.json({ success: true, message: 'Cupom de teste enviado à impressora' })
+  } catch (err) {
+    return res.status(400).json({ error: err.message })
+  }
+})
+
+// POST /api/impressao/ficha — fichas de produto (venda do caixa ou reimpressão)
+// body: { itens: [{ nome, quantidade }], info?, codigo? }
+router.post('/ficha', authenticate, async (req, res) => {
+  try {
+    const { itens, info, codigo } = req.body
+    if (!Array.isArray(itens) || !itens.length) {
+      return res.status(400).json({ error: 'Informe os itens da ficha' })
+    }
+    const config = await carregarConfig()
+    const cupom = montarFichas(config, { itens, info, codigo })
+    await enviarParaImpressora(cupom, config)
+    return res.json({ success: true })
+  } catch (err) {
+    return res.status(400).json({ error: err.message })
+  }
+})
+
+// POST /api/impressao/conta — conta da mesa
+// body: { mesa, itens: [{ nome, quantidade, total }], subtotal,
+//         abatimentos: [{ motivo, valor }], taxa_pct, taxa_valor, pago, restante }
+router.post('/conta', authenticate, async (req, res) => {
+  try {
+    const conta = req.body
+    if (!Array.isArray(conta.itens) || !conta.itens.length) {
+      return res.status(400).json({ error: 'A mesa não tem itens para imprimir' })
+    }
+    const config = await carregarConfig()
+    const cupom = montarConta(config, conta)
+    await enviarParaImpressora(cupom, config)
+    return res.json({ success: true })
   } catch (err) {
     return res.status(400).json({ error: err.message })
   }

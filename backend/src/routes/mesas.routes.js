@@ -57,7 +57,7 @@ router.get('/', authenticate, async (req, res) => {
 router.post('/abrir', authenticate, async (req, res) => {
   try {
 
-    const { cliente, garcom_id, caixa_id } = req.body
+    const { cliente, garcom_id, caixa_id, nome_mesa } = req.body
 
     const resultado = await query(`
       INSERT INTO mesas (cliente, garcom_id, caixa_id, status, data_abertura)
@@ -70,9 +70,14 @@ router.post('/abrir', authenticate, async (req, res) => {
 
     const mesaId = resultado.insertId
 
+    // Nome escolhido pelo garçom ou numeração automática
+    const nomeFinal = (typeof nome_mesa === 'string' && nome_mesa.trim())
+      ? nome_mesa.trim().substring(0, 50)
+      : `Mesa ${mesaId}`
+
     await query(
       `UPDATE mesas SET nome_mesa = ? WHERE id = ?`,
-      [`Mesa ${mesaId}`, mesaId]
+      [nomeFinal, mesaId]
     )
 
     return res.json({

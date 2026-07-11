@@ -63,13 +63,11 @@
 </template>
 
 <script setup lang="ts">
-import { computed, watch } from 'vue'
+import { watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { sidebarExpandida as expandida } from '~/composables/useSidebar'
-import {
-  UtensilsCrossed, BarChart2, LayoutGrid, Package, Landmark,
-  FileText, ShieldCheck, Settings, ChefHat, Sun, Moon, LogOut
-} from 'lucide-vue-next'
+import { useNavItems } from '~/composables/useNavItems'
+import { UtensilsCrossed, Sun, Moon, LogOut } from 'lucide-vue-next'
 import { useAuthStore }  from '~/stores/auth'
 import { useThemeStore } from '~/stores/theme'
 
@@ -78,31 +76,7 @@ const route      = useRoute()
 const authStore  = useAuthStore()
 const themeStore = useThemeStore()
 
-const cargo = computed(() => authStore.usuario?.cargo)
-
-const navItems = computed(() => {
-  if (cargo.value === 'administrador') return [
-    { rota: '/',              label: 'Dashboard',     icon: BarChart2   },
-    { rota: '/mesas',         label: 'Mesas',         icon: LayoutGrid  },
-    { rota: '/produtos',      label: 'Produtos',      icon: Package     },
-    { rota: '/caixa',         label: 'Caixa',         icon: Landmark    },
-    { rota: '/cozinha',       label: 'Cozinha',       icon: ChefHat     },
-    { rota: '/relatorios',    label: 'Relatórios',    icon: FileText    },
-    { rota: '/admin',         label: 'Admin',         icon: ShieldCheck },
-    { rota: '/configuracoes', label: 'Configurações', icon: Settings    }
-  ]
-  if (cargo.value === 'garcom') return [
-    { rota: '/mesas',    label: 'Mesas',    icon: LayoutGrid },
-    { rota: '/produtos', label: 'Produtos', icon: Package    }
-  ]
-  if (cargo.value === 'caixa') return [
-    { rota: '/caixa', label: 'Caixa', icon: Landmark }
-  ]
-  if (cargo.value === 'cozinha') return [
-    { rota: '/cozinha', label: 'Cozinha', icon: ChefHat }
-  ]
-  return []
-})
+const { navItems } = useNavItems()
 
 function isAtivo(rota: string) {
   if (rota === '/') return route.path === '/'

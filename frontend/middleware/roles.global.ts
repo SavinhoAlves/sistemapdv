@@ -10,6 +10,7 @@ const PERMISSOES: Record<string, string[]> = {
   '/relatorios':      ['administrador'],
   '/configuracoes':   ['administrador'],
   '/caixa':      ['administrador', 'caixa'],
+  '/vendas':     ['administrador', 'garcom', 'caixa'],
   '/mesas':      ['administrador', 'garcom'],
   '/produtos':   ['administrador', 'garcom'],
   '/cozinha':    ['administrador', 'cozinha']

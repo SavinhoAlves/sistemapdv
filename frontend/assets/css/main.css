@@ -17,6 +17,11 @@
     @apply bg-surface-50 text-surface-900;
   }
 
+  /* Fundo do body no modo escuro — evita o flash branco ao trocar de página */
+  html.dark body {
+    @apply bg-neutral-950 text-neutral-100;
+  }
+
   ::-webkit-scrollbar {
     width: 6px;
     height: 6px;
@@ -32,6 +37,18 @@
 
   ::-webkit-scrollbar-thumb:hover {
     @apply bg-surface-500;
+  }
+
+  html.dark ::-webkit-scrollbar-track {
+    @apply bg-neutral-900;
+  }
+
+  html.dark ::-webkit-scrollbar-thumb {
+    @apply bg-neutral-700;
+  }
+
+  html.dark ::-webkit-scrollbar-thumb:hover {
+    @apply bg-neutral-600;
   }
 }
 
@@ -144,6 +161,16 @@
   .no-print { display: none !important; }
   .print-only { display: block !important; }
   body { font-size: 12px; }
+}
+
+/* ── Transição entre páginas (fade rápido, sem "piscar") ── */
+.page-enter-active,
+.page-leave-active {
+  transition: opacity 0.15s ease;
+}
+.page-enter-from,
+.page-leave-to {
+  opacity: 0;
 }
 
 /* ── Sidebar: recuo do conteúdo (empurra ao expandir) ── */

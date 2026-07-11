@@ -18,7 +18,7 @@
               </h2>
 
               <p class="text-sm text-neutral-400 mt-1">
-                Abrir nova comanda
+                Escolha o tipo de venda
               </p>
             </div>
 
@@ -35,21 +35,79 @@
         <!-- BODY -->
         <div class="p-8 space-y-6">
 
-          <!-- CLIENTE -->
-          <div>
-            <label for="mesa-cliente" class="text-xs font-black uppercase tracking-wider text-neutral-500 block mb-2">
-              Nome do Cliente
-            </label>
+          <!-- TIPO DE ATENDIMENTO -->
+          <div class="grid grid-cols-2 gap-3">
+            <button
+              @click="form.tipo = 'mesa'"
+              class="rounded-2xl border-2 p-4 flex flex-col items-center gap-2 transition-all text-center"
+              :class="form.tipo === 'mesa'
+                ? 'border-orange-500 bg-orange-50 dark:bg-orange-950/30'
+                : 'border-neutral-200 dark:border-neutral-700 hover:border-orange-300'"
+            >
+              <LayoutGrid :size="22" :class="form.tipo === 'mesa' ? 'text-orange-500' : 'text-neutral-400'" />
+              <span class="text-sm font-black" :class="form.tipo === 'mesa' ? 'text-orange-600 dark:text-orange-400' : 'text-neutral-600 dark:text-neutral-400'">
+                Mesa / Comanda
+              </span>
+              <span class="text-[11px] text-neutral-400 leading-tight">
+                Abre uma comanda para consumo na mesa
+              </span>
+            </button>
 
-            <input
-              id="mesa-cliente"
-              name="mesa-cliente"
-              v-model="form.cliente"
-              type="text"
-              placeholder="Opcional"
-              class="w-full h-14 px-5 rounded-2xl border border-neutral-200 dark:border-neutral-700 dark:bg-neutral-800 dark:text-white dark:placeholder-neutral-500 focus:outline-none focus:ring-2 focus:ring-orange-500"
-            />
+            <button
+              @click="form.tipo = 'balcao'"
+              class="rounded-2xl border-2 p-4 flex flex-col items-center gap-2 transition-all text-center"
+              :class="form.tipo === 'balcao'
+                ? 'border-orange-500 bg-orange-50 dark:bg-orange-950/30'
+                : 'border-neutral-200 dark:border-neutral-700 hover:border-orange-300'"
+            >
+              <ShoppingCart :size="22" :class="form.tipo === 'balcao' ? 'text-orange-500' : 'text-neutral-400'" />
+              <span class="text-sm font-black" :class="form.tipo === 'balcao' ? 'text-orange-600 dark:text-orange-400' : 'text-neutral-600 dark:text-neutral-400'">
+                Venda Direta
+              </span>
+              <span class="text-[11px] text-neutral-400 leading-tight">
+                Venda avulsa no balcão, sem abrir mesa
+              </span>
+            </button>
           </div>
+
+          <!-- CAMPOS DA MESA -->
+          <template v-if="form.tipo === 'mesa'">
+            <div>
+              <label for="mesa-nome" class="text-xs font-black uppercase tracking-wider text-neutral-500 block mb-2">
+                Nome / Número da Mesa
+              </label>
+
+              <input
+                id="mesa-nome"
+                name="mesa-nome"
+                v-model="form.nome_mesa"
+                type="text"
+                placeholder="Ex: Mesa 5 (opcional — numera automático)"
+                class="w-full h-14 px-5 rounded-2xl border border-neutral-200 dark:border-neutral-700 dark:bg-neutral-800 dark:text-white dark:placeholder-neutral-500 focus:outline-none focus:ring-2 focus:ring-orange-500"
+              />
+            </div>
+
+            <div>
+              <label for="mesa-cliente" class="text-xs font-black uppercase tracking-wider text-neutral-500 block mb-2">
+                Nome do Cliente
+              </label>
+
+              <input
+                id="mesa-cliente"
+                name="mesa-cliente"
+                v-model="form.cliente"
+                type="text"
+                placeholder="Opcional"
+                class="w-full h-14 px-5 rounded-2xl border border-neutral-200 dark:border-neutral-700 dark:bg-neutral-800 dark:text-white dark:placeholder-neutral-500 focus:outline-none focus:ring-2 focus:ring-orange-500"
+              />
+            </div>
+          </template>
+
+          <!-- INFO VENDA DIRETA -->
+          <p v-else class="text-sm text-neutral-500 dark:text-neutral-400 bg-neutral-50 dark:bg-neutral-800/60 rounded-2xl px-5 py-4 leading-relaxed">
+            Você será levado ao painel de <strong class="text-neutral-700 dark:text-neutral-200">Vendas</strong> para
+            selecionar os produtos e receber o pagamento na hora.
+          </p>
 
         </div>
 
@@ -64,11 +122,20 @@
           </button>
 
           <button
+            v-if="form.tipo === 'mesa'"
             @click="abrirMesa"
             :disabled="loading"
             class="flex-1 h-14 rounded-2xl bg-orange-500 hover:bg-orange-600 disabled:opacity-50 text-white font-black uppercase tracking-wider transition-all"
           >
             {{ loading ? 'Abrindo...' : 'Abrir Atendimento' }}
+          </button>
+
+          <button
+            v-else
+            @click="irParaVendas"
+            class="flex-1 h-14 rounded-2xl bg-orange-500 hover:bg-orange-600 text-white font-black uppercase tracking-wider transition-all"
+          >
+            Ir para Vendas
           </button>
 
         </div>
@@ -84,7 +151,8 @@ import {
   ref
 } from 'vue'
 
-import { X } from 'lucide-vue-next'
+import { useRouter } from 'vue-router'
+import { X, LayoutGrid, ShoppingCart } from 'lucide-vue-next'
 
 import { useToastStore } from '~/stores/toast'
 import { useAuthStore } from '~/stores/auth'
@@ -103,6 +171,7 @@ const emit = defineEmits([
   'mesa-aberta'
 ])
 
+const router = useRouter()
 const toastStore = useToastStore()
 const authStore = useAuthStore()
 const caixaStore = useCaixaStore()
@@ -110,6 +179,8 @@ const caixaStore = useCaixaStore()
 const loading = ref(false)
 
 const form = reactive({
+  tipo: 'mesa' as 'mesa' | 'balcao',
+  nome_mesa: '',
   cliente: ''
 })
 
@@ -124,7 +195,18 @@ const fechar = () => {
 // RESETAR
 // ======================
 const resetar = () => {
+  form.tipo = 'mesa'
+  form.nome_mesa = ''
   form.cliente = ''
+}
+
+// ======================
+// VENDA DIRETA (BALCÃO)
+// ======================
+const irParaVendas = () => {
+  fechar()
+  resetar()
+  router.push('/vendas')
 }
 
 // ======================
@@ -139,6 +221,7 @@ const abrirMesa = async () => {
 
     const resposta = await api.mesas.abrirMesa({
       cliente:    form.cliente,
+      nome_mesa:  form.nome_mesa.trim() || null,
       garcom_id:  authStore.usuario?.id ?? null,
       caixa_id:   caixaStore.caixaAtual?.id ?? null
     })

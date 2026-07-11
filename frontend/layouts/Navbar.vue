@@ -363,6 +363,7 @@ import { useToastStore }  from '~/stores/toast'
 import { useCaixaStore }  from '~/stores/caixa'
 import { useThemeStore }  from '~/stores/theme'
 import { useConfigStore } from '~/stores/configuracoes'
+import { useNavItems }    from '~/composables/useNavItems'
 import { useApi }         from '~/services/api'
 import ModalRfidAuth      from '~/components/modals/ModalRfidAuth.vue'
 
@@ -385,6 +386,14 @@ const isCozinha = computed(() => cargo.value === 'cozinha')
 const inicial      = computed(() => (authStore.usuario?.nome || 'U')[0].toUpperCase())
 const primeiroNome = computed(() => authStore.usuario?.nome?.split(' ')[0] || '')
 const caixaAberto  = computed(() => caixaStore.aberto)
+
+// Navegação mobile (< sm)
+const { navItems } = useNavItems()
+
+function isAtivo(rota: string) {
+  if (rota === '/') return route.path === '/'
+  return route.path.startsWith(rota)
+}
 
 // ======================
 // DROPDOWN PROFILE

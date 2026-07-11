@@ -16,6 +16,8 @@ export default defineNuxtConfig({
   },
 
   app: {
+    // Suaviza a troca de páginas (evita o "piscar" ao navegar entre menus)
+    pageTransition: { name: 'page', mode: 'out-in' },
     head: {
       title: 'RestaurantePDV',
       meta: [

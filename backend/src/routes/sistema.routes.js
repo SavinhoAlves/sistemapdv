@@ -134,4 +134,34 @@ router.get('/status-licenca', async (req, res) => {
   }
 })
 
+// ──────────────────────────────────────────────────
+// POST /api/sistema/sync/configurar
+// Body: { centralUrl: string, syncToken: string }
+// Guarda a URL/token do painel central de suporte. Executado uma única vez
+// no onboarding de cada instalação (só administrador). Diferente de
+// /ativar, esta rota exige login pois o sistema já está licenciado.
+// ──────────────────────────────────────────────────
+router.post('/sync/configurar', authenticate, authorize('administrador'), async (req, res) => {
+  const { centralUrl, syncToken } = req.body
+
+  if (!centralUrl || !syncToken) {
+    return res.status(400).json({ error: 'Informe centralUrl e syncToken' })
+  }
+
+  try {
+    const { garantirInstalacaoUuid } = require('../services/sync.service')
+    await garantirInstalacaoUuid()
+
+    await query(
+      `UPDATE sync_config SET central_url = ?, sync_token = ? WHERE id = 1`,
+      [centralUrl.trim(), syncToken.trim()]
+    )
+
+    return res.json({ success: true })
+  } catch (err) {
+    console.error('[SYNC] Erro ao configurar:', err.message)
+    return res.status(500).json({ error: 'Erro ao salvar configuração de sincronização' })
+  }
+})
+
 module.exports = router

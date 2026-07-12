@@ -163,6 +163,23 @@ async function migrate() {
     `)
     console.log("✓ Enum de status de pedido_itens padronizado ('em_preparo' → 'preparando')")
 
+    // Painel central de suporte: identidade/token de sincronização + cache
+    // local da flag remota. Tabela própria (não pdv_config, que é apagada
+    // e recriada a cada reativação de licença).
+    await conn.execute(`
+      CREATE TABLE IF NOT EXISTS sync_config (
+        id                     INT PRIMARY KEY DEFAULT 1,
+        instalacao_uuid        VARCHAR(36) NOT NULL,
+        central_url            VARCHAR(255) DEFAULT NULL,
+        sync_token             VARCHAR(255) DEFAULT NULL,
+        venda_mobile_permitida TINYINT(1) NOT NULL DEFAULT 1,
+        ultimo_sync_em         DATETIME DEFAULT NULL,
+        ultimo_sync_sucesso    TINYINT(1) DEFAULT NULL,
+        ultimo_sync_erro       VARCHAR(255) DEFAULT NULL
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+    `)
+    console.log('✓ Tabela sync_config criada (ou já existia)')
+
     console.log('\nMigração concluída com sucesso!')
   } finally {
     conn.release()

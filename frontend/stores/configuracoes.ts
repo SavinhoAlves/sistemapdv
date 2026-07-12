@@ -12,6 +12,7 @@ interface Config {
   impressora_host: string
   impressora_porta: number
   taxa_servico_pct: number
+  venda_mobile_permitida: boolean
 }
 
 export const useConfigStore = defineStore('configuracoes', {
@@ -26,6 +27,7 @@ export const useConfigStore = defineStore('configuracoes', {
     impressora_host:          '',
     impressora_porta:         9100,
     taxa_servico_pct:         10,
+    venda_mobile_permitida:   true,
     carregado: false
   }),
 
@@ -50,11 +52,14 @@ export const useConfigStore = defineStore('configuracoes', {
         this.impressora_host          = data.impressora_host                  || ''
         this.impressora_porta         = Number(data.impressora_porta)         || 9100
         this.taxa_servico_pct         = Number(data.taxa_servico_pct ?? 10)
+        this.venda_mobile_permitida   = data.venda_mobile_permitida ?? true
         this.carregado = true
       } catch {}
     },
 
-    async salvar(dados: Config) {
+    // venda_mobile_permitida fica fora do payload: é controlada só pela
+    // central de suporte, nunca editável localmente pelo admin do restaurante
+    async salvar(dados: Omit<Config, 'venda_mobile_permitida'>) {
       const api = useApi()
       await api.put('/configuracoes', dados)
       Object.assign(this, dados)

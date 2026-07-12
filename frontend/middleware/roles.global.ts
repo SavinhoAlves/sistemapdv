@@ -1,4 +1,5 @@
 import { useAuthStore } from '~/stores/auth'
+import { useConfigStore } from '~/stores/configuracoes'
 
 // Rotas que não exigem autenticação
 const ROTAS_PUBLICAS = ['/login', '/ativacao', '/logout']
@@ -16,7 +17,14 @@ const PERMISSOES: Record<string, string[]> = {
   '/cozinha':    ['administrador', 'cozinha']
 }
 
-export default defineNuxtRouteMiddleware((to) => {
+const DESTINOS_POR_CARGO: Record<string, string> = {
+  administrador: '/',
+  garcom:        '/mesas',
+  caixa:         '/caixa',
+  cozinha:       '/cozinha'
+}
+
+export default defineNuxtRouteMiddleware(async (to) => {
   if (ROTAS_PUBLICAS.some(r => to.path.startsWith(r))) return
 
   if (!process.client) return
@@ -32,13 +40,17 @@ export default defineNuxtRouteMiddleware((to) => {
   const permitidos = PERMISSOES[rotaBase]
 
   if (permitidos && !permitidos.includes(cargo)) {
-    // Redireciona para a home do cargo
-    const destinos: Record<string, string> = {
-      administrador: '/',
-      garcom:        '/mesas',
-      caixa:         '/caixa',
-      cozinha:       '/cozinha'
+    return navigateTo(DESTINOS_POR_CARGO[cargo] ?? '/mesas')
+  }
+
+  // Venda mobile pode ser desligada remotamente pelo painel central de
+  // suporte — se estiver, redireciona pra fora de /vendas mesmo que o
+  // cargo tenha permissão
+  if (rotaBase === '/vendas') {
+    const configStore = useConfigStore()
+    await configStore.carregar()
+    if (!configStore.venda_mobile_permitida) {
+      return navigateTo(DESTINOS_POR_CARGO[cargo] ?? '/mesas')
     }
-    return navigateTo(destinos[cargo] ?? '/mesas')
   }
 })

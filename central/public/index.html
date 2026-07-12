@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <title>Painel Central · Clientes</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-neutral-950 min-h-screen text-white">
+
+  <header class="border-b border-neutral-800 px-6 py-4 flex items-center justify-between">
+    <div class="flex items-center gap-3">
+      <div class="w-9 h-9 rounded-xl bg-orange-500 flex items-center justify-center">
+        <span class="text-white font-black">P</span>
+      </div>
+      <div>
+        <h1 class="text-sm font-black">Painel Central</h1>
+        <p class="text-[11px] text-neutral-500">Suporte · Restaurante PDV</p>
+      </div>
+    </div>
+    <button id="btn-sair" class="text-xs font-black text-red-400 hover:text-red-300">Sair</button>
+  </header>
+
+  <main class="max-w-5xl mx-auto p-6">
+
+    <div class="flex items-center justify-between mb-5">
+      <div>
+        <h2 class="text-xl font-black">Clientes</h2>
+        <p class="text-sm text-neutral-500" id="contagem">—</p>
+      </div>
+      <button id="btn-novo"
+        class="h-10 px-4 rounded-xl bg-orange-500 hover:bg-orange-400 text-white text-xs font-black uppercase tracking-widest transition-all active:scale-95">
+        + Novo Cliente
+      </button>
+    </div>
+
+    <div id="lista" class="space-y-3"></div>
+    <p id="vazio" class="hidden text-center text-neutral-500 text-sm py-12">Nenhum cliente cadastrado ainda</p>
+
+  </main>
+
+  <!-- MODAL NOVO CLIENTE -->
+  <div id="modal-novo" class="hidden fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-50">
+    <div class="bg-neutral-900 border border-neutral-800 rounded-3xl p-6 w-full max-w-sm">
+      <h3 class="text-lg font-black mb-4">Novo cliente</h3>
+
+      <label class="text-[10px] font-black uppercase tracking-widest text-neutral-500 block mb-2">Nome fantasia *</label>
+      <input id="novo-nome" type="text" placeholder="Ex: Restaurante do Chef"
+        class="w-full h-11 px-4 mb-4 rounded-xl bg-neutral-800 border border-neutral-700 text-white text-sm outline-none focus:border-orange-500" />
+
+      <label class="text-[10px] font-black uppercase tracking-widest text-neutral-500 block mb-2">Contato (opcional)</label>
+      <input id="novo-contato" type="text" placeholder="Telefone, WhatsApp ou e-mail"
+        class="w-full h-11 px-4 mb-5 rounded-xl bg-neutral-800 border border-neutral-700 text-white text-sm outline-none focus:border-orange-500" />
+
+      <div class="flex gap-3">
+        <button id="btn-cancelar-novo"
+          class="flex-1 h-11 rounded-xl border border-neutral-700 text-neutral-400 text-sm font-black hover:bg-neutral-800">
+          Cancelar
+        </button>
+        <button id="btn-criar"
+          class="flex-1 h-11 rounded-xl bg-orange-500 hover:bg-orange-400 text-white text-sm font-black active:scale-95">
+          Criar
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL TOKEN GERADO -->
+  <div id="modal-token" class="hidden fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-50">
+    <div class="bg-neutral-900 border border-neutral-800 rounded-3xl p-6 w-full max-w-md">
+      <h3 class="text-lg font-black mb-2">Cliente criado!</h3>
+      <p class="text-xs text-neutral-400 mb-4 leading-relaxed">
+        Copie este token agora — ele não será mostrado de novo. No backend do
+        restaurante, chame <code class="text-orange-400">POST /api/sistema/sync/configurar</code>
+        logado como administrador com <code class="text-orange-400">{ centralUrl, syncToken }</code>.
+      </p>
+      <div class="bg-neutral-800 rounded-xl p-3 mb-5 break-all font-mono text-xs text-green-400" id="token-gerado"></div>
+      <button id="btn-fechar-token"
+        class="w-full h-11 rounded-xl bg-orange-500 hover:bg-orange-400 text-white text-sm font-black active:scale-95">
+        Já copiei
+      </button>
+    </div>
+  </div>
+
+  <!-- MODAL GERAR LICENÇA -->
+  <div id="modal-licenca" class="hidden fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-50">
+    <div class="bg-neutral-900 border border-neutral-800 rounded-3xl p-6 w-full max-w-sm">
+      <h3 class="text-lg font-black mb-1">Gerar licença</h3>
+      <p class="text-xs text-neutral-500 mb-4" id="licenca-cliente-nome"></p>
+
+      <label class="text-[10px] font-black uppercase tracking-widest text-neutral-500 block mb-2">Validade</label>
+      <div class="flex gap-2 mb-5">
+        <button data-dias="30"  class="dias-preset flex-1 h-10 rounded-xl border border-neutral-700 text-sm font-black hover:bg-neutral-800">30 dias</button>
+        <button data-dias="90"  class="dias-preset flex-1 h-10 rounded-xl border border-neutral-700 text-sm font-black hover:bg-neutral-800">90 dias</button>
+        <button data-dias="365" class="dias-preset flex-1 h-10 rounded-xl border border-neutral-700 text-sm font-black hover:bg-neutral-800">365 dias</button>
+      </div>
+      <input id="licenca-dias" type="number" min="1" placeholder="Ou digite os dias..."
+        class="w-full h-11 px-4 mb-5 rounded-xl bg-neutral-800 border border-neutral-700 text-white text-sm outline-none focus:border-orange-500" />
+
+      <div class="flex gap-3">
+        <button id="btn-cancelar-licenca"
+          class="flex-1 h-11 rounded-xl border border-neutral-700 text-neutral-400 text-sm font-black hover:bg-neutral-800">
+          Cancelar
+        </button>
+        <button id="btn-gerar-licenca"
+          class="flex-1 h-11 rounded-xl bg-orange-500 hover:bg-orange-400 text-white text-sm font-black active:scale-95">
+          Gerar
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL CHAVE GERADA -->
+  <div id="modal-chave" class="hidden fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-50">
+    <div class="bg-neutral-900 border border-neutral-800 rounded-3xl p-6 w-full max-w-md">
+      <h3 class="text-lg font-black mb-2">Chave de licença gerada</h3>
+      <p class="text-xs text-neutral-400 mb-4 leading-relaxed">
+        Cole esta chave na tela <code class="text-orange-400">/ativacao</code> do restaurante
+        (ou chame <code class="text-orange-400">POST /api/sistema/ativar</code> com
+        <code class="text-orange-400">{ chave }</code>).
+      </p>
+      <div class="bg-neutral-800 rounded-xl p-3 mb-5 break-all font-mono text-xs text-green-400" id="chave-gerada"></div>
+      <button id="btn-fechar-chave"
+        class="w-full h-11 rounded-xl bg-orange-500 hover:bg-orange-400 text-white text-sm font-black active:scale-95">
+        Já copiei
+      </button>
+    </div>
+  </div>
+
+  <script src="/app.js"></script>
+</body>
+</html>

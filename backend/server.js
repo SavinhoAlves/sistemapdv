@@ -108,4 +108,8 @@ server.listen(PORT, '0.0.0.0', () => {
 
   // Backup automático diário do banco de dados
   require('./src/services/backup.service').agendarBackupDiario()
+
+  // Sincronização best-effort com o painel central de suporte (opcional —
+  // no-op silencioso se a instalação nunca foi configurada)
+  require('./src/services/sync.service').agendarSync()
 })

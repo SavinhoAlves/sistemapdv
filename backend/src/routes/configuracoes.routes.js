@@ -21,6 +21,16 @@ router.get('/', authenticate, async (req, res) => {
       FROM configuracoes WHERE id = 1
     `)
     const row = rows[0] ?? {}
+
+    // Flag remota do painel central de suporte (venda mobile liberada?) —
+    // cache local em sync_config; try/catch pra não quebrar em instalações
+    // que ainda não rodaram a migração dessa tabela
+    let vendaMobilePermitida = true
+    try {
+      const syncRows = await query(`SELECT venda_mobile_permitida FROM sync_config WHERE id = 1`)
+      if (syncRows.length) vendaMobilePermitida = Boolean(syncRows[0].venda_mobile_permitida)
+    } catch {}
+
     return res.json({
       nome_restaurante:         row.nome_restaurante         ?? 'Restaurante PDV',
       logo_base64:              row.logo_base64              ?? null,
@@ -31,7 +41,8 @@ router.get('/', authenticate, async (req, res) => {
       impressora_tipo:          row.impressora_tipo          ?? 'navegador',
       impressora_host:          row.impressora_host          ?? '',
       impressora_porta:         Number(row.impressora_porta  ?? 9100),
-      taxa_servico_pct:         Number(row.taxa_servico_pct  ?? 10)
+      taxa_servico_pct:         Number(row.taxa_servico_pct  ?? 10),
+      venda_mobile_permitida:   vendaMobilePermitida
     })
   } catch (e) {
     return res.status(500).json({ error: e.message })

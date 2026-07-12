@@ -213,6 +213,7 @@
 
   <!-- FAB CARRINHO (mobile) -->
   <button
+    v-if="!carrinhoAberto"
     @click="carrinhoAberto = true"
     class="fixed bottom-6 right-6 z-30 lg:hidden w-14 h-14 rounded-2xl bg-orange-500 shadow-xl shadow-orange-500/40 flex items-center justify-center transition-all active:scale-95"
   >

@@ -10,6 +10,7 @@
       <div class="p-6 border-b border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 shrink-0">
         <div class="flex items-start justify-between">
           <div>
+            
             <p class="text-[10px] font-black uppercase tracking-widest text-orange-400 dark:text-orange-500 mb-0.5">
               {{ mesa?.nome_mesa || `Mesa ${mesa?.id}` }}
             </p>

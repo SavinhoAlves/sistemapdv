@@ -75,23 +75,30 @@
     >
 
       <!-- HEADER CARRINHO -->
-      <div class="px-4 py-3 border-b border-neutral-100 dark:border-neutral-800 flex items-center justify-between shrink-0">
-        <div class="flex items-center gap-2">
-          <ShoppingCart :size="14" class="text-orange-500" />
-          <span class="text-xs font-black text-neutral-900 dark:text-white">Carrinho</span>
-          <span v-if="carrinho.length" class="w-5 h-5 rounded-full bg-orange-500 text-white text-[10px] font-black flex items-center justify-center">
-            {{ carrinho.length }}
-          </span>
-        </div>
-        <div class="flex items-center gap-2">
-          <button v-if="carrinho.length" @click="carrinho = []"
-            class="text-[10px] font-black text-red-400 hover:text-red-500 transition-colors">
-            Limpar
-          </button>
-          <button @click="carrinhoAberto = false"
-            class="lg:hidden w-7 h-7 rounded-lg bg-neutral-100 dark:bg-neutral-800 hover:bg-neutral-200 dark:hover:bg-neutral-700 flex items-center justify-center text-neutral-500 dark:text-neutral-400 transition-colors">
-            <X :size="14" />
-          </button>
+      <div class="p-6 border-b border-neutral-200 dark:border-neutral-800 shrink-0">
+        <div class="flex items-start justify-between">
+          <div>
+            <p class="text-[10px] font-black uppercase tracking-widest text-orange-400 dark:text-orange-500 mb-0.5">
+              Venda Direta
+            </p>
+            <h2 class="text-2xl font-black text-neutral-900 dark:text-white">
+              Carrinho
+            </h2>
+            <p class="text-xs text-neutral-400 mt-1 leading-relaxed">
+              {{ carrinho.length ? `${carrinho.length} ${carrinho.length === 1 ? 'item' : 'itens'} selecionado${carrinho.length === 1 ? '' : 's'}` : 'Nenhum item adicionado' }}
+            </p>
+          </div>
+
+          <div class="flex items-center gap-1.5 shrink-0 mt-0.5">
+            <button v-if="carrinho.length" @click="carrinho = []"
+              class="h-9 px-3 rounded-xl text-[10px] font-black uppercase tracking-wide text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 transition-all">
+              Limpar
+            </button>
+            <button @click="carrinhoAberto = false"
+              class="lg:hidden w-10 h-10 rounded-xl bg-neutral-100 dark:bg-neutral-800 hover:bg-red-50 dark:hover:bg-red-900/30 hover:text-red-500 transition-all flex items-center justify-center">
+              <X :size="18" />
+            </button>
+          </div>
         </div>
       </div>
 

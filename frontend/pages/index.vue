@@ -282,28 +282,31 @@ function corMetodo(nome: string) {
   return { bg: 'bg-neutral-100', icon: 'text-neutral-500' }
 }
 
-async function carregar() {
-  carregando.value = true
+// mostrarLoading só deve ser true na carga inicial (ou no clique manual em
+// "Atualizar") — do contrário, o polling em segundo plano troca os dados
+// reais pelos skeletons a cada atualização
+async function carregar(mostrarLoading = true) {
+  if (mostrarLoading) carregando.value = true
   try {
     const data = await api.get<typeof stats.value>('/dashboard/stats')
     stats.value = data
   } catch (e) {
     console.error('Erro ao carregar dashboard:', e)
   } finally {
-    carregando.value = false
+    if (mostrarLoading) carregando.value = false
   }
 }
 
 let pollingTimer: ReturnType<typeof setInterval> | null = null
 
 function onVisibilityChange() {
-  if (!document.hidden) carregar()
+  if (!document.hidden) carregar(false)
 }
 
 onMounted(() => {
   if (!authStore.isAuthenticated) return router.push('/login')
   carregar()
-  pollingTimer = setInterval(() => { if (!document.hidden) carregar() }, 30000)
+  pollingTimer = setInterval(() => { if (!document.hidden) carregar(false) }, 30000)
   document.addEventListener('visibilitychange', onVisibilityChange)
 })
 

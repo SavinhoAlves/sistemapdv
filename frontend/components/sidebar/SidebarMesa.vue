@@ -234,47 +234,58 @@
             <span class="text-3xl font-black text-neutral-900 dark:text-white">R$ {{ restante.toFixed(2) }}</span>
           </div>
 
-          <div class="grid grid-cols-2 gap-2 mb-2">
+          <div class="grid grid-cols-3 gap-2 mb-2">
             <button
               @click="imprimir"
-              class="h-12 rounded-xl bg-neutral-100 dark:bg-neutral-800 hover:bg-neutral-200 dark:hover:bg-neutral-700 flex items-center justify-center gap-1.5 text-neutral-600 dark:text-neutral-300 font-black text-xs uppercase tracking-wide transition-all active:scale-95"
+              class="h-12 rounded-xl border border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-800/60 hover:bg-neutral-100 dark:hover:bg-neutral-800 flex flex-col items-center justify-center gap-1 text-neutral-500 dark:text-neutral-400 font-black text-[10px] uppercase tracking-wide transition-all active:scale-95"
             >
-              <PrinterIcon :size="13" />
+              <PrinterIcon :size="14" />
               Imprimir
             </button>
             <button
               @click="caixaAberto ? (modalDesconto = true) : exigirCaixa()"
-              class="h-12 rounded-xl flex items-center justify-center gap-1.5 text-white font-black text-xs uppercase tracking-wide transition-all"
-              :class="caixaAberto ? 'bg-amber-500 hover:bg-amber-600 active:scale-95' : 'bg-neutral-300 opacity-50 cursor-not-allowed'"
+              :disabled="!caixaAberto"
+              class="h-12 rounded-xl border flex flex-col items-center justify-center gap-1 font-black text-[10px] uppercase tracking-wide transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+              :class="caixaAberto
+                ? 'border-amber-200 dark:border-amber-900/60 bg-amber-50 dark:bg-amber-950/30 text-amber-600 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-950/50 active:scale-95'
+                : 'border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-800/60 text-neutral-400'"
             >
-              <Divide :size="13" />
+              <Divide :size="14" />
               Desconto
             </button>
             <button
               @click="caixaAberto ? (modalAbater = true) : exigirCaixa()"
-              class="h-12 rounded-xl flex items-center justify-center gap-1.5 text-white font-black text-xs uppercase tracking-wide transition-all"
-              :class="caixaAberto ? 'bg-purple-500 hover:bg-purple-600 active:scale-95' : 'bg-neutral-300 opacity-50 cursor-not-allowed'"
+              :disabled="!caixaAberto"
+              class="h-12 rounded-xl border flex flex-col items-center justify-center gap-1 font-black text-[10px] uppercase tracking-wide transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+              :class="caixaAberto
+                ? 'border-purple-200 dark:border-purple-900/60 bg-purple-50 dark:bg-purple-950/30 text-purple-600 dark:text-purple-400 hover:bg-purple-100 dark:hover:bg-purple-950/50 active:scale-95'
+                : 'border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-800/60 text-neutral-400'"
             >
-              <BadgePercent :size="13" />
+              <BadgePercent :size="14" />
               Abater
-            </button>
-            <button
-              @click="caixaAberto ? (modalPagamento = true) : exigirCaixa()"
-              class="h-12 rounded-xl flex items-center justify-center gap-1.5 text-white font-black text-xs uppercase tracking-wide transition-all"
-              :class="caixaAberto ? 'bg-green-500 hover:bg-green-600 active:scale-95' : 'bg-neutral-300 opacity-50 cursor-not-allowed'"
-            >
-              <CreditCard :size="13" />
-              Pagar
             </button>
           </div>
 
-          <button
-            @click="caixaAberto ? $emit('abrir-produtos') : exigirCaixa()"
-            class="w-full h-12 rounded-xl text-white font-black text-sm uppercase tracking-wider transition-all"
-            :class="caixaAberto ? 'bg-orange-500 hover:bg-orange-600 active:scale-95' : 'bg-neutral-300 opacity-50 cursor-not-allowed'"
-          >
-            + Adicionar Produtos
-          </button>
+          <div class="grid grid-cols-2 gap-2">
+            <button
+              @click="caixaAberto ? $emit('abrir-produtos') : exigirCaixa()"
+              class="h-12 rounded-xl border text-sm font-black uppercase tracking-wider transition-all flex items-center justify-center gap-1.5"
+              :class="caixaAberto
+                ? 'border-orange-500 text-orange-600 dark:text-orange-400 hover:bg-orange-50 dark:hover:bg-orange-950/30 active:scale-95'
+                : 'border-neutral-200 dark:border-neutral-700 text-neutral-400 opacity-50 cursor-not-allowed'"
+            >
+              <Plus :size="15" />
+              Produtos
+            </button>
+            <button
+              @click="caixaAberto ? (modalPagamento = true) : exigirCaixa()"
+              class="h-12 rounded-xl text-white text-sm font-black uppercase tracking-wider transition-all flex items-center justify-center gap-1.5"
+              :class="caixaAberto ? 'bg-green-500 hover:bg-green-600 active:scale-95 shadow-sm shadow-green-500/30' : 'bg-neutral-300 dark:bg-neutral-700 opacity-50 cursor-not-allowed'"
+            >
+              <CreditCard :size="15" />
+              Pagar
+            </button>
+          </div>
         </div>
 
       </div>
@@ -454,6 +465,7 @@ import {
   CheckSquare,
   Square,
   BadgePercent,
+  Plus,
 } from 'lucide-vue-next'
 import MenuFlutuanteProduto from '../modals/MenuFlutuanteProduto.vue'
 import ModalPagamento from '../modals/ModalPagamento.vue'

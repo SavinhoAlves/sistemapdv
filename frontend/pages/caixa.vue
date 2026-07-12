@@ -54,7 +54,7 @@
               class="h-8 px-3 rounded-xl bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 text-red-500 dark:text-red-400 text-xs font-black transition-all flex items-center gap-1.5">
               <ArrowUpRight :size="12" /> Sangria
             </button>
-            <button @click="buscarAdmin" :disabled="carregandoAdmin"
+            <button @click="buscarAdmin(true)" :disabled="carregandoAdmin"
               class="h-8 px-3 rounded-xl bg-neutral-100 dark:bg-neutral-800 hover:bg-neutral-200 dark:hover:bg-neutral-700 text-neutral-600 dark:text-neutral-400 text-xs font-black transition-all flex items-center gap-1.5 disabled:opacity-50">
               <RefreshCw :size="12" :class="carregandoAdmin ? 'animate-spin' : ''" /> Atualizar
             </button>
@@ -526,9 +526,12 @@ function fmtHora(iso: string) {
   return isNaN(d.getTime()) ? '' : d.toLocaleString('pt-BR', { hour: '2-digit', minute: '2-digit' })
 }
 
-async function buscarAdmin() {
+// mostrarLoading só deve ser true na carga inicial (ou clique manual em
+// "Atualizar") — do contrário, o polling em segundo plano troca os dados
+// reais pelos skeletons a cada atualização
+async function buscarAdmin(mostrarLoading = false) {
   if (!isAdmin.value) return
-  carregandoAdmin.value = true
+  if (mostrarLoading) carregandoAdmin.value = true
   try {
     const [mov, mesas] = await Promise.all([
       api.get<any>('/caixa/movimentos'),
@@ -542,7 +545,7 @@ async function buscarAdmin() {
   } catch {
     toastStore.error('Erro ao carregar dados do painel')
   } finally {
-    carregandoAdmin.value = false
+    if (mostrarLoading) carregandoAdmin.value = false
   }
 }
 
@@ -591,7 +594,7 @@ function onVisibilityChange() {
 
 onMounted(async () => {
   await buscar()
-  if (isAdmin.value && caixaAberto.value) buscarAdmin()
+  if (isAdmin.value && caixaAberto.value) buscarAdmin(true)
   pollingTimer = setInterval(() => { if (!document.hidden) atualizarDados() }, 30000)
   document.addEventListener('visibilitychange', onVisibilityChange)
 })

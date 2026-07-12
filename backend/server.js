@@ -36,7 +36,8 @@ const integracoesRoutes     = require('./src/routes/integracoes.routes')
 
 app.use(cors({ origin: true, credentials: true }))
 
-app.use(express.json())
+// limite elevado por causa do logo em base64 (até 1MB de imagem + overhead do base64)
+app.use(express.json({ limit: '2mb' }))
 
 /*
 |--------------------------------------------------------------------------

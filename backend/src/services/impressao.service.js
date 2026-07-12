@@ -3,6 +3,7 @@ const fs = require('fs')
 const os = require('os')
 const path = require('path')
 const { execFile } = require('child_process')
+const { Jimp } = require('jimp')
 
 // ============================================================
 // ESC/POS genérico — subconjunto suportado por praticamente
@@ -53,7 +54,89 @@ class CupomEscPos {
     this.partes.push(Buffer.from([GS, 0x56, 0x42, 0x00])) // corte parcial
     return this
   }
+  // Insere um bloco de imagem raster (GS v 0) já convertido — ver logoParaRasterEscPos
+  imagem(rasterBuffer) {
+    if (rasterBuffer) this.partes.push(rasterBuffer)
+    return this
+  }
   buffer() { return Buffer.concat(this.partes) }
+}
+
+// ============================================================
+// Logo em bitmap (ESC/POS não imprime <img>, só matriz de pontos)
+// Converte o PNG/JPEG salvo em Configurações para o comando de
+// imagem raster GS v 0, no mesmo número de pontos da bobina.
+// ============================================================
+
+function larguraPontos(largura) {
+  return Number(largura) === 58 ? 384 : 576 // 203dpi: 58mm≈384pt, 80mm≈576pt
+}
+
+async function logoParaRasterEscPos(logoBase64, largura) {
+  if (!logoBase64) return null
+  try {
+    const base64 = logoBase64.includes(',') ? logoBase64.split(',')[1] : logoBase64
+    const buffer = Buffer.from(base64, 'base64')
+    const origem = await Jimp.read(buffer)
+
+    const larguraPx = larguraPontos(largura)
+    const alturaMaxPx = 160 // ~20mm a 203dpi — evita gastar bobina com logo gigante
+    origem.scaleToFit({ w: larguraPx, h: alturaMaxPx })
+
+    // Funde num fundo branco opaco (a térmica não entende transparência)
+    // e centraliza horizontalmente, como o resto do cupom
+    const canvas = new Jimp({ width: larguraPx, height: origem.bitmap.height, color: 0xffffffff })
+    const x = Math.round((larguraPx - origem.bitmap.width) / 2)
+    canvas.blit({ src: origem, x, y: 0 })
+    // normalize() estica o contraste para a faixa real de tons da logo —
+    // sem isso, logos claras/pastel (cinza médio bem próximo do branco)
+    // saem quase invisíveis, já que a térmica só imprime preto ou nada
+    canvas.greyscale().normalize()
+
+    const widthBytes = larguraPx / 8 // 384 e 576 já são múltiplos de 8
+    const altura = canvas.bitmap.height
+
+    // Threshold simples perderia cores de tom médio (ex: laranja da marca
+    // vira um cinza médio ~144, mais claro que o corte de 128 e some do
+    // cupom). Dithering Floyd-Steinberg difunde o "erro" de arredondamento
+    // para os vizinhos, então tons médios viram uma trama de pontos em vez
+    // de simplesmente desaparecer.
+    const cinza = new Float32Array(larguraPx * altura)
+    canvas.scan(0, 0, larguraPx, altura, (xx, yy, idx) => {
+      cinza[yy * larguraPx + xx] = canvas.bitmap.data[idx]
+    })
+
+    const dados = Buffer.alloc(widthBytes * altura)
+    for (let yy = 0; yy < altura; yy++) {
+      for (let xx = 0; xx < larguraPx; xx++) {
+        const i = yy * larguraPx + xx
+        const antigo = cinza[i]
+        const escuro = antigo < 128
+        if (escuro) {
+          const byteIdx = yy * widthBytes + (xx >> 3)
+          dados[byteIdx] |= (0x80 >> (xx & 7))
+        }
+        const erro = antigo - (escuro ? 0 : 255)
+        if (xx + 1 < larguraPx) cinza[i + 1] += erro * 7 / 16
+        if (yy + 1 < altura) {
+          if (xx > 0) cinza[i - 1 + larguraPx] += erro * 3 / 16
+          cinza[i + larguraPx] += erro * 5 / 16
+          if (xx + 1 < larguraPx) cinza[i + 1 + larguraPx] += erro * 1 / 16
+        }
+      }
+    }
+
+    const xL = widthBytes & 0xff, xH = (widthBytes >> 8) & 0xff
+    const yL = altura & 0xff, yH = (altura >> 8) & 0xff
+
+    return Buffer.concat([
+      Buffer.from([GS, 0x76, 0x30, 0x00, xL, xH, yL, yH]),
+      dados
+    ])
+  } catch (err) {
+    console.error('[IMPRESSAO] Falha ao converter logo para impressão termica:', err.message)
+    return null
+  }
 }
 
 // ============================================================
@@ -130,9 +213,10 @@ async function enviarParaImpressora(buffer, config) {
 // Cupom de teste
 // ============================================================
 
-function montarCupomTeste(config) {
+function montarCupomTeste(config, logoRaster) {
   const c = new CupomEscPos(Number(config.impressora_largura) || 80)
-  c.alinhar(1).duplo(true).linha(config.nome_restaurante || 'Restaurante PDV').duplo(false)
+  c.alinhar(1).imagem(logoRaster)
+  c.duplo(true).linha(config.nome_restaurante || 'Restaurante PDV').duplo(false)
   c.linha('TESTE DE IMPRESSAO').pular()
   c.alinhar(0).separador()
   c.parQuantia('Data', new Date().toLocaleString('pt-BR'))
@@ -155,7 +239,7 @@ function montarCupomTeste(config) {
 // Uma ficha por unidade × cópias configuradas, com corte entre elas.
 // ============================================================
 
-function montarFichas(config, { itens, info, codigo }) {
+function montarFichas(config, { itens, info, codigo }, logoRaster) {
   const copias = Math.max(1, Number(config.impressora_copias) || 1)
   const c = new CupomEscPos(Number(config.impressora_largura) || 80)
   for (const item of itens) {
@@ -163,6 +247,7 @@ function montarFichas(config, { itens, info, codigo }) {
     for (let u = 0; u < unidades; u++) {
       for (let k = 0; k < copias; k++) {
         c.alinhar(1)
+        c.imagem(logoRaster)
         c.negrito(true).linha(config.nome_restaurante || 'Restaurante PDV').negrito(false)
         if (info) c.linha(info)
         c.separador()
@@ -185,9 +270,10 @@ function dinheiro(v) {
   return 'R$ ' + Number(v || 0).toFixed(2).replace('.', ',')
 }
 
-function montarConta(config, conta) {
+function montarConta(config, conta, logoRaster) {
   const c = new CupomEscPos(Number(config.impressora_largura) || 80)
   c.alinhar(1)
+  c.imagem(logoRaster)
   c.duplo(true).linha(config.nome_restaurante || 'Restaurante PDV').duplo(false)
   c.negrito(true).linha('CONTA DA MESA').negrito(false)
   c.linha(`${conta.mesa || ''}  ${new Date().toLocaleString('pt-BR')}`.trim())
@@ -225,11 +311,12 @@ function dataHora(v) {
   })
 }
 
-function montarFechamento(config, resumo) {
+function montarFechamento(config, resumo, logoRaster) {
   const { caixa, totais, porMetodo, vendas } = resumo
   const c = new CupomEscPos(Number(config.impressora_largura) || 80)
 
   c.alinhar(1)
+  c.imagem(logoRaster)
   c.duplo(true).linha(config.nome_restaurante || 'Restaurante PDV').duplo(false)
   c.negrito(true).linha('FECHAMENTO DE CAIXA').negrito(false)
   c.linha(`Caixa #${caixa.id}`)
@@ -275,4 +362,4 @@ function montarFechamento(config, resumo) {
   return c.buffer()
 }
 
-module.exports = { CupomEscPos, enviarParaImpressora, montarCupomTeste, montarFichas, montarConta, montarFechamento }
+module.exports = { CupomEscPos, enviarParaImpressora, montarCupomTeste, montarFichas, montarConta, montarFechamento, logoParaRasterEscPos }

@@ -147,7 +147,7 @@
     <!-- MODAL ABRIR MESA -->
     <ModalAbrirMesa
       v-model="modalAbrirMesa"
-      @mesa-aberta="carregarMesas"
+      @mesa-aberta="() => carregarMesas()"
     />
 
   </div>
@@ -204,15 +204,17 @@ const produtoSelecionado = async () => {
   }
 }
 
-const carregarMesas = async () => {
+// mostrarLoading só deve ser true na carga inicial — do contrário, o polling
+// em segundo plano troca os cards reais pelo skeleton a cada atualização
+const carregarMesas = async (mostrarLoading = false) => {
   try {
-    loading.value = true
+    if (mostrarLoading) loading.value = true
     const response = await api.mesas.listar<Mesa>()
     mesas.value = response.filter(m => m.status === 'aberta')
   } catch (error) {
     console.error(error)
   } finally {
-    loading.value = false
+    if (mostrarLoading) loading.value = false
   }
 }
 
@@ -235,7 +237,7 @@ function onVisibilityChange() {
 }
 
 onMounted(() => {
-  carregarMesas()
+  carregarMesas(true)
   pollingTimer = setInterval(() => { if (!document.hidden) carregarMesas() }, 20000)
   document.addEventListener('visibilitychange', onVisibilityChange)
 })

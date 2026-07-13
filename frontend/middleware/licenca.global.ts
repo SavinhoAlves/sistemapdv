@@ -1,4 +1,4 @@
-const ROTAS_LIVRES = ['/login', '/ativacao']
+const ROTAS_LIVRES = ['/login', '/ativacao', '/admin/login']
 
 // Cache simples: só reverifica a cada 5 minutos
 let cacheValido: boolean | null = null

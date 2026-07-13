@@ -39,6 +39,16 @@ async function migrate() {
     `)
     console.log('✓ Tabela clientes criada (ou já existia)')
 
+    // Coluna adicionada após versão inicial
+    const [cols] = await conn.execute(`
+      SELECT COUNT(*) as cnt FROM information_schema.COLUMNS
+      WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'clientes' AND COLUMN_NAME = 'licenca_expira_em'
+    `)
+    if (!cols[0].cnt) {
+      await conn.execute(`ALTER TABLE clientes ADD COLUMN licenca_expira_em DATETIME DEFAULT NULL`)
+      console.log('✓ Coluna licenca_expira_em adicionada')
+    }
+
     console.log('\nMigração concluída com sucesso!')
   } finally {
     conn.release()

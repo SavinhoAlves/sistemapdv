@@ -247,7 +247,7 @@
                     class="h-10 px-5 rounded-xl bg-purple-500 hover:bg-purple-600 disabled:opacity-50 text-white text-xs font-black transition-all active:scale-95 flex items-center gap-1.5">
                     <Loader2 v-if="testandoImpressora" :size="13" class="animate-spin" />
                     <Printer v-else :size="13" />
-                    {{ testandoImpressora ? 'Imprimindo...' : 'Imprimir teste' }}
+                    {{ testandoImpressora ? 'Imprimindo...' : 'Imprimir Teste' }}
                   </button>
                   <p class="text-[10px] text-neutral-400 leading-tight">Salve as configurações antes de testar.<br>Funciona com qualquer impressora ESC/POS (Epson, Elgin, Bematech, Tanca…).</p>
                 </div>

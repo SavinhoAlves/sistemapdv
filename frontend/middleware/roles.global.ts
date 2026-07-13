@@ -2,7 +2,7 @@ import { useAuthStore } from '~/stores/auth'
 import { useConfigStore } from '~/stores/configuracoes'
 
 // Rotas que não exigem autenticação
-const ROTAS_PUBLICAS = ['/login', '/ativacao', '/logout']
+const ROTAS_PUBLICAS = ['/login', '/ativacao', '/logout', '/admin/login']
 
 // Mapa de rotas → cargos permitidos
 const PERMISSOES: Record<string, string[]> = {

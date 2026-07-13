@@ -22,7 +22,6 @@
   </header>
 
   <main class="max-w-5xl mx-auto p-6">
-
     <div class="flex items-center justify-between mb-5">
       <div>
         <h2 class="text-xl font-black">Clientes</h2>
@@ -36,76 +35,55 @@
 
     <div id="lista" class="space-y-3"></div>
     <p id="vazio" class="hidden text-center text-neutral-500 text-sm py-12">Nenhum cliente cadastrado ainda</p>
-
   </main>
 
   <!-- MODAL NOVO CLIENTE -->
   <div id="modal-novo" class="hidden fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-50">
     <div class="bg-neutral-900 border border-neutral-800 rounded-3xl p-6 w-full max-w-sm">
       <h3 class="text-lg font-black mb-4">Novo cliente</h3>
-
       <label class="text-[10px] font-black uppercase tracking-widest text-neutral-500 block mb-2">Nome fantasia *</label>
       <input id="novo-nome" type="text" placeholder="Ex: Restaurante do Chef"
         class="w-full h-11 px-4 mb-4 rounded-xl bg-neutral-800 border border-neutral-700 text-white text-sm outline-none focus:border-orange-500" />
-
       <label class="text-[10px] font-black uppercase tracking-widest text-neutral-500 block mb-2">Contato (opcional)</label>
       <input id="novo-contato" type="text" placeholder="Telefone, WhatsApp ou e-mail"
         class="w-full h-11 px-4 mb-5 rounded-xl bg-neutral-800 border border-neutral-700 text-white text-sm outline-none focus:border-orange-500" />
-
       <div class="flex gap-3">
-        <button id="btn-cancelar-novo"
-          class="flex-1 h-11 rounded-xl border border-neutral-700 text-neutral-400 text-sm font-black hover:bg-neutral-800">
-          Cancelar
-        </button>
-        <button id="btn-criar"
-          class="flex-1 h-11 rounded-xl bg-orange-500 hover:bg-orange-400 text-white text-sm font-black active:scale-95">
-          Criar
-        </button>
+        <button id="btn-cancelar-novo" class="flex-1 h-11 rounded-xl border border-neutral-700 text-neutral-400 text-sm font-black hover:bg-neutral-800">Cancelar</button>
+        <button id="btn-criar" class="flex-1 h-11 rounded-xl bg-orange-500 hover:bg-orange-400 text-white text-sm font-black active:scale-95">Criar</button>
       </div>
     </div>
   </div>
 
-  <!-- MODAL TOKEN GERADO -->
+  <!-- MODAL TOKEN GERADO (criação) -->
   <div id="modal-token" class="hidden fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-50">
     <div class="bg-neutral-900 border border-neutral-800 rounded-3xl p-6 w-full max-w-md">
       <h3 class="text-lg font-black mb-2">Cliente criado!</h3>
       <p class="text-xs text-neutral-400 mb-4 leading-relaxed">
-        Copie este token agora — ele não será mostrado de novo. No backend do
-        restaurante, chame <code class="text-orange-400">POST /api/sistema/sync/configurar</code>
-        logado como administrador com <code class="text-orange-400">{ centralUrl, syncToken }</code>.
+        Copie este token agora — ele não será mostrado de novo. No backend do restaurante, chame
+        <code class="text-orange-400">POST /api/sistema/sync/configurar</code> logado como administrador
+        com <code class="text-orange-400">{ centralUrl, syncToken }</code>.
       </p>
       <div class="bg-neutral-800 rounded-xl p-3 mb-5 break-all font-mono text-xs text-green-400" id="token-gerado"></div>
-      <button id="btn-fechar-token"
-        class="w-full h-11 rounded-xl bg-orange-500 hover:bg-orange-400 text-white text-sm font-black active:scale-95">
-        Já copiei
-      </button>
+      <button id="btn-fechar-token" class="w-full h-11 rounded-xl bg-orange-500 hover:bg-orange-400 text-white text-sm font-black active:scale-95">Já copiei</button>
     </div>
   </div>
 
-  <!-- MODAL GERAR LICENÇA -->
+  <!-- MODAL GERAR / RENOVAR LICENÇA -->
   <div id="modal-licenca" class="hidden fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-50">
     <div class="bg-neutral-900 border border-neutral-800 rounded-3xl p-6 w-full max-w-sm">
-      <h3 class="text-lg font-black mb-1">Gerar licença</h3>
+      <h3 class="text-lg font-black mb-1" id="licenca-titulo">Gerar licença</h3>
       <p class="text-xs text-neutral-500 mb-4" id="licenca-cliente-nome"></p>
-
       <label class="text-[10px] font-black uppercase tracking-widest text-neutral-500 block mb-2">Validade</label>
-      <div class="flex gap-2 mb-5">
+      <div class="flex gap-2 mb-3">
         <button data-dias="30"  class="dias-preset flex-1 h-10 rounded-xl border border-neutral-700 text-sm font-black hover:bg-neutral-800">30 dias</button>
         <button data-dias="90"  class="dias-preset flex-1 h-10 rounded-xl border border-neutral-700 text-sm font-black hover:bg-neutral-800">90 dias</button>
-        <button data-dias="365" class="dias-preset flex-1 h-10 rounded-xl border border-neutral-700 text-sm font-black hover:bg-neutral-800">365 dias</button>
+        <button data-dias="365" class="dias-preset flex-1 h-10 rounded-xl border border-neutral-700 text-sm font-black hover:bg-neutral-800">1 ano</button>
       </div>
       <input id="licenca-dias" type="number" min="1" placeholder="Ou digite os dias..."
         class="w-full h-11 px-4 mb-5 rounded-xl bg-neutral-800 border border-neutral-700 text-white text-sm outline-none focus:border-orange-500" />
-
       <div class="flex gap-3">
-        <button id="btn-cancelar-licenca"
-          class="flex-1 h-11 rounded-xl border border-neutral-700 text-neutral-400 text-sm font-black hover:bg-neutral-800">
-          Cancelar
-        </button>
-        <button id="btn-gerar-licenca"
-          class="flex-1 h-11 rounded-xl bg-orange-500 hover:bg-orange-400 text-white text-sm font-black active:scale-95">
-          Gerar
-        </button>
+        <button id="btn-cancelar-licenca" class="flex-1 h-11 rounded-xl border border-neutral-700 text-neutral-400 text-sm font-black hover:bg-neutral-800">Cancelar</button>
+        <button id="btn-gerar-licenca" class="flex-1 h-11 rounded-xl bg-orange-500 hover:bg-orange-400 text-white text-sm font-black active:scale-95">Gerar</button>
       </div>
     </div>
   </div>
@@ -114,16 +92,73 @@
   <div id="modal-chave" class="hidden fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-50">
     <div class="bg-neutral-900 border border-neutral-800 rounded-3xl p-6 w-full max-w-md">
       <h3 class="text-lg font-black mb-2">Chave de licença gerada</h3>
-      <p class="text-xs text-neutral-400 mb-4 leading-relaxed">
-        Cole esta chave na tela <code class="text-orange-400">/ativacao</code> do restaurante
-        (ou chame <code class="text-orange-400">POST /api/sistema/ativar</code> com
-        <code class="text-orange-400">{ chave }</code>).
+      <p class="text-xs text-neutral-400 mb-1 leading-relaxed">
+        Cole esta chave na tela <code class="text-orange-400">/configuracoes</code> do restaurante
+        (aba Ativação) ou chame <code class="text-orange-400">POST /api/sistema/ativar</code> com <code class="text-orange-400">{ chave }</code>.
       </p>
+      <p class="text-xs text-neutral-500 mb-4" id="chave-expira"></p>
       <div class="bg-neutral-800 rounded-xl p-3 mb-5 break-all font-mono text-xs text-green-400" id="chave-gerada"></div>
-      <button id="btn-fechar-chave"
-        class="w-full h-11 rounded-xl bg-orange-500 hover:bg-orange-400 text-white text-sm font-black active:scale-95">
-        Já copiei
-      </button>
+      <button id="btn-fechar-chave" class="w-full h-11 rounded-xl bg-orange-500 hover:bg-orange-400 text-white text-sm font-black active:scale-95">Já copiei</button>
+    </div>
+  </div>
+
+  <!-- MODAL EDITAR CLIENTE -->
+  <div id="modal-editar" class="hidden fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-50">
+    <div class="bg-neutral-900 border border-neutral-800 rounded-3xl p-6 w-full max-w-sm">
+      <h3 class="text-lg font-black mb-4">Editar cliente</h3>
+      <input type="hidden" id="editar-id" />
+      <label class="text-[10px] font-black uppercase tracking-widest text-neutral-500 block mb-2">Nome fantasia *</label>
+      <input id="editar-nome" type="text"
+        class="w-full h-11 px-4 mb-4 rounded-xl bg-neutral-800 border border-neutral-700 text-white text-sm outline-none focus:border-orange-500" />
+      <label class="text-[10px] font-black uppercase tracking-widest text-neutral-500 block mb-2">Contato</label>
+      <input id="editar-contato" type="text" placeholder="Telefone, WhatsApp ou e-mail"
+        class="w-full h-11 px-4 mb-5 rounded-xl bg-neutral-800 border border-neutral-700 text-white text-sm outline-none focus:border-orange-500" />
+      <div class="flex gap-3">
+        <button id="btn-cancelar-editar" class="flex-1 h-11 rounded-xl border border-neutral-700 text-neutral-400 text-sm font-black hover:bg-neutral-800">Cancelar</button>
+        <button id="btn-salvar-editar" class="flex-1 h-11 rounded-xl bg-orange-500 hover:bg-orange-400 text-white text-sm font-black active:scale-95">Salvar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL CONFIRMAR EXCLUSÃO -->
+  <div id="modal-excluir" class="hidden fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-50">
+    <div class="bg-neutral-900 border border-neutral-800 rounded-3xl p-6 w-full max-w-sm">
+      <h3 class="text-lg font-black mb-2">Excluir cliente</h3>
+      <p class="text-sm text-neutral-400 mb-1">Tem certeza que deseja excluir</p>
+      <p class="text-sm font-black mb-4" id="excluir-nome"></p>
+      <p class="text-xs text-red-400 mb-5">Esta ação não pode ser desfeita. A instalação vinculada perderá a conexão com o painel.</p>
+      <input type="hidden" id="excluir-id" />
+      <div class="flex gap-3">
+        <button id="btn-cancelar-excluir" class="flex-1 h-11 rounded-xl border border-neutral-700 text-neutral-400 text-sm font-black hover:bg-neutral-800">Cancelar</button>
+        <button id="btn-confirmar-excluir" class="flex-1 h-11 rounded-xl bg-red-500 hover:bg-red-400 text-white text-sm font-black active:scale-95">Excluir</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL RESETAR TOKEN -->
+  <div id="modal-reset" class="hidden fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-50">
+    <div class="bg-neutral-900 border border-neutral-800 rounded-3xl p-6 w-full max-w-md">
+      <div id="reset-confirm">
+        <h3 class="text-lg font-black mb-2">Resetar token de sync</h3>
+        <p class="text-sm text-neutral-400 mb-1">Cliente: <span id="reset-nome" class="text-white font-black"></span></p>
+        <p class="text-xs text-amber-400 mb-5 leading-relaxed">
+          Um novo token será gerado. O restaurante precisará ser reconfigurado com o novo token — a conexão de sync ficará inativa até isso ser feito.
+        </p>
+        <input type="hidden" id="reset-id" />
+        <div class="flex gap-3">
+          <button id="btn-cancelar-reset" class="flex-1 h-11 rounded-xl border border-neutral-700 text-neutral-400 text-sm font-black hover:bg-neutral-800">Cancelar</button>
+          <button id="btn-confirmar-reset" class="flex-1 h-11 rounded-xl bg-amber-500 hover:bg-amber-400 text-white text-sm font-black active:scale-95">Resetar</button>
+        </div>
+      </div>
+      <div id="reset-resultado" class="hidden">
+        <h3 class="text-lg font-black mb-2">Novo token gerado</h3>
+        <p class="text-xs text-neutral-400 mb-4 leading-relaxed">
+          Copie este token agora — ele não será mostrado de novo. Reconfigure o backend do restaurante com
+          <code class="text-orange-400">POST /api/sistema/sync/configurar</code>.
+        </p>
+        <div class="bg-neutral-800 rounded-xl p-3 mb-5 break-all font-mono text-xs text-green-400" id="reset-token-gerado"></div>
+        <button id="btn-fechar-reset" class="w-full h-11 rounded-xl bg-orange-500 hover:bg-orange-400 text-white text-sm font-black active:scale-95">Já copiei</button>
+      </div>
     </div>
   </div>
 

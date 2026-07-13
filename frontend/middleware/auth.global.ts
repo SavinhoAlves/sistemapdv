@@ -11,8 +11,12 @@ export default defineNuxtRouteMiddleware((to) => {
 
   const isAuthenticated = !!auth.token
   const isLoginPage = to.path === '/login' || to.path === '/admin/login'
+  // /ativacao precisa ficar acessível sem login — é para lá que o
+  // middleware de licença (00.licenca.global.ts) redireciona quando o
+  // sistema está bloqueado, mesmo para quem ainda não autenticou
+  const isRotaPublica = isLoginPage || to.path === '/ativacao'
 
-  if (!isAuthenticated && !isLoginPage) {
+  if (!isAuthenticated && !isRotaPublica) {
     return navigateTo('/login')
   }
 

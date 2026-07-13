@@ -1,4 +1,8 @@
-const ROTAS_LIVRES = ['/login', '/ativacao', '/admin/login']
+// Só /ativacao escapa da checagem — nem /login nem /admin/login, para que
+// um sistema sem licença válida seja bloqueado antes mesmo do formulário
+// de login aparecer (este middleware roda primeiro por causa do prefixo
+// numérico "00." no nome do arquivo).
+const ROTAS_LIVRES = ['/ativacao']
 
 // Cache simples: só reverifica a cada 5 minutos
 let cacheValido: boolean | null = null

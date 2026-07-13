@@ -60,10 +60,18 @@
           </p>
 
           <div class="w-full mt-2 p-4 bg-neutral-800/60 rounded-2xl border border-neutral-700">
-            <p class="text-xs text-neutral-400 leading-relaxed">
+            <p class="text-xs text-neutral-400 leading-relaxed mb-3">
               Entre em contato com o suporte para renovar ou ativar sua licença.
             </p>
-            <p class="mt-3 text-sm font-black text-orange-400">suporte.savioalves@gmail.com</p>
+            <a
+              href="https://wa.me/5522997127142"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="flex items-center justify-center gap-2 h-11 rounded-2xl bg-orange-500 hover:bg-orange-400 text-white text-sm font-black uppercase tracking-widest transition-all active:scale-95"
+            >
+              <MessageCircle :size="16" />
+              Solicitar licença
+            </a>
           </div>
         </div>
 
@@ -76,7 +84,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import { UtensilsCrossed, ShieldCheck, ShieldOff, ShieldAlert, Loader2 } from 'lucide-vue-next'
+import { UtensilsCrossed, ShieldCheck, ShieldOff, ShieldAlert, Loader2, MessageCircle } from 'lucide-vue-next'
 
 definePageMeta({ layout: false })
 

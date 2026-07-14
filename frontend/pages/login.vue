@@ -26,23 +26,33 @@
         <div class="flex p-1 bg-neutral-800 rounded-2xl mb-8">
           <button
             @click="tab = 'rfid'; focusRfid()"
-            class="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-xs font-black uppercase tracking-wider transition-all"
+            class="flex-1 flex items-center justify-center gap-1.5 sm:gap-2 py-3 rounded-xl text-xs font-black uppercase tracking-wider transition-all"
             :class="tab === 'rfid'
               ? 'bg-orange-500 text-white shadow-lg shadow-orange-500/20'
               : 'text-neutral-500 hover:text-neutral-300'"
           >
             <CreditCard :size="14" />
-            Cartão RFID
+            <span class="hidden sm:inline">Cartão RFID</span>
+          </button>
+          <button
+            @click="tab = 'qr'"
+            class="flex-1 flex items-center justify-center gap-1.5 sm:gap-2 py-3 rounded-xl text-xs font-black uppercase tracking-wider transition-all"
+            :class="tab === 'qr'
+              ? 'bg-orange-500 text-white shadow-lg shadow-orange-500/20'
+              : 'text-neutral-500 hover:text-neutral-300'"
+          >
+            <ScanLine :size="14" />
+            <span class="hidden sm:inline">Crachá QR</span>
           </button>
           <button
             @click="tab = 'manual'; focusEmail()"
-            class="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-xs font-black uppercase tracking-wider transition-all"
+            class="flex-1 flex items-center justify-center gap-1.5 sm:gap-2 py-3 rounded-xl text-xs font-black uppercase tracking-wider transition-all"
             :class="tab === 'manual'
               ? 'bg-orange-500 text-white shadow-lg shadow-orange-500/20'
               : 'text-neutral-500 hover:text-neutral-300'"
           >
             <KeyRound :size="14" />
-            E-mail / Senha
+            <span class="hidden sm:inline">E-mail / Senha</span>
           </button>
         </div>
 
@@ -139,6 +149,45 @@
             />
           </div>
 
+          <!-- CRACHÁ QR -->
+          <div v-else-if="tab === 'qr'" key="qr" class="text-center">
+
+            <div class="relative mx-auto w-72 aspect-square rounded-3xl border-2 border-neutral-700 bg-neutral-950 overflow-hidden">
+              <video
+                v-show="qrCameraAtiva"
+                ref="videoRef"
+                class="absolute inset-0 w-full h-full object-cover"
+                autoplay
+                muted
+                playsinline
+              ></video>
+
+              <!-- moldura de mira -->
+              <div v-if="qrCameraAtiva" class="absolute inset-6 border-2 border-orange-500/50 rounded-2xl pointer-events-none"></div>
+
+              <div v-if="!qrCameraAtiva" class="absolute inset-0 flex flex-col items-center justify-center gap-3 p-6">
+                <ScanLine :size="32" class="text-neutral-600" />
+                <p class="text-xs text-neutral-500 leading-relaxed">
+                  {{ qrErro || 'Câmera desligada' }}
+                </p>
+              </div>
+            </div>
+
+            <p class="text-xs text-neutral-600 mt-4">
+              Aponte a câmera para o QR code do seu crachá
+            </p>
+
+            <button
+              v-if="!qrCameraAtiva"
+              type="button"
+              @click="iniciarLeituraQr"
+              class="w-full h-13 mt-4 rounded-2xl bg-orange-500 hover:bg-orange-400 text-white font-black text-sm uppercase tracking-widest transition-all active:scale-95 flex items-center justify-center gap-2 shadow-lg shadow-orange-500/20"
+            >
+              <Camera :size="16" />
+              Ativar câmera
+            </button>
+          </div>
+
           <!-- Login Manual -->
           <form v-else key="manual" @submit.prevent="handleManualLogin" class="space-y-4">
 
@@ -225,11 +274,12 @@
 
 <script setup lang="ts">
 import { navigateTo } from 'nuxt/app'
-import { ref, reactive, onMounted, nextTick } from 'vue'
+import { ref, reactive, onMounted, onBeforeUnmount, nextTick, watch } from 'vue'
+import jsQR from 'jsqr'
 import {
   UtensilsCrossed, CreditCard, KeyRound, Wifi,
   Mail, Lock, Eye, EyeOff, LogIn, Loader2,
-  CheckCircle2, AlertCircle
+  CheckCircle2, AlertCircle, ScanLine, Camera
 } from 'lucide-vue-next'
 import { useApi } from '../services/api'
 import { useAuthStore } from '../stores/auth'
@@ -239,7 +289,7 @@ definePageMeta({ layout: false })
 const authStore = useAuthStore()
 const api = useApi()
 
-const tab       = ref<'rfid' | 'manual'>('rfid')
+const tab       = ref<'rfid' | 'qr' | 'manual'>('rfid')
 const loading   = ref(false)
 const showPass  = ref(false)
 const msg       = reactive({ text: '', type: 'error' as 'error' | 'success' })
@@ -286,6 +336,88 @@ async function loginRfid(cartao_rfid: string) {
     rfidReading.value = false
   }
 }
+
+// ─── Crachá QR: mesma identidade do RFID, só muda a origem do código ───
+// (câmera decodificando o QR em vez do leitor físico "digitando" no input)
+const videoRef      = ref<HTMLVideoElement>()
+const qrCameraAtiva  = ref(false)
+const qrErro         = ref('')
+let qrStream: MediaStream | null = null
+let qrAnimationId: number | null = null
+let qrProcessando    = false
+
+async function iniciarLeituraQr() {
+  qrErro.value = ''
+
+  // getUserMedia só existe em contexto seguro (https ou localhost) — em
+  // http://IP-da-rede o navegador nem expõe a API, então detecta isso
+  // antes de tentar, pra dar uma mensagem que explica o motivo real
+  if (!navigator.mediaDevices?.getUserMedia) {
+    qrErro.value = 'Câmera indisponível: o acesso só é permitido em conexão segura (https). Peça pro administrador configurar HTTPS ou use a aba RFID/Manual.'
+    return
+  }
+
+  try {
+    qrStream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: { ideal: 'environment' } }
+    })
+    if (!videoRef.value) return
+    videoRef.value.srcObject = qrStream
+    await videoRef.value.play()
+    qrCameraAtiva.value = true
+    qrAnimationId = requestAnimationFrame(escanearFrame)
+  } catch (e: any) {
+    qrErro.value = e?.name === 'NotAllowedError'
+      ? 'Permissão de câmera negada — habilite nas configurações do navegador'
+      : 'Não foi possível acessar a câmera'
+  }
+}
+
+function pararLeituraQr() {
+  if (qrAnimationId) cancelAnimationFrame(qrAnimationId)
+  qrAnimationId = null
+  qrStream?.getTracks().forEach(t => t.stop())
+  qrStream = null
+  qrCameraAtiva.value = false
+}
+
+function escanearFrame() {
+  const video = videoRef.value
+  if (!video || video.readyState !== video.HAVE_ENOUGH_DATA) {
+    qrAnimationId = requestAnimationFrame(escanearFrame)
+    return
+  }
+
+  if (!qrProcessando) {
+    qrProcessando = true
+    const canvas = document.createElement('canvas')
+    canvas.width  = video.videoWidth
+    canvas.height = video.videoHeight
+    const ctx = canvas.getContext('2d')
+
+    if (ctx) {
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height)
+      const frame = ctx.getImageData(0, 0, canvas.width, canvas.height)
+      const codigo = jsQR(frame.data, frame.width, frame.height)
+
+      if (codigo?.data) {
+        pararLeituraQr()
+        loginRfid(codigo.data)
+        qrProcessando = false
+        return
+      }
+    }
+    qrProcessando = false
+  }
+
+  qrAnimationId = requestAnimationFrame(escanearFrame)
+}
+
+watch(tab, (novaAba) => {
+  if (novaAba !== 'qr') pararLeituraQr()
+})
+
+onBeforeUnmount(() => pararLeituraQr())
 
 async function handleManualLogin() {
   if (!form.email || !form.senha) return showMsg('error', 'Preencha todos os campos')

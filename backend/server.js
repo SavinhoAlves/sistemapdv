@@ -2,11 +2,23 @@ const express = require('express')
 const path = require('path')
 const cors = require('cors')
 const os = require('os')
+const fs = require('fs')
 const http = require('http')
+const https = require('https')
 require('dotenv').config()
 
 const app = express()
-const server = http.createServer(app)
+
+// Câmera do celular (login por crachá QR) só funciona em contexto seguro
+// (https) — usa o certificado local gerado pelo iniciar.ps1 (mkcert) se
+// existir; senão cai pra http normal (ex.: rodando sem HTTPS configurado)
+const certPath = path.join(__dirname, '..', 'certs', 'cert.pem')
+const keyPath  = path.join(__dirname, '..', 'certs', 'key.pem')
+const usaHttps = fs.existsSync(certPath) && fs.existsSync(keyPath)
+
+const server = usaHttps
+  ? https.createServer({ key: fs.readFileSync(keyPath), cert: fs.readFileSync(certPath) }, app)
+  : http.createServer(app)
 
 // Tempo real (KDS da cozinha e afins)
 const { iniciarSocket } = require('./src/services/socket.service')
@@ -101,9 +113,10 @@ server.listen(PORT, '0.0.0.0', () => {
     .filter(n => n.family === 'IPv4' && !n.internal)
     .map(n => n.address)
 
-  console.log(`\nServidor rodando na porta ${PORT}`)
-  console.log(`  Local:   http://localhost:${PORT}`)
-  ips.forEach(ip => console.log(`  Rede:    http://${ip}:${PORT}`))
+  const protocolo = usaHttps ? 'https' : 'http'
+  console.log(`\nServidor rodando na porta ${PORT} (${protocolo})`)
+  console.log(`  Local:   ${protocolo}://localhost:${PORT}`)
+  ips.forEach(ip => console.log(`  Rede:    ${protocolo}://${ip}:${PORT}`))
   console.log('')
 
   // Backup automático diário do banco de dados

@@ -4,6 +4,9 @@
 export default defineNuxtPlugin(() => {
   const config = useRuntimeConfig()
   const host = window.location.hostname
-  config.public.apiUrl = `http://${host}:3001`
-  config.public.socketUrl = `http://${host}:3001`
+  // Mesmo protocolo da página (https quando o certificado local mkcert está
+  // configurado) — câmera do celular (crachá QR) exige contexto seguro
+  const protocolo = window.location.protocol
+  config.public.apiUrl = `${protocolo}//${host}:3001`
+  config.public.socketUrl = `${protocolo}//${host}:3001`
 })

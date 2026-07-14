@@ -127,7 +127,7 @@
           v-else
           ref="painelRef"
           :mesa="mesaSelecionada"
-          @voltar="modoProdutos = false"
+          @voltar="voltarDeProdutos"
           @produto-adicionado="produtoSelecionado"
         />
 
@@ -165,6 +165,7 @@ import PainelProdutos from '~/components/produtos/PainelProdutos.vue'
 import { useApi } from '~/services/api'
 import { useCaixaStore } from '~/stores/caixa'
 import { useToastStore } from '~/stores/toast'
+import { useSocket } from '~/services/socket'
 
 definePageMeta({ layout: false })
 
@@ -180,6 +181,7 @@ interface Mesa {
 const api         = useApi()
 const caixaStore  = useCaixaStore()
 const toastStore  = useToastStore()
+const socket      = useSocket()
 const caixaAberto = computed(() => caixaStore.aberto)
 const sidebarRef  = ref()
 const painelRef  = ref()
@@ -191,12 +193,27 @@ const sidebarMesa     = ref(false)
 const modoProdutos    = ref(false)
 const mesaSelecionada = ref<Mesa>()
 
+// Abaixo de lg o SidebarMesa é tela cheia (overlay) — some do caminho
+// automaticamente ao abrir os produtos e volta ao apertar "Voltar".
+// A partir de lg os dois painéis convivem lado a lado (padding-right
+// empurra o conteúdo), então o sidebar fica aberto o tempo todo.
+const ehTelaEstreita = () => window.matchMedia('(max-width: 1023px)').matches
+
 const abrirProdutos = () => {
+  if (ehTelaEstreita()) sidebarMesa.value = false
   modoProdutos.value = true
 }
 
-// Sidebar já aberto → recarrega direto; fechado → abre (watch dispara o reload)
+const voltarDeProdutos = () => {
+  modoProdutos.value = false
+  if (ehTelaEstreita()) sidebarMesa.value = true
+}
+
+// Sidebar já aberto → recarrega direto; fechado → abre (watch dispara o reload).
+// No mobile o sidebar fica fechado de propósito durante a seleção de produtos
+// (ver abrirProdutos) — não reabre aqui, só quando o usuário aperta "Voltar"
 const produtoSelecionado = async () => {
+  if (ehTelaEstreita()) return
   if (sidebarMesa.value) {
     sidebarRef.value?.recarregar()
   } else {
@@ -231,6 +248,7 @@ const onMesaFechada = () => {
 }
 
 let pollingTimer: ReturnType<typeof setInterval> | null = null
+const desinscrever: Array<() => void> = []
 
 function onVisibilityChange() {
   if (!document.hidden) carregarMesas()
@@ -240,11 +258,16 @@ onMounted(() => {
   carregarMesas(true)
   pollingTimer = setInterval(() => { if (!document.hidden) carregarMesas() }, 20000)
   document.addEventListener('visibilitychange', onVisibilityChange)
+
+  // Tempo real via socket (conexão é gerenciada globalmente em
+  // plugins/socket.client.ts); o polling acima continua como rede de segurança
+  desinscrever.push(socket.on('mesas:atualizado', () => carregarMesas()))
 })
 
 onUnmounted(() => {
   if (pollingTimer) clearInterval(pollingTimer)
   document.removeEventListener('visibilitychange', onVisibilityChange)
+  desinscrever.forEach(fn => fn())
 })
 </script>
 

@@ -38,10 +38,10 @@ export function useNavItems() {
       { rota: '/admin',         label: 'Admin',         icon: ShieldCheck  },
       { rota: '/configuracoes', label: 'Configurações', icon: Settings     }
     ]
+    // Vendas e Produtos ficam só com o administrador — o garçom vende
+    // através do próprio fluxo de Mesas (abrir mesa → adicionar produtos)
     if (cargo.value === 'garcom') return [
-      { rota: '/mesas',    label: 'Mesas',    icon: LayoutGrid   },
-      { rota: '/vendas',   label: 'Vendas',   icon: ShoppingCart },
-      { rota: '/produtos', label: 'Produtos', icon: Package      }
+      { rota: '/mesas', label: 'Mesas', icon: LayoutGrid }
     ]
     if (cargo.value === 'caixa') return [
       { rota: '/caixa', label: 'Caixa', icon: Landmark }

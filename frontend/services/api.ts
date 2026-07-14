@@ -8,8 +8,11 @@ export function useApi() {
   const router = useRouter()
   const authStore = useAuthStore()
 
+  // Mesmo protocolo da página (https quando o certificado local mkcert está
+  // configurado) — evita bloqueio de "mixed content" e é exigido pela
+  // câmera do celular (login por crachá QR)
   const baseURL = process.client
-    ? `http://${window.location.hostname}:3001/api`
+    ? `${window.location.protocol}//${window.location.hostname}:3001/api`
     : 'http://localhost:3001/api'
 
   async function request<T>(
@@ -40,7 +43,6 @@ export function useApi() {
         if (!isAuthRoute && !logoutEmAndamento) {
           logoutEmAndamento = true
           authStore.logout()
-          router.push('/login')
           setTimeout(() => { logoutEmAndamento = false }, 3000)
           throw new Error('Sessão expirada')
         }

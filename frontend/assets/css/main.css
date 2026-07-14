@@ -173,6 +173,19 @@
   opacity: 0;
 }
 
+/* ── Altura real da viewport no mobile (Safari/Chrome não descontam a
+   barra de endereço/abas do "100vh", cortando o rodapé de telas fixas
+   como o painel de mesa) — sobrescreve h-screen/min-h-screen só onde o
+   navegador suporta a unidade dinâmica dvh ── */
+@supports (height: 100dvh) {
+  .h-screen {
+    height: 100dvh;
+  }
+  .min-h-screen {
+    min-height: 100dvh;
+  }
+}
+
 /* ── Sidebar: recuo do conteúdo (empurra ao expandir) ── */
 @media (min-width: 640px) {
   .com-sidebar {

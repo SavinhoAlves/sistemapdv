@@ -2,19 +2,20 @@
   <div class="h-full flex flex-col bg-[#F5F5F7] dark:bg-neutral-950">
 
     <!-- HEADER -->
-    <div class="p-6 pb-4 border-b border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 flex items-center justify-between">
+    <div class="p-4 sm:p-6 pb-4 border-b border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 sm:justify-between">
 
-      <div class="flex items-center gap-4">
+      <div class="flex items-center gap-3 sm:gap-4">
         <button
           @click="$emit('voltar')"
-          class="h-12 px-5 rounded-xl bg-neutral-100 dark:bg-neutral-800 hover:bg-neutral-200 dark:hover:bg-neutral-700 text-neutral-900 dark:text-white font-black transition-colors"
+          class="h-11 sm:h-12 px-4 sm:px-5 rounded-xl bg-neutral-100 dark:bg-neutral-800 hover:bg-neutral-200 dark:hover:bg-neutral-700 text-neutral-900 dark:text-white font-black transition-colors shrink-0"
         >
-          ← Voltar
+          <span class="sm:hidden">←</span>
+          <span class="hidden sm:inline">← Voltar</span>
         </button>
 
-        <div>
-          <h1 class="text-2xl font-black text-neutral-900 dark:text-white">Produtos</h1>
-          <p class="text-sm text-neutral-500 dark:text-neutral-400">
+        <div class="min-w-0">
+          <h1 class="text-lg sm:text-2xl font-black text-neutral-900 dark:text-white truncate">Produtos</h1>
+          <p class="text-xs sm:text-sm text-neutral-500 dark:text-neutral-400 truncate">
             Mesa #{{ mesa?.nome_mesa || mesa?.id || '-' }}
           </p>
         </div>
@@ -27,7 +28,7 @@
         type="text"
         placeholder="Buscar produto..."
         aria-label="Buscar produto"
-        class="w-[320px] h-12 px-4 rounded-xl border border-neutral-200 dark:border-neutral-700 dark:bg-neutral-800 dark:text-white dark:placeholder-neutral-500 focus:outline-none focus:border-orange-400 transition-colors"
+        class="w-full sm:w-[320px] h-11 sm:h-12 px-4 rounded-xl border border-neutral-200 dark:border-neutral-700 dark:bg-neutral-800 dark:text-white dark:placeholder-neutral-500 focus:outline-none focus:border-orange-400 transition-colors"
       />
 
     </div>
@@ -35,8 +36,8 @@
     <!-- CONTENT -->
     <div
       ref="scrollRef"
-      class="flex-1 overflow-x-auto overflow-y-hidden select-none"
-      :class="isDragging ? 'cursor-grabbing' : 'cursor-grab'"
+      class="flex-1 overflow-y-auto overflow-x-hidden lg:overflow-x-auto lg:overflow-y-hidden select-none lg:cursor-grab"
+      :class="isDragging ? 'lg:cursor-grabbing' : ''"
       @pointerdown="onDragStart"
       @pointermove="onDragMove"
       @pointerup="onDragEnd"
@@ -46,21 +47,21 @@
       <!-- EMPTY -->
       <div
         v-if="!secoes.length"
-        class="h-full flex items-center justify-center"
+        class="h-full flex items-center justify-center p-6"
       >
         <div class="text-center">
-          <h2 class="text-2xl font-black text-neutral-900 dark:text-white">Nenhum produto encontrado</h2>
+          <h2 class="text-xl sm:text-2xl font-black text-neutral-900 dark:text-white">Nenhum produto encontrado</h2>
           <p class="text-neutral-500 dark:text-neutral-400 mt-2">Cadastre produtos ou revise sua busca</p>
         </div>
       </div>
 
-      <!-- CATEGORIAS LADO A LADO -->
-      <div v-else class="flex gap-8 p-6 h-full">
+      <!-- CATEGORIAS: empilhadas no celular, lado a lado do lg pra cima -->
+      <div v-else class="flex flex-col lg:flex-row gap-6 lg:gap-8 p-4 sm:p-6 lg:h-full">
 
       <section
         v-for="secao in secoes"
         :key="secao.categoria"
-        class="shrink-0 flex flex-col"
+        class="w-full lg:w-auto lg:shrink-0 flex flex-col"
       >
 
         <!-- TÍTULO DA CATEGORIA -->
@@ -68,15 +69,8 @@
           {{ secao.categoria }}
         </h2>
 
-        <!-- PRODUTOS: 2 linhas, scroll horizontal dentro da seção -->
-        <div
-          class="grid gap-3"
-          :style="{
-            gridTemplateRows: 'repeat(2, auto)',
-            gridAutoFlow: 'column',
-            gridAutoColumns: '176px'
-          }"
-        >
+        <!-- PRODUTOS: grid responsivo no celular, 2 linhas com scroll horizontal do lg pra cima -->
+        <div class="grid gap-3 grid-cols-2 sm:grid-cols-3 lg:grid-cols-none lg:grid-flow-col lg:grid-rows-2 lg:auto-cols-[176px]">
 
           <button
             v-for="produto in secao.produtos"

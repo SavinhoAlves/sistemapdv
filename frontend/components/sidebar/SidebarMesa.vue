@@ -454,9 +454,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, nextTick, onBeforeUnmount } from 'vue'
+import { ref, computed, watch, nextTick, onMounted, onBeforeUnmount } from 'vue'
 import { useCaixaStore } from '~/stores/caixa'
 import { useConfigStore } from '~/stores/configuracoes'
+import { useSocket } from '~/services/socket'
 import {
   X,
   PrinterIcon,
@@ -484,6 +485,7 @@ const api         = useApi()
 const toastStore  = useToastStore()
 const caixaStore  = useCaixaStore()
 const configStore = useConfigStore()
+const socket      = useSocket()
 const caixaAberto = computed(() => caixaStore.aberto)
 
 function exigirCaixa() {
@@ -1149,22 +1151,63 @@ const carregarProdutos = async () => {
 
 const fechar = () => emit('update:modelValue', false)
 
+// Sala do socket dessa mesa: entra quando o painel abre, sai quando fecha
+// ou troca de mesa — permite refletir em tempo real edições feitas por
+// outro dispositivo (ex.: outro garçom com a mesma mesa aberta no celular)
+let mesaNaSala: number | null = null
+
 watch(
   [() => props.modelValue, () => props.mesa?.id],
   ([aberto, mesaId]) => {
+    if (mesaNaSala && mesaNaSala !== mesaId) {
+      socket.sairMesa(mesaNaSala)
+      mesaNaSala = null
+    }
+
     if (aberto && mesaId) {
       fecharRadial()
       cancelarSelecao()
       revealedId.value = null
       carregarProdutos()
+
+      if (mesaNaSala !== mesaId) {
+        socket.entrarMesa(mesaId)
+        mesaNaSala = mesaId
+      }
+    } else if (!aberto && mesaNaSala) {
+      socket.sairMesa(mesaNaSala)
+      mesaNaSala = null
     }
   },
   { immediate: true }
 )
 
+const desinscrever: Array<() => void> = []
+
+onMounted(() => {
+  // Conexão do socket é gerenciada globalmente em plugins/socket.client.ts
+  desinscrever.push(socket.on('mesas:atualizado', (d: any) => {
+    const mesmaMesa   = d?.mesa_id && d.mesa_id === props.mesa?.id
+    const mesmoPedido = d?.pedido_id && d.pedido_id === pedidoId.value
+    if (mesmaMesa || mesmoPedido) carregarProdutos()
+  }))
+
+  // Salas do socket.io não sobrevivem a uma reconexão (celular suspendendo
+  // a conexão, backend reiniciando, etc.) — reentra na sala da mesa aberta
+  // e recarrega os dados sempre que a conexão for (re)estabelecida
+  desinscrever.push(socket.on('connect', () => {
+    if (mesaNaSala) {
+      socket.entrarMesa(mesaNaSala)
+      carregarProdutos()
+    }
+  }))
+})
+
 onBeforeUnmount(() => {
   cancelLongPress()
   detach()
+  if (mesaNaSala) socket.sairMesa(mesaNaSala)
+  desinscrever.forEach(fn => fn())
 })
 
 defineExpose({ recarregar: carregarProdutos })

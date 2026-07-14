@@ -3,6 +3,7 @@ const router = express.Router()
 
 const { query, transaction } = require('../database/connection')
 const { authenticate } = require('../middlewares/auth.middleware')
+const { emitir } = require('../services/socket.service')
 
 // GET /metodos
 router.get('/metodos', authenticate, async (req, res) => {
@@ -96,6 +97,11 @@ router.post('/', authenticate, async (req, res) => {
 
       return { quitado, restante: quitado ? 0 : novoRestante, valor_aplicado: valorAplicado, troco }
     })
+
+    emitir('caixa:atualizado', { tipo: 'pagamento_registrado', mesa_id: Number(mesa_id) })
+    if (resultado.quitado) {
+      emitir('mesas:atualizado', { mesa_id: Number(mesa_id), tipo: 'fechada' })
+    }
 
     return res.json({ success: true, ...resultado })
   } catch (error) {

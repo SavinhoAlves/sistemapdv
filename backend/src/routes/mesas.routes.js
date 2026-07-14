@@ -3,6 +3,7 @@ const router = express.Router()
 
 const { query } = require('../database/connection')
 const { authenticate } = require('../middlewares/auth.middleware')
+const { emitir } = require('../services/socket.service')
 
 // ======================
 // LISTAR MESAS
@@ -80,6 +81,8 @@ router.post('/abrir', authenticate, async (req, res) => {
       [nomeFinal, mesaId]
     )
 
+    emitir('mesas:atualizado', { mesa_id: mesaId, tipo: 'aberta' })
+
     return res.json({
       success: true,
       mesa_id: mesaId
@@ -110,6 +113,8 @@ router.patch('/:id/fechar', authenticate, async (req, res) => {
         data_fechamento = NOW()
       WHERE id = ?
     `, [id])
+
+    emitir('mesas:atualizado', { mesa_id: Number(id), tipo: 'fechada' })
 
     return res.json({
       success: true

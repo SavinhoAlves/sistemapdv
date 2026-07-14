@@ -36,7 +36,7 @@
         <div class="p-8 space-y-6">
 
           <!-- TIPO DE ATENDIMENTO -->
-          <div class="grid grid-cols-2 gap-3">
+          <div class="grid gap-3" :class="isAdmin ? 'grid-cols-2' : 'grid-cols-1'">
             <button
               @click="form.tipo = 'mesa'"
               class="rounded-2xl border-2 p-4 flex flex-col items-center gap-2 transition-all text-center"
@@ -53,7 +53,9 @@
               </span>
             </button>
 
+            <!-- Venda Direta: só o administrador tem acesso à tela de Vendas -->
             <button
+              v-if="isAdmin"
               @click="form.tipo = 'balcao'"
               class="rounded-2xl border-2 p-4 flex flex-col items-center gap-2 transition-all text-center"
               :class="form.tipo === 'balcao'
@@ -148,7 +150,8 @@
 <script setup lang="ts">
 import {
   reactive,
-  ref
+  ref,
+  computed
 } from 'vue'
 
 import { useRouter } from 'vue-router'
@@ -177,6 +180,7 @@ const authStore = useAuthStore()
 const caixaStore = useCaixaStore()
 
 const loading = ref(false)
+const isAdmin = computed(() => authStore.usuario?.cargo === 'administrador')
 
 const form = reactive({
   tipo: 'mesa' as 'mesa' | 'balcao',

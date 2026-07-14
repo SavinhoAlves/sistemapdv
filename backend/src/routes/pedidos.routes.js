@@ -184,6 +184,8 @@ router.post('/adicionar', authenticate, async (req, res) => {
       })
     }
 
+    emitir('mesas:atualizado', { mesa_id: mesaId, pedido_id: resultado.pedidoId, tipo: 'item_adicionado' })
+
     return res.json({
       success: true,
       mesa_id: mesaId,
@@ -292,6 +294,8 @@ router.patch('/itens/:itemId/decrementar', authenticate, async (req, res) => {
       })
     }
 
+    emitir('mesas:atualizado', { mesa_id: resultado.mesa_id, pedido_id: resultado.pedido_id, tipo: 'item_atualizado' })
+
     registrarAuditoria(req.user.id, 'item_decrementar', 'pedido_item', Number(itemId), {
       pedido_id: resultado.pedido_id, produto_id: resultado.produto_id, excluido: resultado.deletado
     })
@@ -380,6 +384,8 @@ router.delete('/itens/:itemId', authenticate, async (req, res) => {
       })
     }
 
+    emitir('mesas:atualizado', { mesa_id: info.mesa_id, pedido_id: info.pedidoId, tipo: 'item_atualizado' })
+
     registrarAuditoria(req.user.id, 'item_excluir', 'pedido_item', Number(itemId), {
       pedido_id: info.pedidoId, produto_id: info.produto_id, quantidade: info.quantidade
     })
@@ -454,6 +460,8 @@ router.patch('/:id/taxa-servico', authenticate, async (req, res) => {
       registrarAuditoria(req.user.id, 'taxa_remover', 'pedido', Number(req.params.id), null)
     }
 
+    emitir('mesas:atualizado', { pedido_id: Number(req.params.id), tipo: 'taxa_servico' })
+
     return res.json({ success: true, taxa_pct: pct })
   } catch (error) {
     return res.status(500).json({ error: error.message })
@@ -499,6 +507,9 @@ router.patch('/:id/abater', authenticate, async (req, res) => {
     registrarAuditoria(req.user.id, 'pedido_abater', 'pedido', Number(req.params.id), {
       valor: resultado.valor, motivo: resultado.motivo
     })
+
+    emitir('mesas:atualizado', { pedido_id: Number(req.params.id), tipo: 'abatimento' })
+
     return res.json({ success: true, abatimento: resultado })
   } catch (error) {
     return res.status(error.status || 500).json({ error: error.message })

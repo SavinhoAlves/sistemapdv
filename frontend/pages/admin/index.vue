@@ -61,7 +61,11 @@
                     {{ f.ativo ? 'Ativo' : 'Inativo' }}
                   </button>
                 </td>
-                <td class="px-5 py-3 text-right">
+                <td class="px-5 py-3 text-right whitespace-nowrap">
+                  <button @click="abrirModalCracha(f)"
+                    class="h-7 px-3 rounded-lg text-[11px] font-black text-neutral-500 dark:text-neutral-400 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-all">
+                    Crachá QR
+                  </button>
                   <button @click="abrirModalFunc(f)"
                     class="h-7 px-3 rounded-lg text-[11px] font-black text-neutral-500 dark:text-neutral-400 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-all">
                     Editar
@@ -214,6 +218,42 @@
       </Transition>
     </Teleport>
 
+    <!-- MODAL CRACHÁ QR -->
+    <Teleport to="body">
+      <Transition name="fade">
+        <div v-if="modalCracha" class="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4" @click.self="modalCracha = false">
+          <div class="bg-white dark:bg-neutral-900 rounded-3xl p-6 w-full max-w-sm shadow-2xl text-center">
+            <h2 class="text-lg font-black text-neutral-900 dark:text-white mb-1">Crachá de {{ crachaFunc?.nome }}</h2>
+            <p class="text-xs text-neutral-400 mb-5">
+              O funcionário escaneia esse QR na tela de login pra entrar sem digitar senha
+            </p>
+
+            <div v-if="gerandoCracha" class="h-48 flex items-center justify-center text-sm text-neutral-400">
+              Gerando código...
+            </div>
+
+            <div v-else class="flex flex-col items-center gap-4">
+              <div class="p-3 bg-white rounded-2xl border border-neutral-200">
+                <canvas ref="crachaCanvasRef"></canvas>
+              </div>
+              <code class="text-xs text-neutral-400 font-mono">{{ crachaFunc?.cartao_rfid }}</code>
+
+              <button @click="baixarCracha"
+                class="w-full h-11 rounded-2xl bg-orange-500 hover:bg-orange-400 active:scale-95 text-white text-sm font-black transition-all flex items-center justify-center gap-2">
+                <Download :size="14" />
+                Baixar PNG
+              </button>
+            </div>
+
+            <button @click="modalCracha = false"
+              class="w-full h-11 mt-3 rounded-2xl border border-neutral-200 dark:border-neutral-700 text-neutral-600 dark:text-neutral-400 text-sm font-black hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-all">
+              Fechar
+            </button>
+          </div>
+        </div>
+      </Transition>
+    </Teleport>
+
     <!-- MODAL CATEGORIA -->
     <Teleport to="body">
       <Transition name="fade">
@@ -267,8 +307,9 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue'
-import { Users, Tag, CreditCard, Plus, Pencil, Trash2, ChefHat } from 'lucide-vue-next'
+import { ref, reactive, onMounted, nextTick } from 'vue'
+import QRCode from 'qrcode'
+import { Users, Tag, CreditCard, Plus, Pencil, Trash2, ChefHat, Download } from 'lucide-vue-next'
 import Navbar from '~/layouts/Navbar.vue'
 import Sidebar from '~/components/Sidebar.vue'
 import { useApi } from '~/services/api'
@@ -335,6 +376,53 @@ async function toggleAtivo(f: any) {
   f.ativo = !f.ativo
   try { await api.patch(`/users/${f.id}/ativo`, { ativo: f.ativo }) }
   catch { f.ativo = !f.ativo; toastStore.error('Erro ao alterar status') }
+}
+
+// ── Crachá QR ─────────────────────────────────
+// O QR só codifica o mesmo cartao_rfid do funcionário — a leitura na tela
+// de login usa exatamente o endpoint /auth/rfid que o cartão físico já usa
+const modalCracha    = ref(false)
+const crachaFunc     = ref<any>(null)
+const crachaCanvasRef = ref<HTMLCanvasElement | null>(null)
+const gerandoCracha  = ref(false)
+
+async function abrirModalCracha(f: any) {
+  crachaFunc.value  = f
+  modalCracha.value = true
+
+  if (!f.cartao_rfid) {
+    gerandoCracha.value = true
+    try {
+      // crypto.randomUUID() exige contexto seguro (https/localhost) — o painel
+      // roda em HTTP simples na rede local, então usa getRandomValues (funciona
+      // em qualquer contexto) pra gerar o código aleatório do crachá
+      const bytes  = crypto.getRandomValues(new Uint8Array(8))
+      const codigo = Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join('')
+      await api.put(`/users/${f.id}`, {
+        nome: f.nome, cargo: f.cargo, email: f.email || null, cartao_rfid: codigo
+      })
+      f.cartao_rfid = codigo
+    } catch (e: any) {
+      toastStore.error(e?.message || 'Erro ao gerar código do crachá')
+      modalCracha.value = false
+      return
+    } finally {
+      gerandoCracha.value = false
+    }
+  }
+
+  await nextTick()
+  if (crachaCanvasRef.value) {
+    QRCode.toCanvas(crachaCanvasRef.value, f.cartao_rfid, { width: 180, margin: 1 })
+  }
+}
+
+function baixarCracha() {
+  if (!crachaCanvasRef.value) return
+  const link = document.createElement('a')
+  link.download = `cracha-${crachaFunc.value?.nome?.replace(/\s+/g, '-').toLowerCase() || 'funcionario'}.png`
+  link.href = crachaCanvasRef.value.toDataURL('image/png')
+  link.click()
 }
 
 // ── Categorias ────────────────────────────────

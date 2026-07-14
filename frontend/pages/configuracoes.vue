@@ -74,6 +74,53 @@
             </div>
           </div>
 
+          <!-- ══ CARD: ACESSO PELO CELULAR ══ -->
+          <div class="bg-white dark:bg-neutral-900 rounded-3xl border border-neutral-200 dark:border-neutral-800 overflow-hidden">
+            <div class="px-6 py-5 border-b border-neutral-100 dark:border-neutral-800 flex items-center gap-3">
+              <div class="w-8 h-8 rounded-xl bg-indigo-100 dark:bg-indigo-950/40 flex items-center justify-center shrink-0">
+                <Smartphone :size="14" class="text-indigo-500" />
+              </div>
+              <div>
+                <h2 class="text-sm font-black text-neutral-900 dark:text-white">Acesso pelo celular</h2>
+                <p class="text-[11px] text-neutral-400 mt-0.5">Garçons entram nas mesas pelo próprio celular, na mesma rede Wi-Fi</p>
+              </div>
+            </div>
+
+            <div class="p-6 flex flex-col sm:flex-row items-center gap-6">
+              <div class="shrink-0 p-3 bg-white rounded-2xl border border-neutral-200">
+                <canvas ref="qrCanvasRef"></canvas>
+              </div>
+
+              <div class="flex-1 min-w-0 w-full space-y-3">
+                <div>
+                  <label class="block text-[10px] font-black uppercase tracking-widest text-neutral-500 mb-2">
+                    Endereço de acesso
+                  </label>
+                  <div class="flex items-center gap-2">
+                    <code class="flex-1 h-11 px-4 rounded-xl border border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-800 text-neutral-900 dark:text-white text-sm font-mono flex items-center overflow-x-auto">
+                      {{ urlAcesso }}
+                    </code>
+                    <button
+                      @click="copiarUrl"
+                      class="h-11 px-4 rounded-xl bg-neutral-100 dark:bg-neutral-800 hover:bg-neutral-200 dark:hover:bg-neutral-700 text-neutral-700 dark:text-neutral-300 text-xs font-black transition-all flex items-center gap-1.5 shrink-0"
+                    >
+                      <Check v-if="urlCopiada" :size="14" class="text-green-500" />
+                      <Copy v-else :size="14" />
+                      {{ urlCopiada ? 'Copiado!' : 'Copiar' }}
+                    </button>
+                  </div>
+                </div>
+
+                <p v-if="acessoViaLocalhost" class="text-[11px] text-red-500 font-bold leading-relaxed">
+                  Você está acessando por "{{ hostnameAtual }}" — abra esta página pelo IP da rede local (ex: 192.168.x.x) pra gerar um QR code que o celular consiga usar.
+                </p>
+                <p v-else class="text-[11px] text-neutral-400 leading-relaxed">
+                  Aponte a câmera do celular pro QR code (ou digite o endereço acima no navegador) e faça login normalmente com e-mail e senha.
+                </p>
+              </div>
+            </div>
+          </div>
+
           <!-- ══ CARD: FICHAS ══ -->
           <div class="bg-white dark:bg-neutral-900 rounded-3xl border border-neutral-200 dark:border-neutral-800 overflow-hidden">
             <div class="px-6 py-5 border-b border-neutral-100 dark:border-neutral-800 flex items-center gap-3">
@@ -460,10 +507,11 @@
 </style>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, onMounted, nextTick } from 'vue'
+import QRCode from 'qrcode'
 import {
   ImageIcon, Upload, Save, Loader2, UtensilsCrossed, Printer, FileText, Eye, EyeOff,
-  Minus, Plus, Plug, CreditCard, RefreshCw, CheckCircle
+  Minus, Plus, Plug, CreditCard, RefreshCw, CheckCircle, Smartphone, Copy, Check
 } from 'lucide-vue-next'
 import Navbar from '~/layouts/Navbar.vue'
 import Sidebar from '~/components/Sidebar.vue'
@@ -482,6 +530,12 @@ const api         = useApi()
 const inputLogoRef = ref<HTMLInputElement | null>(null)
 const salvando     = ref(false)
 const mostrarToken = ref(false)
+
+const qrCanvasRef      = ref<HTMLCanvasElement | null>(null)
+const urlAcesso         = ref('')
+const hostnameAtual     = ref('')
+const acessoViaLocalhost = ref(false)
+const urlCopiada        = ref(false)
 
 const mp = reactive({
   ativado:             false,
@@ -533,7 +587,26 @@ onMounted(async () => {
   await mpStore.carregar()
   mp.ativado   = mpStore.mp.ativado
   mp.device_id = mpStore.mp.device_id
+
+  hostnameAtual.value      = window.location.hostname
+  acessoViaLocalhost.value = ['localhost', '127.0.0.1'].includes(hostnameAtual.value)
+  urlAcesso.value          = window.location.origin
+
+  await nextTick()
+  if (qrCanvasRef.value) {
+    QRCode.toCanvas(qrCanvasRef.value, urlAcesso.value, {
+      width: 160,
+      margin: 1,
+      color: { dark: '#18181b', light: '#ffffff' }
+    })
+  }
 })
+
+async function copiarUrl() {
+  await navigator.clipboard.writeText(urlAcesso.value)
+  urlCopiada.value = true
+  setTimeout(() => { urlCopiada.value = false }, 2000)
+}
 
 async function buscarDispositivos() {
   mp.buscandoDispositivos = true

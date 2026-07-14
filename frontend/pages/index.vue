@@ -211,11 +211,13 @@ import {
 import { useAuthStore } from '~/stores/auth'
 import { useCaixaStore } from '~/stores/caixa'
 import { useApi } from '~/services/api'
+import { useSocket } from '~/services/socket'
 
 const router     = useRouter()
 const authStore  = useAuthStore()
 const caixaStore = useCaixaStore()
 const api        = useApi()
+const socket     = useSocket()
 
 const carregando = ref(true)
 const stats = ref({
@@ -298,6 +300,7 @@ async function carregar(mostrarLoading = true) {
 }
 
 let pollingTimer: ReturnType<typeof setInterval> | null = null
+const desinscrever: Array<() => void> = []
 
 function onVisibilityChange() {
   if (!document.hidden) carregar(false)
@@ -308,10 +311,16 @@ onMounted(() => {
   carregar()
   pollingTimer = setInterval(() => { if (!document.hidden) carregar(false) }, 30000)
   document.addEventListener('visibilitychange', onVisibilityChange)
+
+  // Tempo real via socket (conexão é gerenciada globalmente em
+  // plugins/socket.client.ts); o polling acima continua como rede de segurança
+  desinscrever.push(socket.on('caixa:atualizado', () => carregar(false)))
+  desinscrever.push(socket.on('mesas:atualizado', () => carregar(false)))
 })
 
 onUnmounted(() => {
   if (pollingTimer) clearInterval(pollingTimer)
   document.removeEventListener('visibilitychange', onVisibilityChange)
+  desinscrever.forEach(fn => fn())
 })
 </script>

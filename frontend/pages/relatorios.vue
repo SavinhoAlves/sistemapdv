@@ -77,7 +77,7 @@
             </select>
           </div>
 
-          <div v-if="abaAtiva === 'produtos'"
+          <div v-if="abaAtiva === 'produtos' || abaAtiva === 'estoque'"
             class="flex items-center gap-1.5 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl px-3 h-9">
             <Tag :size="12" class="text-neutral-400 shrink-0" />
             <select id="filtro-categoria" name="filtro-categoria" v-model="filtros.categoriaId" @change="buscarTudo"
@@ -325,6 +325,80 @@
                       <p class="text-xs font-bold text-neutral-700 dark:text-neutral-300 truncate">{{ p.nome }}</p>
                       <p class="text-[10px] text-neutral-400">{{ p.categoria }}</p>
                     </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ═══ ESTOQUE ═════════════════════════════════════════════ -->
+        <div v-else-if="abaAtiva === 'estoque' && estoque">
+          <!-- ALERTA: abaixo do mínimo (situação atual, não é por período) -->
+          <div v-if="estoque.abaixoDoMinimo.length"
+            class="mb-5 bg-white dark:bg-neutral-900 border border-red-200 dark:border-red-900/50 rounded-2xl overflow-hidden">
+            <div class="px-5 py-4 border-b border-red-100 dark:border-red-900/40 flex items-center justify-between bg-red-50/50 dark:bg-red-950/20">
+              <h2 class="text-xs font-black uppercase tracking-widest text-red-600 dark:text-red-400">Abaixo do estoque mínimo agora</h2>
+              <span class="text-[11px] font-bold text-red-500">{{ estoque.abaixoDoMinimo.length }} produto(s)</span>
+            </div>
+            <div class="divide-y divide-neutral-100 dark:divide-neutral-800 max-h-52 overflow-auto">
+              <div v-for="p in estoque.abaixoDoMinimo" :key="p.id" class="flex items-center justify-between gap-3 px-5 py-2.5">
+                <div class="min-w-0">
+                  <p class="text-xs font-bold text-neutral-700 dark:text-neutral-300 truncate">{{ p.nome }}</p>
+                  <p class="text-[10px] text-neutral-400">{{ p.categoria || 'Sem categoria' }}</p>
+                </div>
+                <span class="text-xs font-black text-red-500 shrink-0">{{ p.estoque_atual }} / mín. {{ p.estoque_minimo }}</span>
+              </div>
+            </div>
+          </div>
+
+          <div v-if="!estoque.maiorSaida.length && !estoque.totaisPorTipo.length" class="flex flex-col items-center justify-center py-20 text-center">
+            <div class="w-14 h-14 rounded-2xl bg-neutral-100 dark:bg-neutral-900 flex items-center justify-center mb-4">
+              <Boxes :size="24" class="text-neutral-300 dark:text-neutral-700" />
+            </div>
+            <h3 class="text-base font-black text-neutral-700 dark:text-neutral-300">Nenhuma movimentação no período</h3>
+            <p class="text-sm text-neutral-400 mt-1">Tente ampliar o período de análise.</p>
+            <button @click="aplicarAtalho({ label: '30 dias', dias: 29 })"
+              class="mt-5 h-9 px-5 rounded-xl bg-orange-500 hover:bg-orange-600 active:scale-95 text-white text-xs font-black transition-all">
+              Ver últimos 30 dias
+            </button>
+          </div>
+
+          <div v-else class="grid grid-cols-1 lg:grid-cols-3 gap-5">
+            <div class="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl p-5">
+              <h2 class="text-xs font-black uppercase tracking-widest text-neutral-400 dark:text-neutral-600 mb-4">Por Tipo</h2>
+              <div v-if="!estoque.totaisPorTipo.length" class="text-sm text-neutral-400">Sem movimentos</div>
+              <div v-else class="space-y-3">
+                <div v-for="t in estoque.totaisPorTipo" :key="t.tipo" class="flex items-center justify-between">
+                  <div class="flex items-center gap-2">
+                    <span class="text-[10px] font-black px-2 py-0.5 rounded-full" :class="corEstoque(t.tipo)">{{ t.tipo }}</span>
+                    <span class="text-[11px] text-neutral-400">{{ t.qtd }}x</span>
+                  </div>
+                  <span class="text-xs font-black" :class="entradaTipo(t.tipo) ? 'text-green-600' : 'text-red-500'">
+                    {{ entradaTipo(t.tipo) ? '+' : '−' }} {{ t.quantidadeTotal }}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <div class="lg:col-span-2 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl overflow-hidden">
+              <div class="px-5 py-4 border-b border-neutral-100 dark:border-neutral-800 flex items-center justify-between">
+                <h2 class="text-xs font-black uppercase tracking-widest text-neutral-400 dark:text-neutral-600">Maior Saída</h2>
+                <span class="text-[11px] font-bold text-neutral-400">{{ estoque.maiorSaida.length }} produto(s)</span>
+              </div>
+              <div v-if="!estoque.maiorSaida.length" class="py-10 text-center text-xs text-neutral-400">Sem movimentos no período</div>
+              <div v-else class="divide-y divide-neutral-100 dark:divide-neutral-800 max-h-[420px] overflow-auto">
+                <div v-for="(p, i) in estoque.maiorSaida" :key="p.id"
+                  class="flex items-center gap-4 px-5 py-3 hover:bg-neutral-50 dark:hover:bg-neutral-800/40 transition-colors">
+                  <span class="w-6 text-center text-[11px] font-black"
+                    :class="i < 3 ? 'text-orange-500' : 'text-neutral-300 dark:text-neutral-700'">{{ i + 1 }}</span>
+                  <div class="flex-1 min-w-0">
+                    <p class="text-xs font-black text-neutral-800 dark:text-neutral-200 truncate">{{ p.nome }}</p>
+                    <p class="text-[10px] text-neutral-400">{{ p.categoria || 'Sem categoria' }}</p>
+                  </div>
+                  <div class="text-right shrink-0">
+                    <p class="text-xs font-black text-red-500">− {{ p.qtdSaida }}</p>
+                    <p v-if="p.qtdEntrada > 0" class="text-[10px] text-green-500">+ {{ p.qtdEntrada }}</p>
                   </div>
                 </div>
               </div>
@@ -597,7 +671,7 @@
 import { ref, computed, onMounted } from 'vue'
 import {
   CalendarDays, RefreshCw, BarChart2, Package, LayoutGrid, Landmark,
-  Users, CreditCard, Tag, UserCheck, X, ShieldCheck, Printer, Download
+  Users, CreditCard, Tag, UserCheck, X, ShieldCheck, Printer, Download, Boxes
 } from 'lucide-vue-next'
 import Navbar from '~/layouts/Navbar.vue'
 import Sidebar from '~/components/Sidebar.vue'
@@ -631,6 +705,7 @@ function limparFiltros() {
 const tabs = computed(() => [
   { id: 'geral',    label: 'Visão Geral', icon: BarChart2  },
   { id: 'produtos', label: 'Produtos',    icon: Package    },
+  { id: 'estoque',  label: 'Estoque',     icon: Boxes      },
   { id: 'mesas',    label: 'Mesas',       icon: LayoutGrid },
   { id: 'caixa',    label: 'Caixa',       icon: Landmark   },
   ...(isAdmin.value ? [{ id: 'auditoria', label: 'Auditoria', icon: ShieldCheck }] : [])
@@ -647,10 +722,12 @@ interface GeralData    { resumo: any; anterior: any; evolucao: any[]; metodos: a
 interface ProdutosData { ranking: any[]; porCategoria: any[]; semVenda: any[] }
 interface MesasData    { resumo: any; ranking: any[]; abatimentos: any[] }
 interface CaixaData    { resumo: any; historico: any[]; movimentos: any[]; totaisPorTipo: any[] }
+interface EstoqueData  { totaisPorTipo: any[]; maiorSaida: any[]; abaixoDoMinimo: any[] }
 
 const opcoesFilters = ref<Filtros>({ funcionarios: [], metodos: [], categorias: [] })
 const geral    = ref<GeralData | null>(null)
 const produtos = ref<ProdutosData | null>(null)
+const estoque  = ref<EstoqueData | null>(null)
 const mesas    = ref<MesasData | null>(null)
 const caixa    = ref<CaixaData | null>(null)
 const auditoria = ref<any[] | null>(null)
@@ -679,13 +756,14 @@ function qs() {
 async function buscarTudo() {
   carregando.value = true
   try {
-    const [g, p, m, c] = await Promise.all([
+    const [g, p, es, m, c] = await Promise.all([
       api.get<GeralData>(`/relatorios${qs()}`),
       api.get<ProdutosData>(`/relatorios/produtos${qs()}`),
+      api.get<EstoqueData>(`/relatorios/estoque${qs()}`),
       api.get<MesasData>(`/relatorios/mesas${qs()}`),
       api.get<CaixaData>(`/relatorios/caixa${qs()}`)
     ])
-    geral.value = g; produtos.value = p; mesas.value = m; caixa.value = c
+    geral.value = g; produtos.value = p; estoque.value = es; mesas.value = m; caixa.value = c
   } catch (e: any) {
     toastStore.error('Erro ao carregar relatório', e?.message)
   } finally {
@@ -785,6 +863,16 @@ function corMovimento(tipo: string) {
   return 'bg-neutral-100 dark:bg-neutral-800 text-neutral-500'
 }
 
+function corEstoque(tipo: string) {
+  if (tipo === 'entrada')      return 'bg-green-100 dark:bg-green-950/50 text-green-700 dark:text-green-400'
+  if (tipo === 'saida')        return 'bg-red-100 dark:bg-red-950/50 text-red-600 dark:text-red-400'
+  if (tipo === 'venda')        return 'bg-orange-100 dark:bg-orange-950/50 text-orange-600 dark:text-orange-400'
+  if (tipo === 'ajuste')       return 'bg-blue-100 dark:bg-blue-950/50 text-blue-700 dark:text-blue-400'
+  if (tipo === 'cancelamento') return 'bg-amber-100 dark:bg-amber-950/50 text-amber-700 dark:text-amber-400'
+  return 'bg-neutral-100 dark:bg-neutral-800 text-neutral-500'
+}
+const entradaTipo = (tipo: string) => tipo === 'entrada' || tipo === 'cancelamento'
+
 // ─── imprimir / exportar ─────────────────────────────────
 function imprimirRelatorio() {
   window.print()
@@ -816,6 +904,13 @@ function exportarCSV() {
       produtos.value.ranking.map(p => [p.nome, p.categoria || '—', p.qtd, num(p.total)])))
     partes.push(...linhasCSV('Sem venda no período', ['Produto', 'Categoria'],
       produtos.value.semVenda.map(p => [p.nome, p.categoria || '—'])))
+  } else if (abaAtiva.value === 'estoque' && estoque.value) {
+    partes.push(...linhasCSV('Movimentações por tipo', ['Tipo', 'Qtd', 'Quantidade total'],
+      estoque.value.totaisPorTipo.map(t => [t.tipo, t.qtd, t.quantidadeTotal])))
+    partes.push(...linhasCSV('Maior saída', ['Produto', 'Categoria', 'Qtd saída', 'Qtd entrada'],
+      estoque.value.maiorSaida.map(p => [p.nome, p.categoria || '—', p.qtdSaida, p.qtdEntrada])))
+    partes.push(...linhasCSV('Abaixo do mínimo', ['Produto', 'Categoria', 'Estoque atual', 'Estoque mínimo'],
+      estoque.value.abaixoDoMinimo.map(p => [p.nome, p.categoria || '—', p.estoque_atual, p.estoque_minimo])))
   } else if (abaAtiva.value === 'mesas' && mesas.value) {
     partes.push(...linhasCSV('Ranking de mesas', ['Mesa', 'Atendimentos', 'Total (R$)'],
       mesas.value.ranking.map(m => [m.nome_mesa || m.mesa || m.id, m.qtd ?? m.atendimentos ?? '', num(m.total)])))

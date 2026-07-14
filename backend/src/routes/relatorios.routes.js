@@ -3,6 +3,7 @@ const router = express.Router()
 
 const { query } = require('../database/connection')
 const { authenticate, authorize } = require('../middlewares/auth.middleware')
+const { LEGADO_ABERTURA } = require('../services/caixa.service')
 
 // ─── auditoria ───────────────────────────────────────────
 // GET /auditoria?acao=&dataInicio=&dataFim=&limite=
@@ -84,7 +85,7 @@ function filtrosExtras(req, alias = {}) {
 }
 
 // ─── GET /filtros — listas para dropdowns ────────────────
-router.get('/filtros', authenticate, async (req, res) => {
+router.get('/filtros', authenticate, authorize('administrador'), async (req, res) => {
   try {
     const funcionarios = await query(`
       SELECT id, nome, cargo FROM usuarios ORDER BY nome
@@ -102,7 +103,7 @@ router.get('/filtros', authenticate, async (req, res) => {
 })
 
 // ─── GET / — Visão Geral ──────────────────────────────────
-router.get('/', authenticate, async (req, res) => {
+router.get('/', authenticate, authorize('administrador'), async (req, res) => {
   try {
     const { inicio, fim } = periodo(req)
 
@@ -227,7 +228,7 @@ router.get('/', authenticate, async (req, res) => {
 })
 
 // ─── GET /produtos ────────────────────────────────────────
-router.get('/produtos', authenticate, async (req, res) => {
+router.get('/produtos', authenticate, authorize('administrador'), async (req, res) => {
   try {
     const { inicio, fim } = periodo(req)
     const garcomId    = req.query.garcomId    && req.query.garcomId    !== 'todos' ? req.query.garcomId    : null
@@ -297,8 +298,58 @@ router.get('/produtos', authenticate, async (req, res) => {
   }
 })
 
+// ─── GET /estoque ─────────────────────────────────────────
+router.get('/estoque', authenticate, authorize('administrador'), async (req, res) => {
+  try {
+    const { inicio, fim } = periodo(req)
+    const categoriaId = req.query.categoriaId && req.query.categoriaId !== 'todos' ? req.query.categoriaId : null
+    const whereCategoria = categoriaId ? 'AND pr.categoria_id = ?' : ''
+
+    const totaisPorTipo = await query(`
+      SELECT em.tipo, COUNT(*) AS qtd, SUM(ABS(em.quantidade)) AS quantidadeTotal
+      FROM estoque_movimentacoes em
+      JOIN produtos pr ON pr.id = em.produto_id
+      WHERE DATE(em.created_at) BETWEEN ? AND ?
+        ${whereCategoria}
+      GROUP BY em.tipo ORDER BY quantidadeTotal DESC
+    `, [inicio, fim, ...(categoriaId ? [categoriaId] : [])])
+
+    const maiorSaida = await query(`
+      SELECT
+        pr.id, pr.nome, c.nome AS categoria,
+        SUM(CASE WHEN em.quantidade < 0 THEN -em.quantidade ELSE 0 END) AS qtdSaida,
+        SUM(CASE WHEN em.quantidade > 0 THEN em.quantidade ELSE 0 END)  AS qtdEntrada
+      FROM estoque_movimentacoes em
+      JOIN produtos pr ON pr.id = em.produto_id
+      LEFT JOIN categorias c ON c.id = pr.categoria_id
+      WHERE DATE(em.created_at) BETWEEN ? AND ?
+        ${whereCategoria}
+      GROUP BY pr.id, pr.nome, c.nome
+      ORDER BY qtdSaida DESC
+      LIMIT 50
+    `, [inicio, fim, ...(categoriaId ? [categoriaId] : [])])
+
+    // Situação ATUAL (não é por período) — mesma regra de "baixo estoque"
+    // já usada em PainelProdutos.vue no front
+    const abaixoDoMinimo = await query(`
+      SELECT pr.id, pr.nome, c.nome AS categoria, pr.estoque_atual, pr.estoque_minimo
+      FROM produtos pr
+      LEFT JOIN categorias c ON c.id = pr.categoria_id
+      WHERE pr.ativo = 1 AND pr.gerenciar_estoque = 1
+        AND pr.estoque_atual <= pr.estoque_minimo
+        ${whereCategoria}
+      ORDER BY pr.estoque_atual ASC
+    `, categoriaId ? [categoriaId] : [])
+
+    return res.json({ periodo: { inicio, fim }, totaisPorTipo, maiorSaida, abaixoDoMinimo })
+  } catch (e) {
+    console.error('ERRO RELATORIO ESTOQUE:', e)
+    return res.status(500).json({ error: e.message })
+  }
+})
+
 // ─── GET /mesas ───────────────────────────────────────────
-router.get('/mesas', authenticate, async (req, res) => {
+router.get('/mesas', authenticate, authorize('administrador'), async (req, res) => {
   try {
     const { inicio, fim } = periodo(req)
     const garcomId = req.query.garcomId && req.query.garcomId !== 'todos' ? req.query.garcomId : null
@@ -361,7 +412,7 @@ router.get('/mesas', authenticate, async (req, res) => {
 })
 
 // ─── GET /caixa ───────────────────────────────────────────
-router.get('/caixa', authenticate, async (req, res) => {
+router.get('/caixa', authenticate, authorize('administrador'), async (req, res) => {
   try {
     const { inicio, fim } = periodo(req)
     const funcionarioId = req.query.funcionarioId && req.query.funcionarioId !== 'todos' ? req.query.funcionarioId : null
@@ -409,6 +460,10 @@ router.get('/caixa', authenticate, async (req, res) => {
       ORDER BY mc.created_at DESC
     `, [inicio, fim, inicio, fim, inicio, fim, ...extra])
 
+    // Exclui a entrada legada "abertura registrada como suprimento" (caixas
+    // antigos) — o valor inicial já entra por caixa.valor_inicial; contar
+    // esse movimento de novo aqui inflava o total de "suprimento", igual
+    // resumoCaixa (caixa.service.js) já evita no resumo por caixa individual
     const totaisPorTipo = await query(`
       SELECT mc.tipo, COUNT(*) AS qtd, SUM(mc.valor) AS total
       FROM movimentos_caixa mc
@@ -418,6 +473,7 @@ router.get('/caixa', authenticate, async (req, res) => {
         OR DATE(c.data_abertura) BETWEEN ? AND ?
         OR DATE(c.fechado_em)    BETWEEN ? AND ?
       )
+        AND NOT ${LEGADO_ABERTURA}
         ${whereFunc}
       GROUP BY mc.tipo ORDER BY total DESC
     `, [inicio, fim, inicio, fim, inicio, fim, ...extra])

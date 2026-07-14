@@ -73,7 +73,7 @@ const permissoes = {
   atualizarItemCozinha: authorize('cozinha', 'administrador'),
   gerenciarUsuarios: authorize('administrador'),
   gerenciarProdutos: authorize('administrador'),
-  relatorios: authorize('administrador', 'caixa'),
+  relatorios: authorize('administrador'),
   gerenciarCaixa: authorize('caixa', 'administrador'),
   cancelarPedido: authorize('administrador')
 };

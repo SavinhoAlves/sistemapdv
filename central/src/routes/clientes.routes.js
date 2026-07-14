@@ -72,10 +72,16 @@ router.post('/', async (req, res) => {
 })
 
 // PATCH /api/clientes/:id
+const STATUS_VALIDOS = ['ativo', 'suspenso', 'cancelado']
+
 router.patch('/:id', async (req, res) => {
   try {
     const { id } = req.params
     const { venda_mobile_permitida, nome_fantasia, contato, status } = req.body
+
+    if (status !== undefined && !STATUS_VALIDOS.includes(status)) {
+      return res.status(400).json({ error: `status deve ser um de: ${STATUS_VALIDOS.join(', ')}` })
+    }
 
     const campos = []
     const valores = []

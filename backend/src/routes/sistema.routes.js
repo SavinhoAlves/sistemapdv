@@ -111,7 +111,9 @@ router.get('/status-licenca', async (req, res) => {
       })
     }
 
-    // Atualiza ultima_verificacao e status
+    // status_licenca reflete só a validade da própria chave (expiração/
+    // assinatura) — suspensão remota é um motivo à parte, sobreposto na
+    // resposta abaixo, sem alterar esse campo local
     const novoStatus = info.expirado ? 'bloqueado' : 'ativado'
     await query(
       `UPDATE pdv_config SET ultima_verificacao = ?, status_licenca = ? WHERE id = ?`,
@@ -119,11 +121,12 @@ router.get('/status-licenca', async (req, res) => {
     )
 
     return res.json({
-      ativo:          !info.expirado,
+      ativo:          !info.expirado && !info.bloqueadoRemoto,
       expirado:       info.expirado,
       semLicenca:     false,
+      bloqueadoRemoto: info.bloqueadoRemoto,
       cliente,
-      status:         novoStatus,
+      status:         info.bloqueadoRemoto ? 'bloqueado' : novoStatus,
       dataAtivacao:   lic.data_ativacao,
       dataVencimento: lic.data_vencimento,
       diasRestantes:  info.expirado ? 0 : diasRestantes

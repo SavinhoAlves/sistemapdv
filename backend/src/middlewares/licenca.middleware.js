@@ -11,9 +11,11 @@ async function exigirLicenca(req, res, next) {
 
     const motivo = lic.semLicenca
       ? 'Sistema sem licença ativa'
-      : lic.expirado
-        ? 'Licença expirada'
-        : 'Licença inválida'
+      : lic.bloqueadoRemoto
+        ? 'Licença suspensa pelo suporte'
+        : lic.expirado
+          ? 'Licença expirada'
+          : 'Licença inválida'
 
     return res.status(403).json({ error: motivo, licenca: false })
   } catch (err) {

@@ -94,4 +94,4 @@ async function movimentosCaixa(caixaId) {
   `, [caixaId])
 }
 
-module.exports = { resumoCaixa, movimentosCaixa }
+module.exports = { resumoCaixa, movimentosCaixa, LEGADO_ABERTURA }

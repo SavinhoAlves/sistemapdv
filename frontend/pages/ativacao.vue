@@ -42,6 +42,33 @@
           </NuxtLink>
         </div>
 
+        <!-- Licença suspensa remotamente pelo suporte -->
+        <div v-else-if="status?.bloqueadoRemoto" class="flex flex-col items-center gap-3">
+          <div class="w-14 h-14 rounded-2xl flex items-center justify-center bg-orange-500/10">
+            <ShieldAlert :size="28" class="text-orange-400" />
+          </div>
+
+          <p class="text-base font-black text-orange-400">Licença suspensa pelo suporte</p>
+
+          <div class="w-full mt-2 p-4 bg-neutral-800/60 rounded-2xl border border-neutral-700">
+            <p class="text-xs text-neutral-400 leading-relaxed mb-3">
+              O suporte suspendeu temporariamente o acesso desta instalação.
+              Isso não se resolve digitando um código novo — fale com o
+              suporte para reativar; o sistema libera sozinho em alguns
+              minutos assim que for reativado do lado deles.
+            </p>
+            <a
+              href="https://wa.me/5522997127142"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="flex items-center justify-center gap-2 h-11 rounded-2xl bg-orange-500 hover:bg-orange-400 text-white text-sm font-black uppercase tracking-widest transition-all active:scale-95"
+            >
+              <MessageCircle :size="16" />
+              Falar com o suporte
+            </a>
+          </div>
+        </div>
+
         <!-- Licença expirada / sem licença -->
         <div v-else class="flex flex-col items-center gap-3">
           <div class="w-14 h-14 rounded-2xl flex items-center justify-center"

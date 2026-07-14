@@ -123,42 +123,12 @@ export function useApi() {
     },
 
     // =========================
-    // CAIXA
-    // =========================
-    caixa: {
-      status: <T>() => request<T>('/caixa/status'),
-
-      abrir: <T>(valor_inicial: number) =>
-        request<T>('/caixa/abrir', {
-          method: 'POST',
-          body: JSON.stringify({ valor_inicial }) // ✅ corrigido
-        }),
-
-      fechar: () =>
-        request('/caixa/fechar', {
-          method: 'POST'
-        }),
-
-      movimentos: () =>
-        request('/caixa/movimentos'),
-
-      adicionarMovimento: (dados: any) =>
-        request('/caixa/movimento', {
-          method: 'POST',
-          body: JSON.stringify(dados)
-        })
-    },
-
-    // =========================
     // MESAS
     // =========================
     mesas: {
 
       listar: <T>() =>
         request<T[]>('/mesas'),
-
-      buscar: <T>(id: number) =>
-        request<T>(`/mesas/${id}`),
 
       // ======================
       // ABRIR NOVA MESA
@@ -167,22 +137,6 @@ export function useApi() {
         request<T>('/mesas/abrir', {
           method: 'POST',
           body: JSON.stringify(dados)
-        }),
-
-      // ======================
-      // VISUALIZAR MESA
-      // ======================
-      abrir: <T>(id: number) =>
-        request<T>(`/mesas/${id}/abrir`, {
-          method: 'PATCH'
-        }),
-
-      // ======================
-      // FECHAR MESA
-      // ======================
-      fechar: <T>(id: number) =>
-        request<T>(`/mesas/${id}/fechar`, {
-          method: 'PATCH'
         })
     }
   }

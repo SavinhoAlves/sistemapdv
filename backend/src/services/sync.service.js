@@ -79,9 +79,10 @@ async function sincronizar() {
     const dados = await resposta.json()
     await query(
       `UPDATE sync_config
-       SET venda_mobile_permitida = ?, ultimo_sync_em = NOW(), ultimo_sync_sucesso = 1, ultimo_sync_erro = NULL
+       SET venda_mobile_permitida = ?, licenca_bloqueada_remoto = ?,
+           ultimo_sync_em = NOW(), ultimo_sync_sucesso = 1, ultimo_sync_erro = NULL
        WHERE id = 1`,
-      [dados.vendaMobilePermitida ? 1 : 0]
+      [dados.vendaMobilePermitida ? 1 : 0, dados.licencaAtiva === false ? 1 : 0]
     )
   } catch (err) {
     console.error('[SYNC] Falha na sincronização com a central:', err.message)

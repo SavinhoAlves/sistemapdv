@@ -54,7 +54,13 @@ router.post('/', async (req, res) => {
       ]
     )
 
-    return res.json({ vendaMobilePermitida: Boolean(cliente.venda_mobile_permitida) })
+    return res.json({
+      vendaMobilePermitida: Boolean(cliente.venda_mobile_permitida),
+      // Suspender/Reativar no painel central (bloco "clientes.status") só
+      // tinha efeito cosmético até aqui — devolvendo isso na sincronização,
+      // o PDV passa a se bloquear/liberar sozinho no próximo check-in
+      licencaAtiva: cliente.status === 'ativo'
+    })
   } catch (error) {
     console.error('Erro no sync:', error)
     return res.status(500).json({ error: 'Erro ao processar sincronização' })

@@ -10,7 +10,7 @@ const { emitir } = require('../services/socket.service')
 // ======================
 // ADICIONAR PRODUTO
 // ======================
-router.post('/adicionar', authenticate, async (req, res) => {
+router.post('/adicionar', authenticate, permissoes.adicionarPedido, async (req, res) => {
   try {
     const {
       mesa_id,
@@ -205,7 +205,7 @@ router.post('/adicionar', authenticate, async (req, res) => {
 // ======================
 // DECREMENTAR 1 UNIDADE
 // ======================
-router.patch('/itens/:itemId/decrementar', authenticate, async (req, res) => {
+router.patch('/itens/:itemId/decrementar', authenticate, permissoes.adicionarPedido, async (req, res) => {
   try {
     const { itemId } = req.params
 
@@ -311,7 +311,7 @@ router.patch('/itens/:itemId/decrementar', authenticate, async (req, res) => {
 // ======================
 // EXCLUIR ITEM
 // ======================
-router.delete('/itens/:itemId', authenticate, async (req, res) => {
+router.delete('/itens/:itemId', authenticate, permissoes.adicionarPedido, async (req, res) => {
   try {
     const { itemId } = req.params
 

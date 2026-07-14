@@ -181,10 +181,14 @@ function renderizar(clientes) {
       const novoValor = btn.dataset.permitido !== 'true'
       btn.disabled = true
       try {
-        await fetch(`/api/clientes/${btn.dataset.id}`, {
+        const resp = await fetch(`/api/clientes/${btn.dataset.id}`, {
           method: 'PATCH', headers,
           body: JSON.stringify({ venda_mobile_permitida: novoValor })
         })
+        if (!resp.ok) {
+          const dados = await resp.json().catch(() => ({}))
+          alert(dados.error || 'Erro ao atualizar venda mobile')
+        }
         await carregarClientes()
       } finally { btn.disabled = false }
     })
@@ -230,10 +234,14 @@ function renderizar(clientes) {
     btn.addEventListener('click', async () => {
       btn.disabled = true
       try {
-        await fetch(`/api/clientes/${btn.dataset.id}`, {
+        const resp = await fetch(`/api/clientes/${btn.dataset.id}`, {
           method: 'PATCH', headers,
           body: JSON.stringify({ status: btn.dataset.novoStatus })
         })
+        if (!resp.ok) {
+          const dados = await resp.json().catch(() => ({}))
+          alert(dados.error || 'Erro ao atualizar status')
+        }
         await carregarClientes()
       } finally { btn.disabled = false }
     })

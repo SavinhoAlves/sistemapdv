@@ -180,6 +180,11 @@ async function migrate() {
     `)
     console.log('✓ Tabela sync_config criada (ou já existia)')
 
+    // Suspender/Reativar no painel central agora reflete aqui via sync —
+    // cache local de "licença bloqueada remotamente" (ver sync.service.js
+    // e licenca.service.js)
+    await addColumn(conn, 'sync_config', 'licenca_bloqueada_remoto', "TINYINT(1) NOT NULL DEFAULT 0")
+
     console.log('\nMigração concluída com sucesso!')
   } finally {
     conn.release()

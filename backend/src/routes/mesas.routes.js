@@ -2,7 +2,7 @@ const express = require('express')
 const router = express.Router()
 
 const { query } = require('../database/connection')
-const { authenticate } = require('../middlewares/auth.middleware')
+const { authenticate, permissoes } = require('../middlewares/auth.middleware')
 const { emitir } = require('../services/socket.service')
 
 // ======================
@@ -55,7 +55,7 @@ router.get('/', authenticate, async (req, res) => {
 // ======================
 // ABRIR MESA
 // ======================
-router.post('/abrir', authenticate, async (req, res) => {
+router.post('/abrir', authenticate, permissoes.abrirMesa, async (req, res) => {
   try {
 
     const { cliente, garcom_id, caixa_id, nome_mesa } = req.body
@@ -101,7 +101,7 @@ router.post('/abrir', authenticate, async (req, res) => {
 // ======================
 // FECHAR MESA
 // ======================
-router.patch('/:id/fechar', authenticate, async (req, res) => {
+router.patch('/:id/fechar', authenticate, permissoes.fecharMesa, async (req, res) => {
   try {
 
     const { id } = req.params

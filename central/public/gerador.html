@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <title>Painel Central · Ativar Licença</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+</head>
+<body class="bg-neutral-950 min-h-screen text-white">
+
+  <header class="border-b border-neutral-800 px-6 py-4 flex items-center justify-between">
+    <div class="flex items-center gap-3">
+      <div class="w-9 h-9 rounded-xl bg-orange-500 flex items-center justify-center">
+        <i data-lucide="utensils-crossed" class="w-4 h-4 text-white"></i>
+      </div>
+      <div>
+        <h1 class="text-sm font-black">Painel Central</h1>
+        <p class="text-[11px] text-neutral-500">Ativar licença remotamente</p>
+      </div>
+    </div>
+    <div class="flex items-center gap-4">
+      <a href="/" class="text-xs font-black text-neutral-400 hover:text-white flex items-center gap-1.5">
+        <i data-lucide="arrow-left" class="w-3.5 h-3.5"></i> Clientes
+      </a>
+      <button id="btn-sair" class="flex items-center gap-1.5 text-xs font-black text-red-400 hover:text-red-300">
+        <i data-lucide="log-out" class="w-3.5 h-3.5"></i> Sair
+      </button>
+    </div>
+  </header>
+
+  <main class="max-w-md mx-auto p-6">
+    <div class="bg-neutral-900 border border-neutral-800 rounded-3xl p-8 space-y-4">
+      <div class="w-12 h-12 rounded-2xl bg-green-500/10 flex items-center justify-center mx-auto mb-1">
+        <i data-lucide="zap" class="w-5 h-5 text-green-400"></i>
+      </div>
+      <h2 class="text-lg font-black uppercase text-center mb-1">Ativar remotamente</h2>
+      <p class="text-xs text-neutral-500 text-center mb-4 leading-relaxed">
+        Chama <code class="text-orange-400">/api/sistema/ativar</code> direto no backend da instalação —
+        o computador que roda esta página precisa alcançar o endereço abaixo na rede. A chave já vem
+        pronta da tela de clientes (botão "Gerar licença" ou "Ativar agora" ao criar um cliente).
+      </p>
+
+      <div>
+        <label for="ativar-url" class="text-[10px] font-black uppercase tracking-widest text-neutral-500 block mb-2">Endereço do backend da instalação</label>
+        <input id="ativar-url" type="text" value="localhost:3001" placeholder="Ex: https://192.168.1.50:3001"
+          class="w-full h-12 px-4 rounded-2xl bg-neutral-800 border border-neutral-700 text-white text-sm font-mono outline-none focus:border-green-500" />
+      </div>
+
+      <div>
+        <label for="ativar-chave" class="text-[10px] font-black uppercase tracking-widest text-neutral-500 block mb-2">Cole a chave de licença</label>
+        <textarea id="ativar-chave" placeholder="Cole a chave aqui..."
+          class="w-full h-28 p-4 rounded-2xl bg-neutral-800 border border-neutral-700 text-white text-xs font-mono outline-none focus:border-green-500 resize-none"></textarea>
+      </div>
+
+      <button id="btn-ativar"
+        class="w-full h-12 rounded-2xl bg-green-600 hover:bg-green-500 text-white text-sm font-black uppercase tracking-widest transition-all active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2">
+        <i data-lucide="zap" class="w-4 h-4"></i> Ativar sistema agora
+      </button>
+    </div>
+  </main>
+
+  <script src="/ativar.js"></script>
+  <script src="/gerador.js"></script>
+</body>
+</html>

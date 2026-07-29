@@ -48,10 +48,12 @@ router.get('/', async (req, res) => {
   }
 })
 
-// POST /api/clientes — cria cliente + gera token (retornado uma única vez)
+// POST /api/clientes — cria cliente + gera token (retornado uma única vez).
+// Se vier "dias", já gera a licença junto (mesmo passo), em vez de exigir
+// um segundo clique em "Gerar licença" depois.
 router.post('/', async (req, res) => {
   try {
-    const { nome_fantasia, contato } = req.body
+    const { nome_fantasia, contato, dias } = req.body
     if (!nome_fantasia || !nome_fantasia.trim()) {
       return res.status(400).json({ error: 'Informe o nome do cliente' })
     }
@@ -64,7 +66,27 @@ router.post('/', async (req, res) => {
       [nome_fantasia.trim(), contato?.trim() || null, tokenHash]
     )
 
-    return res.json({ success: true, id: resultado.insertId, syncToken: tokenBruto })
+    const resposta = { success: true, id: resultado.insertId, syncToken: tokenBruto }
+
+    const diasNum = Number(dias)
+    if (diasNum > 0) {
+      if (!process.env.RESTAURANT_LICENSE_SECRET) {
+        return res.status(500).json({ error: 'Cliente criado, mas RESTAURANT_LICENSE_SECRET não configurado no .env da central — gere a licença separadamente' })
+      }
+
+      const chave = gerarChaveAtivacao(nome_fantasia.trim(), diasNum)
+      const expira = new Date()
+      expira.setDate(expira.getDate() + diasNum)
+      const expiraMySQL = expira.toISOString().slice(0, 19).replace('T', ' ')
+
+      await query('UPDATE clientes SET licenca_expira_em = ? WHERE id = ?', [expiraMySQL, resultado.insertId])
+
+      resposta.chave = chave
+      resposta.diasLicenca = diasNum
+      resposta.expira = expira.toISOString()
+    }
+
+    return res.json(resposta)
   } catch (error) {
     console.error('Erro ao criar cliente:', error)
     return res.status(500).json({ error: 'Erro ao criar cliente' })

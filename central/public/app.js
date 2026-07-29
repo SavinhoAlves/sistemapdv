@@ -78,12 +78,12 @@ function renderizar(clientes) {
 
     const btnStatus = status === 'ativo'
       ? `<button data-id="${c.id}" data-novo-status="suspenso"
-           class="btn-status h-7 px-2.5 rounded-xl border border-amber-900/40 text-amber-400 text-[11px] font-black hover:bg-amber-900/20 transition-all">
-           Suspender
+           class="btn-status h-7 px-2.5 rounded-xl border border-amber-900/40 text-amber-400 text-[11px] font-black hover:bg-amber-900/20 transition-all flex items-center gap-1.5">
+           <i data-lucide="pause" class="w-3 h-3"></i> Suspender
          </button>`
       : `<button data-id="${c.id}" data-novo-status="ativo"
-           class="btn-status h-7 px-2.5 rounded-xl border border-green-900/40 text-green-400 text-[11px] font-black hover:bg-green-900/20 transition-all">
-           Reativar
+           class="btn-status h-7 px-2.5 rounded-xl border border-green-900/40 text-green-400 text-[11px] font-black hover:bg-green-900/20 transition-all flex items-center gap-1.5">
+           <i data-lucide="play" class="w-3 h-3"></i> Reativar
          </button>`
 
     return `
@@ -106,12 +106,12 @@ function renderizar(clientes) {
           </div>
           <div class="flex items-center gap-2 shrink-0">
             <button data-id="${c.id}" data-nome="${escapeHtml(c.nome_fantasia)}" data-contato="${escapeHtml(c.contato || '')}"
-              class="btn-editar h-8 px-3 rounded-xl border border-neutral-700 text-xs font-black hover:bg-neutral-800 transition-all">
-              Editar
+              class="btn-editar h-8 px-3 rounded-xl border border-neutral-700 text-xs font-black hover:bg-neutral-800 transition-all flex items-center gap-1.5">
+              <i data-lucide="pencil" class="w-3 h-3"></i> Editar
             </button>
             <button data-id="${c.id}" data-nome="${escapeHtml(c.nome_fantasia)}"
-              class="btn-excluir h-8 px-3 rounded-xl border border-red-900/40 text-red-400 text-xs font-black hover:bg-red-900/20 transition-all">
-              Excluir
+              class="btn-excluir h-8 px-3 rounded-xl border border-red-900/40 text-red-400 text-xs font-black hover:bg-red-900/20 transition-all flex items-center gap-1.5">
+              <i data-lucide="trash-2" class="w-3 h-3"></i> Excluir
             </button>
           </div>
         </div>
@@ -145,15 +145,16 @@ function renderizar(clientes) {
 
           <div class="flex items-center gap-2">
             ${badgeLicenca(c.licenca_expira_em)}
-            <button data-id="${c.id}" data-nome="${escapeHtml(c.nome_fantasia)}"
-              class="btn-licenca h-7 px-2.5 rounded-xl border border-neutral-700 text-[11px] font-black hover:bg-neutral-800 transition-all">
-              ${c.licenca_expira_em ? 'Renovar' : 'Gerar licença'}
+            <button data-id="${c.id}" data-nome="${escapeHtml(c.nome_fantasia)}" data-renovar="${c.licenca_expira_em ? '1' : '0'}"
+              class="btn-licenca h-7 px-2.5 rounded-xl border border-neutral-700 text-[11px] font-black hover:bg-neutral-800 transition-all flex items-center gap-1.5">
+              <i data-lucide="key-round" class="w-3 h-3"></i> ${c.licenca_expira_em ? 'Renovar' : 'Gerar licença'}
             </button>
           </div>
 
           <div class="w-px h-4 bg-neutral-800"></div>
 
           <div class="flex items-center gap-2">
+            <i data-lucide="smartphone" class="w-3 h-3 text-neutral-500"></i>
             <span class="text-[10px] uppercase tracking-widest text-neutral-500 font-black">Venda mobile</span>
             <button data-id="${c.id}" data-permitido="${c.venda_mobile_permitida}"
               class="toggle-mobile shrink-0 w-10 h-5 rounded-full transition-all relative ${c.venda_mobile_permitida ? 'bg-orange-500' : 'bg-neutral-700'}">
@@ -164,8 +165,8 @@ function renderizar(clientes) {
           <div class="w-px h-4 bg-neutral-800"></div>
 
           <button data-id="${c.id}" data-nome="${escapeHtml(c.nome_fantasia)}"
-            class="btn-reset-token h-7 px-2.5 rounded-xl border border-neutral-700 text-[11px] font-black hover:bg-neutral-800 transition-all">
-            Resetar token
+            class="btn-reset-token h-7 px-2.5 rounded-xl border border-neutral-700 text-[11px] font-black hover:bg-neutral-800 transition-all flex items-center gap-1.5">
+            <i data-lucide="refresh-cw" class="w-3 h-3"></i> Resetar token
           </button>
 
           ${btnStatus}
@@ -174,6 +175,8 @@ function renderizar(clientes) {
       </div>
     `
   }).join('')
+
+  if (window.lucide) lucide.createIcons()
 
   // Toggle venda mobile
   document.querySelectorAll('.toggle-mobile').forEach(btn => {
@@ -196,7 +199,7 @@ function renderizar(clientes) {
 
   // Licença
   document.querySelectorAll('.btn-licenca').forEach(btn => {
-    btn.addEventListener('click', () => abrirModalLicenca(btn.dataset.id, btn.dataset.nome))
+    btn.addEventListener('click', () => abrirModalLicenca(btn.dataset.id, btn.dataset.nome, btn.dataset.renovar === '1'))
   })
 
   // Editar
@@ -254,25 +257,65 @@ const modalNovo = document.getElementById('modal-novo')
 document.getElementById('btn-novo').addEventListener('click', () => {
   document.getElementById('novo-nome').value = ''
   document.getElementById('novo-contato').value = ''
+  document.getElementById('novo-dias').value = '30'
+  document.querySelectorAll('.novo-dias-preset').forEach(b => b.classList.remove('bg-orange-500', 'border-orange-500'))
   modalNovo.classList.remove('hidden')
 })
 document.getElementById('btn-cancelar-novo').addEventListener('click', () => modalNovo.classList.add('hidden'))
+
+document.querySelectorAll('.novo-dias-preset').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.getElementById('novo-dias').value = btn.dataset.dias
+    document.querySelectorAll('.novo-dias-preset').forEach(b => b.classList.remove('bg-orange-500', 'border-orange-500'))
+    btn.classList.add('bg-orange-500', 'border-orange-500')
+  })
+})
+
 document.getElementById('btn-criar').addEventListener('click', async () => {
   const nome_fantasia = document.getElementById('novo-nome').value.trim()
   const contato = document.getElementById('novo-contato').value.trim()
+  const dias = Number(document.getElementById('novo-dias').value)
   if (!nome_fantasia) return
 
-  const resp = await fetch('/api/clientes', { method: 'POST', headers, body: JSON.stringify({ nome_fantasia, contato }) })
+  const resp = await fetch('/api/clientes', { method: 'POST', headers, body: JSON.stringify({ nome_fantasia, contato, dias }) })
   const dados = await resp.json()
   if (!resp.ok) { alert(dados.error || 'Erro ao criar cliente'); return }
 
   modalNovo.classList.add('hidden')
   document.getElementById('token-gerado').textContent = dados.syncToken
+
+  const blocoLicenca = document.getElementById('token-licenca-bloco')
+  if (dados.chave) {
+    document.getElementById('token-chave').textContent = dados.chave
+    const exp = new Date(dados.expira)
+    document.getElementById('token-chave-expira').textContent =
+      `Válida até ${exp.toLocaleDateString('pt-BR')} (${dados.diasLicenca} dias)`
+    document.getElementById('token-ativar-url').value = 'localhost:3001'
+    blocoLicenca.classList.remove('hidden')
+  } else {
+    blocoLicenca.classList.add('hidden')
+  }
+
   document.getElementById('modal-token').classList.remove('hidden')
   await carregarClientes()
 })
 document.getElementById('btn-fechar-token').addEventListener('click', () => {
   document.getElementById('modal-token').classList.add('hidden')
+})
+document.getElementById('btn-copiar-token').addEventListener('click', (e) => {
+  copiarTexto(document.getElementById('token-gerado').textContent, e.currentTarget)
+})
+document.getElementById('btn-copiar-token-chave').addEventListener('click', (e) => {
+  copiarTexto(document.getElementById('token-chave').textContent, e.currentTarget)
+})
+
+// Ativa a licença recém-gerada direto na instalação, sem precisar copiar
+// pro gerador.html (ativarLicencaRemota está em ativar.js, compartilhada
+// com gerador.js e com o botão de renovar licença acima)
+document.getElementById('btn-token-ativar').addEventListener('click', (e) => {
+  const url   = document.getElementById('token-ativar-url').value
+  const chave = document.getElementById('token-chave').textContent
+  ativarLicencaRemota(url, chave, e.currentTarget)
 })
 
 // ── Modal: Licença ──
@@ -281,8 +324,9 @@ const modalLicenca = document.getElementById('modal-licenca')
 const modalChave   = document.getElementById('modal-chave')
 let clienteLicencaId = null
 
-function abrirModalLicenca(id, nome) {
+function abrirModalLicenca(id, nome, renovar) {
   clienteLicencaId = id
+  document.getElementById('licenca-titulo').textContent = renovar ? 'Renovar licença' : 'Gerar licença'
   document.getElementById('licenca-cliente-nome').textContent = nome
   document.getElementById('licenca-dias').value = ''
   document.querySelectorAll('.dias-preset').forEach(b => b.classList.remove('bg-orange-500', 'border-orange-500'))
@@ -309,6 +353,7 @@ document.getElementById('btn-gerar-licenca').addEventListener('click', async () 
 
   modalLicenca.classList.add('hidden')
   document.getElementById('chave-gerada').textContent = dados.chave
+  document.getElementById('chave-ativar-url').value = 'localhost:3001'
 
   if (dados.expira) {
     const exp = new Date(dados.expira)
@@ -320,6 +365,14 @@ document.getElementById('btn-gerar-licenca').addEventListener('click', async () 
   await carregarClientes()
 })
 document.getElementById('btn-fechar-chave').addEventListener('click', () => modalChave.classList.add('hidden'))
+document.getElementById('btn-copiar-chave-modal').addEventListener('click', (e) => {
+  copiarTexto(document.getElementById('chave-gerada').textContent, e.currentTarget)
+})
+document.getElementById('btn-chave-ativar').addEventListener('click', (e) => {
+  const url   = document.getElementById('chave-ativar-url').value
+  const chave = document.getElementById('chave-gerada').textContent
+  ativarLicencaRemota(url, chave, e.currentTarget)
+})
 
 // ── Modal: Editar cliente ──
 
@@ -374,6 +427,9 @@ document.getElementById('btn-confirmar-reset').addEventListener('click', async (
 })
 document.getElementById('btn-fechar-reset').addEventListener('click', () => {
   document.getElementById('modal-reset').classList.add('hidden')
+})
+document.getElementById('btn-copiar-reset').addEventListener('click', (e) => {
+  copiarTexto(document.getElementById('reset-token-gerado').textContent, e.currentTarget)
 })
 
 // ── Init ──

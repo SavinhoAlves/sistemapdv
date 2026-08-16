@@ -283,20 +283,25 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { storeToRefs } from 'pinia'
 import { Search, Plus, Package, LayoutGrid, List, Boxes, TriangleAlert } from 'lucide-vue-next'
 import Navbar from '~/layouts/Navbar.vue'
 import Sidebar from '~/components/Sidebar.vue'
 import ModalProduto from '@/components/modals/ModalProduto.vue'
 import ModalEstoque from '@/components/modals/ModalEstoque.vue'
 import { useApi } from '~/services/api'
-import { useToastStore } from '~/stores/toast'
+import { useToastStore }        from '~/stores/toast'
+import { useProdutosStore }     from '~/stores/produtos'
+import { useCarrinhoVendaStore } from '~/stores/carrinhoVenda'
 
 definePageMeta({ layout: false })
 
-const api = useApi()
-const toastStore = useToastStore()
+const api            = useApi()
+const toastStore     = useToastStore()
+const produtosStore  = useProdutosStore()
+const carrinhoStore  = useCarrinhoVendaStore()
 
-const produtos = ref<any[]>([])
+const { lista: produtos } = storeToRefs(produtosStore)
 const loading = ref(false)
 const busca = ref('')
 const showModal = ref(false)
@@ -354,6 +359,11 @@ async function listarProdutos() {
   try {
     const data = await api.get<any[]>('/produtos')
     produtos.value = Array.isArray(data) ? data : []
+    // Re-aplica reservas do carrinho de venda direta
+    for (const item of carrinhoStore.itens) {
+      const prod = produtos.value.find((p: any) => p.id === item.produto_id)
+      if (prod?.gerenciar_estoque) prod.estoque_atual = Math.max(0, prod.estoque_atual - item.quantidade)
+    }
   } catch (err) {
     toastStore.error('Erro ao carregar produtos')
   } finally {

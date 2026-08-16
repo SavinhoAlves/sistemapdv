@@ -46,8 +46,12 @@
               class="absolute top-1.5 right-1.5 text-[9px] font-black bg-red-500/15 text-red-400 px-1.5 py-0.5 rounded-md leading-none"
             >Esgotado</span>
             <span
-              v-else-if="p.gerenciar_estoque && p.estoque_minimo > 0 && p.estoque_atual <= p.estoque_minimo"
+              v-else-if="p.gerenciar_estoque && p.estoque_atual <= p.estoque_minimo"
               class="absolute top-1.5 right-1.5 text-[9px] font-black bg-amber-500/15 text-amber-400 px-1.5 py-0.5 rounded-md leading-none"
+            >{{ p.estoque_atual }} un.</span>
+            <span
+              v-else-if="p.gerenciar_estoque"
+              class="absolute top-1.5 right-1.5 text-[9px] font-black bg-white/10 text-gray-400 dark:text-white/30 px-1.5 py-0.5 rounded-md leading-none"
             >{{ p.estoque_atual }} un.</span>
 
             <div class="w-8 h-8 rounded-xl bg-orange-500/10 flex items-center justify-center mb-2.5">
@@ -92,7 +96,7 @@
           </div>
 
           <div class="flex items-center gap-1.5 shrink-0 mt-0.5">
-            <button v-if="carrinho.length" @click="carrinho = []"
+            <button v-if="carrinho.length" @click="limparCarrinho"
               class="h-9 px-3 rounded-xl text-[10px] font-black uppercase tracking-wide text-red-400 hover:bg-red-500/10 transition-all">
               Limpar
             </button>
@@ -138,16 +142,6 @@
       <!-- FOOTER: TOTAIS + PAGAMENTO -->
       <div class="border-t border-gray-100 dark:border-white/[0.06] p-3 space-y-3 shrink-0">
 
-        <!-- DESCONTO -->
-        <div class="flex items-center gap-2">
-          <label for="desconto-venda" class="text-[10px] font-black uppercase tracking-widest text-gray-500 dark:text-white/40 shrink-0">Desconto R$</label>
-          <input
-            id="desconto-venda" name="desconto-venda"
-            v-model="desconto" type="number" min="0" step="0.01" placeholder="0,00"
-            class="flex-1 h-8 px-2 bg-gray-50 dark:bg-white/[0.06] border border-gray-200 dark:border-white/10 rounded-xl text-xs font-bold text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-white/25 outline-none focus:border-orange-400/70 transition-all text-right"
-          />
-        </div>
-
         <!-- TOTAIS -->
         <div class="bg-gray-50 dark:bg-white/5 rounded-xl p-2.5 space-y-1">
           <div class="flex justify-between text-[11px] text-gray-500 dark:text-white/40">
@@ -159,6 +153,16 @@
           <div class="flex justify-between text-sm font-black text-gray-900 dark:text-white pt-1 border-t border-gray-100 dark:border-white/[0.06]">
             <span>Total</span><span>R$ {{ fmt(total) }}</span>
           </div>
+        </div>
+
+        <!-- DESCONTO -->
+        <div class="flex items-center gap-2">
+          <label for="desconto-venda" class="text-[10px] font-black uppercase tracking-widest text-gray-500 dark:text-white/40 shrink-0">Desconto R$</label>
+          <input
+            id="desconto-venda" name="desconto-venda"
+            v-model="desconto" type="number" min="0" step="0.01" placeholder="0,00"
+            class="flex-1 h-8 px-2 bg-gray-50 dark:bg-white/[0.06] border border-gray-200 dark:border-white/10 rounded-xl text-xs font-bold text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-white/25 outline-none focus:border-orange-400/70 transition-all text-right"
+          />
         </div>
 
         <!-- MÉTODO DE PAGAMENTO -->
@@ -310,38 +314,34 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { storeToRefs } from 'pinia'
 import {
   Package, ShoppingCart, Plus, Minus, CheckCircle2, Loader2,
   Printer, Search, X, UtensilsCrossed
 } from 'lucide-vue-next'
 import { useApi } from '~/services/api'
-import { useCaixaStore }  from '~/stores/caixa'
-import { useToastStore }  from '~/stores/toast'
-import { useConfigStore } from '~/stores/configuracoes'
+import { useCaixaStore }        from '~/stores/caixa'
+import { useToastStore }        from '~/stores/toast'
+import { useConfigStore }       from '~/stores/configuracoes'
+import { useCarrinhoVendaStore } from '~/stores/carrinhoVenda'
+import { useProdutosStore, type Produto } from '~/stores/produtos'
 import { iconeMetodo } from '~/composables/useIconeMetodo'
 
 const emit = defineEmits(['venda-registrada'])
 
-const api         = useApi()
-const caixaStore  = useCaixaStore()
-const toastStore  = useToastStore()
-const configStore = useConfigStore()
+const api              = useApi()
+const caixaStore       = useCaixaStore()
+const toastStore       = useToastStore()
+const configStore      = useConfigStore()
+const carrinhoStore = useCarrinhoVendaStore()
+const produtosStore = useProdutosStore()
+
+const { itens: carrinho, desconto, metodoSelecionado, valorRecebido } = storeToRefs(carrinhoStore)
+const { lista: todosProdutos } = storeToRefs(produtosStore)
 
 const carrinhoAberto = ref(false)
 
 // ══ PRODUTOS ══
-interface Produto {
-  id: number
-  nome: string
-  preco: number
-  categoria: string | null
-  categoria_id: number | null
-  ativo: number
-  gerenciar_estoque: number
-  estoque_atual: number
-  estoque_minimo: number
-}
-const todosProdutos   = ref<Produto[]>([])
 const categorias      = ref<string[]>([])
 const categoriaAtiva  = ref('Todos')
 const busca           = ref('')
@@ -358,41 +358,55 @@ const produtosFiltrados = computed(() => {
 
 // ══ CARRINHO ══
 interface CartItem { produto_id: number; nome_produto: string; preco_unit: number; quantidade: number }
-const carrinho = ref<CartItem[]>([])
 
 function adicionarAoCarrinho(p: Produto) {
-  const idx = carrinho.value.findIndex(i => i.produto_id === p.id)
-  const qtdNoCarrinho = idx >= 0 ? carrinho.value[idx].quantidade : 0
-
-  if (p.gerenciar_estoque) {
-    if (p.estoque_atual <= 0) {
-      toastStore.warning(`${p.nome} está sem estoque`)
-      return
-    }
-    if (qtdNoCarrinho >= p.estoque_atual) {
-      toastStore.warning(`Estoque insuficiente — disponível: ${p.estoque_atual}`)
-      return
-    }
+  if (p.gerenciar_estoque && p.estoque_atual <= 0) {
+    toastStore.warning(`${p.nome} está sem estoque`)
+    return
   }
 
+  const idx = carrinho.value.findIndex(i => i.produto_id === p.id)
   if (idx >= 0) {
     carrinho.value[idx].quantidade++
   } else {
     carrinho.value.push({ produto_id: p.id, nome_produto: p.nome, preco_unit: Number(p.preco), quantidade: 1 })
   }
+
+  if (p.gerenciar_estoque) p.estoque_atual--
 }
-function incrementar(idx: number) { carrinho.value[idx].quantidade++ }
+
+function incrementar(idx: number) {
+  const item = carrinho.value[idx]
+  const prod = todosProdutos.value.find(p => p.id === item.produto_id)
+  if (prod?.gerenciar_estoque) {
+    if (prod.estoque_atual <= 0) {
+      toastStore.warning(`Estoque insuficiente`)
+      return
+    }
+    prod.estoque_atual--
+  }
+  item.quantidade++
+}
+
 function decrementar(idx: number) {
-  if (carrinho.value[idx].quantidade <= 1) carrinho.value.splice(idx, 1)
-  else carrinho.value[idx].quantidade--
+  const item = carrinho.value[idx]
+  const prod = todosProdutos.value.find(p => p.id === item.produto_id)
+  if (prod?.gerenciar_estoque) prod.estoque_atual++
+  if (item.quantidade <= 1) carrinho.value.splice(idx, 1)
+  else item.quantidade--
+}
+
+function limparCarrinho() {
+  for (const item of carrinho.value) {
+    const prod = todosProdutos.value.find(p => p.id === item.produto_id)
+    if (prod?.gerenciar_estoque) prod.estoque_atual += item.quantidade
+  }
+  carrinho.value = []
 }
 
 // ══ PAGAMENTO ══
-const desconto          = ref('')
-const metodoSelecionado = ref<any>(null)
-const valorRecebido     = ref('')
-const metodos           = ref<any[]>([])
-const processando       = ref(false)
+const metodos     = ref<any[]>([])
+const processando = ref(false)
 
 const subtotal       = computed(() => carrinho.value.reduce((s, i) => s + i.preco_unit * i.quantidade, 0))
 const descontoNum    = computed(() => Math.min(Math.max(Number(desconto.value) || 0, 0), subtotal.value))
@@ -419,10 +433,7 @@ async function confirmarVenda() {
       valor_pago: metodoSelecionado.value.nome === 'Dinheiro' ? valorRecebidoNum.value : total.value
     })
     fichaAtual.value = resp.ficha
-    carrinho.value = []
-    desconto.value = ''
-    metodoSelecionado.value = null
-    valorRecebido.value = ''
+    carrinhoStore.limpar()
     carrinhoAberto.value = false
     await Promise.all([sincronizarCaixa(), carregarProdutos()])
     emit('venda-registrada')
@@ -556,9 +567,14 @@ async function sincronizarCaixa() {
 async function carregarProdutos() {
   try {
     const rows = await api.get<Produto[]>('/produtos')
-    todosProdutos.value = Array.isArray(rows) ? rows.filter(p => p.ativo) : []
-    const cats = [...new Set(todosProdutos.value.map(p => p.categoria).filter(Boolean))] as string[]
+    todosProdutos.value = Array.isArray(rows) ? rows : []
+    const cats = [...new Set(todosProdutos.value.filter(p => p.ativo).map(p => p.categoria).filter(Boolean))] as string[]
     categorias.value = cats.sort()
+    // Aplica reservas do carrinho persistido sobre o estoque recém-carregado
+    for (const item of carrinho.value) {
+      const prod = todosProdutos.value.find(p => p.id === item.produto_id)
+      if (prod?.gerenciar_estoque) prod.estoque_atual = Math.max(0, prod.estoque_atual - item.quantidade)
+    }
   } catch {}
 }
 

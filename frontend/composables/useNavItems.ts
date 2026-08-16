@@ -4,7 +4,6 @@ import {
   FileText, ShieldCheck, Settings, ChefHat
 } from 'lucide-vue-next'
 import { useAuthStore } from '~/stores/auth'
-import { useConfigStore } from '~/stores/configuracoes'
 
 export interface NavItem {
   rota: string
@@ -24,15 +23,9 @@ const MAPA_PERMISSOES: { perms: string[], rota: string, label: string, icon: any
 ]
 
 export function useNavItems() {
-  const authStore   = useAuthStore()
-  const configStore = useConfigStore()
+  const authStore = useAuthStore()
 
-  const navItems = computed<NavItem[]>(() => {
-    const itens = calcularItens()
-    return configStore.venda_mobile_permitida
-      ? itens
-      : itens.filter(item => item.rota !== '/vendas')
-  })
+  const navItems = computed<NavItem[]>(() => calcularItens())
 
   function calcularItens(): NavItem[] {
     const cargo      = authStore.usuario?.cargo

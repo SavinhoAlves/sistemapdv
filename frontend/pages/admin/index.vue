@@ -127,10 +127,17 @@
       <div v-else-if="abaAtiva === 'perfis'">
         <div class="flex items-center justify-between mb-4">
           <p class="text-sm text-gray-500 dark:text-white/50">{{ perfis.length }} perfil(s)</p>
-          <button @click="abrirModalPerfil(null)"
-            class="h-9 px-4 rounded-xl bg-orange-500 hover:bg-orange-600 active:scale-95 text-white text-xs font-black transition-all flex items-center gap-1.5">
-            <Plus :size="13" /> Novo Perfil
-          </button>
+          <div class="flex items-center gap-2">
+            <button v-if="perfis.length" @click="autoAtribuirPerfis" :disabled="atribuindo"
+              class="h-9 px-4 rounded-xl border border-orange-500/30 text-orange-500 dark:text-orange-400 text-xs font-black hover:bg-orange-500/10 disabled:opacity-50 transition-all flex items-center gap-1.5">
+              <Users :size="13" />
+              {{ atribuindo ? 'Atribuindo…' : 'Atribuir por cargo' }}
+            </button>
+            <button @click="abrirModalPerfil(null)"
+              class="h-9 px-4 rounded-xl bg-orange-500 hover:bg-orange-600 active:scale-95 text-white text-xs font-black transition-all flex items-center gap-1.5">
+              <Plus :size="13" /> Novo Perfil
+            </button>
+          </div>
         </div>
 
         <div v-if="!perfis.length" class="bg-white dark:bg-white/5 border border-gray-200 dark:border-white/[0.08] rounded-2xl p-8 text-center">
@@ -591,6 +598,24 @@ async function seedPerfis() {
     await carregarPerfis()
   } catch (e: any) { toastStore.error(e?.message || 'Erro ao criar perfis padrão') }
   finally { seedando.value = false }
+}
+
+const atribuindo = ref(false)
+async function autoAtribuirPerfis() {
+  if (!confirm('Atribuir automaticamente o perfil padrão a todos os funcionários sem perfil, de acordo com o cargo?\n\nAdministradores são ignorados.')) return
+  atribuindo.value = true
+  try {
+    const res = await api.post<any>('/perfis/auto-atribuir')
+    const aviso = res.perfisFaltando?.length
+      ? ` (perfis não encontrados: ${res.perfisFaltando.join(', ')})`
+      : ''
+    toastStore.success('Perfis atribuídos!', `${res.atualizados} funcionário(s) atualizado(s)${aviso}`)
+    await carregarFuncionarios()
+  } catch (e: any) {
+    toastStore.error(e?.message || 'Erro ao atribuir perfis')
+  } finally {
+    atribuindo.value = false
+  }
 }
 
 // ── Categorias ────────────────────────────────

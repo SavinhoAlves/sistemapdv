@@ -1,30 +1,26 @@
-// Só /ativacao escapa da checagem — nem /login nem /admin/login, para que
-// um sistema sem licença válida seja bloqueado antes mesmo do formulário
-// de login aparecer (este middleware roda primeiro por causa do prefixo
-// numérico "00." no nome do arquivo).
 const ROTAS_LIVRES = ['/ativacao']
-
-// Cache simples: só reverifica a cada 5 minutos
-let cacheValido: boolean | null = null
-let cacheTs = 0
 const CACHE_TTL = 5 * 60 * 1000
 
 export default defineNuxtRouteMiddleware(async (to) => {
   if (ROTAS_LIVRES.some(r => to.path.startsWith(r))) return
   if (!process.client) return
 
+  const cache = useState<{ valido: boolean | null; ts: number }>(
+    'licenca_cache',
+    () => ({ valido: null, ts: 0 })
+  )
+
   const agora = Date.now()
-  if (cacheValido !== null && agora - cacheTs < CACHE_TTL) {
-    if (!cacheValido) return navigateTo('/ativacao')
+  if (cache.value.valido !== null && agora - cache.value.ts < CACHE_TTL) {
+    if (!cache.value.valido) return navigateTo('/ativacao')
     return
   }
 
   const config = useRuntimeConfig()
   try {
     const res = await $fetch<any>(`${config.public.apiUrl}/api/sistema/status-licenca`)
-    cacheValido = !!(res.ativo && !res.expirado && !res.semLicenca)
-    cacheTs = agora
-    if (!cacheValido) return navigateTo('/ativacao')
+    cache.value = { valido: !!(res.ativo && !res.expirado && !res.semLicenca), ts: agora }
+    if (!cache.value.valido) return navigateTo('/ativacao')
   } catch {
     // Backend indisponível — deixa passar para não travar o sistema
   }

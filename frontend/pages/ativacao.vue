@@ -36,10 +36,10 @@
             <span class="font-bold text-gray-700 dark:text-white/80">{{ fmtData(status.dataVencimento) }}</span>
             <span class="ml-1 text-green-500 font-bold">({{ status.diasRestantes }} dia(s))</span>
           </p>
-          <NuxtLink to="/"
+          <button @click="irParaSistema"
             class="mt-3 h-10 px-6 rounded-2xl bg-orange-500 hover:bg-orange-400 active:scale-95 text-white text-xs font-black uppercase tracking-widest transition-all flex items-center gap-2">
             Ir para o sistema →
-          </NuxtLink>
+          </button>
 
           <!-- Reativação com nova chave (colapsável) -->
           <div class="w-full mt-1">
@@ -169,6 +169,15 @@ const ativando     = ref(false)
 const erroAtivacao = ref('')
 const verificando       = ref(false)
 const mostrarReativacao = ref(false)
+
+function irParaSistema() {
+  const cache = useState<{ valido: boolean | null; ts: number }>(
+    'licenca_cache',
+    () => ({ valido: null, ts: 0 })
+  )
+  cache.value = { valido: true, ts: Date.now() }
+  useRouter().push('/')
+}
 
 function fmtData(iso: string) {
   if (!iso) return '—'

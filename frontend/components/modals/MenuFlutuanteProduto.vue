@@ -6,44 +6,43 @@
         :style="posicao"
         class="fixed z-[9999] pointer-events-auto select-none"
       >
-        <div class="w-48 bg-white rounded-2xl shadow-2xl border border-neutral-100 overflow-hidden">
+        <div class="relative w-52 bg-white dark:bg-neutral-900/95 backdrop-blur-2xl rounded-2xl border border-gray-200 dark:border-white/[0.08] overflow-hidden shadow-2xl shadow-black/60">
+
+          <!-- shimmer top -->
+          <div class="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-white/[0.15] to-transparent"></div>
 
           <!-- QUANTIDADE -->
-          <div class="flex items-center justify-between px-4 py-3 bg-neutral-50 border-b border-neutral-100">
-            <span class="text-[10px] font-black uppercase tracking-widest text-neutral-400">
-              Quantidade
-            </span>
-            <span class="text-2xl font-black text-neutral-900 leading-none">
-              {{ quantidade }}
-            </span>
+          <div class="flex items-center justify-between px-4 py-3.5 border-b border-gray-100 dark:border-white/[0.06]">
+            <span class="text-[9px] font-black uppercase tracking-widest text-gray-400 dark:text-white/30">Quantidade</span>
+            <span class="text-3xl font-black text-gray-900 dark:text-white leading-none tabular-nums">{{ quantidade }}</span>
           </div>
 
           <!-- + / - -->
-          <div class="grid grid-cols-2 divide-x divide-neutral-100">
+          <div class="grid grid-cols-2 divide-x divide-gray-100 dark:divide-white/[0.06]">
             <button
               @click="$emit('remover')"
-              class="h-14 flex flex-col items-center justify-center gap-1 hover:bg-orange-50 active:scale-95 transition-all text-orange-500"
+              class="h-16 flex flex-col items-center justify-center gap-1.5 hover:bg-red-500/10 active:scale-95 transition-all text-gray-400 dark:text-white/50 hover:text-red-400"
             >
-              <MinusCircle :size="22" stroke-width="1.5" />
+              <MinusCircle :size="24" stroke-width="1.5" />
               <span class="text-[9px] font-black uppercase tracking-wider">Remover</span>
             </button>
 
             <button
               @click="$emit('adicionar')"
-              class="h-14 flex flex-col items-center justify-center gap-1 hover:bg-green-50 active:scale-95 transition-all text-green-600"
+              class="h-16 flex flex-col items-center justify-center gap-1.5 hover:bg-green-500/10 active:scale-95 transition-all text-gray-400 dark:text-white/50 hover:text-green-400"
             >
-              <PlusCircle :size="22" stroke-width="1.5" />
+              <PlusCircle :size="24" stroke-width="1.5" />
               <span class="text-[9px] font-black uppercase tracking-wider">Adicionar</span>
             </button>
           </div>
 
           <!-- REIMPRIMIR FICHA -->
-          <div class="border-t border-neutral-100">
+          <div class="border-t border-gray-100 dark:border-white/[0.06]">
             <button
               @click="$emit('reimprimir')"
-              class="w-full h-11 flex items-center justify-center gap-2 hover:bg-blue-50 active:scale-95 transition-all text-blue-600"
+              class="w-full h-11 flex items-center justify-center gap-2 hover:bg-blue-500/10 active:scale-95 transition-all text-gray-400 dark:text-white/40 hover:text-blue-400"
             >
-              <Printer :size="16" stroke-width="1.5" />
+              <Printer :size="15" stroke-width="1.5" />
               <span class="text-[10px] font-black uppercase tracking-wider">Reimprimir ficha</span>
             </button>
           </div>
@@ -53,7 +52,7 @@
         <!-- SETA APONTANDO PARA A DIREITA -->
         <div
           :style="{ top: `${alturaFlecha}px` }"
-          class="absolute right-[-7px] w-3.5 h-3.5 bg-white border-r border-t border-neutral-100 rotate-45 shadow-sm"
+          class="absolute right-[-7px] w-3.5 h-3.5 bg-white dark:bg-neutral-900 border-r border-t border-gray-200 dark:border-white/[0.08] rotate-45 shadow-sm"
         />
       </div>
     </Transition>

@@ -1,12 +1,36 @@
-const express = require('express')
-const path = require('path')
-const cors = require('cors')
+const express    = require('express')
+const path       = require('path')
+const cors       = require('cors')
+const helmet     = require('helmet')
+const rateLimit  = require('express-rate-limit')
 require('dotenv').config()
 
 const app = express()
 
-app.use(cors({ origin: true, credentials: true }))
+app.use(helmet({ contentSecurityPolicy: false }))
+app.use(cors({
+  origin: process.env.CORS_ORIGIN || true,
+  credentials: true
+}))
 app.use(express.json())
+
+const limiterGeral = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 200,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Muitas requisições. Tente novamente em alguns minutos.' }
+})
+const limiterAuth = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Muitas tentativas de login. Tente novamente em 15 minutos.' }
+})
+
+app.use('/api', limiterGeral)
+app.use('/api/auth', limiterAuth)
 app.use(express.static(path.join(__dirname, 'public')))
 
 app.use('/api/auth', require('./src/routes/auth.routes'))

@@ -3,36 +3,32 @@
 
     <aside
       v-if="modelValue"
-      class="fixed right-0 top-0 w-full lg:w-[420px] h-screen bg-white dark:bg-neutral-900 border-l border-neutral-200 dark:border-neutral-800 shadow-2xl flex flex-col overflow-hidden z-30"
+      class="fixed right-0 top-0 w-full lg:w-[420px] h-screen bg-white dark:bg-neutral-900/95 backdrop-blur-2xl border-l border-gray-200 dark:border-white/[0.08] shadow-2xl flex flex-col overflow-hidden z-30"
     >
 
       <!-- HEADER -->
-      <div class="p-6 border-b border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 shrink-0">
-        <div class="flex items-start justify-between">
-          <div>
-            
-            <p class="text-[10px] font-black uppercase tracking-widest text-orange-400 dark:text-orange-500 mb-0.5">
-              {{ mesa?.nome_mesa || `Mesa ${mesa?.id}` }}
-            </p>
-            <h2 class="text-2xl font-black text-neutral-900 dark:text-white">
-              {{ mesa?.cliente || 'Sem cliente' }}
-            </h2>
-            <p class="text-xs text-neutral-400 mt-1 leading-relaxed">
-              <template v-if="modoSelecao">
-                {{ selecionados.size }} item(s) selecionado(s)
-              </template>
-              <template v-else>
-                Segure para opções · Deslize ← para remover
-              </template>
-            </p>
-          </div>
+      <div class="shrink-0">
+        <!-- accent top -->
+        <div class="h-1 bg-gradient-to-r from-orange-500 to-amber-500"></div>
+        <div class="p-5 border-b border-gray-100 dark:border-white/[0.06]">
+          <div class="flex items-start justify-between gap-3">
+            <div class="min-w-0">
+              <p class="text-[10px] font-black uppercase tracking-widest text-orange-500 mb-1">
+                {{ mesa?.nome_mesa || `Mesa ${mesa?.id}` }}
+              </p>
+              <h2 class="text-xl font-black text-gray-900 dark:text-white truncate">
+                {{ mesa?.cliente || 'Sem cliente' }}
+              </h2>
+              <p class="text-xs text-gray-500 dark:text-white/40 mt-1">Segure para reimprimir · Toque no lixo para remover</p>
+            </div>
 
-          <button
-            @click="fechar"
-            class="w-10 h-10 rounded-xl bg-neutral-100 dark:bg-neutral-800 hover:bg-red-50 dark:hover:bg-red-900/30 hover:text-red-500 transition-all flex items-center justify-center shrink-0 mt-0.5"
-          >
-            <X :size="18" />
-          </button>
+            <button
+              @click="fechar"
+              class="w-9 h-9 rounded-xl bg-gray-100 dark:bg-white/[0.06] hover:bg-red-500/10 hover:text-red-400 text-gray-500 dark:text-white/50 transition-all flex items-center justify-center shrink-0"
+            >
+              <X :size="16" />
+            </button>
+          </div>
         </div>
       </div>
 
@@ -40,7 +36,6 @@
       <div
         ref="listaRef"
         class="flex-1 overflow-y-auto overflow-x-hidden p-4 space-y-2"
-        @pointerdown.passive="onListaPointerDown"
       >
 
         <!-- LOADING -->
@@ -48,7 +43,7 @@
           <div
             v-for="n in 5"
             :key="n"
-            class="h-16 rounded-2xl bg-neutral-100 dark:bg-neutral-800 animate-pulse"
+            class="h-16 rounded-2xl bg-gray-100 dark:bg-white/5 animate-pulse"
           />
         </div>
 
@@ -58,8 +53,8 @@
           class="h-full flex items-center justify-center py-20"
         >
           <div class="text-center">
-            <h3 class="text-lg font-black text-neutral-600 dark:text-neutral-300">Nenhum produto</h3>
-            <p class="text-sm text-neutral-400 mt-1">Esta mesa não possui itens lançados</p>
+            <h3 class="text-lg font-black text-gray-500 dark:text-white/60">Nenhum produto</h3>
+            <p class="text-sm text-gray-400 dark:text-white/40 mt-1">Esta mesa não possui itens lançados</p>
           </div>
         </div>
 
@@ -69,101 +64,62 @@
           <div
             v-for="produto in produtos"
             :key="produto.id"
-            class="relative"
-            style="height: 64px"
+            class="relative rounded-2xl bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/[0.08] overflow-hidden select-none"
+            @contextmenu.prevent="(e) => onContextMenu(e, produto.id)"
+            @pointerdown="(e) => onPointerDown(e, produto.id)"
           >
+            <!-- shimmer top -->
+            <div class="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-white/[0.1] to-transparent"></div>
 
-            <!-- REVEAL: aparece por baixo do card no deslize -->
-            <div class="absolute inset-y-0 right-0 flex rounded-r-3xl overflow-hidden" style="width: 160px">
-              <button
-                @pointerdown.stop
-                @click.stop="ativarSelecao(produto.id)"
-                class="w-20 flex flex-col items-center justify-center gap-1 bg-neutral-700 hover:bg-neutral-800 active:brightness-90 text-white transition-colors"
-              >
-                <CheckSquare :size="15" />
-                <span class="text-[9px] font-black uppercase tracking-wide leading-none">Selecionar</span>
-              </button>
-              <button
-                @pointerdown.stop
-                @click.stop="excluirItem(produto.id)"
-                class="w-20 flex flex-col items-center justify-center gap-1 bg-red-500 hover:bg-red-600 active:brightness-90 text-white transition-colors"
-              >
-                <Trash2 :size="15" />
-                <span class="text-[9px] font-black uppercase tracking-wide leading-none">Remover</span>
-              </button>
-            </div>
+            <div class="flex items-center px-4 py-3.5 gap-3 min-h-[68px]">
 
-            <!-- CARD (deslizável) -->
-            <div
-              class="absolute inset-0 bg-white dark:bg-neutral-900 border rounded-2xl overflow-hidden will-change-transform select-none"
-              :class="[
-                modoSelecao && selecionados.has(produto.id)
-                  ? 'border-orange-400 ring-2 ring-orange-300/40'
-                  : 'border-neutral-200 dark:border-neutral-800',
-                modoSelecao ? 'cursor-pointer' : 'cursor-grab active:cursor-grabbing'
-              ]"
-              :style="{
-                transform: getTransform(produto.id),
-                transition: swipingId === produto.id ? 'none' : 'transform 0.28s cubic-bezier(0.16,1,0.3,1)',
-                zIndex: 1
-              }"
-              @pointerdown="(e) => onPointerDown(e, produto.id)"
-              @contextmenu.prevent="(e) => onContextMenu(e, produto.id)"
-              @click="onCardClick(produto)"
-            >
-              <div class="flex items-stretch h-full">
-
-                <!-- CHECKBOX (modo seleção) -->
-                <div
-                  v-if="modoSelecao"
-                  class="w-12 flex items-center justify-center border-r border-neutral-100 dark:border-neutral-800 shrink-0"
-                >
-                  <CheckSquare v-if="selecionados.has(produto.id)" :size="17" class="text-orange-500" />
-                  <Square      v-else                               :size="17" class="text-neutral-300" />
-                </div>
-
-                <!-- NOME + QTD -->
-                <div class="flex-1 min-w-0 px-4 py-3">
-                  <h3 class="text-sm font-black text-neutral-900 dark:text-white truncate">{{ produto.nome }}</h3>
-                  <span class="text-xs text-neutral-400 font-semibold block mt-0.5">
-                    × {{ produto.quantidade }}
-                  </span>
-                </div>
-
-                <!-- TOTAL -->
-                <div class="w-20 flex items-center justify-center border-l border-neutral-100 dark:border-neutral-800 shrink-0">
-                  <span class="text-xs font-black text-orange-500">
-                    R$ {{ Number(produto.total).toFixed(2) }}
-                  </span>
-                </div>
-
+              <!-- NOME + PREÇO UNIT -->
+              <div class="flex-1 min-w-0">
+                <h3 class="text-sm font-black text-gray-900 dark:text-white truncate">{{ produto.nome }}</h3>
+                <span class="text-[11px] text-gray-400 dark:text-white/30">R$ {{ Number(produto.preco_unitario).toFixed(2) }} / un</span>
               </div>
-            </div>
 
+              <!-- QUANTIDADE -->
+              <div class="flex items-center gap-1.5 shrink-0">
+                <button
+                  @click.stop="removerItem(produto)"
+                  class="w-7 h-7 rounded-lg bg-gray-100 dark:bg-white/[0.06] hover:bg-red-500/15 text-gray-400 dark:text-white/30 hover:text-red-400 flex items-center justify-center transition-all active:scale-90"
+                >
+                  <Minus :size="11" />
+                </button>
+                <span class="text-sm font-black text-gray-900 dark:text-white tabular-nums w-5 text-center">{{ produto.quantidade }}</span>
+                <button
+                  @click.stop="adicionarItem(produto)"
+                  class="w-7 h-7 rounded-lg bg-gray-100 dark:bg-white/[0.06] hover:bg-green-500/15 text-gray-400 dark:text-white/30 hover:text-green-400 flex items-center justify-center transition-all active:scale-90"
+                >
+                  <Plus :size="11" />
+                </button>
+              </div>
+
+              <!-- TOTAL -->
+              <span class="text-sm font-black text-orange-400 tabular-nums shrink-0">R$ {{ Number(produto.total).toFixed(2) }}</span>
+
+              <!-- EXCLUIR -->
+              <button
+                @click.stop="excluirItem(produto.id)"
+                class="w-7 h-7 rounded-xl bg-gray-50 dark:bg-white/[0.04] hover:bg-red-500/15 text-gray-300 dark:text-white/20 hover:text-red-400 flex items-center justify-center transition-all active:scale-90 shrink-0"
+              >
+                <Trash2 :size="12" />
+              </button>
+
+            </div>
           </div>
 
           <!-- CARDS DE ABATIMENTO (sem gestos, sem remoção) -->
           <div
             v-for="abat in abatimentos"
             :key="'abat-' + abat.id"
-            class="relative"
-            style="height: 64px"
+            class="rounded-2xl bg-purple-500/10 border border-purple-500/20 overflow-hidden"
           >
-            <div class="absolute inset-0 bg-purple-50 dark:bg-purple-950/30 border border-purple-200 dark:border-purple-900 rounded-2xl overflow-hidden">
-              <div class="flex items-stretch h-full">
-
-                <div class="flex-1 min-w-0 px-4 py-3 flex items-center gap-2">
-                  <BadgePercent :size="14" class="text-purple-500 shrink-0" />
-                  <h3 class="text-sm font-black text-purple-700 dark:text-purple-400">{{ abat.motivo || 'Abatimento' }}</h3>
-                </div>
-
-                <div class="w-20 flex items-center justify-center border-l border-purple-100 dark:border-purple-900 shrink-0">
-                  <span class="text-xs font-black text-purple-600 dark:text-purple-400">
-                    − R$ {{ Number(abat.valor).toFixed(2) }}
-                  </span>
-                </div>
-
-              </div>
+            <div class="flex items-center px-4 py-3.5 gap-3 min-h-[68px]">
+              <BadgePercent :size="14" class="text-purple-400 shrink-0" />
+              <h3 class="text-sm font-black text-purple-400 flex-1 truncate">{{ abat.motivo || 'Abatimento' }}</h3>
+              <span class="text-sm font-black text-purple-400 shrink-0">− R$ {{ Number(abat.valor).toFixed(2) }}</span>
             </div>
           </div>
 
@@ -171,30 +127,10 @@
       </div>
 
       <!-- FOOTER -->
-      <div class="border-t border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 shrink-0">
+      <div class="border-t border-gray-100 dark:border-white/[0.06] bg-gray-50/80 dark:bg-black/20 shrink-0">
 
-        <!-- MODO SELEÇÃO -->
-        <Transition name="slide-up">
-          <div v-if="modoSelecao" class="p-4 flex items-center gap-3">
-            <button
-              @click="cancelarSelecao"
-              class="flex-1 h-12 rounded-xl border border-neutral-200 dark:border-neutral-700 font-black text-sm text-neutral-600 dark:text-neutral-400 hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-all active:scale-95"
-            >
-              Cancelar
-            </button>
-            <button
-              @click="excluirSelecionados"
-              :disabled="selecionados.size === 0"
-              class="flex-1 h-12 rounded-xl bg-red-500 hover:bg-red-600 disabled:opacity-40 text-white font-black text-sm transition-all active:scale-95 flex items-center justify-center gap-2"
-            >
-              <Trash2 :size="14" />
-              Excluir{{ selecionados.size > 0 ? ` (${selecionados.size})` : '' }}
-            </button>
-          </div>
-        </Transition>
-
-        <!-- MODO NORMAL -->
-        <div v-if="!modoSelecao" class="p-5">
+        <!-- FOOTER NORMAL -->
+        <div class="p-5">
           <div v-if="desconto > 0" class="flex items-center justify-between mb-1">
             <span class="text-xs text-green-600 font-bold">Abatimento</span>
             <span class="text-sm text-green-600 font-bold">− R$ {{ desconto.toFixed(2) }}</span>
@@ -206,11 +142,11 @@
               @click="alternarTaxa"
               :disabled="alternandoTaxa || !pedidoId"
               class="flex items-center gap-1.5 text-xs font-bold transition-colors disabled:opacity-40"
-              :class="taxaPct > 0 ? 'text-blue-600 dark:text-blue-400' : 'text-neutral-400 hover:text-blue-500'"
+              :class="taxaPct > 0 ? 'text-blue-400' : 'text-gray-500 dark:text-white/40 hover:text-blue-400'"
             >
               <span
                 class="w-8 h-4.5 rounded-full relative transition-all shrink-0"
-                :class="taxaPct > 0 ? 'bg-blue-500' : 'bg-neutral-300 dark:bg-neutral-700'"
+                :class="taxaPct > 0 ? 'bg-blue-500' : 'bg-gray-200 dark:bg-white/10'"
                 style="height: 18px"
               >
                 <span class="absolute top-0.5 w-3.5 h-3.5 rounded-full bg-white shadow transition-all"
@@ -218,7 +154,7 @@
               </span>
               Taxa de serviço{{ taxaPct > 0 ? ` (${taxaPct}%)` : '' }}
             </button>
-            <span v-if="taxaPct > 0" class="text-sm font-bold text-blue-600 dark:text-blue-400">
+            <span v-if="taxaPct > 0" class="text-sm font-bold text-blue-400">
               + R$ {{ taxaValor.toFixed(2) }}
             </span>
           </div>
@@ -228,17 +164,17 @@
             <span class="text-sm text-orange-500 font-bold">− R$ {{ valorPago.toFixed(2) }}</span>
           </div>
 
-          <div class="flex items-center justify-between mb-4 mt-1">
-            <span class="text-xs font-black uppercase tracking-widest text-neutral-400">
+          <div class="flex items-center justify-between mb-4 mt-2 p-3 bg-gray-100 dark:bg-white/5 rounded-2xl">
+            <span class="text-[10px] font-black uppercase tracking-widest text-gray-400 dark:text-white/30">
               {{ valorPago > 0 ? 'Restante' : 'Total' }}
             </span>
-            <span class="text-3xl font-black text-neutral-900 dark:text-white">R$ {{ restante.toFixed(2) }}</span>
+            <span class="text-3xl font-black text-gray-900 dark:text-white">R$ {{ restante.toFixed(2) }}</span>
           </div>
 
           <div class="grid grid-cols-3 gap-2 mb-2">
             <button
               @click="imprimir"
-              class="h-12 rounded-xl border border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-800/60 hover:bg-neutral-100 dark:hover:bg-neutral-800 flex flex-col items-center justify-center gap-1 text-neutral-500 dark:text-neutral-400 font-black text-[10px] uppercase tracking-wide transition-all active:scale-95"
+              class="h-12 rounded-xl border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5 hover:bg-gray-100 dark:hover:bg-white/[0.08] flex flex-col items-center justify-center gap-1 text-gray-500 dark:text-white/40 font-black text-[10px] uppercase tracking-wide transition-all active:scale-95"
             >
               <PrinterIcon :size="14" />
               Imprimir
@@ -248,8 +184,8 @@
               :disabled="!caixaAberto"
               class="h-12 rounded-xl border flex flex-col items-center justify-center gap-1 font-black text-[10px] uppercase tracking-wide transition-all disabled:opacity-40 disabled:cursor-not-allowed"
               :class="caixaAberto
-                ? 'border-amber-200 dark:border-amber-900/60 bg-amber-50 dark:bg-amber-950/30 text-amber-600 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-950/50 active:scale-95'
-                : 'border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-800/60 text-neutral-400'"
+                ? 'border-amber-500/30 bg-amber-500/10 text-amber-400 hover:bg-amber-500/15 active:scale-95'
+                : 'border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5 text-gray-400 dark:text-white/30'"
             >
               <Divide :size="14" />
               Desconto
@@ -259,8 +195,8 @@
               :disabled="!caixaAberto"
               class="h-12 rounded-xl border flex flex-col items-center justify-center gap-1 font-black text-[10px] uppercase tracking-wide transition-all disabled:opacity-40 disabled:cursor-not-allowed"
               :class="caixaAberto
-                ? 'border-purple-200 dark:border-purple-900/60 bg-purple-50 dark:bg-purple-950/30 text-purple-600 dark:text-purple-400 hover:bg-purple-100 dark:hover:bg-purple-950/50 active:scale-95'
-                : 'border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-800/60 text-neutral-400'"
+                ? 'border-purple-500/30 bg-purple-500/10 text-purple-400 hover:bg-purple-500/15 active:scale-95'
+                : 'border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5 text-gray-400 dark:text-white/30'"
             >
               <BadgePercent :size="14" />
               Abater
@@ -272,16 +208,18 @@
               @click="caixaAberto ? $emit('abrir-produtos') : exigirCaixa()"
               class="h-12 rounded-xl border text-sm font-black uppercase tracking-wider transition-all flex items-center justify-center gap-1.5"
               :class="caixaAberto
-                ? 'border-orange-500 text-orange-600 dark:text-orange-400 hover:bg-orange-50 dark:hover:bg-orange-950/30 active:scale-95'
-                : 'border-neutral-200 dark:border-neutral-700 text-neutral-400 opacity-50 cursor-not-allowed'"
+                ? 'border-orange-500 text-orange-400 hover:bg-orange-500/10 active:scale-95'
+                : 'border-gray-200 dark:border-white/10 text-gray-400 dark:text-white/30 opacity-50 cursor-not-allowed'"
             >
               <Plus :size="15" />
               Produtos
             </button>
             <button
               @click="caixaAberto ? (modalPagamento = true) : exigirCaixa()"
-              class="h-12 rounded-xl text-white text-sm font-black uppercase tracking-wider transition-all flex items-center justify-center gap-1.5"
-              :class="caixaAberto ? 'bg-green-500 hover:bg-green-600 active:scale-95 shadow-sm shadow-green-500/30' : 'bg-neutral-300 dark:bg-neutral-700 opacity-50 cursor-not-allowed'"
+              class="h-12 rounded-xl text-white text-sm font-black uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 active:scale-95"
+              :class="caixaAberto
+                ? 'bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-400 hover:to-emerald-500 shadow-md shadow-green-500/20'
+                : 'bg-gray-200 dark:bg-white/10 opacity-50 cursor-not-allowed'"
             >
               <CreditCard :size="15" />
               Pagar
@@ -298,19 +236,19 @@
           class="absolute inset-0 bg-black/40 flex items-end z-10"
           @click.self="fecharModalAbater"
         >
-          <div class="w-full bg-white dark:bg-neutral-900 rounded-t-3xl p-6 space-y-5">
+          <div class="w-full bg-white dark:bg-neutral-900/95 backdrop-blur-2xl border border-gray-200 dark:border-white/[0.08] rounded-t-3xl p-6 space-y-5">
 
-            <h3 class="text-lg font-black dark:text-white">Abater valor</h3>
+            <h3 class="text-lg font-black text-gray-900 dark:text-white">Abater valor</h3>
 
-            <div class="bg-neutral-50 dark:bg-neutral-800 rounded-2xl p-4 flex justify-between items-center">
-              <span class="text-sm text-neutral-500 dark:text-neutral-400 font-bold">Total atual</span>
-              <span class="text-xl font-black dark:text-white">R$ {{ totalLiquido.toFixed(2) }}</span>
+            <div class="bg-gray-50 dark:bg-white/5 rounded-2xl p-4 flex justify-between items-center">
+              <span class="text-sm text-gray-500 dark:text-white/40 font-bold">Total atual</span>
+              <span class="text-xl font-black text-gray-900 dark:text-white">R$ {{ totalLiquido.toFixed(2) }}</span>
             </div>
 
             <div>
-              <label for="valor-abater" class="text-xs font-black text-neutral-500 uppercase tracking-widest">Valor a abater</label>
+              <label for="valor-abater" class="text-xs font-black text-gray-500 dark:text-white/40 uppercase tracking-widest">Valor a abater</label>
               <div class="relative mt-2">
-                <span class="absolute left-4 top-1/2 -translate-y-1/2 font-black text-neutral-400">R$</span>
+                <span class="absolute left-4 top-1/2 -translate-y-1/2 font-black text-gray-400 dark:text-white/40">R$</span>
                 <input
                   id="valor-abater"
                   name="valor-abater"
@@ -321,17 +259,17 @@
                   :max="totalLiquido"
                   step="0.01"
                   placeholder="0,00"
-                  class="w-full h-14 pl-10 pr-4 border-2 border-neutral-200 dark:border-neutral-700 dark:bg-neutral-800 dark:text-white focus:border-purple-400 rounded-2xl text-xl font-black outline-none"
+                  class="w-full h-14 pl-10 pr-4 border-2 border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/[0.06] text-gray-900 dark:text-white focus:border-purple-400/70 rounded-2xl text-xl font-black outline-none placeholder:text-gray-400 dark:placeholder:text-white/25"
                 />
               </div>
             </div>
 
             <div
               v-if="valorAbaterNum > 0"
-              class="bg-green-50 dark:bg-green-950/30 rounded-2xl p-4 flex justify-between items-center"
+              class="bg-green-500/10 rounded-2xl p-4 flex justify-between items-center"
             >
-              <span class="text-sm text-green-700 dark:text-green-400 font-bold">Total após abatimento</span>
-              <span class="text-xl font-black text-green-700 dark:text-green-400">
+              <span class="text-sm text-green-400 font-bold">Total após abatimento</span>
+              <span class="text-xl font-black text-green-400">
                 R$ {{ Math.max(0, totalLiquido - valorAbaterNum).toFixed(2) }}
               </span>
             </div>
@@ -339,7 +277,7 @@
             <div class="flex gap-3">
               <button
                 @click="fecharModalAbater"
-                class="flex-1 h-12 rounded-xl border border-neutral-200 dark:border-neutral-700 font-black text-sm text-neutral-600 dark:text-neutral-400 dark:hover:bg-neutral-800"
+                class="flex-1 h-12 rounded-xl border border-gray-200 dark:border-white/10 font-black text-sm text-gray-500 dark:text-white/50 hover:bg-gray-50 dark:hover:bg-white/5 transition-colors"
               >
                 Cancelar
               </button>
@@ -363,30 +301,30 @@
           class="absolute inset-0 bg-black/40 flex items-end z-10"
           @click.self="fecharModalDesconto"
         >
-          <div class="w-full bg-white dark:bg-neutral-900 rounded-t-3xl p-6 space-y-5">
+          <div class="w-full bg-white dark:bg-neutral-900/95 backdrop-blur-2xl border border-gray-200 dark:border-white/[0.08] rounded-t-3xl p-6 space-y-5">
 
-            <h3 class="text-lg font-black dark:text-white">Aplicar desconto</h3>
+            <h3 class="text-lg font-black text-gray-900 dark:text-white">Aplicar desconto</h3>
 
             <!-- toggle % / R$ -->
-            <div class="flex bg-neutral-100 dark:bg-neutral-800 rounded-xl p-1 gap-1">
+            <div class="flex bg-gray-100 dark:bg-white/5 rounded-xl p-1 gap-1">
               <button
                 @click="modoDesconto = 'pct'; valorDesconto = ''"
                 class="flex-1 h-9 rounded-lg text-sm font-black transition-all"
-                :class="modoDesconto === 'pct' ? 'bg-white dark:bg-neutral-700 shadow text-amber-600' : 'text-neutral-400'"
+                :class="modoDesconto === 'pct' ? 'bg-gray-200 dark:bg-white/10 shadow text-amber-400' : 'text-gray-500 dark:text-white/40'"
               >
                 Porcentagem %
               </button>
               <button
                 @click="modoDesconto = 'val'; valorDesconto = ''"
                 class="flex-1 h-9 rounded-lg text-sm font-black transition-all"
-                :class="modoDesconto === 'val' ? 'bg-white dark:bg-neutral-700 shadow text-amber-600' : 'text-neutral-400'"
+                :class="modoDesconto === 'val' ? 'bg-gray-200 dark:bg-white/10 shadow text-amber-400' : 'text-gray-500 dark:text-white/40'"
               >
                 Valor R$
               </button>
             </div>
 
             <div class="relative">
-              <span class="absolute left-4 top-1/2 -translate-y-1/2 font-black text-neutral-400">
+              <span class="absolute left-4 top-1/2 -translate-y-1/2 font-black text-gray-400 dark:text-white/40">
                 {{ modoDesconto === 'pct' ? '%' : 'R$' }}
               </span>
               <input
@@ -400,19 +338,19 @@
                 :max="modoDesconto === 'pct' ? 100 : totalLiquido"
                 step="0.01"
                 placeholder="0"
-                class="w-full h-14 pl-10 pr-4 border-2 border-neutral-200 dark:border-neutral-700 dark:bg-neutral-800 dark:text-white focus:border-amber-400 rounded-2xl text-xl font-black outline-none"
+                class="w-full h-14 pl-10 pr-4 border-2 border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/[0.06] text-gray-900 dark:text-white focus:border-amber-400/70 rounded-2xl text-xl font-black outline-none placeholder:text-gray-400 dark:placeholder:text-white/25"
               />
             </div>
 
-            <div v-if="valorDescontoCalc > 0" class="bg-amber-50 dark:bg-amber-950/30 rounded-2xl p-4 flex justify-between items-center">
-              <span class="text-sm text-amber-700 dark:text-amber-400 font-bold">Total após desconto</span>
-              <span class="text-xl font-black text-amber-700 dark:text-amber-400">
+            <div v-if="valorDescontoCalc > 0" class="bg-amber-500/10 rounded-2xl p-4 flex justify-between items-center">
+              <span class="text-sm text-amber-400 font-bold">Total após desconto</span>
+              <span class="text-xl font-black text-amber-400">
                 R$ {{ Math.max(0, totalLiquido - valorDescontoCalc).toFixed(2) }}
               </span>
             </div>
 
             <div class="flex gap-3">
-              <button @click="fecharModalDesconto" class="flex-1 h-12 rounded-xl border border-neutral-200 dark:border-neutral-700 font-black text-sm text-neutral-600 dark:text-neutral-400 dark:hover:bg-neutral-800">
+              <button @click="fecharModalDesconto" class="flex-1 h-12 rounded-xl border border-gray-200 dark:border-white/10 font-black text-sm text-gray-500 dark:text-white/50 hover:bg-gray-50 dark:hover:bg-white/5 transition-colors">
                 Cancelar
               </button>
               <button
@@ -463,10 +401,9 @@ import {
   Divide,
   CreditCard,
   Trash2,
-  CheckSquare,
-  Square,
   BadgePercent,
   Plus,
+  Minus,
 } from 'lucide-vue-next'
 import MenuFlutuanteProduto from '../modals/MenuFlutuanteProduto.vue'
 import ModalPagamento from '../modals/ModalPagamento.vue'
@@ -627,7 +564,6 @@ function onPago() {
   fechar()
 }
 
-// Pagamento parcial (divisão de conta): recarrega totais e mantém a mesa aberta
 function onParcial() {
   carregarProdutos()
 }
@@ -660,7 +596,6 @@ async function imprimir() {
   const liquido = totalLiquido.value
   const data   = new Date().toLocaleString('pt-BR')
 
-  // Impressão direta na térmica via backend — sem diálogo do navegador
   if (configStore.impressaoDireta) {
     try {
       await api.post('/impressao/conta', {
@@ -708,11 +643,19 @@ async function imprimir() {
       </tr>`
     : ''
 
+  const logo       = configStore.logo_base64
+  const nomeRest   = configStore.nome_restaurante || 'Restaurante PDV'
+  const logoAltura = ({ pequena: '24px', media: '36px', grande: '96px' } as Record<string, string>)[configStore.logo_tamanho] ?? '36px'
+  const logoHtml   = logo
+    ? `<img src="${logo}" style="height:${logoAltura};object-fit:contain;display:block;margin:0 auto 4px;" />`
+    : ''
+
   const html = `<!DOCTYPE html><html><head><meta charset="utf-8">
-  <title>Ficha - Mesa ${mesa?.nome_mesa || mesa?.id}</title>
+  <title>Conta - Mesa ${mesa?.nome_mesa || mesa?.id}</title>
   <style>
     body { font-family: monospace; font-size: 13px; padding: 16px; max-width: 320px; margin: 0 auto }
-    h1 { font-size: 16px; text-align: center; margin: 0 0 4px }
+    .cabecalho { text-align: center; margin-bottom: 12px }
+    h1 { font-size: 15px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.06em; margin: 0 0 2px }
     .sub { text-align: center; color: #666; margin-bottom: 12px; font-size: 12px }
     table { width: 100%; border-collapse: collapse }
     th { border-bottom: 1px solid #000; padding: 4px 0; font-size: 11px }
@@ -721,7 +664,11 @@ async function imprimir() {
     .total { font-weight: bold; font-size: 15px }
     .liquido { font-weight: bold; font-size: 17px }
   </style></head><body>
-  <h1>Ficha da Mesa</h1>
+  <div class="cabecalho">
+    ${logoHtml}
+    <h1>${nomeRest}</h1>
+    <div style="font-size:11px;color:#888;margin-top:1px">CONTA DA MESA</div>
+  </div>
   <div class="sub">Mesa #${mesa?.nome_mesa || mesa?.numero || mesa?.id} &nbsp;|&nbsp; ${data}</div>
   <table>
     <thead><tr>
@@ -752,28 +699,12 @@ async function imprimir() {
   imprimirHtml(html)
 }
 
-// ─── Swipe ────────────────────────────────────────────────
-const REVEAL_WIDTH    = 160
-const SWIPE_THRESHOLD = 68
-
-const swipingId   = ref<number | null>(null)
-const swipeOffset = ref(0)
-const revealedId  = ref<number | null>(null)
-
-let isSwiping    = false
-let pointerStartX = 0
-let pointerStartY = 0
-
-function getTransform(id: number): string {
-  if (swipingId.value === id) return `translateX(${swipeOffset.value}px)`
-  if (revealedId.value === id) return `translateX(-${REVEAL_WIDTH}px)`
-  return 'translateX(0)'
-}
-
 // ─── Long press / Radial ──────────────────────────────────
 const LONG_PRESS_MS = 460
 
 let longPressTimer: ReturnType<typeof setTimeout> | null = null
+let pointerStartX = 0
+let pointerStartY = 0
 
 const menuAberto = ref<number | null>(null)
 const radialPos  = ref<{ x: number; y: number } | null>(null)
@@ -789,111 +720,29 @@ function fecharRadial() {
   radialPos.value  = null
 }
 
-// ─── Multi-select ─────────────────────────────────────────
-const modoSelecao = ref(false)
-const selecionados = ref(new Set<number>())
-
-function ativarSelecao(id: number) {
-  revealedId.value  = null
-  modoSelecao.value = true
-  selecionados.value = new Set(selecionados.value).add(id)
-}
-
-function cancelarSelecao() {
-  modoSelecao.value  = false
-  selecionados.value = new Set()
-}
-
-async function excluirSelecionados() {
-  const ids   = [...selecionados.value]
-  const total = ids.length
-  cancelarSelecao()
-
-  const resultados = await Promise.allSettled(
-    ids.map(id => excluirItem(id, true))
-  )
-
-  const falhas  = resultados.filter(r => r.status === 'rejected').length
-  const removidos = total - falhas
-
-  if (falhas === 0) {
-    toastStore.success(`${total} ${total === 1 ? 'item removido' : 'itens removidos'}`)
-  } else if (removidos > 0) {
-    toastStore.warning(`${removidos} de ${total} itens removidos`)
-  } else {
-    toastStore.error('Erro ao remover os itens selecionados')
-  }
-}
-
-function onCardClick(produto: ProdutoMesa) {
-  if (!modoSelecao.value) return
-  const next = new Set(selecionados.value)
-  if (next.has(produto.id)) {
-    next.delete(produto.id)
-    if (next.size === 0) modoSelecao.value = false
-  } else {
-    next.add(produto.id)
-  }
-  selecionados.value = next
-}
-
-// ─── Pointer handlers (touch + mouse + stylus) ────────────
-function onListaPointerDown() {
-  // Toque/clique na área vazia da lista fecha radial e reveal
-  if (menuAberto.value !== null) fecharRadial()
-  if (revealedId.value !== null) revealedId.value = null
-}
-
 function onPointerDown(e: PointerEvent, id: number) {
-  // Só botão esquerdo do mouse (touch sempre reporta button=0)
   if (e.button !== 0) return
-  // Impede que o evento suba para onListaPointerDown
-  e.stopPropagation()
-
-  if (modoSelecao.value) return
-
   if (menuAberto.value !== null) {
     fecharRadial()
     return
   }
 
-  // Fecha reveal de outro card
-  if (revealedId.value !== null && revealedId.value !== id) {
-    revealedId.value = null
-    return
-  }
-
-  // Clique no card revelado fecha o reveal
-  if (revealedId.value === id) {
-    revealedId.value = null
-    return
-  }
-
   pointerStartX = e.clientX
   pointerStartY = e.clientY
-  isSwiping     = false
-  swipingId.value   = id
-  swipeOffset.value = 0
 
-  // passive:false permite chamar preventDefault no move (impede scroll horizontal)
-  window.addEventListener('pointermove',   onGlobalMove,   { passive: false })
-  window.addEventListener('pointerup',     onGlobalEnd)
+  window.addEventListener('pointermove', onGlobalMove, { passive: true })
+  window.addEventListener('pointerup',   onGlobalEnd)
   window.addEventListener('pointercancel', onGlobalEnd)
 
   longPressTimer = setTimeout(() => {
-    if (!isSwiping) {
-      menuAberto.value = id
-      radialPos.value  = { x: pointerStartX, y: pointerStartY }
-      navigator.vibrate?.(40)
-      cancelSwipe()
-    }
+    menuAberto.value = id
+    radialPos.value  = { x: pointerStartX, y: pointerStartY }
+    navigator.vibrate?.(40)
   }, LONG_PRESS_MS)
 }
 
-// Clique direito abre o radial imediatamente (atalho para mouse)
 function onContextMenu(e: MouseEvent, id: number) {
   e.stopPropagation()
-  if (modoSelecao.value) return
   menuAberto.value = id
   radialPos.value  = { x: e.clientX, y: e.clientY }
 }
@@ -901,42 +750,15 @@ function onContextMenu(e: MouseEvent, id: number) {
 function onGlobalMove(e: PointerEvent) {
   const dx = e.clientX - pointerStartX
   const dy = e.clientY - pointerStartY
-
-  // Movimento vertical cancela tudo (permite scroll normal)
-  if (Math.abs(dy) > 10 && !isSwiping) {
+  if (Math.abs(dx) > 10 || Math.abs(dy) > 10) {
     cancelLongPress()
-    cancelSwipe()
     detach()
-    return
-  }
-
-  // Movimento horizontal ativa swipe e cancela long press
-  if (Math.abs(dx) > 8) {
-    cancelLongPress()
-    isSwiping = true
-  }
-
-  if (isSwiping) {
-    // Impede scroll horizontal do browser durante o swipe
-    e.preventDefault()
-    if (dx < 0 && swipingId.value !== null) {
-      swipeOffset.value = Math.max(dx, -REVEAL_WIDTH)
-    }
   }
 }
 
 function onGlobalEnd() {
   detach()
   cancelLongPress()
-
-  if (isSwiping && swipingId.value !== null) {
-    revealedId.value = swipeOffset.value < -SWIPE_THRESHOLD
-      ? swipingId.value
-      : null
-  }
-
-  cancelSwipe()
-  isSwiping = false
 }
 
 function cancelLongPress() {
@@ -946,22 +768,15 @@ function cancelLongPress() {
   }
 }
 
-function cancelSwipe() {
-  swipingId.value   = null
-  swipeOffset.value = 0
-}
-
 function detach() {
   window.removeEventListener('pointermove',   onGlobalMove)
   window.removeEventListener('pointerup',     onGlobalEnd)
   window.removeEventListener('pointercancel', onGlobalEnd)
 }
 
-// ─── Ações com persistência no banco ─────────────────────
 async function adicionarItem(produto: ProdutoMesa) {
   if (!caixaAberto.value) { exigirCaixa(); return }
-  const preco = produto.preco_unitario
-  // Optimistic
+  const preco = Number(produto.preco_unitario)
   produto.quantidade++
   produto.total = Number(produto.total) + preco
 
@@ -972,7 +787,6 @@ async function adicionarItem(produto: ProdutoMesa) {
       quantidade: 1
     })
   } catch {
-    // Rollback
     produto.quantidade--
     produto.total = Number(produto.total) - preco
     toastStore.error('Erro ao adicionar item')
@@ -981,14 +795,13 @@ async function adicionarItem(produto: ProdutoMesa) {
 
 async function removerItem(produto: ProdutoMesa) {
   if (!caixaAberto.value) { exigirCaixa(); return }
-  const preco = produto.preco_unitario
+  const preco = Number(produto.preco_unitario)
 
   if (produto.quantidade <= 1) {
     await excluirItem(produto.id)
     return
   }
 
-  // Optimistic
   produto.quantidade--
   produto.total = Number(produto.total) - preco
 
@@ -1007,16 +820,13 @@ async function excluirItem(id: number, silencioso = false) {
   const idx  = produtos.value.findIndex(p => p.id === id)
   const item = produtos.value[idx]
 
-  // Optimistic
   produtos.value = produtos.value.filter(p => p.id !== id)
-  if (revealedId.value === id) revealedId.value = null
 
   try {
     await api.delete(`/pedidos/itens/${id}`)
     emit('estoque-atualizado')
     if (!silencioso) toastStore.success('Item excluído com sucesso!')
   } catch (err) {
-    // Rollback: reinsere na posição original
     if (item !== undefined) {
       const lista = [...produtos.value]
       lista.splice(idx, 0, item)
@@ -1027,7 +837,6 @@ async function excluirItem(id: number, silencioso = false) {
   }
 }
 
-// ─── Handlers do radial ──────────────────────────────────
 function handleAdicionar() {
   if (produtoSelecionado.value) adicionarItem(produtoSelecionado.value)
   fecharRadial()
@@ -1049,7 +858,6 @@ async function handleReimprimir() {
   const dataStr = new Date().toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })
   const ref     = `P${String(produto.pedido_id).padStart(6, '0')}`
 
-  // Impressão direta na térmica via backend — sem diálogo do navegador
   if (configStore.impressaoDireta) {
     try {
       await api.post('/impressao/ficha', {
@@ -1063,14 +871,15 @@ async function handleReimprimir() {
     return
   }
 
-  const nomeRest = configStore.nome_restaurante || 'Restaurante PDV'
-  const logo     = configStore.logo_base64
-  const mensagem = configStore.mensagem_ficha || 'Obrigado pela preferência!'
-  const mm     = configStore.impressora_largura === 58 ? 58 : 80
-  const copias = Math.max(1, configStore.impressora_copias || 1)
+  const nomeRest   = configStore.nome_restaurante || 'Restaurante PDV'
+  const logo       = configStore.logo_base64
+  const mensagem   = configStore.mensagem_ficha || 'Obrigado pela preferência!'
+  const mm         = configStore.impressora_largura === 58 ? 58 : 80
+  const copias     = Math.max(1, configStore.impressora_copias || 1)
+  const logoAltura = ({ pequena: '6mm', media: '10mm', grande: '28mm' } as Record<string, string>)[configStore.logo_tamanho] ?? '10mm'
 
   const logoHtml = logo
-    ? `<img src="${logo}" style="height:10mm;object-fit:contain;margin-bottom:2mm;" />`
+    ? `<img src="${logo}" style="height:${logoAltura};object-fit:contain;margin-bottom:2mm;" />`
     : ''
 
   const fichas: string[] = []
@@ -1125,7 +934,6 @@ async function handleReimprimir() {
   imprimirHtml(html)
 }
 
-// ─── API ─────────────────────────────────────────────────
 const carregarProdutos = async () => {
   if (!props.mesa?.id) return
   try {
@@ -1154,8 +962,6 @@ watch(
   ([aberto, mesaId]) => {
     if (aberto && mesaId) {
       fecharRadial()
-      cancelarSelecao()
-      revealedId.value = null
       carregarProdutos()
     }
   },
@@ -1165,6 +971,7 @@ watch(
 onBeforeUnmount(() => {
   cancelLongPress()
   detach()
+  fecharRadial()
 })
 
 defineExpose({ recarregar: carregarProdutos })
@@ -1178,15 +985,5 @@ defineExpose({ recarregar: carregarProdutos })
 .slide-enter-from,
 .slide-leave-to {
   transform: translateX(100%);
-}
-
-.slide-up-enter-active,
-.slide-up-leave-active {
-  transition: all 0.2s ease;
-}
-.slide-up-enter-from,
-.slide-up-leave-to {
-  opacity: 0;
-  transform: translateY(6px);
 }
 </style>

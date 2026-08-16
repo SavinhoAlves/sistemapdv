@@ -5,25 +5,25 @@
       class="fixed inset-0 z-[999] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
     >
       <div
-        class="w-full max-w-md bg-white rounded-[32px] shadow-2xl p-8 text-center animate-pop-in"
+        class="w-full max-w-md bg-white dark:bg-neutral-900/90 backdrop-blur-2xl border border-gray-200 dark:border-white/[0.08] rounded-[32px] shadow-2xl p-8 text-center animate-pop-in"
       >
         <!-- ÍCONE -->
         <div
-          class="w-20 h-20 rounded-full bg-orange-50 border border-orange-100 flex items-center justify-center mx-auto mb-5"
+          class="w-20 h-20 rounded-full bg-orange-950/30 border border-orange-500/20 flex items-center justify-center mx-auto mb-5"
         >
           <CreditCard class="text-orange-500" :size="36" />
         </div>
 
         <!-- TÍTULO -->
         <h2
-          class="text-2xl font-black text-neutral-900 uppercase tracking-tight"
+          class="text-2xl font-black text-gray-900 dark:text-white uppercase tracking-tight"
         >
           Leitura RFID
         </h2>
 
         <!-- MENSAGEM -->
         <p
-          class="text-sm text-neutral-500 mt-3 leading-relaxed"
+          class="text-sm text-gray-500 dark:text-white/50 mt-3 leading-relaxed"
         >
           {{ mensagem }}
         </p>
@@ -46,7 +46,7 @@
         <!-- BOTÃO -->
         <button
           @click="cancelar"
-          class="mt-8 w-full h-14 rounded-2xl bg-neutral-100 hover:bg-neutral-200 transition-all text-sm font-black uppercase tracking-wider text-neutral-600 active:scale-95"
+          class="mt-8 w-full h-14 rounded-2xl border border-gray-200 dark:border-white/10 text-gray-500 dark:text-white/60 hover:bg-gray-50 dark:hover:bg-white/5 transition-all text-sm font-black uppercase tracking-wider active:scale-95"
         >
           Cancelar
         </button>

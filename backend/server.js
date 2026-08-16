@@ -27,6 +27,7 @@ const usersRoutes       = require('./src/routes/users.routes')
 const vendasRoutes          = require('./src/routes/vendas.routes')
 const configuracoesRoutes   = require('./src/routes/configuracoes.routes')
 const integracoesRoutes     = require('./src/routes/integracoes.routes')
+const perfisRoutes          = require('./src/routes/perfis.routes')
 
 /*
 |--------------------------------------------------------------------------
@@ -45,18 +46,8 @@ app.use(express.json({ limit: '2mb' }))
 |--------------------------------------------------------------------------
 */
 
-app.get('/login', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public/login.html'))
-})
-
-/*
-|--------------------------------------------------------------------------
-| INDEX
-|--------------------------------------------------------------------------
-*/
-
 app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public/index.html'))
+  res.json({ status: 'ok', app: 'Restaurante PDV API' })
 })
 
 /*
@@ -86,6 +77,7 @@ app.use('/api/vendas',         vendasRoutes)
 app.use('/api/configuracoes',  configuracoesRoutes)
 app.use('/api/integracoes',   integracoesRoutes)
 app.use('/api/impressao',      require('./src/routes/impressao.routes'))
+app.use('/api/perfis',         perfisRoutes)
 /*
 |--------------------------------------------------------------------------
 | START SERVER

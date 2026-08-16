@@ -1,21 +1,24 @@
 <template>
-  <div class="min-h-screen bg-neutral-100 dark:bg-neutral-950 transition-colors duration-200 com-sidebar">
+  <div class="min-h-screen transition-colors duration-200 com-sidebar">
     <Sidebar />
     <Navbar />
 
     <main class="p-6 max-w-5xl mx-auto">
 
       <!-- HEADER -->
-      <div class="mb-6">
-        <h1 class="text-2xl font-black text-neutral-900 dark:text-white">Administração</h1>
-        <p class="text-sm text-neutral-500 dark:text-neutral-400 mt-0.5">Gerencie funcionários, categorias e métodos de pagamento</p>
+      <div class="flex items-center gap-3 mb-6">
+        <div class="w-1 h-8 bg-orange-500 rounded-full shrink-0"></div>
+        <div>
+          <h1 class="text-2xl font-black text-gray-900 dark:text-white">Administração</h1>
+          <p class="text-sm text-gray-500 dark:text-white/50 mt-0.5">Gerencie funcionários, categorias e métodos de pagamento</p>
+        </div>
       </div>
 
       <!-- ABAS -->
-      <div class="flex gap-1 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl p-1 w-fit mb-6">
+      <div class="flex flex-wrap gap-1 bg-gray-100 dark:bg-white/5 border border-gray-200 dark:border-white/[0.08] rounded-xl p-1 w-fit mb-6">
         <button v-for="tab in tabs" :key="tab.id" @click="abaAtiva = tab.id"
           class="flex items-center gap-1.5 h-8 px-4 rounded-lg text-xs font-black transition-all"
-          :class="abaAtiva === tab.id ? 'bg-orange-500 text-white' : 'text-neutral-500 dark:text-neutral-400 hover:text-neutral-800 dark:hover:text-neutral-200'">
+          :class="abaAtiva === tab.id ? 'bg-orange-500 text-white' : 'text-gray-500 dark:text-white/50 hover:text-gray-900 dark:hover:text-white'">
           <component :is="tab.icon" :size="12" /> {{ tab.label }}
         </button>
       </div>
@@ -23,49 +26,55 @@
       <!-- ══ FUNCIONÁRIOS ══════════════════════════════════════ -->
       <div v-if="abaAtiva === 'funcionarios'">
         <div class="flex items-center justify-between mb-4">
-          <p class="text-sm text-neutral-500 dark:text-neutral-400">{{ funcionarios.length }} funcionário(s)</p>
+          <p class="text-sm text-gray-500 dark:text-white/50">{{ funcionarios.length }} funcionário(s)</p>
           <button @click="abrirModalFunc(null)"
             class="h-9 px-4 rounded-xl bg-orange-500 hover:bg-orange-600 active:scale-95 text-white text-xs font-black transition-all flex items-center gap-1.5">
             <Plus :size="13" /> Novo Funcionário
           </button>
         </div>
 
-        <div class="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl overflow-hidden">
-          <div v-if="loadingFunc" class="p-8 text-center text-sm text-neutral-400">Carregando...</div>
-          <div v-else-if="!funcionarios.length" class="p-8 text-center text-sm text-neutral-400">Nenhum funcionário cadastrado</div>
+        <div class="bg-white dark:bg-white/5 backdrop-blur-xl border border-gray-200 dark:border-white/[0.08] rounded-2xl overflow-hidden">
+          <div v-if="loadingFunc" class="p-8 text-center text-sm text-gray-400 dark:text-white/40">Carregando...</div>
+          <div v-else-if="!funcionarios.length" class="p-8 text-center text-sm text-gray-400 dark:text-white/40">Nenhum funcionário cadastrado</div>
           <table v-else class="w-full text-sm">
-            <thead class="bg-neutral-50 dark:bg-neutral-800/50">
+            <thead class="bg-gray-50 dark:bg-white/[0.04]">
               <tr>
-                <th class="px-5 py-3 text-left text-[10px] font-black uppercase tracking-widest text-neutral-400">Nome</th>
-                <th class="px-5 py-3 text-left text-[10px] font-black uppercase tracking-widest text-neutral-400">Cargo</th>
-                <th class="px-5 py-3 text-left text-[10px] font-black uppercase tracking-widest text-neutral-400">E-mail</th>
-                <th class="px-5 py-3 text-center text-[10px] font-black uppercase tracking-widest text-neutral-400">Status</th>
-                <th class="px-5 py-3 text-right text-[10px] font-black uppercase tracking-widest text-neutral-400">Ações</th>
+                <th class="px-5 py-3 text-left text-[10px] font-black uppercase tracking-widest text-gray-500 dark:text-white/40">Nome</th>
+                <th class="px-5 py-3 text-left text-[10px] font-black uppercase tracking-widest text-gray-500 dark:text-white/40">Cargo</th>
+                <th class="px-5 py-3 text-left text-[10px] font-black uppercase tracking-widest text-gray-500 dark:text-white/40">E-mail</th>
+                <th class="px-5 py-3 text-center text-[10px] font-black uppercase tracking-widest text-gray-500 dark:text-white/40">Status</th>
+                <th class="px-5 py-3 text-right text-[10px] font-black uppercase tracking-widest text-gray-500 dark:text-white/40">Ações</th>
               </tr>
             </thead>
             <tbody>
               <tr v-for="f in funcionarios" :key="f.id"
-                class="border-t border-neutral-100 dark:border-neutral-800 hover:bg-neutral-50 dark:hover:bg-neutral-800/30 transition-colors">
+                class="border-t border-gray-100 dark:border-white/[0.06] hover:bg-gray-50 dark:hover:bg-white/5 transition-colors">
                 <td class="px-5 py-3">
-                  <p class="text-xs font-black text-neutral-800 dark:text-neutral-200">{{ f.nome }}</p>
-                  <p v-if="f.cartao_rfid" class="text-[10px] text-neutral-400 font-mono">RFID: {{ f.cartao_rfid }}</p>
+                  <p class="text-xs font-black text-gray-900 dark:text-white">{{ f.nome }}</p>
+                  <p v-if="f.cartao_rfid" class="text-[10px] text-gray-400 dark:text-white/40 font-mono">RFID: {{ f.cartao_rfid }}</p>
                 </td>
                 <td class="px-5 py-3">
                   <span class="text-[10px] font-black px-2 py-0.5 rounded-full capitalize" :class="corCargo(f.cargo)">{{ f.cargo }}</span>
                 </td>
-                <td class="px-5 py-3 text-xs text-neutral-500">{{ f.email || '—' }}</td>
+                <td class="px-5 py-3 text-xs text-gray-500 dark:text-white/50">{{ f.email || '—' }}</td>
                 <td class="px-5 py-3 text-center">
                   <button @click="toggleAtivo(f)"
                     class="text-[10px] font-black px-2 py-0.5 rounded-full transition-all"
-                    :class="f.ativo ? 'bg-green-100 dark:bg-green-950/40 text-green-600 hover:bg-green-200' : 'bg-neutral-100 dark:bg-neutral-800 text-neutral-400 hover:bg-neutral-200'">
+                    :class="f.ativo ? 'bg-green-500/15 text-green-600 dark:text-green-400 hover:bg-green-500/25' : 'bg-gray-100 dark:bg-white/5 text-gray-400 dark:text-white/30 hover:bg-gray-200 dark:hover:bg-white/[0.08]'">
                     {{ f.ativo ? 'Ativo' : 'Inativo' }}
                   </button>
                 </td>
                 <td class="px-5 py-3 text-right">
-                  <button @click="abrirModalFunc(f)"
-                    class="h-7 px-3 rounded-lg text-[11px] font-black text-neutral-500 dark:text-neutral-400 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-all">
-                    Editar
-                  </button>
+                  <div class="flex items-center justify-end gap-1">
+                    <button @click="abrirModalFunc(f)"
+                      class="h-7 px-3 rounded-lg text-[11px] font-black text-gray-500 dark:text-white/40 hover:bg-gray-100 dark:hover:bg-white/[0.06] transition-all">
+                      Editar
+                    </button>
+                    <button v-if="f.id !== authStore.usuario?.id" @click="excluirFunc(f)"
+                      class="h-7 w-7 rounded-lg flex items-center justify-center text-gray-400 dark:text-white/40 hover:bg-red-50 dark:hover:bg-red-500/10 hover:text-red-500 dark:hover:text-red-400 transition-all">
+                      <Trash2 :size="13" />
+                    </button>
+                  </div>
                 </td>
               </tr>
             </tbody>
@@ -76,7 +85,7 @@
       <!-- ══ CATEGORIAS ════════════════════════════════════════ -->
       <div v-else-if="abaAtiva === 'categorias'">
         <div class="flex items-center justify-between mb-4">
-          <p class="text-sm text-neutral-500 dark:text-neutral-400">{{ categorias.length }} categoria(s)</p>
+          <p class="text-sm text-gray-500 dark:text-white/50">{{ categorias.length }} categoria(s)</p>
           <button @click="abrirModalCat(null)"
             class="h-9 px-4 rounded-xl bg-orange-500 hover:bg-orange-600 active:scale-95 text-white text-xs font-black transition-all flex items-center gap-1.5">
             <Plus :size="13" /> Nova Categoria
@@ -85,30 +94,89 @@
 
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
           <div v-for="cat in categorias" :key="cat.id"
-            class="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl p-4 flex items-center justify-between gap-3">
+            class="bg-white dark:bg-white/5 backdrop-blur-xl border border-gray-200 dark:border-white/[0.08] rounded-2xl p-4 flex items-center justify-between gap-3">
             <div class="flex items-center gap-3">
-              <div class="w-8 h-8 rounded-xl bg-orange-100 dark:bg-orange-950/40 flex items-center justify-center shrink-0">
+              <div class="w-8 h-8 rounded-xl bg-orange-500/10 flex items-center justify-center shrink-0">
                 <Tag :size="14" class="text-orange-500" />
               </div>
-              <p class="text-sm font-black text-neutral-800 dark:text-neutral-200">{{ cat.nome }}</p>
+              <p class="text-sm font-black text-gray-900 dark:text-white">{{ cat.nome }}</p>
             </div>
             <div class="flex items-center gap-1 shrink-0">
               <button @click="alternarCozinha(cat)"
                 :title="cat.vai_cozinha ? 'Itens vão para a cozinha — clique para desativar' : 'Itens NÃO vão para a cozinha — clique para ativar'"
                 class="h-7 px-2 rounded-lg flex items-center gap-1 justify-center text-[10px] font-black transition-all"
                 :class="cat.vai_cozinha
-                  ? 'bg-orange-100 dark:bg-orange-950/40 text-orange-600 dark:text-orange-400 hover:bg-orange-200'
-                  : 'text-neutral-300 dark:text-neutral-700 hover:bg-neutral-100 dark:hover:bg-neutral-800 hover:text-neutral-500'">
+                  ? 'bg-orange-500/10 text-orange-400 hover:bg-orange-500/20'
+                  : 'text-gray-300 dark:text-white/20 hover:bg-gray-100 dark:hover:bg-white/5 hover:text-gray-400 dark:hover:text-white/40'">
                 <ChefHat :size="12" />
               </button>
               <button @click="abrirModalCat(cat)"
-                class="h-7 w-7 rounded-lg flex items-center justify-center text-neutral-400 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-all">
+                class="h-7 w-7 rounded-lg flex items-center justify-center text-gray-400 dark:text-white/40 hover:bg-gray-100 dark:hover:bg-white/[0.06] transition-all">
                 <Pencil :size="12" />
               </button>
               <button @click="excluirCategoria(cat)"
-                class="h-7 w-7 rounded-lg flex items-center justify-center text-neutral-400 hover:bg-red-50 dark:hover:bg-red-950/40 hover:text-red-500 transition-all">
+                class="h-7 w-7 rounded-lg flex items-center justify-center text-gray-400 dark:text-white/40 hover:bg-red-50 dark:hover:bg-red-500/10 hover:text-red-500 dark:hover:text-red-400 transition-all">
                 <Trash2 :size="12" />
               </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ══ PERFIS ═════════════════════════════════════════════ -->
+      <div v-else-if="abaAtiva === 'perfis'">
+        <div class="flex items-center justify-between mb-4">
+          <p class="text-sm text-gray-500 dark:text-white/50">{{ perfis.length }} perfil(s)</p>
+          <button @click="abrirModalPerfil(null)"
+            class="h-9 px-4 rounded-xl bg-orange-500 hover:bg-orange-600 active:scale-95 text-white text-xs font-black transition-all flex items-center gap-1.5">
+            <Plus :size="13" /> Novo Perfil
+          </button>
+        </div>
+
+        <div v-if="!perfis.length" class="bg-white dark:bg-white/5 border border-gray-200 dark:border-white/[0.08] rounded-2xl p-8 text-center">
+          <p class="text-sm text-gray-400 dark:text-white/40 mb-3">Nenhum perfil criado. Usuários usam as permissões padrão do cargo.</p>
+          <button @click="seedPerfis" :disabled="seedando"
+            class="h-9 px-5 rounded-xl border border-orange-500/30 text-orange-500 dark:text-orange-400 text-xs font-black hover:bg-orange-500/10 disabled:opacity-50 transition-all">
+            {{ seedando ? 'Criando...' : 'Criar perfis padrão' }}
+          </button>
+        </div>
+
+        <div v-else class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div v-for="p in perfis" :key="p.id"
+            class="bg-white dark:bg-white/5 backdrop-blur-xl border border-gray-200 dark:border-white/[0.08] rounded-2xl p-4 space-y-3">
+            <div class="flex items-start justify-between gap-3">
+              <div>
+                <div class="flex items-center gap-2">
+                  <ShieldCheck :size="15" class="text-orange-400 shrink-0" />
+                  <p class="text-sm font-black text-gray-900 dark:text-white">{{ p.nome }}</p>
+                </div>
+                <p v-if="p.descricao" class="text-[11px] text-gray-400 dark:text-white/40 mt-0.5 ml-5">{{ p.descricao }}</p>
+                <p class="text-[11px] text-gray-400 dark:text-white/30 mt-0.5 ml-5">{{ p.total_usuarios }} usuário(s) vinculado(s)</p>
+              </div>
+              <div class="flex items-center gap-1 shrink-0">
+                <button @click="abrirModalPerfil(p)"
+                  class="h-7 w-7 rounded-lg flex items-center justify-center text-gray-400 dark:text-white/40 hover:bg-gray-100 dark:hover:bg-white/[0.06] transition-all">
+                  <Pencil :size="13" />
+                </button>
+                <button @click="excluirPerfil(p)"
+                  class="h-7 w-7 rounded-lg flex items-center justify-center text-gray-400 dark:text-white/40 hover:bg-red-50 dark:hover:bg-red-500/10 hover:text-red-500 dark:hover:text-red-400 transition-all">
+                  <Trash2 :size="13" />
+                </button>
+              </div>
+            </div>
+
+            <!-- resumo das permissões -->
+            <div class="flex flex-wrap gap-1.5">
+              <template v-for="grupo in GRUPOS_PERMISSOES" :key="grupo.label">
+                <template v-for="item in grupo.itens" :key="item.key">
+                  <span v-if="p.permissoes[item.key]"
+                    class="text-[10px] font-black px-2 py-0.5 rounded-full bg-orange-500/10 text-orange-500 dark:text-orange-400">
+                    {{ item.label }}
+                  </span>
+                </template>
+              </template>
+              <span v-if="!Object.values(p.permissoes).some(Boolean)"
+                class="text-[10px] text-gray-400 dark:text-white/20 italic">Nenhuma permissão ativa</span>
             </div>
           </div>
         </div>
@@ -117,7 +185,7 @@
       <!-- ══ MÉTODOS ════════════════════════════════════════════ -->
       <div v-else-if="abaAtiva === 'metodos'">
         <div class="flex items-center justify-between mb-4">
-          <p class="text-sm text-neutral-500 dark:text-neutral-400">{{ metodos.length }} método(s)</p>
+          <p class="text-sm text-gray-500 dark:text-white/50">{{ metodos.length }} método(s)</p>
           <button @click="modalMetodoAberto = true"
             class="h-9 px-4 rounded-xl bg-orange-500 hover:bg-orange-600 active:scale-95 text-white text-xs font-black transition-all flex items-center gap-1.5">
             <Plus :size="13" /> Novo Método
@@ -126,15 +194,15 @@
 
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
           <div v-for="m in metodos" :key="m.id"
-            class="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl p-4 flex items-center justify-between gap-3">
+            class="bg-white dark:bg-white/5 backdrop-blur-xl border border-gray-200 dark:border-white/[0.08] rounded-2xl p-4 flex items-center justify-between gap-3">
             <div class="flex items-center gap-3">
               <div class="w-8 h-8 rounded-xl flex items-center justify-center shrink-0"
-                :class="m.ativo ? 'bg-green-100 dark:bg-green-950/40' : 'bg-neutral-100 dark:bg-neutral-800'">
-                <CreditCard :size="14" :class="m.ativo ? 'text-green-500' : 'text-neutral-400'" />
+                :class="m.ativo ? 'bg-green-500/15' : 'bg-gray-100 dark:bg-white/[0.06]'">
+                <CreditCard :size="14" :class="m.ativo ? 'text-green-400' : 'text-gray-400 dark:text-white/30'" />
               </div>
               <div>
-                <p class="text-sm font-black text-neutral-800 dark:text-neutral-200">{{ m.nome }}</p>
-                <p class="text-[10px]" :class="m.ativo ? 'text-green-500' : 'text-neutral-400'">
+                <p class="text-sm font-black text-gray-900 dark:text-white">{{ m.nome }}</p>
+                <p class="text-[10px]" :class="m.ativo ? 'text-green-500 dark:text-green-400' : 'text-gray-400 dark:text-white/30'">
                   {{ m.ativo ? 'Ativo' : 'Inativo' }}
                 </p>
               </div>
@@ -142,8 +210,8 @@
             <button @click="toggleMetodo(m)"
               class="h-8 px-3 rounded-xl text-xs font-black border transition-all"
               :class="m.ativo
-                ? 'border-red-200 dark:border-red-900 text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40'
-                : 'border-green-200 dark:border-green-900 text-green-500 hover:bg-green-50 dark:hover:bg-green-950/40'">
+                ? 'border-red-500/30 text-red-500 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10'
+                : 'border-green-500/30 text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-500/10'">
               {{ m.ativo ? 'Desativar' : 'Ativar' }}
             </button>
           </div>
@@ -156,21 +224,21 @@
     <Teleport to="body">
       <Transition name="fade">
         <div v-if="modalFunc" class="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4" @click.self="modalFunc = false">
-          <div class="bg-white dark:bg-neutral-900 rounded-3xl p-6 w-full max-w-md shadow-2xl">
-            <h2 class="text-lg font-black text-neutral-900 dark:text-white mb-5">
+          <div class="bg-white dark:bg-neutral-900/90 backdrop-blur-2xl border border-gray-200 dark:border-white/[0.08] rounded-3xl p-6 w-full max-w-md shadow-2xl">
+            <h2 class="text-lg font-black text-gray-900 dark:text-white mb-5">
               {{ funcForm.id ? 'Editar Funcionário' : 'Novo Funcionário' }}
             </h2>
 
             <div class="space-y-3">
               <div>
-                <label for="fNome" class="block text-[10px] font-black uppercase tracking-widest text-neutral-500 mb-1.5">Nome *</label>
+                <label for="fNome" class="block text-[10px] font-black uppercase tracking-widest text-gray-500 dark:text-white/40 mb-1.5">Nome *</label>
                 <input id="fNome" v-model="funcForm.nome" type="text" placeholder="Nome completo"
-                  class="w-full h-11 px-4 bg-neutral-100 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-xl text-neutral-900 dark:text-white text-sm outline-none focus:border-orange-500 transition-all" />
+                  class="w-full h-11 px-4 bg-gray-50 dark:bg-white/[0.06] border border-gray-200 dark:border-white/10 rounded-xl text-gray-900 dark:text-white text-sm outline-none focus:border-orange-500 transition-all placeholder:text-gray-400 dark:placeholder:text-white/25" />
               </div>
               <div>
-                <label for="fCargo" class="block text-[10px] font-black uppercase tracking-widest text-neutral-500 mb-1.5">Cargo *</label>
+                <label for="fCargo" class="block text-[10px] font-black uppercase tracking-widest text-gray-500 dark:text-white/40 mb-1.5">Cargo *</label>
                 <select id="fCargo" v-model="funcForm.cargo"
-                  class="w-full h-11 px-4 bg-neutral-100 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-xl text-neutral-900 dark:text-white text-sm outline-none focus:border-orange-500 transition-all appearance-none">
+                  class="w-full h-11 px-4 bg-gray-50 dark:!bg-white/[0.06] border border-gray-200 dark:border-white/10 text-gray-900 dark:text-white rounded-xl text-sm outline-none focus:border-orange-500 transition-all appearance-none">
                   <option value="">Selecione...</option>
                   <option value="administrador">Administrador</option>
                   <option value="garcom">Garçom</option>
@@ -179,29 +247,51 @@
                 </select>
               </div>
               <div>
-                <label for="fEmail" class="block text-[10px] font-black uppercase tracking-widest text-neutral-500 mb-1.5">E-mail</label>
+                <label for="fEmail" class="block text-[10px] font-black uppercase tracking-widest text-gray-500 dark:text-white/40 mb-1.5">E-mail</label>
                 <input id="fEmail" v-model="funcForm.email" type="email" placeholder="email@exemplo.com"
-                  class="w-full h-11 px-4 bg-neutral-100 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-xl text-neutral-900 dark:text-white text-sm outline-none focus:border-orange-500 transition-all" />
+                  class="w-full h-11 px-4 bg-gray-50 dark:bg-white/[0.06] border border-gray-200 dark:border-white/10 rounded-xl text-gray-900 dark:text-white text-sm outline-none focus:border-orange-500 transition-all placeholder:text-gray-400 dark:placeholder:text-white/25" />
               </div>
               <div>
-                <label for="fSenha" class="block text-[10px] font-black uppercase tracking-widest text-neutral-500 mb-1.5">
+                <label for="fSenha" class="block text-[10px] font-black uppercase tracking-widest text-gray-500 dark:text-white/40 mb-1.5">
                   {{ funcForm.id ? 'Nova Senha (deixe vazio para manter)' : 'Senha' }}
                 </label>
                 <input id="fSenha" v-model="funcForm.senha" type="password" placeholder="••••••••"
-                  class="w-full h-11 px-4 bg-neutral-100 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-xl text-neutral-900 dark:text-white text-sm outline-none focus:border-orange-500 transition-all" />
+                  class="w-full h-11 px-4 bg-gray-50 dark:bg-white/[0.06] border border-gray-200 dark:border-white/10 rounded-xl text-gray-900 dark:text-white text-sm outline-none focus:border-orange-500 transition-all placeholder:text-gray-400 dark:placeholder:text-white/25" />
               </div>
               <div>
-                <label for="fRfid" class="block text-[10px] font-black uppercase tracking-widest text-neutral-500 mb-1.5">Cartão RFID</label>
+                <label for="fPerfil" class="block text-[10px] font-black uppercase tracking-widest text-gray-500 dark:text-white/40 mb-1.5">Perfil de Permissões</label>
+                <div class="flex gap-2 items-center">
+                  <select id="fPerfil" v-model="funcForm.perfil_id"
+                    class="flex-1 h-11 px-4 bg-gray-50 dark:!bg-white/[0.06] border border-gray-200 dark:border-white/10 text-gray-900 dark:text-white rounded-xl text-sm outline-none focus:border-orange-500 transition-all appearance-none">
+                    <option :value="null">Sem perfil</option>
+                    <option v-for="p in perfis" :key="p.id" :value="p.id">{{ p.nome }}</option>
+                  </select>
+                  <button
+                    v-if="funcForm.perfil_id"
+                    type="button"
+                    @click="funcForm.perfil_id = null"
+                    title="Remover perfil vinculado"
+                    class="h-11 w-11 shrink-0 rounded-xl border border-red-500/30 bg-red-500/10 text-red-400 hover:bg-red-500/20 hover:border-red-500/50 transition-all flex items-center justify-center"
+                  >
+                    <X :size="15" />
+                  </button>
+                </div>
+                <p v-if="!perfis.length" class="text-[10px] text-yellow-500 dark:text-yellow-400 mt-1">
+                  Nenhum perfil cadastrado. Crie um perfil na aba "Perfis" primeiro.
+                </p>
+              </div>
+              <div>
+                <label for="fRfid" class="block text-[10px] font-black uppercase tracking-widest text-gray-500 dark:text-white/40 mb-1.5">Cartão RFID</label>
                 <input id="fRfid" v-model="funcForm.cartao_rfid" type="text" placeholder="Código do cartão"
-                  class="w-full h-11 px-4 bg-neutral-100 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-xl text-neutral-900 dark:text-white text-sm font-mono outline-none focus:border-orange-500 transition-all" />
+                  class="w-full h-11 px-4 bg-gray-50 dark:bg-white/[0.06] border border-gray-200 dark:border-white/10 rounded-xl text-gray-900 dark:text-white text-sm font-mono outline-none focus:border-orange-500/70 transition-all placeholder:text-gray-400 dark:placeholder:text-white/25" />
               </div>
             </div>
 
-            <div v-if="erroFunc" class="mt-3 text-xs text-red-400 font-bold">{{ erroFunc }}</div>
+            <div v-if="erroFunc" class="mt-3 text-xs text-red-500 font-bold">{{ erroFunc }}</div>
 
             <div class="flex gap-3 mt-6">
               <button @click="modalFunc = false"
-                class="flex-1 h-11 rounded-2xl border border-neutral-200 dark:border-neutral-700 text-neutral-600 dark:text-neutral-400 text-sm font-black transition-all hover:bg-neutral-50 dark:hover:bg-neutral-800">
+                class="flex-1 h-11 rounded-2xl border border-gray-200 dark:border-white/10 text-gray-500 dark:text-white/60 text-sm font-black transition-all hover:bg-gray-50 dark:hover:bg-white/5">
                 Cancelar
               </button>
               <button @click="salvarFunc" :disabled="salvandoFunc"
@@ -218,15 +308,15 @@
     <Teleport to="body">
       <Transition name="fade">
         <div v-if="modalCat" class="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4" @click.self="modalCat = false">
-          <div class="bg-white dark:bg-neutral-900 rounded-3xl p-6 w-full max-w-sm shadow-2xl">
-            <h2 class="text-lg font-black text-neutral-900 dark:text-white mb-5">{{ catForm.id ? 'Editar' : 'Nova' }} Categoria</h2>
-            <label for="cNome" class="block text-[10px] font-black uppercase tracking-widest text-neutral-500 mb-2">Nome *</label>
+          <div class="bg-white dark:bg-neutral-900/90 backdrop-blur-2xl border border-gray-200 dark:border-white/[0.08] rounded-3xl p-6 w-full max-w-sm shadow-2xl">
+            <h2 class="text-lg font-black text-gray-900 dark:text-white mb-5">{{ catForm.id ? 'Editar' : 'Nova' }} Categoria</h2>
+            <label for="cNome" class="block text-[10px] font-black uppercase tracking-widest text-gray-500 dark:text-white/40 mb-2">Nome *</label>
             <input id="cNome" v-model="catForm.nome" type="text" placeholder="Ex: Bebidas"
-              class="w-full h-11 px-4 bg-neutral-100 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-xl text-neutral-900 dark:text-white text-sm outline-none focus:border-orange-500 transition-all mb-5" />
-            <div v-if="erroCat" class="mb-3 text-xs text-red-400 font-bold">{{ erroCat }}</div>
+              class="w-full h-11 px-4 bg-gray-50 dark:bg-white/[0.06] border border-gray-200 dark:border-white/10 rounded-xl text-gray-900 dark:text-white text-sm outline-none focus:border-orange-500 transition-all placeholder:text-gray-400 dark:placeholder:text-white/25 mb-5" />
+            <div v-if="erroCat" class="mb-3 text-xs text-red-500 font-bold">{{ erroCat }}</div>
             <div class="flex gap-3">
               <button @click="modalCat = false"
-                class="flex-1 h-11 rounded-2xl border border-neutral-200 dark:border-neutral-700 text-neutral-600 dark:text-neutral-400 text-sm font-black hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-all">
+                class="flex-1 h-11 rounded-2xl border border-gray-200 dark:border-white/10 text-gray-500 dark:text-white/60 text-sm font-black hover:bg-gray-50 dark:hover:bg-white/5 transition-all">
                 Cancelar
               </button>
               <button @click="salvarCategoria" :disabled="salvandoCat"
@@ -239,18 +329,79 @@
       </Transition>
     </Teleport>
 
+    <!-- MODAL PERFIL -->
+    <Teleport to="body">
+      <Transition name="fade">
+        <div v-if="modalPerfil" class="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4" @click.self="modalPerfil = false">
+          <div class="bg-white dark:bg-neutral-900/90 backdrop-blur-2xl border border-gray-200 dark:border-white/[0.08] rounded-3xl p-6 w-full max-w-md shadow-2xl max-h-[90vh] overflow-y-auto">
+            <h2 class="text-lg font-black text-gray-900 dark:text-white mb-5">
+              {{ perfilForm.id ? 'Editar Perfil' : 'Novo Perfil' }}
+            </h2>
+
+            <div class="space-y-3 mb-5">
+              <div>
+                <label class="block text-[10px] font-black uppercase tracking-widest text-gray-500 dark:text-white/40 mb-1.5">Nome *</label>
+                <input v-model="perfilForm.nome" type="text" placeholder="Ex: Caixa Sênior"
+                  class="w-full h-11 px-4 bg-gray-50 dark:bg-white/[0.06] border border-gray-200 dark:border-white/10 rounded-xl text-gray-900 dark:text-white text-sm outline-none focus:border-orange-500 transition-all placeholder:text-gray-400 dark:placeholder:text-white/25" />
+              </div>
+              <div>
+                <label class="block text-[10px] font-black uppercase tracking-widest text-gray-500 dark:text-white/40 mb-1.5">Descrição</label>
+                <input v-model="perfilForm.descricao" type="text" placeholder="Descrição opcional"
+                  class="w-full h-11 px-4 bg-gray-50 dark:bg-white/[0.06] border border-gray-200 dark:border-white/10 rounded-xl text-gray-900 dark:text-white text-sm outline-none focus:border-orange-500 transition-all placeholder:text-gray-400 dark:placeholder:text-white/25" />
+              </div>
+            </div>
+
+            <!-- Permissões agrupadas -->
+            <div class="space-y-4">
+              <div v-for="grupo in GRUPOS_PERMISSOES" :key="grupo.label">
+                <p class="text-[10px] font-black uppercase tracking-widest text-gray-400 dark:text-white/30 mb-2">{{ grupo.label }}</p>
+                <div class="space-y-1">
+                  <button v-for="item in grupo.itens" :key="item.key"
+                    @click="perfilForm.permissoes[item.key] = !perfilForm.permissoes[item.key]"
+                    class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl border transition-all"
+                    :class="perfilForm.permissoes[item.key]
+                      ? 'bg-orange-500/10 border-orange-500/30 text-gray-900 dark:text-white'
+                      : 'bg-gray-50 dark:bg-white/[0.03] border-gray-100 dark:border-white/[0.06] text-gray-500 dark:text-white/40 hover:bg-gray-100 dark:hover:bg-white/[0.06]'">
+                    <span class="text-xs font-bold">{{ item.label }}</span>
+                    <div class="w-8 h-4 rounded-full relative transition-colors shrink-0"
+                      :class="perfilForm.permissoes[item.key] ? 'bg-orange-500' : 'bg-gray-200 dark:bg-white/10'">
+                      <div class="absolute top-0.5 w-3 h-3 rounded-full bg-white shadow transition-all"
+                        :class="perfilForm.permissoes[item.key] ? 'left-4' : 'left-0.5'" />
+                    </div>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div v-if="erroPerfil" class="mt-3 text-xs text-red-500 font-bold">{{ erroPerfil }}</div>
+
+            <div class="flex gap-3 mt-6">
+              <button @click="modalPerfil = false"
+                class="flex-1 h-11 rounded-2xl border border-gray-200 dark:border-white/10 text-gray-500 dark:text-white/60 text-sm font-black hover:bg-gray-50 dark:hover:bg-white/5 transition-all">
+                Cancelar
+              </button>
+              <button @click="salvarPerfil" :disabled="salvandoPerfil"
+                class="flex-1 h-11 rounded-2xl bg-orange-500 hover:bg-orange-400 disabled:opacity-40 active:scale-95 text-white text-sm font-black transition-all">
+                {{ salvandoPerfil ? 'Salvando...' : 'Salvar' }}
+              </button>
+            </div>
+          </div>
+        </div>
+      </Transition>
+    </Teleport>
+
     <!-- MODAL MÉTODO -->
     <Teleport to="body">
       <Transition name="fade">
         <div v-if="modalMetodoAberto" class="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4" @click.self="modalMetodoAberto = false">
-          <div class="bg-white dark:bg-neutral-900 rounded-3xl p-6 w-full max-w-sm shadow-2xl">
-            <h2 class="text-lg font-black text-neutral-900 dark:text-white mb-5">Novo Método de Pagamento</h2>
-            <label for="mNome" class="block text-[10px] font-black uppercase tracking-widest text-neutral-500 mb-2">Nome *</label>
+          <div class="bg-white dark:bg-neutral-900/90 backdrop-blur-2xl border border-gray-200 dark:border-white/[0.08] rounded-3xl p-6 w-full max-w-sm shadow-2xl">
+            <h2 class="text-lg font-black text-gray-900 dark:text-white mb-5">Novo Método de Pagamento</h2>
+            <label for="mNome" class="block text-[10px] font-black uppercase tracking-widest text-gray-500 dark:text-white/40 mb-2">Nome *</label>
             <input id="mNome" v-model="novoMetodo" type="text" placeholder="Ex: Pix"
-              class="w-full h-11 px-4 bg-neutral-100 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-xl text-neutral-900 dark:text-white text-sm outline-none focus:border-orange-500 transition-all mb-5" />
+              class="w-full h-11 px-4 bg-gray-50 dark:bg-white/[0.06] border border-gray-200 dark:border-white/10 rounded-xl text-gray-900 dark:text-white text-sm outline-none focus:border-orange-500 transition-all placeholder:text-gray-400 dark:placeholder:text-white/25 mb-5" />
             <div class="flex gap-3">
               <button @click="modalMetodoAberto = false"
-                class="flex-1 h-11 rounded-2xl border border-neutral-200 dark:border-neutral-700 text-neutral-600 dark:text-neutral-400 text-sm font-black hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-all">
+                class="flex-1 h-11 rounded-2xl border border-gray-200 dark:border-white/10 text-gray-500 dark:text-white/60 text-sm font-black hover:bg-gray-50 dark:hover:bg-white/5 transition-all">
                 Cancelar
               </button>
               <button @click="criarMetodo" :disabled="!novoMetodo.trim()"
@@ -268,19 +419,42 @@
 
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue'
-import { Users, Tag, CreditCard, Plus, Pencil, Trash2, ChefHat } from 'lucide-vue-next'
+import { Users, Tag, CreditCard, Plus, Pencil, Trash2, ChefHat, ShieldCheck, X } from 'lucide-vue-next'
 import Navbar from '~/layouts/Navbar.vue'
 import Sidebar from '~/components/Sidebar.vue'
 import { useApi } from '~/services/api'
 import { useToastStore } from '~/stores/toast'
+import { useAuthStore } from '~/stores/auth'
 
 definePageMeta({ layout: false })
 
 const api        = useApi()
 const toastStore = useToastStore()
+const authStore  = useAuthStore()
+
+const GRUPOS_PERMISSOES = [
+  { label: 'Atendimento', itens: [
+    { key: 'adicionarPedido',    label: 'Adicionar e editar pedidos' },
+    { key: 'cancelarItemPedido', label: 'Cancelar item de pedido' },
+    { key: 'abrirMesa',          label: 'Abrir mesa' },
+    { key: 'fecharMesa',         label: 'Fechar mesa' },
+  ]},
+  { label: 'Financeiro', itens: [
+    { key: 'gerenciarCaixa',  label: 'Gerenciar caixa' },
+    { key: 'verRelatorios',   label: 'Ver relatórios' },
+  ]},
+  { label: 'Cozinha', itens: [
+    { key: 'verCozinha', label: 'Visualizar fila da cozinha' },
+  ]},
+  { label: 'Gestão', itens: [
+    { key: 'gerenciarProdutos',       label: 'Gerenciar produtos e categorias' },
+    { key: 'gerenciarConfiguracoes',  label: 'Acessar configurações' },
+  ]},
+]
 
 const tabs = [
   { id: 'funcionarios', label: 'Funcionários', icon: Users },
+  { id: 'perfis',       label: 'Perfis',       icon: ShieldCheck },
   { id: 'categorias',   label: 'Categorias',   icon: Tag },
   { id: 'metodos',      label: 'Métodos',       icon: CreditCard }
 ]
@@ -292,14 +466,14 @@ const loadingFunc  = ref(false)
 const modalFunc    = ref(false)
 const salvandoFunc = ref(false)
 const erroFunc     = ref('')
-const funcForm     = reactive({ id: null as number | null, nome: '', cargo: '', email: '', senha: '', cartao_rfid: '' })
+const funcForm     = reactive({ id: null as number | null, nome: '', cargo: '', email: '', senha: '', cartao_rfid: '', perfil_id: null as number | null })
 
 function corCargo(cargo: string) {
-  if (cargo === 'administrador') return 'bg-purple-100 dark:bg-purple-950/40 text-purple-600 dark:text-purple-400'
-  if (cargo === 'garcom')        return 'bg-blue-100 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400'
-  if (cargo === 'caixa')         return 'bg-green-100 dark:bg-green-950/40 text-green-600 dark:text-green-400'
-  if (cargo === 'cozinha')       return 'bg-orange-100 dark:bg-orange-950/40 text-orange-600 dark:text-orange-400'
-  return 'bg-neutral-100 dark:bg-neutral-800 text-neutral-500'
+  if (cargo === 'administrador') return 'bg-purple-500/15 text-purple-400'
+  if (cargo === 'garcom')        return 'bg-blue-500/15 text-blue-400'
+  if (cargo === 'caixa')         return 'bg-green-500/15 text-green-400'
+  if (cargo === 'cozinha')       return 'bg-orange-500/15 text-orange-400'
+  return 'bg-gray-100 dark:bg-white/[0.06] text-gray-400 dark:text-white/40'
 }
 
 async function carregarFuncionarios() {
@@ -310,9 +484,9 @@ async function carregarFuncionarios() {
 function abrirModalFunc(f: any) {
   erroFunc.value = ''
   if (f) {
-    Object.assign(funcForm, { id: f.id, nome: f.nome, cargo: f.cargo, email: f.email || '', senha: '', cartao_rfid: f.cartao_rfid || '' })
+    Object.assign(funcForm, { id: f.id, nome: f.nome, cargo: f.cargo, email: f.email || '', senha: '', cartao_rfid: f.cartao_rfid || '', perfil_id: f.perfil_id || null })
   } else {
-    Object.assign(funcForm, { id: null, nome: '', cargo: '', email: '', senha: '', cartao_rfid: '' })
+    Object.assign(funcForm, { id: null, nome: '', cargo: '', email: '', senha: '', cartao_rfid: '', perfil_id: null })
   }
   modalFunc.value = true
 }
@@ -322,7 +496,8 @@ async function salvarFunc() {
   salvandoFunc.value = true; erroFunc.value = ''
   try {
     const payload = { nome: funcForm.nome, email: funcForm.email || null, cargo: funcForm.cargo,
-      cartao_rfid: funcForm.cartao_rfid || null, ...(funcForm.senha ? { senha: funcForm.senha } : {}) }
+      cartao_rfid: funcForm.cartao_rfid || null, perfil_id: funcForm.perfil_id || null,
+      ...(funcForm.senha ? { senha: funcForm.senha } : {}) }
     if (funcForm.id) await api.put(`/users/${funcForm.id}`, payload)
     else await api.post('/users', payload)
     toastStore.success(funcForm.id ? 'Funcionário atualizado!' : 'Funcionário criado!')
@@ -335,6 +510,87 @@ async function toggleAtivo(f: any) {
   f.ativo = !f.ativo
   try { await api.patch(`/users/${f.id}/ativo`, { ativo: f.ativo }) }
   catch { f.ativo = !f.ativo; toastStore.error('Erro ao alterar status') }
+}
+
+async function excluirFunc(f: any) {
+  if (!confirm(`Excluir o funcionário "${f.nome}"? Esta ação não pode ser desfeita.`)) return
+  try {
+    await api.delete(`/users/${f.id}`)
+    toastStore.success('Funcionário excluído!')
+    await carregarFuncionarios()
+  } catch (e: any) { toastStore.error(e?.message || 'Erro ao excluir funcionário') }
+}
+
+// ── Perfis ────────────────────────────────────
+const perfis          = ref<any[]>([])
+const modalPerfil     = ref(false)
+const salvandoPerfil  = ref(false)
+const erroPerfil      = ref('')
+
+function todasPermissoesFalse() {
+  const obj: Record<string, boolean> = {}
+  GRUPOS_PERMISSOES.forEach(g => g.itens.forEach(i => { obj[i.key] = false }))
+  return obj
+}
+
+const perfilForm = reactive({
+  id: null as number | null,
+  nome: '',
+  descricao: '',
+  permissoes: todasPermissoesFalse() as Record<string, boolean>
+})
+
+async function carregarPerfis() {
+  try { perfis.value = await api.perfis.listar() } catch {}
+}
+
+function abrirModalPerfil(p: any) {
+  erroPerfil.value = ''
+  if (p) {
+    perfilForm.id = p.id
+    perfilForm.nome = p.nome
+    perfilForm.descricao = p.descricao || ''
+    perfilForm.permissoes = { ...todasPermissoesFalse(), ...p.permissoes }
+  } else {
+    perfilForm.id = null
+    perfilForm.nome = ''
+    perfilForm.descricao = ''
+    perfilForm.permissoes = todasPermissoesFalse()
+  }
+  modalPerfil.value = true
+}
+
+async function salvarPerfil() {
+  if (!perfilForm.nome.trim()) { erroPerfil.value = 'Nome é obrigatório'; return }
+  salvandoPerfil.value = true; erroPerfil.value = ''
+  try {
+    const payload = { nome: perfilForm.nome, descricao: perfilForm.descricao, permissoes: perfilForm.permissoes }
+    if (perfilForm.id) await api.perfis.atualizar(perfilForm.id, payload)
+    else await api.perfis.criar(payload)
+    toastStore.success(perfilForm.id ? 'Perfil atualizado!' : 'Perfil criado!')
+    modalPerfil.value = false
+    await carregarPerfis()
+  } catch (e: any) { erroPerfil.value = e?.message || 'Erro ao salvar' } finally { salvandoPerfil.value = false }
+}
+
+async function excluirPerfil(p: any) {
+  if (!confirm(`Excluir o perfil "${p.nome}"? Os usuários vinculados voltarão às permissões padrão do cargo.`)) return
+  try {
+    await api.perfis.excluir(p.id)
+    toastStore.success('Perfil excluído!')
+    await Promise.all([carregarPerfis(), carregarFuncionarios()])
+  } catch (e: any) { toastStore.error(e?.message || 'Erro ao excluir') }
+}
+
+const seedando = ref(false)
+async function seedPerfis() {
+  seedando.value = true
+  try {
+    await api.post('/perfis/seed')
+    toastStore.success('Perfis padrão criados!')
+    await carregarPerfis()
+  } catch (e: any) { toastStore.error(e?.message || 'Erro ao criar perfis padrão') }
+  finally { seedando.value = false }
 }
 
 // ── Categorias ────────────────────────────────
@@ -418,6 +674,7 @@ async function criarMetodo() {
 
 onMounted(() => {
   carregarFuncionarios()
+  carregarPerfis()
   carregarCategorias()
   carregarMetodos()
 })

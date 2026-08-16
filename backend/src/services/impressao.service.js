@@ -72,7 +72,12 @@ function larguraPontos(largura) {
   return Number(largura) === 58 ? 384 : 576 // 203dpi: 58mm≈384pt, 80mm≈576pt
 }
 
-async function logoParaRasterEscPos(logoBase64, largura) {
+// Percentual da largura do papel para cada tamanho predefinido.
+// Controlar por largura garante diferença visual independente do aspecto da logo.
+const LOGO_LARGURAS = { pequena: 0.35, media: 0.60, grande: 1.0 }
+
+// tamanho: percentual (0–1) para modos predefinidos, pixels (>1) para personalizado
+async function logoParaRasterEscPos(logoBase64, largura, tamanho = 0.60) {
   if (!logoBase64) return null
   try {
     const base64 = logoBase64.includes(',') ? logoBase64.split(',')[1] : logoBase64
@@ -80,8 +85,26 @@ async function logoParaRasterEscPos(logoBase64, largura) {
     const origem = await Jimp.read(buffer)
 
     const larguraPx = larguraPontos(largura)
-    const alturaMaxPx = 160 // ~20mm a 203dpi — evita gastar bobina com logo gigante
-    origem.scaleToFit({ w: larguraPx, h: alturaMaxPx })
+    const origW = origem.bitmap.width
+    const origH = origem.bitmap.height
+
+    let finalW, finalH
+    if (tamanho <= 1) {
+      // Modo percentual: define a largura alvo, altura proporcional
+      finalW = Math.max(8, Math.round(larguraPx * tamanho))
+      finalH = Math.max(1, Math.round(origH * (finalW / origW)))
+    } else {
+      // Modo personalizado: define a altura alvo em pixels, largura proporcional
+      finalH = Math.round(tamanho)
+      finalW = Math.round(origW * (finalH / origH))
+      if (finalW > larguraPx) {
+        // Limita à largura do papel mantendo proporção
+        finalW = larguraPx
+        finalH = Math.max(1, Math.round(origH * (finalW / origW)))
+      }
+    }
+
+    origem.resize({ w: finalW, h: finalH })
 
     // Funde num fundo branco opaco (a térmica não entende transparência)
     // e centraliza horizontalmente, como o resto do cupom
@@ -216,6 +239,7 @@ async function enviarParaImpressora(buffer, config) {
 function montarCupomTeste(config, logoRaster) {
   const c = new CupomEscPos(Number(config.impressora_largura) || 80)
   c.alinhar(1).imagem(logoRaster)
+  if (logoRaster) c.pular()
   c.duplo(true).linha(config.nome_restaurante || 'Restaurante PDV').duplo(false)
   c.linha('TESTE DE IMPRESSAO').pular()
   c.alinhar(0).separador()
@@ -248,6 +272,7 @@ function montarFichas(config, { itens, info, codigo }, logoRaster) {
       for (let k = 0; k < copias; k++) {
         c.alinhar(1)
         c.imagem(logoRaster)
+        if (logoRaster) c.pular()
         c.negrito(true).linha(config.nome_restaurante || 'Restaurante PDV').negrito(false)
         if (info) c.linha(info)
         c.separador()
@@ -274,6 +299,7 @@ function montarConta(config, conta, logoRaster) {
   const c = new CupomEscPos(Number(config.impressora_largura) || 80)
   c.alinhar(1)
   c.imagem(logoRaster)
+  if (logoRaster) c.pular()
   c.duplo(true).linha(config.nome_restaurante || 'Restaurante PDV').duplo(false)
   c.negrito(true).linha('CONTA DA MESA').negrito(false)
   c.linha(`${conta.mesa || ''}  ${new Date().toLocaleString('pt-BR')}`.trim())
@@ -317,6 +343,7 @@ function montarFechamento(config, resumo, logoRaster) {
 
   c.alinhar(1)
   c.imagem(logoRaster)
+  if (logoRaster) c.pular()
   c.duplo(true).linha(config.nome_restaurante || 'Restaurante PDV').duplo(false)
   c.negrito(true).linha('FECHAMENTO DE CAIXA').negrito(false)
   c.linha(`Caixa #${caixa.id}`)
@@ -362,4 +389,4 @@ function montarFechamento(config, resumo, logoRaster) {
   return c.buffer()
 }
 
-module.exports = { CupomEscPos, enviarParaImpressora, montarCupomTeste, montarFichas, montarConta, montarFechamento, logoParaRasterEscPos }
+module.exports = { CupomEscPos, enviarParaImpressora, montarCupomTeste, montarFichas, montarConta, montarFechamento, logoParaRasterEscPos, LOGO_LARGURAS }

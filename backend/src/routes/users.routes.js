@@ -9,9 +9,11 @@ const { authenticate, authorize } = require('../middlewares/auth.middleware')
 router.get('/', authenticate, authorize('administrador'), async (req, res) => {
   try {
     const rows = await query(`
-      SELECT id, nome, email, cargo, cartao_rfid, ativo, created_at
-      FROM usuarios
-      ORDER BY nome ASC
+      SELECT u.id, u.nome, u.email, u.cargo, u.cartao_rfid, u.ativo, u.perfil_id,
+             p.nome AS perfil_nome, u.created_at
+      FROM usuarios u
+      LEFT JOIN perfis p ON p.id = u.perfil_id
+      ORDER BY u.nome ASC
     `)
     return res.json(rows)
   } catch (err) {
@@ -22,7 +24,7 @@ router.get('/', authenticate, authorize('administrador'), async (req, res) => {
 // POST / — criar
 router.post('/', authenticate, authorize('administrador'), async (req, res) => {
   try {
-    const { nome, email, senha, cargo, cartao_rfid } = req.body
+    const { nome, email, senha, cargo, cartao_rfid, perfil_id } = req.body
     if (!nome?.trim() || !cargo) {
       return res.status(400).json({ error: 'nome e cargo são obrigatórios' })
     }
@@ -30,9 +32,9 @@ router.post('/', authenticate, authorize('administrador'), async (req, res) => {
     const senha_hash = senha ? await bcrypt.hash(senha, 10) : null
 
     const result = await query(`
-      INSERT INTO usuarios (nome, email, senha_hash, cargo, cartao_rfid, ativo)
-      VALUES (?, ?, ?, ?, ?, 1)
-    `, [nome.trim(), email || null, senha_hash, cargo, cartao_rfid || null])
+      INSERT INTO usuarios (nome, email, senha_hash, cargo, perfil_id, cartao_rfid, ativo)
+      VALUES (?, ?, ?, ?, ?, ?, 1)
+    `, [nome.trim(), email || null, senha_hash, cargo, perfil_id || null, cartao_rfid || null])
 
     return res.status(201).json({ success: true, id: result.insertId })
   } catch (err) {
@@ -46,7 +48,7 @@ router.post('/', authenticate, authorize('administrador'), async (req, res) => {
 // PUT /:id — editar
 router.put('/:id', authenticate, authorize('administrador'), async (req, res) => {
   try {
-    const { nome, email, senha, cargo, cartao_rfid, ativo } = req.body
+    const { nome, email, senha, cargo, cartao_rfid, ativo, perfil_id } = req.body
 
     let senha_hash = undefined
     if (senha) senha_hash = await bcrypt.hash(senha, 10)
@@ -56,6 +58,7 @@ router.put('/:id', authenticate, authorize('administrador'), async (req, res) =>
         nome        = COALESCE(?, nome),
         email       = ?,
         cargo       = COALESCE(?, cargo),
+        perfil_id   = ?,
         cartao_rfid = ?,
         ativo       = COALESCE(?, ativo)
         ${senha_hash ? ', senha_hash = ?' : ''}
@@ -64,6 +67,7 @@ router.put('/:id', authenticate, authorize('administrador'), async (req, res) =>
       nome || null,
       email !== undefined ? (email || null) : undefined,
       cargo || null,
+      perfil_id !== undefined ? (perfil_id || null) : undefined,
       cartao_rfid !== undefined ? (cartao_rfid || null) : undefined,
       ativo !== undefined ? ativo : null,
       ...(senha_hash ? [senha_hash] : []),

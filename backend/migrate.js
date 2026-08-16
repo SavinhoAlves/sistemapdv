@@ -117,6 +117,9 @@ async function migrate() {
     await addColumn(conn, 'mesas', 'cliente', 'VARCHAR(120) DEFAULT NULL AFTER nome_mesa')
     await addColumn(conn, 'mesas', 'caixa_id', 'INT DEFAULT NULL AFTER garcom_id')
 
+    await addColumn(conn, 'configuracoes', 'logo_tamanho', "VARCHAR(20) DEFAULT 'media' AFTER logo_base64")
+    await addColumn(conn, 'configuracoes', 'logo_altura_custom', "SMALLINT UNSIGNED DEFAULT 320 AFTER logo_tamanho")
+    await addColumn(conn, 'configuracoes', 'modo_venda',  "VARCHAR(20) DEFAULT 'mesas' AFTER taxa_servico_pct")
     await addColumn(conn, 'configuracoes', 'mp_ativado', 'TINYINT(1) DEFAULT 0 AFTER impressora_auto_imprimir')
     await addColumn(conn, 'configuracoes', 'mp_access_token', 'TEXT DEFAULT NULL AFTER mp_ativado')
     await addColumn(conn, 'configuracoes', 'mp_device_id', 'VARCHAR(255) DEFAULT NULL AFTER mp_access_token')
@@ -163,6 +166,34 @@ async function migrate() {
     `)
     console.log("✓ Enum de status de pedido_itens padronizado ('em_preparo' → 'preparando')")
 
+    // Perfis de permissão configuráveis
+    await conn.execute(`
+      CREATE TABLE IF NOT EXISTS perfis (
+        id          INT AUTO_INCREMENT PRIMARY KEY,
+        nome        VARCHAR(100) NOT NULL,
+        descricao   VARCHAR(255) DEFAULT NULL,
+        permissoes  JSON NOT NULL DEFAULT ('{}'),
+        created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+    `)
+    console.log('✓ Tabela perfis criada (ou já existia)')
+
+    await addColumn(conn, 'usuarios', 'perfil_id',
+      'INT DEFAULT NULL AFTER cargo')
+
+    try {
+      await conn.execute(`
+        ALTER TABLE usuarios
+          ADD CONSTRAINT fk_usuarios_perfil
+            FOREIGN KEY (perfil_id) REFERENCES perfis(id) ON DELETE SET NULL
+      `)
+      console.log('✓ FK fk_usuarios_perfil criada')
+    } catch (err) {
+      if (err.errno === 1826 || err.message.includes('errno: 121') || err.message.includes('fk_usuarios_perfil')) {
+        console.log('✓ FK fk_usuarios_perfil já existia')
+      } else throw err
+    }
+
     // Painel central de suporte: identidade/token de sincronização + cache
     // local da flag remota. Tabela própria (não pdv_config, que é apagada
     // e recriada a cada reativação de licença).
@@ -173,12 +204,22 @@ async function migrate() {
         central_url            VARCHAR(255) DEFAULT NULL,
         sync_token             VARCHAR(255) DEFAULT NULL,
         venda_mobile_permitida TINYINT(1) NOT NULL DEFAULT 1,
+        suspenso               TINYINT(1) NOT NULL DEFAULT 0,
         ultimo_sync_em         DATETIME DEFAULT NULL,
         ultimo_sync_sucesso    TINYINT(1) DEFAULT NULL,
         ultimo_sync_erro       VARCHAR(255) DEFAULT NULL
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
     `)
     console.log('✓ Tabela sync_config criada (ou já existia)')
+    await addColumn(conn, 'sync_config', 'licenca_bloqueada_remoto', 'TINYINT(1) NOT NULL DEFAULT 0')
+    await addColumn(conn, 'sync_config', 'suspenso', 'TINYINT(1) NOT NULL DEFAULT 0')
+
+    // pdv_config.chave_ativacao: a chave base64 (JSON com sync_token + URL) ultrapassa
+    // varchar(255). Expandir para TEXT para evitar truncamento silencioso.
+    await conn.execute(`
+      ALTER TABLE pdv_config MODIFY COLUMN chave_ativacao TEXT DEFAULT NULL
+    `)
+    console.log('✓ pdv_config.chave_ativacao expandida para TEXT')
 
     console.log('\nMigração concluída com sucesso!')
   } finally {

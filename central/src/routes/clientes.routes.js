@@ -14,8 +14,14 @@ function semAcentos(texto) {
   return String(texto).normalize('NFD').replace(/[̀-ͯ]/g, '')
 }
 
-function gerarChaveAtivacao(nomeCliente, dias) {
-  const payload = JSON.stringify({ c: semAcentos(nomeCliente), d: Number(dias), s: process.env.RESTAURANT_LICENSE_SECRET })
+function gerarChaveAtivacao(nomeCliente, expiraEm, syncToken) {
+  const payload = JSON.stringify({
+    c:          semAcentos(nomeCliente),
+    expira_em:  expiraEm.toISOString(),
+    s:          process.env.LICENSE_SECRET,
+    sync_token: syncToken,
+    sync_url:   process.env.CENTRAL_URL || ''
+  })
   return Buffer.from(payload, 'utf8').toString('base64')
 }
 
@@ -28,7 +34,10 @@ router.get('/', async (req, res) => {
       SELECT id, nome_fantasia, contato, instalacao_uuid, venda_mobile_permitida,
              status, caixa_aberto, caixa_aberto_desde, faturamento_hoje,
              mesas_abertas, pedidos_hoje, ticket_medio, ultimo_sync_em,
-             licenca_expira_em, created_at
+             licenca_expira_em, chave_ativacao, licenca_pendente,
+             pdv_licenca_status, pdv_licenca_expira, pdv_host_fingerprint,
+             pdv_sync_bloqueado, pdv_sync_suspenso, pdv_sync_venda_mobile, pdv_sync_erro,
+             created_at
       FROM clientes
       ORDER BY nome_fantasia ASC
     `)
@@ -134,26 +143,84 @@ router.post('/:id/licenca', async (req, res) => {
     const { id } = req.params
     const dias = Number(req.body.dias)
 
-    if (!process.env.RESTAURANT_LICENSE_SECRET) {
-      return res.status(500).json({ error: 'RESTAURANT_LICENSE_SECRET não configurado no .env da central' })
+    if (!process.env.LICENSE_SECRET) {
+      return res.status(500).json({ error: 'LICENSE_SECRET não configurado no .env da central' })
     }
     if (!dias || dias <= 0) return res.status(400).json({ error: 'Informe a validade em dias' })
 
     const [cliente] = await query('SELECT nome_fantasia FROM clientes WHERE id = ?', [id])
     if (!cliente) return res.status(404).json({ error: 'Cliente não encontrado' })
 
-    const chave = gerarChaveAtivacao(cliente.nome_fantasia, dias)
-
     const expira = new Date()
     expira.setDate(expira.getDate() + dias)
+
+    // Gera novo sync token junto com a licença — embute na chave para auto-configurar o sync no PDV
+    const syncTokenBruto = crypto.randomBytes(32).toString('hex')
+    const syncTokenHash  = hashToken(syncTokenBruto)
+    const chave = gerarChaveAtivacao(cliente.nome_fantasia, expira, syncTokenBruto)
+
     const expiraMySQL = expira.toISOString().slice(0, 19).replace('T', ' ')
 
-    await query('UPDATE clientes SET licenca_expira_em = ? WHERE id = ?', [expiraMySQL, id])
+    await query(
+      'UPDATE clientes SET licenca_expira_em = ?, chave_ativacao = ?, sync_token_hash = ?, licenca_pendente = ? WHERE id = ?',
+      [expiraMySQL, chave, syncTokenHash, chave, id]
+    )
 
     return res.json({ chave, dias, expira: expira.toISOString() })
   } catch (error) {
     console.error('Erro ao gerar chave de licença:', error)
     return res.status(500).json({ error: 'Erro ao gerar chave de licença' })
+  }
+})
+
+// POST /api/clientes/:id/aplicar-chave — cola/importa uma chave gerada externamente
+router.post('/:id/aplicar-chave', async (req, res) => {
+  try {
+    const { id } = req.params
+    const { chave } = req.body
+
+    if (!chave || !chave.trim()) {
+      return res.status(400).json({ error: 'Informe a chave de ativação' })
+    }
+
+    if (!process.env.LICENSE_SECRET) {
+      return res.status(500).json({ error: 'LICENSE_SECRET não configurado no .env da central' })
+    }
+
+    let payload
+    try {
+      payload = JSON.parse(Buffer.from(chave.trim(), 'base64').toString('utf8'))
+    } catch {
+      return res.status(400).json({ error: 'Chave inválida — não é um Base64 válido' })
+    }
+
+    if (!payload.c || (!payload.expira_em && !payload.d) || payload.s !== process.env.LICENSE_SECRET) {
+      return res.status(400).json({ error: 'Chave inválida — secret não confere' })
+    }
+
+    let expira
+    if (payload.expira_em) {
+      expira = new Date(payload.expira_em)
+      if (isNaN(expira.getTime())) return res.status(400).json({ error: 'Chave inválida — data de expiração inválida' })
+    } else {
+      const dias = Number(payload.d)
+      if (!dias || dias <= 0) return res.status(400).json({ error: 'Chave inválida — validade ausente' })
+      expira = new Date()
+      expira.setDate(expira.getDate() + dias)
+    }
+
+    const [cliente] = await query('SELECT id FROM clientes WHERE id = ?', [id])
+    if (!cliente) return res.status(404).json({ error: 'Cliente não encontrado' })
+
+    const expiraMySQL = expira.toISOString().slice(0, 19).replace('T', ' ')
+    const dias = Math.ceil((expira - Date.now()) / (1000 * 60 * 60 * 24))
+
+    await query('UPDATE clientes SET licenca_expira_em = ?, chave_ativacao = ? WHERE id = ?', [expiraMySQL, chave.trim(), id])
+
+    return res.json({ success: true, dias, expira: expira.toISOString() })
+  } catch (error) {
+    console.error('Erro ao aplicar chave:', error)
+    return res.status(500).json({ error: 'Erro ao aplicar chave de ativação' })
   }
 })
 

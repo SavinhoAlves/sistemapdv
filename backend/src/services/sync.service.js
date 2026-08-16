@@ -1,7 +1,7 @@
 const crypto = require('crypto')
 const { query } = require('../database/connection')
 
-const INTERVALO_MS = (Number(process.env.SYNC_INTERVALO_MIN) || 10) * 60 * 1000
+const INTERVALO_MS = (Number(process.env.SYNC_INTERVALO_SEG) || 30) * 1000
 
 // Garante a linha singleton (id=1) com um instalacao_uuid definido —
 // gerado uma única vez, sobrevive a reativação de licença (tabela própria,
@@ -19,35 +19,69 @@ async function garantirInstalacaoUuid() {
   return novo
 }
 
-// Mesmas métricas agregadas já usadas no Dashboard (dashboard.routes.js)
-// e no status do caixa (caixa.routes.js `/atual`) — nenhuma SQL nova.
+// Mesmas métricas exibidas na página de Caixa do PDV:
+// quando o caixa está aberto, usa resumoCaixa(id) filtrado por sessão;
+// quando fechado, faz fallback para os totais do dia (igual ao Dashboard).
 async function coletarSnapshot() {
-  const [faturamento] = await query(`
-    SELECT COALESCE(SUM(valor), 0) AS total
-    FROM pagamentos
-    WHERE DATE(created_at) = CURDATE() AND status = 'confirmado'
-  `)
+  const { resumoCaixa } = require('./caixa.service')
+
   const [mesas] = await query(`
     SELECT COUNT(*) AS abertas FROM mesas WHERE status = 'aberta' AND data_fechamento IS NULL
   `)
-  const [pedidosHoje] = await query(`
-    SELECT COUNT(*) AS qtd FROM pedidos WHERE DATE(criado_em) = CURDATE()
-  `)
-  const [ticketMedio] = await query(`
-    SELECT COALESCE(AVG(valor), 0) AS media
-    FROM pagamentos
-    WHERE DATE(created_at) = CURDATE() AND status = 'confirmado'
-  `)
+
   const caixas = await query(`SELECT * FROM caixa WHERE status = 'aberto' ORDER BY id DESC LIMIT 1`)
   const caixaAberto = caixas[0] || null
 
+  let faturamentoHoje = 0
+  let pedidosHoje     = 0
+  let ticketMedio     = 0
+
+  if (caixaAberto) {
+    // Sessão atual: mesmos valores que caixa.vue exibe via GET /caixa/movimentos
+    const resumo = await resumoCaixa(caixaAberto.id).catch(() => null)
+    faturamentoHoje = resumo?.vendas?.total       ?? 0
+    pedidosHoje     = resumo?.vendas?.quantidade  ?? 0
+    ticketMedio     = resumo?.vendas?.ticket_medio ?? 0
+  } else {
+    // Caixa fechado: totais acumulados do dia (igual ao Dashboard)
+    const [fat] = await query(`
+      SELECT COALESCE(SUM(valor), 0) AS total,
+             COUNT(DISTINCT pedido_id) AS qtd,
+             COALESCE(AVG(valor), 0)   AS media
+      FROM pagamentos
+      WHERE DATE(created_at) = CURDATE() AND status = 'confirmado'
+    `)
+    faturamentoHoje = Number(fat.total)
+    pedidosHoje     = Number(fat.qtd)
+    ticketMedio     = Number(fat.media)
+  }
+
+  // Estado real de pdv_config e sync_config — reportado à central a cada sync
+  const pdvCfgRows = await query(`SELECT status_licenca, data_vencimento, host_fingerprint FROM pdv_config WHERE id = 1`).catch(() => [])
+  const pdvCfg = pdvCfgRows[0] || null
+
+  const syncCfgRows = await query(`
+    SELECT licenca_bloqueada_remoto, suspenso, venda_mobile_permitida, ultimo_sync_erro
+    FROM sync_config WHERE id = 1
+  `).catch(() => [])
+  const syncCfg = syncCfgRows[0] || null
+
   return {
-    caixaAberto: !!caixaAberto,
-    caixaAbertoDesde: caixaAberto?.data_abertura ?? null,
-    faturamentoHoje: Number(faturamento.total),
-    mesasAbertas: Number(mesas.abertas),
-    pedidosHoje: Number(pedidosHoje.qtd),
-    ticketMedio: Number(ticketMedio.media)
+    caixaAberto:        !!caixaAberto,
+    caixaAbertoDesde:   caixaAberto?.data_abertura ?? null,
+    faturamentoHoje,
+    mesasAbertas:       Number(mesas.abertas),
+    pedidosHoje,
+    ticketMedio,
+    // pdv_config
+    pdvLicencaStatus:   pdvCfg?.status_licenca    ?? null,
+    pdvLicencaExpira:   pdvCfg?.data_vencimento   ?? null,
+    pdvHostFingerprint: pdvCfg?.host_fingerprint  ?? null,
+    // sync_config
+    pdvSyncBloqueado:   syncCfg ? Boolean(syncCfg.licenca_bloqueada_remoto) : null,
+    pdvSyncSuspenso:    syncCfg ? Boolean(syncCfg.suspenso)                 : null,
+    pdvSyncVendaMobile: syncCfg ? Boolean(syncCfg.venda_mobile_permitida)   : null,
+    pdvSyncErro:        syncCfg?.ultimo_sync_erro ?? null
   }
 }
 
@@ -72,16 +106,90 @@ async function sincronizar() {
       signal: AbortSignal.timeout(5000)
     })
 
+    if (resposta.status === 401) {
+      let body = {}
+      try { body = await resposta.json() } catch {}
+      if (body.revogado) {
+        // Cliente removido da central:
+        // 1. Apaga pdv_config → sistema entra em "sem licença" e exige reativação
+        // 2. Bloqueia via licenca_bloqueada_remoto e limpa credenciais de sync
+        await query('TRUNCATE TABLE pdv_config').catch(() => {})
+        await query(
+          'UPDATE sync_config SET licenca_bloqueada_remoto = 1, central_url = NULL, sync_token = NULL WHERE id = 1'
+        ).catch(() => {})
+        console.log('[SYNC] Licença revogada pela central — pdv_config apagado, acesso bloqueado')
+      }
+      throw new Error(`Central respondeu 401`)
+    }
+
     if (!resposta.ok) {
       throw new Error(`Central respondeu ${resposta.status}`)
     }
 
     const dados = await resposta.json()
+
+    // Heartbeat: renova a data de vencimento da licença conforme instruído pela central.
+    // Sem sync ativo, a licença expira naturalmente — controle remoto garantido.
+    if (dados.novaExpiracao) {
+      const novaData = new Date(dados.novaExpiracao)
+      if (!isNaN(novaData.getTime())) {
+        await query('UPDATE pdv_config SET data_vencimento = ? WHERE id = 1', [novaData]).catch(() => {})
+        try { require('./licenca.service').limparCacheLicenca() } catch {}
+      }
+    }
+
+    // Licença pendente: a central empurrou uma nova chave → aplicar automaticamente.
+    // Mesma lógica do POST /api/sistema/ativar, sem interação do usuário.
+    if (dados.licencaPendente) {
+      try {
+        const { SEGREDO } = require('./licenca.service')
+        const chave = dados.licencaPendente
+        let payload
+        try {
+          payload = JSON.parse(decodeURIComponent(escape(Buffer.from(chave, 'base64').toString('utf8'))))
+        } catch { payload = null }
+
+        if (payload && payload.c && (payload.expira_em || payload.d) && payload.s === SEGREDO) {
+          const agora = new Date()
+          let dataVencimento
+          if (payload.expira_em) {
+            dataVencimento = new Date(payload.expira_em)
+          } else {
+            dataVencimento = new Date(agora)
+            dataVencimento.setDate(dataVencimento.getDate() + Number(payload.d))
+          }
+
+          if (!isNaN(dataVencimento.getTime()) && dataVencimento > agora) {
+            const existentes = await query('SELECT host_fingerprint FROM pdv_config ORDER BY id DESC LIMIT 1').catch(() => [])
+            const hostFingerprint = existentes[0]?.host_fingerprint ?? null
+
+            await query(`TRUNCATE TABLE pdv_config`)
+            await query(
+              `INSERT INTO pdv_config (id, chave_ativacao, status_licenca, data_ativacao, data_vencimento, ultima_verificacao, host_fingerprint)
+               VALUES (1, ?, 'ativado', ?, ?, ?, ?)`,
+              [chave, agora, dataVencimento, agora, hostFingerprint]
+            )
+            await query('UPDATE sync_config SET licenca_bloqueada_remoto = 0 WHERE id = 1').catch(() => {})
+            if (payload.sync_token && payload.sync_url) {
+              await query(
+                'UPDATE sync_config SET central_url = ?, sync_token = ? WHERE id = 1',
+                [payload.sync_url, payload.sync_token]
+              ).catch(() => {})
+            }
+            try { require('./licenca.service').limparCacheLicenca() } catch {}
+            console.log(`[SYNC] Licença aplicada automaticamente para "${payload.c}" até ${dataVencimento.toISOString().slice(0, 10)}`)
+          }
+        }
+      } catch (err) {
+        console.error('[SYNC] Erro ao aplicar licença pendente:', err.message)
+      }
+    }
+
     await query(
       `UPDATE sync_config
-       SET venda_mobile_permitida = ?, ultimo_sync_em = NOW(), ultimo_sync_sucesso = 1, ultimo_sync_erro = NULL
+       SET venda_mobile_permitida = ?, suspenso = ?, ultimo_sync_em = NOW(), ultimo_sync_sucesso = 1, ultimo_sync_erro = NULL
        WHERE id = 1`,
-      [dados.vendaMobilePermitida ? 1 : 0]
+      [dados.vendaMobilePermitida ? 1 : 0, dados.suspenso ? 1 : 0]
     )
   } catch (err) {
     console.error('[SYNC] Falha na sincronização com a central:', err.message)
@@ -95,7 +203,7 @@ async function sincronizar() {
 }
 
 // Roda uma vez logo após o boot (com um pequeno atraso pra deixar o server
-// terminar de subir) e depois a cada SYNC_INTERVALO_MIN minutos.
+// terminar de subir) e depois a cada SYNC_INTERVALO_SEG segundos (padrão: 30s).
 function agendarSync() {
   setTimeout(() => {
     sincronizar()

@@ -3,21 +3,21 @@
     <Transition name="fade">
       <div
         v-if="aberto"
-        class="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4"
+        class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4"
         @click.self="fecharSePermitido"
       >
         <Transition name="slide-up-modal" appear>
-          <div class="bg-white dark:bg-neutral-900 w-full max-w-lg rounded-3xl overflow-hidden flex flex-col max-h-[90vh]">
+          <div class="bg-white dark:bg-neutral-900/90 backdrop-blur-2xl border border-gray-200 dark:border-white/[0.08] w-full max-w-lg rounded-3xl overflow-hidden flex flex-col max-h-[90vh] shadow-float">
 
             <!-- ══ ESTADO NORMAL: seleção de método ══ -->
             <template v-if="estado === 'selecao'">
 
               <!-- HEADER -->
-              <div class="p-6 border-b border-neutral-200 dark:border-neutral-800 flex items-center justify-between shrink-0">
-                <h2 class="text-2xl font-black text-neutral-900 dark:text-white">Pagamento</h2>
+              <div class="p-6 border-b border-gray-100 dark:border-white/[0.08] flex items-center justify-between shrink-0">
+                <h2 class="text-2xl font-black text-gray-900 dark:text-white">Pagamento</h2>
                 <button
                   @click="$emit('fechar')"
-                  class="w-10 h-10 rounded-xl bg-neutral-100 dark:bg-neutral-800 hover:bg-red-50 dark:hover:bg-red-950/40 hover:text-red-500 text-neutral-600 dark:text-neutral-400 flex items-center justify-center transition-all"
+                  class="w-10 h-10 rounded-xl bg-gray-100 dark:bg-white/[0.06] hover:bg-red-950/40 hover:text-red-500 text-gray-500 dark:text-white/60 flex items-center justify-center transition-all"
                 >
                   <X :size="18" />
                 </button>
@@ -26,13 +26,13 @@
               <div class="overflow-y-auto flex-1 p-6 space-y-6">
 
                 <!-- RESUMO -->
-                <div class="bg-neutral-50 dark:bg-neutral-800 rounded-2xl p-5">
-                  <p class="text-xs font-black uppercase tracking-widest text-neutral-400 mb-1">
+                <div class="bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/[0.06] rounded-2xl p-5">
+                  <p class="text-xs font-black uppercase tracking-widest text-gray-500 dark:text-white/40 mb-1">
                     Mesa #{{ mesa?.nome_mesa || mesa?.numero || mesa?.id }}
                   </p>
                   <div class="flex items-end justify-between">
-                    <span class="text-sm text-neutral-500 dark:text-neutral-400">Total a pagar</span>
-                    <span class="text-4xl font-black text-neutral-900 dark:text-white">
+                    <span class="text-sm text-gray-500 dark:text-white/50">Total a pagar</span>
+                    <span class="text-4xl font-black text-gray-900 dark:text-white">
                       R$ {{ total.toFixed(2) }}
                     </span>
                   </div>
@@ -40,7 +40,7 @@
 
                 <!-- DIVIDIR CONTA -->
                 <div>
-                  <p class="text-xs font-black uppercase tracking-widest text-neutral-400 mb-3">
+                  <p class="text-xs font-black uppercase tracking-widest text-gray-500 dark:text-white/40 mb-3">
                     Dividir conta
                   </p>
                   <div class="flex gap-2 flex-wrap">
@@ -50,20 +50,20 @@
                       @click="pessoas = n"
                       class="h-10 min-w-[2.5rem] px-3 rounded-xl border-2 font-black text-sm transition-all active:scale-95"
                       :class="pessoas === n
-                        ? 'border-orange-500 bg-orange-50 dark:bg-orange-950/30 text-orange-600 dark:text-orange-400'
-                        : 'border-neutral-200 dark:border-neutral-700 text-neutral-500 dark:text-neutral-400 hover:border-orange-300'"
+                        ? 'border-orange-500 bg-orange-950/30 text-orange-400'
+                        : 'border-gray-200 dark:border-white/10 text-gray-500 dark:text-white/40 hover:border-orange-300'"
                     >
                       {{ n === 1 ? 'Não' : `${n}×` }}
                     </button>
                   </div>
                   <div
                     v-if="pessoas > 1"
-                    class="mt-3 flex justify-between items-center bg-blue-50 dark:bg-blue-950/30 rounded-2xl px-4 py-3"
+                    class="mt-3 flex justify-between items-center bg-blue-950/30 rounded-2xl px-4 py-3"
                   >
-                    <span class="text-sm font-bold text-blue-700 dark:text-blue-400">
+                    <span class="text-sm font-bold text-blue-400">
                       Cobrando agora (1 de {{ pessoas }})
                     </span>
-                    <span class="text-xl font-black text-blue-700 dark:text-blue-400">
+                    <span class="text-xl font-black text-blue-400">
                       R$ {{ cobranca.toFixed(2) }}
                     </span>
                   </div>
@@ -72,7 +72,7 @@
                 <!-- BADGE MAQUININHA ATIVA -->
                 <div
                   v-if="mpStore.mpAtivo"
-                  class="flex items-center gap-2 text-xs font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/30 rounded-xl px-4 py-3"
+                  class="flex items-center gap-2 text-xs font-bold text-emerald-400 bg-emerald-950/30 rounded-xl px-4 py-3"
                 >
                   <Wifi :size="14" />
                   Maquininha Mercado Pago conectada — selecione o método abaixo
@@ -80,12 +80,12 @@
 
                 <!-- MÉTODOS -->
                 <div>
-                  <p class="text-xs font-black uppercase tracking-widest text-neutral-400 mb-3">
+                  <p class="text-xs font-black uppercase tracking-widest text-gray-500 dark:text-white/40 mb-3">
                     Método de pagamento
                   </p>
 
                   <div v-if="carregandoMetodos" class="grid grid-cols-2 gap-3">
-                    <div v-for="n in 4" :key="n" class="h-20 rounded-2xl bg-neutral-100 dark:bg-neutral-800 animate-pulse" />
+                    <div v-for="n in 4" :key="n" class="h-20 rounded-2xl bg-gray-100 dark:bg-white/5 animate-pulse" />
                   </div>
 
                   <div v-else class="grid grid-cols-2 gap-3">
@@ -95,8 +95,8 @@
                       @click="metodoSelecionado = metodo"
                       class="h-20 rounded-2xl border-2 flex flex-col items-center justify-center gap-2 transition-all active:scale-95 font-bold text-sm"
                       :class="metodoSelecionado?.id === metodo.id
-                        ? 'border-orange-500 bg-orange-50 dark:bg-orange-950/30 text-orange-600 dark:text-orange-400'
-                        : 'border-neutral-200 dark:border-neutral-700 hover:border-orange-300 dark:hover:border-orange-600 text-neutral-600 dark:text-neutral-400'"
+                        ? 'border-orange-500 bg-orange-950/30 text-orange-400'
+                        : 'border-gray-200 dark:border-white/10 hover:border-orange-600 text-gray-500 dark:text-white/60'"
                     >
                       <component :is="iconeMetodo(metodo.nome)" :size="22" stroke-width="1.5" />
                       {{ metodo.nome }}
@@ -107,11 +107,11 @@
                 <!-- TROCO (só para Dinheiro) -->
                 <Transition name="slide-down">
                   <div v-if="metodoSelecionado?.nome === 'Dinheiro'" class="space-y-3">
-                    <label for="pagamento-valor-recebido" class="block text-xs font-black uppercase tracking-widest text-neutral-400">
+                    <label for="pagamento-valor-recebido" class="block text-xs font-black uppercase tracking-widest text-gray-500 dark:text-white/40">
                       Valor recebido
                     </label>
                     <div class="relative">
-                      <span class="absolute left-4 top-1/2 -translate-y-1/2 font-black text-neutral-400">R$</span>
+                      <span class="absolute left-4 top-1/2 -translate-y-1/2 font-black text-gray-400 dark:text-white/40">R$</span>
                       <input
                         id="pagamento-valor-recebido"
                         name="pagamento-valor-recebido"
@@ -120,19 +120,19 @@
                         min="0"
                         step="0.01"
                         placeholder="0,00"
-                        class="w-full h-14 pl-10 pr-4 border-2 border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-900 dark:text-white focus:border-orange-400 dark:focus:border-orange-500 rounded-2xl text-xl font-black outline-none"
+                        class="w-full h-14 pl-10 pr-4 border-2 bg-gray-50 dark:bg-white/[0.06] border-gray-200 dark:border-white/10 text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-white/25 focus:border-orange-500/70 rounded-2xl text-xl font-black outline-none"
                       />
                     </div>
                     <div
                       v-if="troco >= 0 && valorRecebidoNum > 0"
-                      class="flex justify-between items-center bg-green-50 dark:bg-green-950/30 rounded-2xl p-4"
+                      class="flex justify-between items-center bg-green-950/30 rounded-2xl p-4"
                     >
-                      <span class="text-sm font-bold text-green-700 dark:text-green-400">Troco</span>
-                      <span class="text-2xl font-black text-green-700 dark:text-green-400">R$ {{ troco.toFixed(2) }}</span>
+                      <span class="text-sm font-bold text-green-400">Troco</span>
+                      <span class="text-2xl font-black text-green-400">R$ {{ troco.toFixed(2) }}</span>
                     </div>
                     <div
                       v-if="valorRecebidoNum > 0 && valorRecebidoNum < cobranca"
-                      class="bg-red-50 dark:bg-red-950/30 rounded-2xl p-3 text-center text-sm font-bold text-red-600 dark:text-red-400"
+                      class="bg-red-950/30 rounded-2xl p-3 text-center text-sm font-bold text-red-400"
                     >
                       Valor insuficiente — faltam R$ {{ (cobranca - valorRecebidoNum).toFixed(2) }}
                     </div>
@@ -142,7 +142,7 @@
               </div>
 
               <!-- FOOTER -->
-              <div class="p-6 border-t border-neutral-200 dark:border-neutral-800 shrink-0 space-y-3">
+              <div class="p-6 border-t border-gray-100 dark:border-white/[0.08] shrink-0 space-y-3">
 
                 <!-- botão maquininha (quando MP ativo e método compatível) -->
                 <button
@@ -161,7 +161,7 @@
                   :disabled="!podePagar || salvando"
                   class="w-full h-14 rounded-2xl disabled:opacity-40 text-white font-black text-lg transition-all active:scale-95 flex items-center justify-center gap-3"
                   :class="mpStore.mpAtivo && metodoSelecionado && metodoSelecionado.nome !== 'Dinheiro'
-                    ? 'bg-neutral-400 hover:bg-neutral-500 text-sm'
+                    ? 'bg-gray-100 dark:bg-white/[0.06] hover:bg-gray-200 dark:hover:bg-white/10 text-gray-500 dark:text-white/60 text-sm'
                     : 'bg-green-500 hover:bg-green-600'"
                 >
                   <CheckCircle2 v-if="!salvando" :size="22" />
@@ -192,18 +192,18 @@
                 </div>
 
                 <div class="text-center space-y-2">
-                  <p class="text-xl font-black text-neutral-900 dark:text-white">Aguardando pagamento</p>
-                  <p class="text-sm text-neutral-500">
+                  <p class="text-xl font-black text-gray-900 dark:text-white">Aguardando pagamento</p>
+                  <p class="text-sm text-gray-500 dark:text-white/50">
                     <span class="font-bold">R$ {{ total.toFixed(2) }}</span> via
                     <span class="font-bold">{{ metodoSelecionado?.nome }}</span>
                   </p>
-                  <p class="text-xs text-neutral-400">O cliente deve pagar na maquininha</p>
+                  <p class="text-xs text-gray-400 dark:text-white/40">O cliente deve pagar na maquininha</p>
                 </div>
 
-                <div class="flex gap-2 items-center text-xs text-neutral-400">
+                <div class="flex gap-2 items-center text-xs text-gray-400 dark:text-white/40">
                   <span
                     v-for="n in 3" :key="n"
-                    class="w-1.5 h-1.5 rounded-full bg-neutral-300 dark:bg-neutral-600 animate-pulse"
+                    class="w-1.5 h-1.5 rounded-full bg-gray-300 dark:bg-white/25 animate-pulse"
                     :style="{ animationDelay: `${n * 0.2}s` }"
                   />
                 </div>
@@ -211,7 +211,7 @@
                 <button
                   @click="cancelarMaquininha"
                   :disabled="cancelando"
-                  class="h-10 px-6 rounded-xl border border-red-200 dark:border-red-900 text-red-500 text-sm font-black hover:bg-red-50 dark:hover:bg-red-950/30 transition-all disabled:opacity-50"
+                  class="h-10 px-6 rounded-xl border border-red-900/60 text-red-500 text-sm font-black hover:bg-red-950/30 transition-all disabled:opacity-50"
                 >
                   <Loader2 v-if="cancelando" :size="13" class="animate-spin inline mr-1" />
                   Cancelar
@@ -223,17 +223,17 @@
             <!-- ══ ESTADO: ERRO NA MAQUININHA ══ -->
             <template v-if="estado === 'erro'">
               <div class="p-8 flex flex-col items-center justify-center gap-5 min-h-[300px]">
-                <div class="w-20 h-20 rounded-3xl bg-red-100 dark:bg-red-950/30 flex items-center justify-center">
+                <div class="w-20 h-20 rounded-3xl bg-red-950/30 flex items-center justify-center">
                   <XCircle :size="36" class="text-red-500" />
                 </div>
                 <div class="text-center space-y-1">
-                  <p class="text-lg font-black text-neutral-900 dark:text-white">Pagamento não concluído</p>
-                  <p class="text-sm text-neutral-500">{{ erroMaquininha }}</p>
+                  <p class="text-lg font-black text-gray-900 dark:text-white">Pagamento não concluído</p>
+                  <p class="text-sm text-gray-500 dark:text-white/50">{{ erroMaquininha }}</p>
                 </div>
                 <div class="flex gap-3">
                   <button
                     @click="estado = 'selecao'"
-                    class="h-11 px-6 rounded-xl bg-neutral-100 dark:bg-neutral-800 hover:bg-neutral-200 text-neutral-700 dark:text-neutral-300 font-black text-sm transition-all"
+                    class="h-11 px-6 rounded-xl bg-gray-100 dark:bg-white/[0.06] hover:bg-gray-200 dark:hover:bg-white/10 text-gray-500 dark:text-white/60 font-black text-sm transition-all"
                   >
                     Tentar novamente
                   </button>
@@ -296,7 +296,6 @@ let   pollingInterval: ReturnType<typeof setInterval> | null = null
 
 const valorRecebidoNum = computed(() => parseFloat(valorRecebido.value) || 0)
 
-// Divisão de conta: quantia cobrada nesta rodada (1 pessoa = conta inteira)
 const pessoas  = ref(1)
 const cobranca = computed(() => {
   if (pessoas.value <= 1) return props.total

@@ -11,19 +11,23 @@ export default defineNuxtConfig({
     public: {
       apiUrl:          process.env.NUXT_PUBLIC_API_URL          || 'http://localhost:3001',
       socketUrl:       process.env.NUXT_PUBLIC_SOCKET_URL       || 'http://localhost:3001',
-      licenseSecret:   process.env.NUXT_PUBLIC_LICENSE_SECRET   || ''
     }
   },
 
   app: {
     // Suaviza a troca de páginas (evita o "piscar" ao navegar entre menus)
-    pageTransition: { name: 'page', mode: 'out-in' },
+    pageTransition: { name: 'page' },
     head: {
       title: 'RestaurantePDV',
       meta: [
         { charset: 'utf-8' },
         { name: 'viewport', content: 'width=device-width, initial-scale=1' },
         { name: 'description', content: 'Sistema PDV para Restaurante' }
+      ],
+      link: [
+        { rel: 'preconnect', href: 'https://fonts.googleapis.com' },
+        { rel: 'preconnect', href: 'https://fonts.gstatic.com', crossorigin: '' },
+        { rel: 'stylesheet', href: 'https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500&display=swap' }
       ]
     }
   },

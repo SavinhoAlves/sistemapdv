@@ -1,20 +1,25 @@
 <template>
-  <div class="min-h-screen bg-neutral-100 dark:bg-neutral-950 transition-colors duration-200">
+  <div class="min-h-screen com-sidebar">
 
-    <!-- HEADER DA PÁGINA -->
-    <div class="pt-6 sm:pt-8 pb-0">
-      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between gap-3">
+    <!-- HEADER -->
+    <div class="relative">
+      <div class="absolute inset-x-0 top-0 h-32 bg-gradient-to-b from-orange-500/[0.06] to-transparent pointer-events-none"></div>
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 pb-6 relative flex items-end justify-between gap-4">
         <div>
-          <h1 class="text-2xl font-black text-neutral-900 dark:text-white tracking-tight">Dashboard</h1>
-          <p class="text-sm text-neutral-400 dark:text-neutral-500 mt-0.5">
-            {{ saudacao }}, <span class="font-bold text-neutral-600 dark:text-neutral-300">{{ usuarioNome }}</span> ·
-            {{ dataHoje }}
-          </p>
+          <div class="flex items-center gap-2 mb-2.5">
+            <div class="w-1.5 h-1.5 rounded-full bg-orange-500 shadow-sm shadow-orange-500/60 animate-pulse"></div>
+            <p class="text-[11px] font-black uppercase tracking-[0.15em] text-orange-500/70">{{ dataHoje }}</p>
+          </div>
+          <h1 class="text-3xl sm:text-4xl font-black text-gray-900 dark:text-white tracking-tight leading-tight">
+            {{ saudacao }},
+            <span class="text-orange-400">{{ usuarioNome }}</span>
+          </h1>
+          <p class="text-sm text-gray-400 dark:text-white/30 mt-1.5 font-medium">Resumo de hoje em tempo real</p>
         </div>
         <button
           @click="carregar"
-          class="flex items-center gap-2 h-9 px-4 rounded-xl border border-neutral-200 dark:border-neutral-700 text-xs font-bold text-neutral-500 dark:text-neutral-400 hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-all"
-          :class="carregando ? 'opacity-50 pointer-events-none' : ''"
+          :class="carregando ? 'opacity-40 pointer-events-none' : 'hover:bg-gray-100 dark:hover:bg-white/[0.08]'"
+          class="shrink-0 flex items-center gap-2 h-9 px-4 rounded-xl bg-gray-50 dark:bg-white/[0.05] border border-gray-200 dark:border-white/[0.07] text-gray-500 dark:text-white/50 text-xs font-bold transition-all"
         >
           <RefreshCw :size="13" :class="carregando ? 'animate-spin' : ''" />
           Atualizar
@@ -22,116 +27,135 @@
       </div>
     </div>
 
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5 sm:py-6 space-y-6 sm:space-y-8">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-10 space-y-5">
 
-      <!-- CARDS DE STATS -->
+      <!-- KPI CARDS -->
       <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
 
-        <div class="bg-white dark:bg-neutral-900 rounded-2xl p-4 sm:p-6 border border-neutral-200 dark:border-neutral-800 shadow-sm">
-          <div class="flex items-start justify-between mb-4">
-            <span class="text-xs font-black uppercase tracking-widest text-neutral-400 dark:text-neutral-500">Faturamento Hoje</span>
-            <div class="w-8 h-8 rounded-xl bg-green-50 dark:bg-green-950/50 flex items-center justify-center">
-              <TrendingUp :size="15" class="text-green-600 dark:text-green-500" />
+        <!-- Faturamento -->
+        <div class="relative overflow-hidden rounded-2xl">
+          <div class="absolute inset-0 bg-gradient-to-br from-emerald-500/[0.12] via-transparent to-transparent"></div>
+          <div class="relative bg-white dark:bg-white/[0.04] backdrop-blur-xl border border-gray-200 dark:border-white/[0.07] rounded-2xl p-5 h-full flex flex-col">
+            <div class="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-emerald-400/25 to-transparent"></div>
+            <div class="flex items-start justify-between mb-4">
+              <div class="w-9 h-9 rounded-xl bg-emerald-500/10 border border-emerald-500/15 flex items-center justify-center">
+                <TrendingUp :size="15" class="text-emerald-400" />
+              </div>
+              <span class="text-[9px] font-black uppercase tracking-[0.12em] text-gray-400 dark:text-white/25 mt-0.5">Faturamento</span>
             </div>
+            <p class="text-2xl sm:text-[1.75rem] font-black text-gray-900 dark:text-white leading-none tabular-nums mt-auto">
+              <span v-if="carregando" class="inline-block w-24 h-7 bg-gray-100 dark:bg-white/[0.06] animate-pulse rounded-lg"></span>
+              <span v-else>R$&nbsp;{{ fmtMoeda(stats.faturamentoHoje) }}</span>
+            </p>
+            <p class="text-xs text-gray-400 dark:text-white/30 mt-2 font-medium tabular-nums">
+              {{ stats.pagamentosHoje }} pgto{{ stats.pagamentosHoje !== 1 ? 's' : '' }}
+            </p>
           </div>
-          <p class="text-xl sm:text-3xl font-black text-neutral-900 dark:text-white leading-none">
-            <span v-if="carregando" class="inline-block w-32 h-8 bg-neutral-100 dark:bg-neutral-800 animate-pulse rounded-lg"></span>
-            <span v-else>R$ {{ fmtMoeda(stats.faturamentoHoje) }}</span>
-          </p>
-          <p class="text-xs text-neutral-400 dark:text-neutral-600 mt-2 font-medium">
-            {{ stats.pagamentosHoje }} pagamento{{ stats.pagamentosHoje !== 1 ? 's' : '' }} confirmado{{ stats.pagamentosHoje !== 1 ? 's' : '' }}
-          </p>
         </div>
 
-        <div class="bg-white dark:bg-neutral-900 rounded-2xl p-4 sm:p-6 border border-neutral-200 dark:border-neutral-800 shadow-sm">
-          <div class="flex items-start justify-between mb-4">
-            <span class="text-xs font-black uppercase tracking-widest text-neutral-400 dark:text-neutral-500">Mesas Abertas</span>
-            <div class="w-8 h-8 rounded-xl bg-orange-50 dark:bg-orange-950/50 flex items-center justify-center">
-              <LayoutGrid :size="15" class="text-orange-500" />
+        <!-- Mesas Abertas -->
+        <div class="relative overflow-hidden rounded-2xl">
+          <div class="absolute inset-0 bg-gradient-to-br from-orange-500/[0.12] via-transparent to-transparent"></div>
+          <div class="relative bg-white dark:bg-white/[0.04] backdrop-blur-xl border border-gray-200 dark:border-white/[0.07] rounded-2xl p-5 h-full flex flex-col">
+            <div class="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-orange-400/25 to-transparent"></div>
+            <div class="flex items-start justify-between mb-4">
+              <div class="w-9 h-9 rounded-xl bg-orange-500/10 border border-orange-500/15 flex items-center justify-center">
+                <LayoutGrid :size="15" class="text-orange-400" />
+              </div>
+              <span class="text-[9px] font-black uppercase tracking-[0.12em] text-gray-400 dark:text-white/25 mt-0.5">Mesas</span>
             </div>
+            <p class="text-2xl sm:text-[1.75rem] font-black text-gray-900 dark:text-white leading-none tabular-nums mt-auto">
+              <span v-if="carregando" class="inline-block w-12 h-7 bg-gray-100 dark:bg-white/[0.06] animate-pulse rounded-lg"></span>
+              <span v-else>{{ stats.mesasAbertas }}</span>
+            </p>
+            <p class="text-xs text-gray-400 dark:text-white/30 mt-2 font-medium">em atendimento agora</p>
           </div>
-          <p class="text-xl sm:text-3xl font-black text-neutral-900 dark:text-white leading-none">
-            <span v-if="carregando" class="inline-block w-16 h-8 bg-neutral-100 dark:bg-neutral-800 animate-pulse rounded-lg"></span>
-            <span v-else>{{ stats.mesasAbertas }}</span>
-          </p>
-          <p class="text-xs text-neutral-400 dark:text-neutral-600 mt-2 font-medium">em atendimento agora</p>
         </div>
 
-        <div class="bg-white dark:bg-neutral-900 rounded-2xl p-4 sm:p-6 border border-neutral-200 dark:border-neutral-800 shadow-sm">
-          <div class="flex items-start justify-between mb-4">
-            <span class="text-xs font-black uppercase tracking-widest text-neutral-400 dark:text-neutral-500">Pedidos Hoje</span>
-            <div class="w-8 h-8 rounded-xl bg-blue-50 dark:bg-blue-950/50 flex items-center justify-center">
-              <ClipboardList :size="15" class="text-blue-500" />
+        <!-- Pedidos -->
+        <div class="relative overflow-hidden rounded-2xl">
+          <div class="absolute inset-0 bg-gradient-to-br from-blue-500/[0.12] via-transparent to-transparent"></div>
+          <div class="relative bg-white dark:bg-white/[0.04] backdrop-blur-xl border border-gray-200 dark:border-white/[0.07] rounded-2xl p-5 h-full flex flex-col">
+            <div class="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-blue-400/25 to-transparent"></div>
+            <div class="flex items-start justify-between mb-4">
+              <div class="w-9 h-9 rounded-xl bg-blue-500/10 border border-blue-500/15 flex items-center justify-center">
+                <ClipboardList :size="15" class="text-blue-400" />
+              </div>
+              <span class="text-[9px] font-black uppercase tracking-[0.12em] text-gray-400 dark:text-white/25 mt-0.5">Pedidos</span>
             </div>
+            <p class="text-2xl sm:text-[1.75rem] font-black text-gray-900 dark:text-white leading-none tabular-nums mt-auto">
+              <span v-if="carregando" class="inline-block w-12 h-7 bg-gray-100 dark:bg-white/[0.06] animate-pulse rounded-lg"></span>
+              <span v-else>{{ stats.pedidosHoje }}</span>
+            </p>
+            <p class="text-xs text-gray-400 dark:text-white/30 mt-2 font-medium">comandas no dia</p>
           </div>
-          <p class="text-xl sm:text-3xl font-black text-neutral-900 dark:text-white leading-none">
-            <span v-if="carregando" class="inline-block w-16 h-8 bg-neutral-100 dark:bg-neutral-800 animate-pulse rounded-lg"></span>
-            <span v-else>{{ stats.pedidosHoje }}</span>
-          </p>
-          <p class="text-xs text-neutral-400 dark:text-neutral-600 mt-2 font-medium">comandas abertas no dia</p>
         </div>
 
-        <div class="bg-white dark:bg-neutral-900 rounded-2xl p-4 sm:p-6 border border-neutral-200 dark:border-neutral-800 shadow-sm">
-          <div class="flex items-start justify-between mb-4">
-            <span class="text-xs font-black uppercase tracking-widest text-neutral-400 dark:text-neutral-500">Ticket Médio</span>
-            <div class="w-8 h-8 rounded-xl bg-purple-50 dark:bg-purple-950/50 flex items-center justify-center">
-              <Receipt :size="15" class="text-purple-500" />
+        <!-- Ticket Médio -->
+        <div class="relative overflow-hidden rounded-2xl">
+          <div class="absolute inset-0 bg-gradient-to-br from-violet-500/[0.12] via-transparent to-transparent"></div>
+          <div class="relative bg-white dark:bg-white/[0.04] backdrop-blur-xl border border-gray-200 dark:border-white/[0.07] rounded-2xl p-5 h-full flex flex-col">
+            <div class="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-violet-400/25 to-transparent"></div>
+            <div class="flex items-start justify-between mb-4">
+              <div class="w-9 h-9 rounded-xl bg-violet-500/10 border border-violet-500/15 flex items-center justify-center">
+                <Receipt :size="15" class="text-violet-400" />
+              </div>
+              <span class="text-[9px] font-black uppercase tracking-[0.12em] text-gray-400 dark:text-white/25 mt-0.5">Ticket Médio</span>
             </div>
+            <p class="text-2xl sm:text-[1.75rem] font-black text-gray-900 dark:text-white leading-none tabular-nums mt-auto">
+              <span v-if="carregando" class="inline-block w-20 h-7 bg-gray-100 dark:bg-white/[0.06] animate-pulse rounded-lg"></span>
+              <span v-else>R$&nbsp;{{ fmtMoeda(stats.ticketMedio) }}</span>
+            </p>
+            <p class="text-xs text-gray-400 dark:text-white/30 mt-2 font-medium">por pagamento hoje</p>
           </div>
-          <p class="text-xl sm:text-3xl font-black text-neutral-900 dark:text-white leading-none">
-            <span v-if="carregando" class="inline-block w-28 h-8 bg-neutral-100 dark:bg-neutral-800 animate-pulse rounded-lg"></span>
-            <span v-else>R$ {{ fmtMoeda(stats.ticketMedio) }}</span>
-          </p>
-          <p class="text-xs text-neutral-400 dark:text-neutral-600 mt-2 font-medium">por pagamento hoje</p>
         </div>
 
       </div>
 
-      <!-- LINHA INFERIOR: PAGAMENTOS RECENTES + MÉTODOS -->
-      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <!-- LINHA INFERIOR -->
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-5">
 
         <!-- PAGAMENTOS RECENTES -->
-        <div class="lg:col-span-2 bg-white dark:bg-neutral-900 rounded-2xl border border-neutral-200 dark:border-neutral-800 shadow-sm overflow-hidden">
-          <div class="px-6 py-5 border-b border-neutral-100 dark:border-neutral-800 flex items-center justify-between">
-            <h2 class="text-sm font-black text-neutral-800 dark:text-neutral-200 uppercase tracking-wider">Últimos Pagamentos</h2>
-            <span class="text-xs text-neutral-400 dark:text-neutral-600 font-medium">8 mais recentes</span>
+        <div class="lg:col-span-2 bg-white dark:bg-white/[0.04] backdrop-blur-xl rounded-2xl border border-gray-200 dark:border-white/[0.07] overflow-hidden">
+          <div class="px-5 py-4 border-b border-gray-100 dark:border-white/[0.05] flex items-center justify-between">
+            <div class="flex items-center gap-2.5">
+              <div class="w-7 h-7 rounded-lg bg-orange-500/10 flex items-center justify-center">
+                <Receipt :size="13" class="text-orange-400" />
+              </div>
+              <h2 class="text-sm font-black text-gray-900 dark:text-white">Últimos Pagamentos</h2>
+            </div>
+            <span class="text-[11px] text-gray-400 dark:text-white/25 font-medium">8 mais recentes</span>
           </div>
 
-          <div v-if="carregando" class="p-6 space-y-3">
-            <div v-for="n in 5" :key="n" class="h-12 bg-neutral-50 dark:bg-neutral-800 animate-pulse rounded-xl"></div>
+          <div v-if="carregando" class="p-4 space-y-2">
+            <div v-for="n in 5" :key="n" class="h-14 bg-gray-100 dark:bg-white/[0.04] animate-pulse rounded-xl"></div>
           </div>
 
           <div v-else-if="!stats.pagamentosRecentes?.length" class="flex flex-col items-center justify-center py-16 text-center px-6">
-            <div class="w-12 h-12 rounded-2xl bg-neutral-100 dark:bg-neutral-800 flex items-center justify-center mb-3">
-              <Receipt :size="20" class="text-neutral-300 dark:text-neutral-600" />
+            <div class="w-12 h-12 rounded-2xl bg-gray-100 dark:bg-white/[0.04] border border-gray-200 dark:border-white/[0.07] flex items-center justify-center mb-3">
+              <Receipt :size="20" class="text-gray-300 dark:text-white/15" />
             </div>
-            <p class="text-sm font-bold text-neutral-400 dark:text-neutral-600">Nenhum pagamento registrado hoje</p>
+            <p class="text-sm font-bold text-gray-400 dark:text-white/20">Nenhum pagamento registrado hoje</p>
           </div>
 
-          <div v-else class="divide-y divide-neutral-50 dark:divide-neutral-800">
+          <div v-else class="divide-y divide-gray-100 dark:divide-white/[0.04]">
             <div
               v-for="pag in stats.pagamentosRecentes"
               :key="pag.id"
-              class="flex items-center gap-4 px-6 py-4 hover:bg-neutral-50 dark:hover:bg-neutral-800/50 transition-colors"
+              class="flex items-center gap-3.5 px-5 py-3 hover:bg-gray-50 dark:hover:bg-white/[0.04] transition-colors"
             >
-              <div class="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
-                :class="corMetodo(pag.metodo).bg">
-                <component :is="iconeMetodo(pag.metodo)" :size="16"
-                  :class="corMetodo(pag.metodo).icon" stroke-width="1.8" />
+              <div class="w-9 h-9 rounded-xl flex items-center justify-center shrink-0" :class="corMetodo(pag.metodo).bg">
+                <component :is="iconeMetodo(pag.metodo)" :size="15" :class="corMetodo(pag.metodo).icon" :stroke-width="1.8" />
               </div>
-
               <div class="flex-1 min-w-0">
-                <p class="text-sm font-bold text-neutral-800 dark:text-neutral-200 truncate">
-                  Mesa {{ pag.nome_mesa || '#' + pag.id }}
+                <p class="text-sm font-bold text-gray-800 dark:text-white/85 truncate">
+                  {{ pag.nome_mesa || 'Venda #' + pag.id }}
                 </p>
-                <p class="text-xs text-neutral-400 dark:text-neutral-600">{{ pag.metodo }} · {{ fmtHora(pag.created_at) }}</p>
+                <p class="text-xs text-gray-400 dark:text-white/30">{{ pag.metodo }} · {{ fmtHora(pag.created_at) }}</p>
               </div>
-
               <div class="text-right shrink-0">
-                <p class="text-sm font-black text-neutral-900 dark:text-white">R$ {{ fmtMoeda(pag.valor) }}</p>
-                <p v-if="pag.troco > 0" class="text-xs text-green-500 font-medium">
-                  Troco R$ {{ fmtMoeda(pag.troco) }}
-                </p>
+                <p class="text-sm font-black text-gray-900 dark:text-white tabular-nums">R$&nbsp;{{ fmtMoeda(pag.valor) }}</p>
+                <p v-if="pag.troco > 0" class="text-[11px] text-emerald-500 dark:text-emerald-400 font-medium tabular-nums">Troco R$&nbsp;{{ fmtMoeda(pag.troco) }}</p>
               </div>
             </div>
           </div>
@@ -141,51 +165,62 @@
         <div class="space-y-4">
 
           <!-- STATUS DO CAIXA -->
-          <div class="bg-white dark:bg-neutral-900 rounded-2xl border border-neutral-200 dark:border-neutral-800 shadow-sm p-6">
-            <h2 class="text-xs font-black uppercase tracking-widest text-neutral-400 dark:text-neutral-500 mb-4">Status do Caixa</h2>
-            <div v-if="caixaStore.caixaAtual" class="space-y-3">
-              <div class="flex items-center gap-3">
-                <div class="w-2.5 h-2.5 rounded-full bg-green-500 shadow-sm shadow-green-400 animate-pulse"></div>
-                <span class="text-sm font-black text-green-600 dark:text-green-500">Caixa Aberto</span>
+          <div class="relative overflow-hidden bg-white dark:bg-white/[0.04] backdrop-blur-xl rounded-2xl border border-gray-200 dark:border-white/[0.07] p-5">
+            <div class="flex items-center gap-2.5 mb-4">
+              <div class="w-7 h-7 rounded-lg bg-orange-500/10 flex items-center justify-center">
+                <Landmark :size="13" class="text-orange-400" />
               </div>
-              <div class="space-y-2 pt-2 border-t border-neutral-100 dark:border-neutral-800">
+              <h2 class="text-sm font-black text-gray-900 dark:text-white">Status do Caixa</h2>
+            </div>
+            <div v-if="caixaStore.caixaAtual" class="space-y-3">
+              <div class="flex items-center gap-2.5">
+                <div class="relative w-2 h-2">
+                  <div class="absolute inset-0 rounded-full bg-emerald-500 animate-ping opacity-60"></div>
+                  <div class="relative w-2 h-2 rounded-full bg-emerald-400"></div>
+                </div>
+                <span class="text-sm font-black text-emerald-500 dark:text-emerald-400">Aberto</span>
+              </div>
+              <div class="space-y-2 pt-2 border-t border-gray-100 dark:border-white/[0.05]">
                 <div class="flex justify-between text-xs">
-                  <span class="text-neutral-400 dark:text-neutral-600 font-medium">Abertura</span>
-                  <span class="font-bold text-neutral-700 dark:text-neutral-300">{{ fmtDataHora(caixaStore.caixaAtual.data_abertura) }}</span>
+                  <span class="text-gray-400 dark:text-white/30 font-medium">Abertura</span>
+                  <span class="font-bold text-gray-600 dark:text-white/70">{{ fmtDataHora(caixaStore.caixaAtual.data_abertura) }}</span>
                 </div>
                 <div class="flex justify-between text-xs">
-                  <span class="text-neutral-400 dark:text-neutral-600 font-medium">Valor inicial</span>
-                  <span class="font-bold text-neutral-700 dark:text-neutral-300">R$ {{ fmtMoeda(caixaStore.caixaAtual.valor_inicial) }}</span>
+                  <span class="text-gray-400 dark:text-white/30 font-medium">Valor inicial</span>
+                  <span class="font-bold text-gray-600 dark:text-white/70 tabular-nums">R$&nbsp;{{ fmtMoeda(caixaStore.caixaAtual.valor_inicial) }}</span>
                 </div>
               </div>
             </div>
-            <div v-else class="flex items-center gap-3">
-              <div class="w-2.5 h-2.5 rounded-full bg-red-400"></div>
-              <span class="text-sm font-black text-red-500">Caixa Fechado</span>
+            <div v-else class="flex items-center gap-2.5">
+              <div class="w-2 h-2 rounded-full bg-gray-200 dark:bg-white/10"></div>
+              <span class="text-sm font-bold text-gray-400 dark:text-white/25">Caixa Fechado</span>
             </div>
           </div>
 
-          <!-- MÉTODOS DE PAGAMENTO HOJE -->
-          <div class="bg-white dark:bg-neutral-900 rounded-2xl border border-neutral-200 dark:border-neutral-800 shadow-sm p-6">
-            <h2 class="text-xs font-black uppercase tracking-widest text-neutral-400 dark:text-neutral-500 mb-4">Métodos Hoje</h2>
+          <!-- MÉTODOS DE PAGAMENTO -->
+          <div class="bg-white dark:bg-white/[0.04] backdrop-blur-xl rounded-2xl border border-gray-200 dark:border-white/[0.07] p-5">
+            <div class="flex items-center gap-2.5 mb-4">
+              <div class="w-7 h-7 rounded-lg bg-orange-500/10 flex items-center justify-center">
+                <CreditCard :size="13" class="text-orange-400" />
+              </div>
+              <h2 class="text-sm font-black text-gray-900 dark:text-white">Métodos Hoje</h2>
+            </div>
 
             <div v-if="carregando" class="space-y-3">
-              <div v-for="n in 3" :key="n" class="h-8 bg-neutral-50 dark:bg-neutral-800 animate-pulse rounded-lg"></div>
+              <div v-for="n in 3" :key="n" class="h-8 bg-gray-100 dark:bg-white/[0.04] animate-pulse rounded-lg"></div>
             </div>
 
-            <div v-else-if="!stats.metodosPie?.length" class="text-xs text-neutral-400 dark:text-neutral-600 font-medium py-2">
-              Sem dados para hoje
-            </div>
+            <p v-else-if="!stats.metodosPie?.length" class="text-xs text-gray-400 dark:text-white/25 font-medium py-2">Sem dados para hoje</p>
 
-            <div v-else class="space-y-3">
-              <div v-for="m in stats.metodosPie" :key="m.metodo" class="space-y-1">
-                <div class="flex justify-between text-xs">
-                  <span class="font-bold text-neutral-700 dark:text-neutral-300">{{ m.metodo }}</span>
-                  <span class="text-neutral-400 dark:text-neutral-500 font-medium">R$ {{ fmtMoeda(m.total) }}</span>
+            <div v-else class="space-y-4">
+              <div v-for="m in stats.metodosPie" :key="m.metodo">
+                <div class="flex justify-between text-xs mb-1.5">
+                  <span class="font-bold text-gray-600 dark:text-white/70">{{ m.metodo }}</span>
+                  <span class="text-gray-400 dark:text-white/40 tabular-nums font-mono">R$&nbsp;{{ fmtMoeda(m.total) }}</span>
                 </div>
-                <div class="h-1.5 bg-neutral-100 dark:bg-neutral-800 rounded-full overflow-hidden">
+                <div class="h-1 bg-gray-100 dark:bg-white/[0.05] rounded-full overflow-hidden">
                   <div
-                    class="h-full bg-orange-400 rounded-full transition-all duration-700"
+                    class="h-full rounded-full bg-gradient-to-r from-orange-500 to-orange-400 transition-all duration-700"
                     :style="{ width: pctMetodo(m.total) + '%' }"
                   ></div>
                 </div>
@@ -205,7 +240,7 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import {
-  TrendingUp, LayoutGrid, ClipboardList, Receipt,
+  TrendingUp, LayoutGrid, ClipboardList, Receipt, Landmark,
   RefreshCw, Banknote, QrCode, CreditCard, UtensilsCrossed, Wallet
 } from 'lucide-vue-next'
 import { useAuthStore } from '~/stores/auth'
@@ -274,17 +309,14 @@ function iconeMetodo(nome: string) {
 
 function corMetodo(nome: string) {
   const n = (nome || '').toLowerCase()
-  if (n.includes('dinheiro'))  return { bg: 'bg-green-50',  icon: 'text-green-600' }
-  if (n.includes('pix'))       return { bg: 'bg-blue-50',   icon: 'text-blue-500' }
-  if (n.includes('crédito') || n.includes('credito')) return { bg: 'bg-purple-50', icon: 'text-purple-500' }
-  if (n.includes('débito') || n.includes('debito'))   return { bg: 'bg-indigo-50', icon: 'text-indigo-500' }
-  if (n.includes('vale'))      return { bg: 'bg-orange-50', icon: 'text-orange-500' }
-  return { bg: 'bg-neutral-100', icon: 'text-neutral-500' }
+  if (n.includes('dinheiro'))  return { bg: 'bg-emerald-500/15', icon: 'text-emerald-400' }
+  if (n.includes('pix'))       return { bg: 'bg-blue-500/15',    icon: 'text-blue-400' }
+  if (n.includes('crédito') || n.includes('credito')) return { bg: 'bg-purple-500/15', icon: 'text-purple-400' }
+  if (n.includes('débito') || n.includes('debito'))   return { bg: 'bg-indigo-500/15', icon: 'text-indigo-400' }
+  if (n.includes('vale'))      return { bg: 'bg-orange-500/15',  icon: 'text-orange-400' }
+  return { bg: 'bg-gray-100 dark:bg-white/[0.06]', icon: 'text-gray-500 dark:text-white/40' }
 }
 
-// mostrarLoading só deve ser true na carga inicial (ou no clique manual em
-// "Atualizar") — do contrário, o polling em segundo plano troca os dados
-// reais pelos skeletons a cada atualização
 async function carregar(mostrarLoading = true) {
   if (mostrarLoading) carregando.value = true
   try {

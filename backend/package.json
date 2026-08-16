@@ -2,10 +2,10 @@
   "name": "restaurante-pdv-backend",
   "version": "1.0.0",
   "description": "Backend do sistema PDV para restaurante",
-  "main": "src/server.js",
+  "main": "server.js",
   "scripts": {
-    "start": "node src/server.js",
-    "dev": "nodemon src/server.js",
+    "start": "node server.js",
+    "dev": "nodemon server.js",
     "migrate": "node src/database/migrate.js",
     "seed": "node src/database/seed.js"
   },

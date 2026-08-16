@@ -1,22 +1,24 @@
 <template>
   <div
-    class="h-screen flex flex-col bg-neutral-100 dark:bg-neutral-950 overflow-hidden transition-colors duration-200 com-sidebar"
+    class="h-screen flex flex-col overflow-hidden transition-colors duration-200 com-sidebar"
     :class="caixaAberto ? 'lg:pr-72 xl:pr-80' : ''"
   >
     <Sidebar />
     <Navbar />
 
     <!-- CAIXA FECHADO -->
-    <div v-if="!caixaAberto" class="flex-1 flex flex-col items-center justify-center gap-4 text-center p-8">
-      <div class="w-16 h-16 rounded-2xl bg-neutral-200 dark:bg-neutral-900 flex items-center justify-center">
-        <LockKeyhole :size="28" class="text-neutral-400 dark:text-neutral-700" />
+    <div v-if="!caixaAberto" class="flex-1 flex flex-col items-center justify-center gap-5 text-center p-8">
+      <div class="w-20 h-20 rounded-3xl bg-gray-100 dark:bg-white/5 border border-gray-200 dark:border-white/[0.08] flex items-center justify-center">
+        <LockKeyhole :size="32" class="text-gray-300 dark:text-white/20" />
       </div>
-      <h3 class="text-lg font-black text-neutral-700 dark:text-neutral-300">Caixa fechado</h3>
-      <p class="text-sm text-neutral-400">
-        {{ isAdmin
-          ? 'Use o botão "Abrir Caixa" na barra superior para iniciar as vendas.'
-          : 'O administrador precisa abrir o caixa para iniciar as vendas.' }}
-      </p>
+      <div>
+        <h3 class="text-xl font-black text-gray-400 dark:text-white/60">Caixa fechado</h3>
+        <p class="text-sm text-gray-500 dark:text-white/40 mt-1.5 max-w-xs">
+          {{ isAdmin
+            ? 'Use o botão "Abrir Caixa" na barra superior para iniciar as vendas.'
+            : 'O administrador precisa abrir o caixa para iniciar as vendas.' }}
+        </p>
+      </div>
     </div>
 
     <!-- POS DE VENDA DIRETA -->

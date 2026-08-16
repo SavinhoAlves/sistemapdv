@@ -10,7 +10,7 @@ const { emitir } = require('../services/socket.service')
 // ======================
 // ADICIONAR PRODUTO
 // ======================
-router.post('/adicionar', authenticate, async (req, res) => {
+router.post('/adicionar', authenticate, permissoes.adicionarPedido, async (req, res) => {
   try {
     const {
       mesa_id,
@@ -203,7 +203,7 @@ router.post('/adicionar', authenticate, async (req, res) => {
 // ======================
 // DECREMENTAR 1 UNIDADE
 // ======================
-router.patch('/itens/:itemId/decrementar', authenticate, async (req, res) => {
+router.patch('/itens/:itemId/decrementar', authenticate, permissoes.adicionarPedido, async (req, res) => {
   try {
     const { itemId } = req.params
 
@@ -307,7 +307,7 @@ router.patch('/itens/:itemId/decrementar', authenticate, async (req, res) => {
 // ======================
 // EXCLUIR ITEM
 // ======================
-router.delete('/itens/:itemId', authenticate, async (req, res) => {
+router.delete('/itens/:itemId', authenticate, permissoes.adicionarPedido, async (req, res) => {
   try {
     const { itemId } = req.params
 
@@ -431,7 +431,7 @@ router.get('/mesa/:mesaId', authenticate, async (req, res) => {
 // ======================
 // TAXA DE SERVIÇO (aplicar/remover)
 // ======================
-router.patch('/:id/taxa-servico', authenticate, async (req, res) => {
+router.patch('/:id/taxa-servico', authenticate, permissoes.gerenciarCaixa, async (req, res) => {
   try {
     const aplicar = !!req.body.aplicar
 
@@ -463,7 +463,7 @@ router.patch('/:id/taxa-servico', authenticate, async (req, res) => {
 // ======================
 // ABATER VALOR DO PEDIDO
 // ======================
-router.patch('/:id/abater', authenticate, async (req, res) => {
+router.patch('/:id/abater', authenticate, permissoes.gerenciarCaixa, async (req, res) => {
   try {
     const { valor } = req.body
     if (!valor || isNaN(valor) || Number(valor) <= 0) {
@@ -508,7 +508,7 @@ router.patch('/:id/abater', authenticate, async (req, res) => {
 // ======================
 // KDS — PEDIDOS DA COZINHA
 // ======================
-router.get('/cozinha', authenticate, async (req, res) => {
+router.get('/cozinha', authenticate, permissoes.verCozinha, async (req, res) => {
   try {
     // Prontos ficam visíveis na aba de expedição até serem entregues
     // (janela de 12h para não arrastar backlog antigo de mesas esquecidas)

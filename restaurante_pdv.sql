@@ -1,7 +1,7 @@
 /*
  Navicat Premium Dump SQL
 
- Source Server         : PDV
+ Source Server         : AppFinances
  Source Server Type    : MySQL
  Source Server Version : 80046 (8.0.46)
  Source Host           : localhost:3306
@@ -11,11 +11,29 @@
  Target Server Version : 80046 (8.0.46)
  File Encoding         : 65001
 
- Date: 12/07/2026 17:17:05
+ Date: 12/07/2026 22:42:21
 */
 
 SET NAMES utf8mb4;
 SET FOREIGN_KEY_CHECKS = 0;
+
+-- ----------------------------
+-- Table structure for admins
+-- ----------------------------
+DROP TABLE IF EXISTS `admins`;
+CREATE TABLE `admins`  (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `email` varchar(150) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL,
+  `senha_hash` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL,
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`) USING BTREE,
+  UNIQUE INDEX `email`(`email` ASC) USING BTREE
+) ENGINE = InnoDB AUTO_INCREMENT = 2 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci ROW_FORMAT = Dynamic;
+
+-- ----------------------------
+-- Records of admins
+-- ----------------------------
+INSERT INTO `admins` VALUES (1, 'savioalves169@gmail.com', '$2a$10$XeetZqmje0lzumXsrNLG2uh5czJnVp64h.k2E4XwIhV4QXSYGDVW.', '2026-07-12 18:38:50');
 
 -- ----------------------------
 -- Table structure for auditoria
@@ -32,7 +50,7 @@ CREATE TABLE `auditoria`  (
   PRIMARY KEY (`id`) USING BTREE,
   INDEX `idx_auditoria_acao`(`acao` ASC) USING BTREE,
   INDEX `idx_auditoria_created`(`created_at` ASC) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 15 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 15 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci ROW_FORMAT = DYNAMIC;
 
 -- ----------------------------
 -- Records of auditoria
@@ -100,6 +118,39 @@ INSERT INTO `categorias` VALUES (2, 'Bebidas', '2026-06-27 14:58:08', 0);
 INSERT INTO `categorias` VALUES (3, 'Lanches', '2026-06-27 14:58:18', 1);
 
 -- ----------------------------
+-- Table structure for clientes
+-- ----------------------------
+DROP TABLE IF EXISTS `clientes`;
+CREATE TABLE `clientes`  (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `nome_fantasia` varchar(150) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL,
+  `contato` varchar(150) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL,
+  `instalacao_uuid` varchar(36) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL,
+  `sync_token_hash` char(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL,
+  `venda_mobile_permitida` tinyint(1) NULL DEFAULT 1,
+  `status` enum('ativo','suspenso','cancelado') CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT 'ativo',
+  `caixa_aberto` tinyint(1) NULL DEFAULT NULL,
+  `caixa_aberto_desde` datetime NULL DEFAULT NULL,
+  `faturamento_hoje` decimal(10, 2) NULL DEFAULT NULL,
+  `mesas_abertas` int NULL DEFAULT NULL,
+  `pedidos_hoje` int NULL DEFAULT NULL,
+  `ticket_medio` decimal(10, 2) NULL DEFAULT NULL,
+  `ultimo_sync_em` datetime NULL DEFAULT NULL,
+  `ultimo_sync_erro` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  `licenca_expira_em` datetime NULL DEFAULT NULL,
+  PRIMARY KEY (`id`) USING BTREE,
+  UNIQUE INDEX `sync_token_hash`(`sync_token_hash` ASC) USING BTREE,
+  UNIQUE INDEX `instalacao_uuid`(`instalacao_uuid` ASC) USING BTREE
+) ENGINE = InnoDB AUTO_INCREMENT = 2 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci ROW_FORMAT = Dynamic;
+
+-- ----------------------------
+-- Records of clientes
+-- ----------------------------
+INSERT INTO `clientes` VALUES (1, 'Teste', '22997127142', NULL, 'f9f08124c3a66bd6d831d312b345d88605c4b42e8350bd3907d0705f6b3026c1', 1, 'ativo', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '2026-07-12 19:25:00', '2026-07-12 19:25:00', NULL);
+
+-- ----------------------------
 -- Table structure for configuracoes
 -- ----------------------------
 DROP TABLE IF EXISTS `configuracoes`;
@@ -143,7 +194,7 @@ CREATE TABLE `estoque_movimentacoes`  (
   PRIMARY KEY (`id`) USING BTREE,
   INDEX `idx_estmov_produto`(`produto_id` ASC, `created_at` ASC) USING BTREE,
   CONSTRAINT `fk_estmov_produto` FOREIGN KEY (`produto_id`) REFERENCES `produtos` (`id`) ON DELETE RESTRICT ON UPDATE RESTRICT
-) ENGINE = InnoDB AUTO_INCREMENT = 22 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 22 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci ROW_FORMAT = DYNAMIC;
 
 -- ----------------------------
 -- Records of estoque_movimentacoes
@@ -476,7 +527,7 @@ CREATE TABLE `sync_config`  (
   `ultimo_sync_sucesso` tinyint(1) NULL DEFAULT NULL,
   `ultimo_sync_erro` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL,
   PRIMARY KEY (`id`) USING BTREE
-) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci ROW_FORMAT = DYNAMIC;
 
 -- ----------------------------
 -- Records of sync_config

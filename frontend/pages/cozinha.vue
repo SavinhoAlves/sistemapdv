@@ -1,5 +1,5 @@
 <template>
-  <div class="min-h-screen bg-neutral-950 transition-colors duration-200" :class="quiosque ? '' : 'com-sidebar'">
+  <div class="min-h-screen transition-colors duration-200" :class="quiosque ? '' : 'com-sidebar'">
     <Sidebar v-if="!quiosque" />
     <Navbar v-if="!quiosque" />
 
@@ -24,7 +24,7 @@
           </div>
           <div class="flex-1 min-w-0">
             <p class="text-sm font-black text-red-300 uppercase">Item cancelado</p>
-            <p class="text-sm text-white font-bold truncate">
+            <p class="text-sm text-gray-900 dark:text-white font-bold truncate">
               {{ alerta.quantidade }}x {{ alerta.produto }} · Mesa {{ alerta.mesa_id }}
               <span v-if="!alerta.removido_tudo" class="text-red-300 font-medium">(reduzida a quantidade)</span>
             </p>
@@ -40,14 +40,14 @@
       <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
         <div>
           <div class="flex items-center gap-2.5">
-            <h1 class="text-2xl font-black text-white">Cozinha</h1>
+            <h1 class="text-2xl font-black text-gray-900 dark:text-white">Cozinha</h1>
             <span class="flex items-center gap-1.5 text-[11px] font-bold px-2 py-1 rounded-lg"
               :class="tempoReal ? 'bg-green-500/15 text-green-400' : 'bg-amber-500/15 text-amber-400'">
               <span class="w-1.5 h-1.5 rounded-full" :class="tempoReal ? 'bg-green-400 animate-pulse' : 'bg-amber-400'" />
               {{ tempoReal ? 'Tempo real' : 'Atualização a cada 20s' }}
             </span>
           </div>
-          <p class="text-sm text-neutral-500 mt-0.5">
+          <p class="text-sm text-gray-500 dark:text-white/40 mt-0.5">
             <span class="text-orange-500 font-black">{{ totalPreparo }}</span> em preparo ·
             <span class="text-green-500 font-black">{{ totalProntos }}</span> aguardando entrega
             <span v-if="ultimaAtualizacao" class="ml-1">· atualizado {{ ultimaAtualizacao }}</span>
@@ -56,14 +56,14 @@
 
         <div class="flex items-center gap-2">
           <button @click="somAtivo = !somAtivo"
-            class="h-10 w-10 rounded-xl bg-neutral-800 hover:bg-neutral-700 flex items-center justify-center transition-all"
-            :class="somAtivo ? 'text-white' : 'text-neutral-600'"
+            class="h-10 w-10 rounded-xl bg-gray-100 dark:bg-white/[0.06] hover:bg-gray-200 dark:hover:bg-white/10 flex items-center justify-center transition-all"
+            :class="somAtivo ? 'text-gray-900 dark:text-white' : 'text-gray-400 dark:text-white/30'"
             :title="somAtivo ? 'Som ligado' : 'Som desligado'">
             <Volume2 v-if="somAtivo" :size="16" />
             <VolumeX v-else :size="16" />
           </button>
           <button @click="buscar"
-            class="h-10 px-4 rounded-xl bg-neutral-800 hover:bg-neutral-700 text-white text-xs font-black transition-all flex items-center gap-2">
+            class="h-10 px-4 rounded-xl bg-gray-100 dark:bg-white/[0.06] hover:bg-gray-200 dark:hover:bg-white/10 text-gray-700 dark:text-white text-xs font-black transition-all flex items-center gap-2">
             <RefreshCw :size="14" :class="carregando ? 'animate-spin' : ''" />
             Atualizar
           </button>
@@ -71,7 +71,7 @@
             class="h-10 px-4 rounded-xl text-xs font-black transition-all flex items-center gap-2"
             :class="quiosque
               ? 'bg-orange-500 hover:bg-orange-400 text-white'
-              : 'bg-neutral-800 hover:bg-neutral-700 text-white'">
+              : 'bg-gray-100 dark:bg-white/[0.06] hover:bg-gray-200 dark:hover:bg-white/10 text-gray-700 dark:text-white'">
             <Minimize2 v-if="quiosque" :size="14" />
             <Maximize2 v-else :size="14" />
             {{ quiosque ? 'Sair do modo tela cheia' : 'Tela cheia' }}
@@ -81,33 +81,33 @@
 
       <!-- ABAS + FILTRO DE ESTAÇÃO -->
       <div class="flex flex-wrap items-center justify-between gap-3 mb-5">
-        <div class="flex items-center gap-1 bg-neutral-900 rounded-2xl p-1">
+        <div class="flex items-center gap-1 bg-gray-100 dark:bg-white/5 border border-gray-200 dark:border-white/[0.08] rounded-2xl p-1">
           <button @click="abaAtiva = 'preparo'"
             class="h-11 px-5 rounded-xl text-sm font-black transition-all flex items-center gap-2"
-            :class="abaAtiva === 'preparo' ? 'bg-orange-500 text-white' : 'text-neutral-500 hover:text-neutral-300'">
+            :class="abaAtiva === 'preparo' ? 'bg-orange-500 text-white' : 'text-gray-400 dark:text-white/40 hover:text-gray-600 dark:hover:text-white/70'">
             Em preparo
             <span class="min-w-6 h-6 px-1.5 rounded-full text-xs flex items-center justify-center"
-              :class="abaAtiva === 'preparo' ? 'bg-white/25' : 'bg-neutral-800'">{{ totalPreparo }}</span>
+              :class="abaAtiva === 'preparo' ? 'bg-white/25' : 'bg-gray-200 dark:bg-white/[0.06]'">{{ totalPreparo }}</span>
           </button>
           <button @click="abaAtiva = 'prontos'"
             class="h-11 px-5 rounded-xl text-sm font-black transition-all flex items-center gap-2"
-            :class="abaAtiva === 'prontos' ? 'bg-green-500 text-white' : 'text-neutral-500 hover:text-neutral-300'">
+            :class="abaAtiva === 'prontos' ? 'bg-green-500 text-white' : 'text-gray-400 dark:text-white/40 hover:text-gray-600 dark:hover:text-white/70'">
             Prontos
             <span class="min-w-6 h-6 px-1.5 rounded-full text-xs flex items-center justify-center"
-              :class="abaAtiva === 'prontos' ? 'bg-white/25' : 'bg-neutral-800'">{{ totalProntos }}</span>
+              :class="abaAtiva === 'prontos' ? 'bg-white/25' : 'bg-gray-200 dark:bg-white/[0.06]'">{{ totalProntos }}</span>
           </button>
         </div>
 
         <div v-if="categorias.length > 1" class="flex items-center gap-1.5 overflow-x-auto scrollbar-none">
-          <span class="text-[10px] font-black uppercase tracking-widest text-neutral-600 shrink-0">Estação:</span>
+          <span class="text-[10px] font-black uppercase tracking-widest text-gray-400 dark:text-white/30 shrink-0">Estação:</span>
           <button @click="estacoes = []"
             class="h-9 px-3.5 rounded-xl text-xs font-black whitespace-nowrap shrink-0 transition-all"
-            :class="!estacoes.length ? 'bg-white text-neutral-900' : 'bg-neutral-900 text-neutral-500 hover:text-neutral-300'">
+            :class="!estacoes.length ? 'bg-gray-900 dark:bg-white text-white dark:text-neutral-900' : 'bg-gray-100 dark:bg-white/5 text-gray-400 dark:text-white/40 hover:text-gray-600 dark:hover:text-white/70'">
             Todas
           </button>
           <button v-for="cat in categorias" :key="cat" @click="alternarEstacao(cat)"
             class="h-9 px-3.5 rounded-xl text-xs font-black whitespace-nowrap shrink-0 transition-all"
-            :class="estacoes.includes(cat) ? 'bg-white text-neutral-900' : 'bg-neutral-900 text-neutral-500 hover:text-neutral-300'">
+            :class="estacoes.includes(cat) ? 'bg-gray-900 dark:bg-white text-white dark:text-neutral-900' : 'bg-gray-100 dark:bg-white/5 text-gray-400 dark:text-white/40 hover:text-gray-600 dark:hover:text-white/70'">
             {{ cat }}
           </button>
         </div>
@@ -115,18 +115,18 @@
 
       <!-- SKELETON -->
       <div v-if="carregando && !mesas.length" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-        <div v-for="n in 6" :key="n" class="h-48 rounded-2xl bg-neutral-900 animate-pulse" />
+        <div v-for="n in 6" :key="n" class="h-48 rounded-2xl bg-gray-100 dark:bg-white/5 animate-pulse" />
       </div>
 
       <!-- VAZIO -->
       <div v-else-if="!mesasVisiveis.length" class="flex flex-col items-center justify-center py-28 text-center">
-        <div class="w-16 h-16 rounded-2xl bg-neutral-900 flex items-center justify-center mb-4">
-          <ChefHat :size="28" class="text-neutral-700" />
+        <div class="w-16 h-16 rounded-2xl bg-gray-100 dark:bg-white/5 flex items-center justify-center mb-4">
+          <ChefHat :size="28" class="text-gray-300 dark:text-white/20" />
         </div>
-        <h3 class="text-lg font-black text-neutral-500">
+        <h3 class="text-lg font-black text-gray-400 dark:text-white/40">
           {{ abaAtiva === 'preparo' ? 'Nenhum pedido em preparo' : 'Nenhum prato aguardando entrega' }}
         </h3>
-        <p class="text-sm text-neutral-700 mt-1">
+        <p class="text-sm text-gray-400 dark:text-white/25 mt-1">
           {{ abaAtiva === 'preparo' ? 'Novos pedidos aparecem aqui na hora, com aviso sonoro.' : 'Tudo entregue!' }}
         </p>
       </div>
@@ -134,19 +134,19 @@
       <!-- GRID DE MESAS -->
       <div v-else class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
         <div v-for="mesa in mesasVisiveis" :key="mesa.mesa_id"
-          class="bg-neutral-900 border rounded-2xl overflow-hidden transition-colors"
-          :class="abaAtiva === 'preparo' && mesaAtrasada(mesa) ? 'border-red-500/50' : 'border-neutral-800'">
+          class="bg-white dark:bg-white/5 backdrop-blur-xl border rounded-2xl overflow-hidden transition-all shadow-lg shadow-gray-200/50 dark:shadow-black/30"
+          :class="abaAtiva === 'preparo' && mesaAtrasada(mesa) ? 'border-red-500/40 shadow-red-900/20' : 'border-gray-200 dark:border-white/[0.08]'">
 
           <!-- Cabeçalho da mesa -->
-          <div class="px-4 py-3 border-b border-neutral-800 flex items-center justify-between">
+          <div class="px-4 py-3 border-b border-gray-100 dark:border-white/[0.06] flex items-center justify-between">
             <div>
-              <p class="text-base font-black text-white">{{ mesa.mesa_nome }}</p>
-              <p v-if="mesa.cliente" class="text-[11px] text-neutral-500">{{ mesa.cliente }}</p>
+              <p class="text-base font-black text-gray-900 dark:text-white">{{ mesa.mesa_nome }}</p>
+              <p v-if="mesa.cliente" class="text-[11px] text-gray-500 dark:text-white/40">{{ mesa.cliente }}</p>
             </div>
             <span class="text-[10px] font-black px-2 py-1 rounded-lg"
               :class="abaAtiva === 'preparo' && mesaAtrasada(mesa)
                 ? 'bg-red-500/20 text-red-400'
-                : 'bg-neutral-800 text-neutral-400'">
+                : 'bg-gray-100 dark:bg-white/[0.06] text-gray-500 dark:text-white/40'">
               {{ mesa.itens.length }} item(ns)
             </span>
           </div>
@@ -163,7 +163,7 @@
 
                 <div class="flex-1 min-w-0">
                   <div class="flex items-center gap-2">
-                    <p class="text-sm font-black text-white truncate">{{ item.quantidade }}x {{ item.produto }}</p>
+                    <p class="text-sm font-black text-gray-900 dark:text-white truncate">{{ item.quantidade }}x {{ item.produto }}</p>
                     <span v-if="ehNovo(item)"
                       class="text-[9px] font-black uppercase bg-yellow-400 text-neutral-900 px-1.5 py-0.5 rounded-md shrink-0 animate-pulse">
                       Novo
@@ -173,7 +173,7 @@
                   <p class="text-[11px] mt-0.5" :class="classeTempo(item)">
                     <template v-if="item.status === 'pronto'">pronto há {{ tempoDecorrido(item.updated_at) }}</template>
                     <template v-else>{{ tempoDecorrido(item.created_at) }}</template>
-                    <span v-if="item.categoria" class="text-neutral-600"> · {{ item.categoria }}</span>
+                    <span v-if="item.categoria" class="text-gray-400 dark:text-white/25"> · {{ item.categoria }}</span>
                   </p>
                 </div>
               </div>
@@ -188,7 +188,7 @@
                 </template>
                 <template v-else-if="item.status === 'preparando'">
                   <button @click="atualizarStatus(item, 'pendente')" title="Voltar para pendente"
-                    class="h-11 w-11 rounded-xl bg-neutral-800 hover:bg-neutral-700 active:scale-95 text-neutral-400 flex items-center justify-center transition-all shrink-0">
+                    class="h-11 w-11 rounded-xl bg-gray-100 dark:bg-white/[0.06] hover:bg-gray-200 dark:hover:bg-white/10 active:scale-95 text-gray-400 dark:text-white/40 flex items-center justify-center transition-all shrink-0">
                     <Undo2 :size="16" />
                   </button>
                   <button @click="atualizarStatus(item, 'pronto')"
@@ -198,7 +198,7 @@
                 </template>
                 <template v-else-if="item.status === 'pronto'">
                   <button @click="atualizarStatus(item, 'preparando')" title="Voltar para preparo"
-                    class="h-11 w-11 rounded-xl bg-neutral-800 hover:bg-neutral-700 active:scale-95 text-neutral-400 flex items-center justify-center transition-all shrink-0">
+                    class="h-11 w-11 rounded-xl bg-gray-100 dark:bg-white/[0.06] hover:bg-gray-200 dark:hover:bg-white/10 active:scale-95 text-gray-400 dark:text-white/40 flex items-center justify-center transition-all shrink-0">
                     <Undo2 :size="16" />
                   </button>
                   <button @click="atualizarStatus(item, 'entregue')"
@@ -213,13 +213,13 @@
           <!-- Ações da mesa -->
           <div v-if="abaAtiva === 'preparo' && mesa.itens.some(i => i.status === 'preparando')" class="px-3 pb-3">
             <button @click="marcarTodosProntos(mesa)"
-              class="w-full h-11 rounded-xl bg-green-500/15 hover:bg-green-500/25 border border-green-500/20 text-green-400 text-sm font-black transition-all">
+              class="w-full h-11 rounded-xl bg-green-500/15 hover:bg-green-500/25 border border-green-500/20 text-green-500 dark:text-green-400 text-sm font-black transition-all">
               Marcar todos como prontos
             </button>
           </div>
           <div v-else-if="abaAtiva === 'prontos'" class="px-3 pb-3">
             <button @click="marcarTodosEntregues(mesa)"
-              class="w-full h-11 rounded-xl bg-green-500/15 hover:bg-green-500/25 border border-green-500/20 text-green-400 text-sm font-black transition-all">
+              class="w-full h-11 rounded-xl bg-green-500/15 hover:bg-green-500/25 border border-green-500/20 text-green-500 dark:text-green-400 text-sm font-black transition-all">
               Marcar todos como entregues
             </button>
           </div>
@@ -265,10 +265,8 @@ const tempoReal         = ref(false)
 const ultimaAtualizacao = ref('')
 const abaAtiva          = ref<'preparo' | 'prontos'>('preparo')
 
-// Relógio reativo: cronômetros e cores de atraso atualizam a cada segundo
 const agora = ref(Date.now())
 
-// localStorage só existe no navegador (a página passa pelo SSR do Nuxt)
 function lsGet(chave: string): string | null {
   return process.client ? localStorage.getItem(chave) : null
 }
@@ -276,7 +274,6 @@ function lsSet(chave: string, valor: string) {
   if (process.client) localStorage.setItem(chave, valor)
 }
 
-// ══ FILTRO DE ESTAÇÃO (persistido por máquina) ══
 const estacoes = ref<string[]>([])
 try { estacoes.value = JSON.parse(lsGet('kds_estacoes') || '[]') } catch {}
 watch(estacoes, v => lsSet('kds_estacoes', JSON.stringify(v)), { deep: true })
@@ -293,7 +290,6 @@ const categorias = computed(() => {
   return [...set].sort()
 })
 
-// ══ LISTAS ══
 function itemVisivel(i: Item) {
   if (estacoes.value.length && i.categoria && !estacoes.value.includes(i.categoria)) return false
   return abaAtiva.value === 'preparo'
@@ -305,7 +301,6 @@ const mesasVisiveis = computed(() =>
   mesas.value
     .map(m => ({ ...m, itens: m.itens.filter(itemVisivel) }))
     .filter(m => m.itens.length)
-    // mais urgente primeiro: mesa com o item mais antigo no topo
     .sort((a, b) =>
       Math.min(...a.itens.map(i => new Date(i.created_at).getTime())) -
       Math.min(...b.itens.map(i => new Date(i.created_at).getTime()))
@@ -326,7 +321,6 @@ function contar(status: string[]) {
 const totalPreparo = computed(() => contar(['pendente', 'preparando']))
 const totalProntos = computed(() => contar(['pronto']))
 
-// ══ TEMPOS / ATRASO ══
 function minutosDesde(iso: string) {
   return Math.floor((agora.value - new Date(iso).getTime()) / 60000)
 }
@@ -344,7 +338,7 @@ function classeTempo(item: Item) {
   const m = minutosDesde(item.created_at)
   if (m >= 15) return 'text-red-400 font-black'
   if (m >= 10) return 'text-amber-400 font-bold'
-  return 'text-neutral-500'
+  return 'text-gray-400 dark:text-white/40'
 }
 function classeDot(item: Item) {
   if (item.status === 'pronto')     return 'bg-green-400'
@@ -355,13 +349,12 @@ function classeCard(item: Item) {
   if (item.status === 'pronto')     return 'bg-green-500/10 border-green-500/20'
   if (item.status === 'preparando') return 'bg-blue-500/10 border-blue-500/20'
   if (minutosDesde(item.created_at) >= 15) return 'bg-red-500/10 border-red-500/40'
-  return 'bg-neutral-800/60 border-neutral-700/50'
+  return 'bg-gray-50 dark:bg-white/5 border-gray-200 dark:border-white/[0.08]'
 }
 function mesaAtrasada(mesa: Mesa) {
   return mesa.itens.some(i => i.status !== 'pronto' && minutosDesde(i.created_at) >= 15)
 }
 
-// ══ SOM (WebAudio — sem depender de arquivo de áudio) ══
 const somAtivo = ref(lsGet('kds_som') !== 'off')
 watch(somAtivo, v => lsSet('kds_som', v ? 'on' : 'off'))
 
@@ -386,7 +379,6 @@ function tocarSom(tipo: 'novo' | 'cancelado') {
     })
   } catch {}
 }
-// Navegadores exigem interação antes de tocar áudio — destrava no primeiro toque
 function destravarAudio() {
   try {
     audioCtx = audioCtx || new AudioContext()
@@ -395,7 +387,6 @@ function destravarAudio() {
   document.removeEventListener('pointerdown', destravarAudio)
 }
 
-// ══ ALERTAS DE CANCELAMENTO ══
 interface Cancelamento { id: number; produto: string; quantidade: number; mesa_id: number; removido_tudo: boolean }
 const cancelamentos = ref<Cancelamento[]>([])
 let cancelSeq = 0
@@ -404,14 +395,12 @@ function registrarCancelamento(d: any) {
   const alerta = { id: ++cancelSeq, produto: d.produto, quantidade: d.quantidade, mesa_id: d.mesa_id, removido_tudo: !!d.removido_tudo }
   cancelamentos.value.push(alerta)
   tocarSom('cancelado')
-  // some sozinho depois de 60s se ninguém der OK
   setTimeout(() => dispensarCancelamento(alerta.id), 60000)
 }
 function dispensarCancelamento(id: number) {
   cancelamentos.value = cancelamentos.value.filter(c => c.id !== id)
 }
 
-// ══ BUSCA (fonte de verdade) ══
 let idsConhecidos = new Set<number>()
 let primeiraBusca = true
 
@@ -423,7 +412,6 @@ async function buscar() {
     semConexao.value = false
     ultimaAtualizacao.value = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
 
-    // Detecta itens que chegaram sem passar pelo socket (fallback do polling)
     const idsAtuais = new Set<number>()
     let chegouNovo = false
     for (const m of mesas.value) for (const i of m.itens) {
@@ -440,14 +428,12 @@ async function buscar() {
   }
 }
 
-// Colapsa rajadas de eventos numa única re-busca
 let buscaAgendada: any = null
 function agendarBusca() {
   if (buscaAgendada) return
   buscaAgendada = setTimeout(() => { buscaAgendada = null; buscar() }, 300)
 }
 
-// ══ AÇÕES ══
 async function atualizarStatus(item: Item, novoStatus: string) {
   const statusAnterior = item.status
   item.status = novoStatus
@@ -476,7 +462,6 @@ async function marcarTodosEntregues(mesa: Mesa) {
   buscar()
 }
 
-// ══ MODO QUIOSQUE ══
 const quiosque = ref(false)
 function alternarQuiosque() {
   quiosque.value = !quiosque.value
@@ -487,7 +472,6 @@ function alternarQuiosque() {
   } catch {}
 }
 
-// ══ CICLO DE VIDA ══
 let timerPolling: any = null
 let timerRelogio: any = null
 let timerToken: any = null
@@ -497,7 +481,6 @@ onMounted(() => {
   quiosque.value = lsGet('kds_quiosque') === 'on'
   buscar()
 
-  // Tempo real via socket; o polling continua como rede de segurança
   const s = socket.connect()
   tempoReal.value = socket.isConnected()
   s?.on('connect', () => { tempoReal.value = true; agendarBusca() })
@@ -516,7 +499,6 @@ onMounted(() => {
   timerPolling = setInterval(() => { if (!document.hidden) buscar() }, 20000)
   timerRelogio = setInterval(() => { agora.value = Date.now() }, 1000)
 
-  // Renova o token a cada 45min — a tela fica ligada o turno inteiro
   timerToken = setInterval(async () => {
     try {
       const resp = await api.get<any>('/auth/renovar')

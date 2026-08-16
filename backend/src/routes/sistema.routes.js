@@ -40,7 +40,7 @@ router.post('/ativar', async (req, res) => {
     return res.status(400).json({ success: false, message: 'Chave inválida ou corrompida' })
   }
 
-  if (!dados.c || !dados.d || !dados.s) {
+  if (!dados.c || (!dados.expira_em && !dados.d) || !dados.s) {
     return res.status(400).json({ success: false, message: 'Estrutura da chave inválida' })
   }
 
@@ -49,28 +49,64 @@ router.post('/ativar', async (req, res) => {
   }
 
   const agora = new Date()
-  const dataVencimento = new Date(agora)
-  dataVencimento.setDate(dataVencimento.getDate() + Number(dados.d))
+
+  let dataVencimento
+  if (dados.expira_em) {
+    dataVencimento = new Date(dados.expira_em)
+    if (isNaN(dataVencimento.getTime())) {
+      return res.status(400).json({ success: false, message: 'Data de vencimento inválida na chave' })
+    }
+    if (dataVencimento < agora) {
+      return res.status(400).json({ success: false, message: 'Esta chave já está expirada' })
+    }
+  } else {
+    dataVencimento = new Date(agora)
+    dataVencimento.setDate(dataVencimento.getDate() + Number(dados.d))
+  }
 
   try {
-    // Remove registros anteriores e insere novo
-    await query(`DELETE FROM pdv_config`)
+    // Preserva host_fingerprint antes de limpar — é o identificador do hardware
+    // e não deve ser perdido numa renovação de licença.
+    const existentes = await query('SELECT host_fingerprint FROM pdv_config ORDER BY id DESC LIMIT 1').catch(() => [])
+    const hostFingerprint = existentes[0]?.host_fingerprint ?? null
+
+    // TRUNCATE reseta o auto_increment → próximo INSERT sempre recebe id = 1.
+    // Isso garante que os demais UPDATE ... WHERE id = 1 (heartbeat, etc.) funcionem.
+    await query(`TRUNCATE TABLE pdv_config`)
 
     await query(
-      `INSERT INTO pdv_config (chave_ativacao, status_licenca, data_ativacao, data_vencimento, ultima_verificacao)
-       VALUES (?, 'ativado', ?, ?, ?)`,
-      [chave, agora, dataVencimento, agora]
+      `INSERT INTO pdv_config (id, chave_ativacao, status_licenca, data_ativacao, data_vencimento, ultima_verificacao, host_fingerprint)
+       VALUES (1, ?, 'ativado', ?, ?, ?, ?)`,
+      [chave, agora, dataVencimento, agora, hostFingerprint]
     )
 
     limparCacheLicenca()
     console.log(`[ATIVAÇÃO] Sucesso: ${dados.c} | Válido até: ${dataVencimento.toISOString().slice(0, 10)}`)
+
+    // Limpa flag de revogação (caso o sistema tivesse sido bloqueado pela central)
+    await query('UPDATE sync_config SET licenca_bloqueada_remoto = 0 WHERE id = 1').catch(() => {})
+
+    // Auto-configura sync se a chave contiver as credenciais da central
+    if (dados.sync_token && dados.sync_url) {
+      try {
+        const { garantirInstalacaoUuid } = require('../services/sync.service')
+        await garantirInstalacaoUuid()
+        await query(
+          'UPDATE sync_config SET central_url = ?, sync_token = ? WHERE id = 1',
+          [dados.sync_url, dados.sync_token]
+        )
+        console.log(`[ATIVAÇÃO] Sync configurado → ${dados.sync_url}`)
+      } catch (syncErr) {
+        console.error('[ATIVAÇÃO] Aviso: não foi possível configurar sync automaticamente:', syncErr.message)
+      }
+    }
 
     return res.json({
       success: true,
       message: `Sistema ativado para "${dados.c}" até ${dataVencimento.toLocaleDateString('pt-BR')}`,
       cliente: dados.c,
       dataVencimento: dataVencimento.toISOString().slice(0, 10),
-      diasValidade: dados.d
+      diasValidade: Math.ceil((dataVencimento - agora) / (1000 * 60 * 60 * 24))
     })
   } catch (err) {
     console.error('[ATIVAÇÃO] Erro ao gravar no banco:', err)
@@ -83,6 +119,15 @@ router.post('/ativar', async (req, res) => {
 // ──────────────────────────────────────────────────
 router.get('/status-licenca', async (req, res) => {
   try {
+    // Verifica suspensão/revogação antes da licença
+    const syncRows = await query('SELECT suspenso, licenca_bloqueada_remoto FROM sync_config WHERE id = 1').catch(() => [])
+    if (syncRows[0]?.suspenso) {
+      return res.json({ ativo: false, expirado: false, semLicenca: false, suspenso: true })
+    }
+    if (syncRows[0]?.licenca_bloqueada_remoto) {
+      return res.json({ ativo: false, expirado: false, semLicenca: false, revogado: true })
+    }
+
     const info = await verificarLicenca(true) // sempre consulta o banco nesta rota
 
     if (info.semLicenca) {
@@ -161,6 +206,66 @@ router.post('/sync/configurar', authenticate, authorize('administrador'), async 
   } catch (err) {
     console.error('[SYNC] Erro ao configurar:', err.message)
     return res.status(500).json({ error: 'Erro ao salvar configuração de sincronização' })
+  }
+})
+
+// ──────────────────────────────────────────────────
+// GET /api/sistema/sync/status
+// ──────────────────────────────────────────────────
+router.get('/sync/status', authenticate, authorize('administrador'), async (req, res) => {
+  try {
+    const rows = await query('SELECT central_url, venda_mobile_permitida, ultimo_sync_em, ultimo_sync_sucesso, ultimo_sync_erro FROM sync_config WHERE id = 1')
+    if (!rows.length) return res.json({ configurado: false })
+    const r = rows[0]
+    return res.json({
+      configurado:          !!r.central_url,
+      centralUrl:           r.central_url || '',
+      vendaMobilePermitida: Boolean(r.venda_mobile_permitida),
+      ultimoSyncEm:         r.ultimo_sync_em,
+      ultimoSyncSucesso:    r.ultimo_sync_sucesso === null ? null : Boolean(r.ultimo_sync_sucesso),
+      ultimoSyncErro:       r.ultimo_sync_erro || null
+    })
+  } catch (err) {
+    console.error('[SYNC] Erro ao buscar status:', err.message)
+    return res.status(500).json({ error: 'Erro ao buscar status de sincronização' })
+  }
+})
+
+// ──────────────────────────────────────────────────
+// POST /api/sistema/sync/agora — dispara sync imediato
+// ──────────────────────────────────────────────────
+router.post('/sync/agora', authenticate, authorize('administrador'), async (req, res) => {
+  try {
+    const { sincronizar } = require('../services/sync.service')
+    await sincronizar()
+    const rows = await query('SELECT ultimo_sync_em, ultimo_sync_sucesso, ultimo_sync_erro FROM sync_config WHERE id = 1')
+    const r = rows[0] || {}
+    return res.json({
+      success:         true,
+      ultimoSyncEm:    r.ultimo_sync_em,
+      ultimoSyncSucesso: r.ultimo_sync_sucesso === null ? null : Boolean(r.ultimo_sync_sucesso),
+      ultimoSyncErro:  r.ultimo_sync_erro || null
+    })
+  } catch (err) {
+    console.error('[SYNC] Erro ao sincronizar:', err.message)
+    return res.status(500).json({ error: 'Erro ao sincronizar' })
+  }
+})
+
+// ──────────────────────────────────────────────────
+// GET /api/sistema/config-publica — sem autenticação
+// Retorna apenas configurações não-sensíveis necessárias
+// na tela de login (antes de qualquer auth)
+// ──────────────────────────────────────────────────
+router.get('/config-publica', async (req, res) => {
+  try {
+    const rows = await query('SELECT rfid_ativo FROM configuracoes WHERE id = 1')
+    const row  = rows[0] ?? {}
+    return res.json({
+      rfid_ativo: row.rfid_ativo !== undefined ? Boolean(row.rfid_ativo) : true
+    })
+  } catch {
+    return res.json({ rfid_ativo: true }) // fallback seguro — nunca quebra o login
   }
 })
 

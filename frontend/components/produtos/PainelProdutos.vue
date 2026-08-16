@@ -1,20 +1,20 @@
 <template>
-  <div class="h-full flex flex-col bg-[#F5F5F7] dark:bg-neutral-950">
+  <div class="h-full flex flex-col bg-transparent">
 
     <!-- HEADER -->
-    <div class="p-6 pb-4 border-b border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 flex items-center justify-between">
+    <div class="p-6 pb-4 border-b border-gray-200 dark:border-white/[0.06] bg-white/80 dark:bg-black/20 backdrop-blur-xl flex items-center justify-between">
 
       <div class="flex items-center gap-4">
         <button
           @click="$emit('voltar')"
-          class="h-12 px-5 rounded-xl bg-neutral-100 dark:bg-neutral-800 hover:bg-neutral-200 dark:hover:bg-neutral-700 text-neutral-900 dark:text-white font-black transition-colors"
+          class="h-12 px-5 rounded-xl bg-gray-100 dark:bg-white/[0.06] hover:bg-gray-200 dark:hover:bg-white/10 text-gray-900 dark:text-white font-black transition-colors"
         >
           ← Voltar
         </button>
 
         <div>
-          <h1 class="text-2xl font-black text-neutral-900 dark:text-white">Produtos</h1>
-          <p class="text-sm text-neutral-500 dark:text-neutral-400">
+          <h1 class="text-2xl font-black text-gray-900 dark:text-white">Produtos</h1>
+          <p class="text-sm text-gray-500 dark:text-white/40">
             Mesa #{{ mesa?.nome_mesa || mesa?.id || '-' }}
           </p>
         </div>
@@ -27,7 +27,7 @@
         type="text"
         placeholder="Buscar produto..."
         aria-label="Buscar produto"
-        class="w-[320px] h-12 px-4 rounded-xl border border-neutral-200 dark:border-neutral-700 dark:bg-neutral-800 dark:text-white dark:placeholder-neutral-500 focus:outline-none focus:border-orange-400 transition-colors"
+        class="w-[320px] h-12 px-4 rounded-xl border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/[0.06] text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-white/25 focus:outline-none focus:border-orange-400/70 transition-colors"
       />
 
     </div>
@@ -49,8 +49,8 @@
         class="h-full flex items-center justify-center"
       >
         <div class="text-center">
-          <h2 class="text-2xl font-black text-neutral-900 dark:text-white">Nenhum produto encontrado</h2>
-          <p class="text-neutral-500 dark:text-neutral-400 mt-2">Cadastre produtos ou revise sua busca</p>
+          <h2 class="text-2xl font-black text-gray-900 dark:text-white">Nenhum produto encontrado</h2>
+          <p class="text-gray-500 dark:text-white/40 mt-2">Cadastre produtos ou revise sua busca</p>
         </div>
       </div>
 
@@ -64,7 +64,7 @@
       >
 
         <!-- TÍTULO DA CATEGORIA -->
-        <h2 class="text-sm font-black text-neutral-500 dark:text-neutral-400 uppercase tracking-widest mb-3">
+        <h2 class="text-sm font-black text-gray-500 dark:text-white/40 uppercase tracking-widest mb-3">
           {{ secao.categoria }}
         </h2>
 
@@ -84,42 +84,42 @@
             @pointerdown.stop
             @click="selecionarProduto(produto)"
             :disabled="adicionando === produto.id || semEstoque(produto) || !caixaAberto"
-            class="w-full bg-white dark:bg-neutral-900 rounded-2xl p-4 border transition text-left disabled:pointer-events-none"
+            class="w-full bg-white dark:bg-white/5 backdrop-blur-xl rounded-2xl p-4 border transition text-left disabled:pointer-events-none"
             :class="!caixaAberto || semEstoque(produto)
-              ? 'opacity-50 border-neutral-200 dark:border-neutral-800 cursor-not-allowed'
-              : 'border-neutral-200 dark:border-neutral-800 hover:border-orange-400 dark:hover:border-orange-500 active:scale-95 cursor-pointer'"
+              ? 'opacity-40 border-gray-100 dark:border-white/[0.06] cursor-not-allowed'
+              : 'border-gray-200 dark:border-white/[0.08] hover:border-orange-400/60 hover:bg-orange-50 dark:hover:bg-white/[0.08] active:scale-95 cursor-pointer'"
           >
 
             <div class="flex justify-between items-center">
               <span
                 class="text-[10px] px-2 py-1 rounded-full font-black"
-                :class="produto.ativo ? 'bg-green-100 dark:bg-green-950/40 text-green-600 dark:text-green-400' : 'bg-red-100 dark:bg-red-950/40 text-red-600 dark:text-red-400'"
+                :class="produto.ativo ? 'bg-green-500/15 text-green-400' : 'bg-red-500/15 text-red-400'"
               >
                 {{ produto.ativo ? 'ATIVO' : 'INATIVO' }}
               </span>
 
               <span
                 v-if="produto.gerenciar_estoque && (produto.estoque_atual ?? 0) <= 0"
-                class="text-[10px] text-red-500 dark:text-red-400 font-black"
+                class="text-[10px] text-red-400 font-black"
               >
                 SEM ESTOQUE
               </span>
               <span
                 v-else-if="produto.gerenciar_estoque && (produto.estoque_atual ?? 0) <= (produto.estoque_minimo ?? 0)"
-                class="text-[10px] text-orange-500 dark:text-orange-400 font-black"
+                class="text-[10px] text-orange-400 font-black"
               >
                 BAIXO
               </span>
             </div>
 
-            <h3 class="mt-3 font-black text-lg leading-tight text-neutral-900 dark:text-white">{{ produto.nome }}</h3>
+            <h3 class="mt-3 font-black text-lg leading-tight text-gray-900 dark:text-white">{{ produto.nome }}</h3>
 
-            <p class="text-xs mt-2 text-neutral-500 dark:text-neutral-400">
+            <p class="text-xs mt-2 text-gray-500 dark:text-white/40">
               Estoque: {{ produto.estoque_atual ?? 0 }}
             </p>
 
             <div class="mt-4 flex justify-between items-center">
-              <span class="text-lg font-black text-orange-500 dark:text-orange-400">
+              <span class="text-lg font-black text-orange-400">
                 R$ {{ Number(produto.preco || 0).toFixed(2) }}
               </span>
               <div
@@ -218,14 +218,12 @@ onUnmounted(() => {
   if (pollingTimer) clearInterval(pollingTimer)
 })
 
-// Agrupa por categoria respeitando a busca
 const secoes = computed(() => {
   const termo = busca.value.toLowerCase()
   const lista = termo
     ? produtos.value.filter(p => p.nome?.toLowerCase().includes(termo))
     : produtos.value
 
-  // Preserva a ordem de aparição das categorias
   const mapa = new Map<string, Produto[]>()
   for (const p of lista) {
     const chave = p.categoria || 'Sem categoria'

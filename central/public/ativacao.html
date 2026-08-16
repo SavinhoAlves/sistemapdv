@@ -1,0 +1,580 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <title>Painel Central · Ativação</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    *, *::before, *::after { font-family: 'Inter', system-ui, sans-serif !important; }
+
+    /* ── Nav tabs ── */
+    .nav-pill {
+      display: flex; align-items: center; gap: 1px; padding: 3px;
+      border-radius: 12px; background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.07);
+    }
+    .nav-tab {
+      display: flex; align-items: center; gap: 6px;
+      padding: 6px 14px; border-radius: 9px;
+      font-size: 12px; font-weight: 800; color: rgba(255,255,255,0.38);
+      text-decoration: none; transition: background 0.12s, color 0.12s; white-space: nowrap;
+    }
+    .nav-tab:hover { color: rgba(255,255,255,0.7); background: rgba(255,255,255,0.05); }
+    .nav-tab.active { background: rgba(255,255,255,0.1); color: #fff; }
+
+    /* ── Card ── */
+    .glass-card {
+      background: rgba(255,255,255,0.028);
+      border: 1px solid rgba(255,255,255,0.07);
+      border-radius: 16px; overflow: hidden;
+    }
+    .card-head {
+      padding: 18px 20px 0;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .card-title { font-size: 13px; font-weight: 900; color: #fff; }
+    .card-sub   { font-size: 11px; color: rgba(255,255,255,0.3); margin-top: 2px; }
+
+    /* ── Form fields ── */
+    .field-label {
+      display: block; font-size: 10px; font-weight: 800;
+      letter-spacing: 0.1em; text-transform: uppercase;
+      color: rgba(255,255,255,0.3); margin-bottom: 7px;
+    }
+    .field-input {
+      width: 100%; height: 44px; padding: 0 14px;
+      background: rgba(255,255,255,0.04); border: 1.5px solid rgba(255,255,255,0.08);
+      border-radius: 12px; color: #fff; font-size: 13px; font-family: inherit; outline: none;
+      transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
+    }
+    .field-input:focus { border-color: #f97316; background: rgba(249,115,22,0.04); box-shadow: 0 0 0 3px rgba(249,115,22,0.1); }
+    .field-input::placeholder { color: rgba(255,255,255,0.18); }
+
+    .select-wrap { position: relative; }
+    .select-wrap::after {
+      content: ''; position: absolute; right: 13px; top: 50%; transform: translateY(-50%);
+      border: 4px solid transparent; border-top: 5px solid rgba(255,255,255,0.28);
+      border-bottom: none; pointer-events: none;
+    }
+    .field-select {
+      width: 100%; height: 44px; padding: 0 36px 0 14px;
+      background: rgba(255,255,255,0.04); border: 1.5px solid rgba(255,255,255,0.08);
+      border-radius: 12px; color: #fff; font-size: 13px; font-family: inherit; outline: none;
+      cursor: pointer; -webkit-appearance: none; appearance: none;
+      transition: border-color 0.15s, box-shadow 0.15s;
+    }
+    .field-select:focus { border-color: #f97316; box-shadow: 0 0 0 3px rgba(249,115,22,0.1); }
+    .field-select option { background: #1a1a1c; color: #fff; }
+
+    /* ── Preset duration buttons ── */
+    .preset-btn {
+      flex: 1; height: 38px; border-radius: 10px; font-size: 12px; font-weight: 800; cursor: pointer;
+      border: 1.5px solid rgba(255,255,255,0.08); background: rgba(255,255,255,0.04);
+      color: rgba(255,255,255,0.5); transition: all 0.12s;
+    }
+    .preset-btn:hover { background: rgba(255,255,255,0.08); color: #fff; }
+    .preset-btn.sel   { background: #f97316; border-color: #f97316; color: #fff; }
+
+    /* ── Key box ── */
+    .key-box {
+      background: rgba(74,222,128,0.05); border: 1px solid rgba(74,222,128,0.14);
+      border-radius: 12px; padding: 12px 14px;
+      font-family: monospace; font-size: 11px; color: #4ade80;
+      word-break: break-all; line-height: 1.5; user-select: all;
+      display: none;
+    }
+    .key-box.show { display: block; }
+
+    /* ── Action buttons ── */
+    .btn-primary {
+      height: 44px; padding: 0 20px; border-radius: 12px; border: none;
+      background: linear-gradient(135deg,#f97316,#ea580c); color: #fff;
+      font-size: 12px; font-weight: 800; cursor: pointer;
+      transition: opacity 0.12s, transform 0.1s, box-shadow 0.15s;
+      box-shadow: 0 2px 14px rgba(249,115,22,0.25);
+    }
+    .btn-primary:hover { opacity: 0.9; box-shadow: 0 4px 20px rgba(249,115,22,0.38); }
+    .btn-primary:active { transform: scale(0.97); }
+    .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+    .btn-sec {
+      height: 36px; padding: 0 14px; border-radius: 10px; cursor: pointer;
+      border: 1px solid rgba(255,255,255,0.1); background: rgba(255,255,255,0.05);
+      color: rgba(255,255,255,0.65); font-size: 11px; font-weight: 800;
+      transition: background 0.12s, color 0.12s;
+    }
+    .btn-sec:hover { background: rgba(255,255,255,0.1); color: #fff; }
+    .btn-sec.green { border-color: rgba(74,222,128,0.25); background: rgba(74,222,128,0.08); color: #4ade80; }
+    .btn-sec.green:hover { background: rgba(74,222,128,0.14); }
+
+    /* ── License table ── */
+    .lic-table { width: 100%; border-collapse: collapse; }
+    .lic-thead th {
+      padding: 10px 14px; text-align: left;
+      font-size: 9px; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase;
+      color: rgba(255,255,255,0.2); border-bottom: 1px solid rgba(255,255,255,0.05);
+    }
+    .lic-row td {
+      padding: 12px 14px; font-size: 12px; color: rgba(255,255,255,0.75);
+      border-bottom: 1px solid rgba(255,255,255,0.04); vertical-align: middle;
+    }
+    .lic-row:last-child td { border-bottom: none; }
+    .lic-row:hover td { background: rgba(255,255,255,0.02); }
+    .lic-row.urgent td { background: rgba(239,68,68,0.03); }
+
+    /* ── Status badges ── */
+    .badge {
+      display: inline-flex; align-items: center;
+      padding: 2px 8px; border-radius: 99px;
+      font-size: 9px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase;
+    }
+
+    /* ── Page enter ── */
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(8px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    main { animation: fadeUp 0.35s cubic-bezier(0.22,1,0.36,1) both; }
+
+    /* ── Scrollbar ── */
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 99px; }
+
+    /* ── Loading spinner ── */
+    .spinner {
+      width: 18px; height: 18px; border: 2px solid rgba(255,255,255,0.15);
+      border-top-color: #fff; border-radius: 50%;
+      animation: spin 0.65s linear infinite; display: none; margin: 0 auto;
+    }
+    .btn-primary.loading .btn-label { display: none; }
+    .btn-primary.loading .spinner   { display: block; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body class="bg-[#09090b] min-h-screen text-white antialiased">
+
+  <!-- ── HEADER ── -->
+  <header class="sticky top-0 z-40 border-b border-white/[0.06]"
+    style="background: rgba(9,9,11,0.88); backdrop-filter: blur(20px);">
+    <div class="max-w-5xl mx-auto px-6 h-[58px] items-center"
+      style="display:grid; grid-template-columns:1fr auto 1fr;">
+
+      <!-- Logo -->
+      <div class="flex items-center gap-3">
+        <div class="w-8 h-8 rounded-xl flex items-center justify-center font-black text-[15px] text-white"
+          style="background:linear-gradient(135deg,#f97316,#ea580c); box-shadow:0 0 18px rgba(249,115,22,0.3);">P</div>
+        <div>
+          <p class="text-[13px] font-black leading-none tracking-tight">Painel Central</p>
+          <p class="text-[10px] text-neutral-500 mt-[3px] leading-none">Suporte · Restaurante PDV</p>
+        </div>
+      </div>
+
+      <!-- Nav (centered) -->
+      <div class="nav-pill">
+        <a href="/index.html" class="nav-tab">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
+            <path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+          </svg>
+          Clientes
+        </a>
+        <a href="/ativacao.html" class="nav-tab active">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="1" y="3" width="15" height="13" rx="2"/><path d="M16 8h4l3 3v5h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/>
+          </svg>
+          Licenças
+        </a>
+      </div>
+
+      <!-- Right actions -->
+      <div class="flex items-center gap-2 justify-end">
+        <div id="badge-online" class="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-full"
+          style="border:1px solid rgba(255,255,255,0.07); background:rgba(255,255,255,0.03);">
+          <span class="w-[5px] h-[5px] rounded-full bg-green-500" style="box-shadow:0 0 6px rgba(34,197,94,0.7);"></span>
+          <span id="contagem-online" class="text-[11px] text-neutral-400 font-semibold">—</span>
+        </div>
+        <button id="btn-sair"
+          class="h-[34px] px-3 rounded-xl text-[11px] font-black text-red-400 transition-all hover:bg-red-900/20"
+          style="border:1px solid rgba(239,68,68,0.2);">Sair</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- ── MAIN ── -->
+  <main class="max-w-5xl mx-auto px-6 py-7">
+
+    <div class="mb-6">
+      <h2 class="text-[18px] font-black tracking-tight">Licenças</h2>
+      <p class="text-[12px] text-neutral-500 mt-0.5">Visão geral e geração de chaves de ativação</p>
+    </div>
+
+    <div class="glass-card">
+      <div class="card-head" style="padding:18px 20px 14px;">
+        <div>
+          <p class="card-title">Todos os clientes</p>
+          <p class="card-sub" id="lic-contagem">—</p>
+        </div>
+        <div class="relative">
+          <svg class="absolute" style="left:10px;top:50%;transform:translateY(-50%);color:rgba(255,255,255,0.2);pointer-events:none;"
+            width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+          </svg>
+          <input id="busca-lic" type="text" placeholder="Buscar…"
+            style="height:32px;padding:0 10px 0 28px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.07);border-radius:9px;color:#fff;font-size:12px;outline:none;width:140px;transition:border-color 0.15s;"
+            onfocus="this.style.borderColor='rgba(249,115,22,0.4)'" onblur="this.style.borderColor='rgba(255,255,255,0.07)'" />
+        </div>
+      </div>
+
+      <div style="overflow-x:auto;">
+        <table class="lic-table">
+          <thead>
+            <tr class="lic-thead">
+              <th>Cliente</th>
+              <th>Status (central)</th>
+              <th>No PDV</th>
+              <th>Expira em</th>
+              <th>Restam</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="lic-body">
+            <tr><td colspan="6" style="text-align:center;padding:32px;color:rgba(255,255,255,0.2);font-size:13px;">Carregando…</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- MODAL: GERAR / RENOVAR LICENÇA -->
+  <div id="modal-gerar" class="hidden fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4"
+    style="background:rgba(0,0,0,0.72);backdrop-filter:blur(8px);">
+    <div class="w-full max-w-sm rounded-2xl sm:rounded-3xl p-6"
+      style="background:rgba(16,16,18,0.98);border:1px solid rgba(255,255,255,0.08);">
+
+      <div id="gerar-form">
+        <div class="w-10 h-10 rounded-2xl flex items-center justify-center mb-4"
+          style="background:rgba(249,115,22,0.08);border:1px solid rgba(249,115,22,0.18);">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#f97316" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="m21 2-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0 3 3L22 7l-3-3m-3.5 3.5L19 4"/>
+          </svg>
+        </div>
+        <h3 class="text-[15px] font-black mb-1" id="gerar-titulo">Gerar licença</h3>
+        <p class="text-xs text-neutral-500 mb-5" id="gerar-cliente-nome"></p>
+
+        <label class="field-label">Validade</label>
+        <div style="display:flex;gap:6px;margin-bottom:8px;">
+          <button class="preset-btn" data-dias="30">30 d</button>
+          <button class="preset-btn" data-dias="90">90 d</button>
+          <button class="preset-btn" data-dias="365">1 ano</button>
+        </div>
+        <input id="gerar-dias" type="number" min="1" placeholder="Ou digite os dias…" class="field-input" style="margin-bottom:20px;" />
+
+        <div style="display:flex;gap:10px;">
+          <button id="btn-cancelar-gerar" class="flex-1 h-11 rounded-xl text-sm font-black text-neutral-400 transition-all hover:bg-white/[0.05]"
+            style="border:1px solid rgba(255,255,255,0.08);">Cancelar</button>
+          <button id="btn-confirmar-gerar" class="flex-1 h-11 rounded-xl text-sm font-black text-white transition-all hover:opacity-90 active:scale-95"
+            style="background:linear-gradient(135deg,#f97316,#ea580c);">
+            <span id="gerar-label">Gerar</span>
+          </button>
+        </div>
+      </div>
+
+      <div id="gerar-resultado" class="hidden" style="display:none;">
+        <div class="w-10 h-10 rounded-2xl flex items-center justify-center mb-4"
+          style="background:rgba(74,222,128,0.08);border:1px solid rgba(74,222,128,0.18);">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#4ade80" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22,4 12,14.01 9,11.01"/>
+          </svg>
+        </div>
+        <h3 class="text-[15px] font-black mb-1">Chave gerada</h3>
+        <p class="text-xs text-neutral-500 mb-3" id="gerar-expira-info"></p>
+
+        <div id="gerar-chave-display"
+          style="background:rgba(74,222,128,0.05);border:1px solid rgba(74,222,128,0.14);border-radius:12px;padding:12px 14px;font-family:monospace;font-size:11px;color:#4ade80;word-break:break-all;line-height:1.5;user-select:all;margin-bottom:12px;"></div>
+
+        <!-- Como ativar -->
+        <div style="background:rgba(249,115,22,0.05);border:1px solid rgba(249,115,22,0.15);border-radius:10px;padding:10px 12px;margin-bottom:12px;">
+          <p style="font-size:10px;font-weight:800;letter-spacing:0.08em;text-transform:uppercase;color:rgba(249,115,22,0.6);margin-bottom:6px;">Ativação automática</p>
+          <p style="font-size:11px;color:rgba(255,255,255,0.4);line-height:1.6;">
+            A chave foi salva e será <span style="color:rgba(255,255,255,0.75);font-weight:700;">aplicada automaticamente</span> no PDV no próximo ciclo de sincronização (&le;10 min). Ou envie ao cliente para ativar manualmente em <span style="color:rgba(255,255,255,0.75);font-weight:700;">/ativacao</span>.
+          </p>
+        </div>
+
+        <div style="display:flex;gap:8px;margin-bottom:10px;">
+          <button id="btn-copiar-chave-res" class="flex-1 h-10 rounded-xl text-xs font-black transition-all active:scale-95"
+            style="border:1px solid rgba(255,255,255,0.1);background:rgba(255,255,255,0.05);color:rgba(255,255,255,0.65);">
+            Copiar chave
+          </button>
+          <button id="btn-copiar-msg-res" class="flex-1 h-10 rounded-xl text-xs font-black transition-all active:scale-95"
+            style="border:1px solid rgba(34,197,94,0.2);background:rgba(34,197,94,0.07);color:#4ade80;">
+            Copiar mensagem
+          </button>
+        </div>
+        <button id="btn-fechar-gerar" class="w-full h-10 rounded-xl text-xs font-black text-neutral-400 transition-all hover:bg-white/[0.05]"
+          style="border:1px solid rgba(255,255,255,0.08);">Fechar</button>
+      </div>
+
+    </div>
+  </div>
+
+  <script>
+    const token = localStorage.getItem('central_token')
+    if (!token) window.location.href = '/login.html'
+
+    const headers = { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }
+
+    // ── Utils ──
+    function fmtData(iso) {
+      if (!iso) return '—'
+      return new Date(iso).toLocaleDateString('pt-BR')
+    }
+    function diasRestantes(iso) {
+      if (!iso) return null
+      return Math.ceil((new Date(iso) - Date.now()) / 86400000)
+    }
+    function escapeHtml(s) {
+      const d = document.createElement('div'); d.textContent = String(s || ''); return d.innerHTML
+    }
+
+    let clientes      = []
+    let gerarId       = null
+    let gerarNome     = null
+    let chaveGerada   = null
+    let chaveExpiraISO = null
+
+    // ── Sair ──
+    document.getElementById('btn-sair').addEventListener('click', () => {
+      localStorage.removeItem('central_token')
+      window.location.href = '/login.html'
+    })
+
+    // ── Carregar clientes ──
+    async function carregar() {
+      const resp = await fetch('/api/clientes', { headers })
+      if (resp.status === 401) { localStorage.removeItem('central_token'); window.location.href = '/login.html'; return }
+      clientes = await resp.json()
+
+      const online = clientes.filter(c => c.online).length
+      const bEl = document.getElementById('badge-online')
+      document.getElementById('contagem-online').textContent = `${online} online`
+      bEl.style.display = online > 0 ? 'flex' : 'none'
+
+      renderTabela(clientes)
+    }
+
+    // ── Renderizar tabela ──
+    function renderTabela(lista) {
+      const q = (document.getElementById('busca-lic').value || '').toLowerCase().trim()
+      const filtrada = q ? lista.filter(c => c.nome_fantasia.toLowerCase().includes(q)) : lista
+
+      const sorted = [...filtrada].sort((a, b) => {
+        const dA = diasRestantes(a.licenca_expira_em)
+        const dB = diasRestantes(b.licenca_expira_em)
+        if (dA === null && dB === null) return 0
+        if (dA === null) return 1
+        if (dB === null) return -1
+        return dA - dB
+      })
+
+      document.getElementById('lic-contagem').textContent =
+        `${sorted.length} cliente${sorted.length !== 1 ? 's' : ''}`
+
+      const tbody = document.getElementById('lic-body')
+
+      if (!sorted.length) {
+        tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;padding:32px;color:rgba(255,255,255,0.2);font-size:13px;">Nenhum resultado</td></tr>`
+        return
+      }
+
+      tbody.innerHTML = sorted.map(c => {
+        const dias = diasRestantes(c.licenca_expira_em)
+        const status = c.status || 'ativo'
+        const isUrgent = dias !== null && dias <= 7
+        const labelBtn = (dias !== null && dias >= 0) ? 'Renovar' : 'Gerar'
+
+        let diasHtml, badgeHtml
+        if (dias === null) {
+          diasHtml  = `<span style="color:rgba(255,255,255,0.2);">—</span>`
+          badgeHtml = `<span class="badge" style="background:rgba(255,255,255,0.06);color:rgba(255,255,255,0.3);">Sem licença</span>`
+        } else if (dias < 0) {
+          diasHtml  = `<span style="color:#f87171;font-weight:800;">Vencida</span>`
+          badgeHtml = `<span class="badge" style="background:rgba(239,68,68,0.12);color:#f87171;border:1px solid rgba(239,68,68,0.2);">Vencida</span>`
+        } else if (dias <= 7) {
+          diasHtml  = `<span style="color:#f87171;font-weight:800;">${dias}d</span>`
+          badgeHtml = `<span class="badge" style="background:rgba(239,68,68,0.1);color:#f87171;border:1px solid rgba(239,68,68,0.2);">Urgente</span>`
+        } else if (dias <= 30) {
+          diasHtml  = `<span style="color:#fbbf24;font-weight:800;">${dias}d</span>`
+          badgeHtml = `<span class="badge" style="background:rgba(245,158,11,0.1);color:#fbbf24;border:1px solid rgba(245,158,11,0.2);">A vencer</span>`
+        } else {
+          diasHtml  = `<span style="color:#4ade80;font-weight:700;">${dias}d</span>`
+          badgeHtml = `<span class="badge" style="background:rgba(34,197,94,0.1);color:#4ade80;border:1px solid rgba(34,197,94,0.2);">Ativo</span>`
+        }
+
+        const statusBadge = status === 'suspenso'
+          ? `<span class="badge" style="background:rgba(245,158,11,0.1);color:#fbbf24;border:1px solid rgba(245,158,11,0.2);margin-left:4px;">Suspenso</span>`
+          : ''
+
+        const onlineDot = `<span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:${c.online ? '#22c55e' : 'rgba(255,255,255,0.12)'};${c.online ? 'box-shadow:0 0 5px rgba(34,197,94,0.6);' : ''}margin-right:8px;vertical-align:middle;flex-shrink:0;"></span>`
+
+        // Estado real no PDV (reportado via sync)
+        let pdvHtml
+        if (c.licenca_pendente) {
+          // Chave gerada e aguardando próximo sync do PDV para aplicar automaticamente
+          pdvHtml = `<span class="badge" style="background:rgba(249,115,22,0.1);color:#f97316;border:1px solid rgba(249,115,22,0.25);">⏳ Pendente</span>`
+        } else if (!c.pdv_licenca_status) {
+          pdvHtml = `<span style="color:rgba(255,255,255,0.18);font-size:11px;">—</span>`
+        } else {
+          const pdvDias = diasRestantes(c.pdv_licenca_expira)
+          if (c.pdv_licenca_status === 'ativado' && pdvDias !== null && pdvDias > 0) {
+            pdvHtml = `<span class="badge" style="background:rgba(34,197,94,0.1);color:#4ade80;border:1px solid rgba(34,197,94,0.2);">Ativo ${pdvDias}d</span>`
+          } else if (c.pdv_licenca_status === 'ativado' && (pdvDias === null || pdvDias <= 0)) {
+            pdvHtml = `<span class="badge" style="background:rgba(239,68,68,0.1);color:#f87171;border:1px solid rgba(239,68,68,0.2);">Vencido PDV</span>`
+          } else {
+            pdvHtml = `<span class="badge" style="background:rgba(239,68,68,0.1);color:#f87171;border:1px solid rgba(239,68,68,0.2);">Bloqueado</span>`
+          }
+        }
+
+        return `
+          <tr class="lic-row${isUrgent ? ' urgent' : ''}" data-id="${c.id}">
+            <td>
+              <div style="display:flex;align-items:center;">
+                ${onlineDot}
+                <span style="font-weight:700;color:#fff;">${escapeHtml(c.nome_fantasia)}</span>
+                ${statusBadge}
+              </div>
+            </td>
+            <td>${badgeHtml}</td>
+            <td>${pdvHtml}</td>
+            <td style="color:rgba(255,255,255,0.45);font-size:11px;">${fmtData(c.licenca_expira_em)}</td>
+            <td>${diasHtml}</td>
+            <td>
+              <button class="btn-abrir-gerar btn-sec"
+                data-id="${c.id}" data-nome="${escapeHtml(c.nome_fantasia)}" data-label="${labelBtn}"
+                style="height:28px;padding:0 10px;font-size:10px;">
+                ${labelBtn}
+              </button>
+            </td>
+          </tr>
+        `
+      }).join('')
+
+      tbody.querySelectorAll('.btn-abrir-gerar').forEach(btn => {
+        btn.addEventListener('click', () => abrirModalGerar(btn.dataset.id, btn.dataset.nome, btn.dataset.label))
+      })
+    }
+
+    document.getElementById('busca-lic').addEventListener('input', () => renderTabela(clientes))
+
+    // ── Modal gerar licença ──
+    const modalGerar = document.getElementById('modal-gerar')
+
+    function abrirModalGerar(id, nome, label) {
+      gerarId   = id
+      gerarNome = nome
+      chaveGerada = null
+      chaveExpiraISO = null
+      document.getElementById('gerar-titulo').textContent = label === 'Renovar' ? 'Renovar licença' : 'Gerar licença'
+      document.getElementById('gerar-cliente-nome').textContent = nome
+      document.getElementById('gerar-dias').value = ''
+      document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('sel'))
+      document.getElementById('gerar-form').style.display = ''
+      document.getElementById('gerar-resultado').style.display = 'none'
+      modalGerar.classList.remove('hidden')
+      setTimeout(() => document.getElementById('gerar-dias').focus(), 80)
+    }
+
+    function fecharModalGerar() {
+      modalGerar.classList.add('hidden')
+      chaveGerada = null
+      chaveExpiraISO = null
+    }
+
+    document.querySelectorAll('.preset-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('sel'))
+        btn.classList.add('sel')
+        document.getElementById('gerar-dias').value = btn.dataset.dias
+      })
+    })
+    document.getElementById('gerar-dias').addEventListener('input', () => {
+      document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('sel'))
+    })
+
+    document.getElementById('btn-cancelar-gerar').addEventListener('click', fecharModalGerar)
+    modalGerar.addEventListener('click', e => { if (e.target === modalGerar) fecharModalGerar() })
+
+    document.getElementById('btn-confirmar-gerar').addEventListener('click', async () => {
+      const dias = Number(document.getElementById('gerar-dias').value)
+      if (!dias || dias <= 0) { document.getElementById('gerar-dias').focus(); return }
+
+      const btn = document.getElementById('btn-confirmar-gerar')
+      btn.disabled = true
+      document.getElementById('gerar-label').textContent = 'Gerando…'
+
+      try {
+        const resp  = await fetch(`/api/clientes/${gerarId}/licenca`, {
+          method: 'POST', headers, body: JSON.stringify({ dias })
+        })
+        const dados = await resp.json()
+        if (!resp.ok) { alert(dados.error || 'Erro ao gerar licença'); return }
+
+        chaveGerada    = dados.chave
+        chaveExpiraISO = dados.expira
+
+        document.getElementById('gerar-chave-display').textContent = dados.chave
+        if (dados.expira) {
+          const exp = new Date(dados.expira)
+          document.getElementById('gerar-expira-info').textContent =
+            `${gerarNome} · válida até ${exp.toLocaleDateString('pt-BR')} (${dias} dias)`
+        }
+
+        document.getElementById('gerar-form').style.display = 'none'
+        document.getElementById('gerar-resultado').style.display = ''
+        await carregar()
+      } finally {
+        btn.disabled = false
+        document.getElementById('gerar-label').textContent = 'Gerar'
+      }
+    })
+
+    document.getElementById('btn-copiar-chave-res').addEventListener('click', async () => {
+      if (!chaveGerada) return
+      await navigator.clipboard.writeText(chaveGerada)
+      const btn = document.getElementById('btn-copiar-chave-res')
+      const orig = btn.textContent
+      btn.textContent = '✓ Copiado!'
+      setTimeout(() => { btn.textContent = orig }, 1800)
+    })
+
+    document.getElementById('btn-copiar-msg-res').addEventListener('click', async () => {
+      if (!chaveGerada) return
+      const exp = chaveExpiraISO ? new Date(chaveExpiraISO).toLocaleDateString('pt-BR') : '—'
+      const msg =
+`Olá! Segue sua chave de ativação do Restaurante PDV (válida até ${exp}).
+
+Para ativar:
+1. Acesse o sistema e vá em /ativacao
+2. Cole a chave abaixo e clique em *Ativar licença*
+
+${chaveGerada}
+
+Dúvidas: suporte.savioalves@gmail.com`
+      await navigator.clipboard.writeText(msg)
+      const btn = document.getElementById('btn-copiar-msg-res')
+      const orig = btn.textContent
+      btn.textContent = '✓ Mensagem copiada!'
+      setTimeout(() => { btn.textContent = orig }, 1800)
+    })
+
+    document.getElementById('btn-fechar-gerar').addEventListener('click', fecharModalGerar)
+
+    // ── Init ──
+    carregar()
+    setInterval(carregar, 30_000)
+  </script>
+</body>
+</html>

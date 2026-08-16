@@ -84,7 +84,7 @@ function filtrosExtras(req, alias = {}) {
 }
 
 // ─── GET /filtros — listas para dropdowns ────────────────
-router.get('/filtros', authenticate, async (req, res) => {
+router.get('/filtros', authenticate, authorize('administrador', 'caixa'), async (req, res) => {
   try {
     const funcionarios = await query(`
       SELECT id, nome, cargo FROM usuarios ORDER BY nome
@@ -102,7 +102,7 @@ router.get('/filtros', authenticate, async (req, res) => {
 })
 
 // ─── GET / — Visão Geral ──────────────────────────────────
-router.get('/', authenticate, async (req, res) => {
+router.get('/', authenticate, authorize('administrador', 'caixa'), async (req, res) => {
   try {
     const { inicio, fim } = periodo(req)
 
@@ -227,7 +227,7 @@ router.get('/', authenticate, async (req, res) => {
 })
 
 // ─── GET /produtos ────────────────────────────────────────
-router.get('/produtos', authenticate, async (req, res) => {
+router.get('/produtos', authenticate, authorize('administrador', 'caixa'), async (req, res) => {
   try {
     const { inicio, fim } = periodo(req)
     const garcomId    = req.query.garcomId    && req.query.garcomId    !== 'todos' ? req.query.garcomId    : null
@@ -298,7 +298,7 @@ router.get('/produtos', authenticate, async (req, res) => {
 })
 
 // ─── GET /mesas ───────────────────────────────────────────
-router.get('/mesas', authenticate, async (req, res) => {
+router.get('/mesas', authenticate, authorize('administrador', 'caixa'), async (req, res) => {
   try {
     const { inicio, fim } = periodo(req)
     const garcomId = req.query.garcomId && req.query.garcomId !== 'todos' ? req.query.garcomId : null
@@ -361,7 +361,7 @@ router.get('/mesas', authenticate, async (req, res) => {
 })
 
 // ─── GET /caixa ───────────────────────────────────────────
-router.get('/caixa', authenticate, async (req, res) => {
+router.get('/caixa', authenticate, authorize('administrador', 'caixa'), async (req, res) => {
   try {
     const { inicio, fim } = periodo(req)
     const funcionarioId = req.query.funcionarioId && req.query.funcionarioId !== 'todos' ? req.query.funcionarioId : null

@@ -2,7 +2,7 @@ const express = require('express')
 const router = express.Router()
 
 const { query, transaction } = require('../database/connection')
-const { authenticate } = require('../middlewares/auth.middleware')
+const { authenticate, authorize } = require('../middlewares/auth.middleware')
 
 // GET /metodos
 router.get('/metodos', authenticate, async (req, res) => {
@@ -104,7 +104,7 @@ router.post('/', authenticate, async (req, res) => {
 })
 
 // POST /metodos — criar método
-router.post('/metodos', authenticate, async (req, res) => {
+router.post('/metodos', authenticate, authorize('administrador'), async (req, res) => {
   try {
     const { nome } = req.body
     if (!nome?.trim()) return res.status(400).json({ error: 'nome é obrigatório' })
@@ -116,7 +116,7 @@ router.post('/metodos', authenticate, async (req, res) => {
 })
 
 // PATCH /metodos/:id — ativar/desativar
-router.patch('/metodos/:id', authenticate, async (req, res) => {
+router.patch('/metodos/:id', authenticate, authorize('administrador'), async (req, res) => {
   try {
     const { ativo } = req.body
     await query('UPDATE metodos_pagamento SET ativo = ? WHERE id = ?', [ativo ? 1 : 0, req.params.id])
@@ -127,7 +127,7 @@ router.patch('/metodos/:id', authenticate, async (req, res) => {
 })
 
 // GET /metodos/todos — todos (inclusive inativos, para admin)
-router.get('/metodos/todos', authenticate, async (req, res) => {
+router.get('/metodos/todos', authenticate, authorize('administrador'), async (req, res) => {
   try {
     const rows = await query('SELECT id, nome, ativo FROM metodos_pagamento ORDER BY id ASC')
     return res.json(rows)

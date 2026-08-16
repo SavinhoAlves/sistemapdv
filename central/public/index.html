@@ -4,163 +4,633 @@
   <meta charset="UTF-8" />
   <title>Painel Central · Clientes</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
   <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    *, *::before, *::after { font-family: 'Inter', system-ui, sans-serif !important; }
+
+    /* ── Accordion ── */
+    .acc-body {
+      display: grid;
+      grid-template-rows: 0fr;
+      transition: grid-template-rows 0.3s cubic-bezier(0.4,0,0.2,1);
+    }
+    .acc-body.open { grid-template-rows: 1fr; }
+    .acc-body > div { overflow: hidden; }
+    .acc-chevron { transition: transform 0.3s cubic-bezier(0.4,0,0.2,1); }
+    .acc-open .acc-chevron { transform: rotate(180deg); }
+
+    /* ── Client card ── */
+    .client-card {
+      background: rgba(255,255,255,0.028);
+      border: 1px solid rgba(255,255,255,0.07);
+      border-radius: 16px;
+      overflow: hidden;
+      transition: border-color 0.15s;
+    }
+    .client-card:hover { border-color: rgba(255,255,255,0.11); }
+    .client-card.suspended { opacity: 0.55; }
+
+    .card-header { transition: background 0.15s; }
+    .card-header:hover { background: rgba(255,255,255,0.025); }
+
+    /* ── Action buttons ── */
+    .btn-act {
+      height: 30px; padding: 0 11px; border-radius: 9px;
+      font-size: 11px; font-weight: 800; cursor: pointer;
+      border: 1px solid rgba(255,255,255,0.08);
+      background: rgba(255,255,255,0.04);
+      color: rgba(255,255,255,0.6);
+      transition: background 0.12s, color 0.12s;
+      white-space: nowrap;
+    }
+    .btn-act:hover { background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.9); }
+    .btn-act:active { transform: scale(0.97); }
+    .btn-act:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+    .btn-act.danger  { border-color: rgba(239,68,68,0.18);  background: rgba(239,68,68,0.06);  color: #f87171; }
+    .btn-act.danger:hover  { background: rgba(239,68,68,0.12); }
+    .btn-act.warning { border-color: rgba(245,158,11,0.2); background: rgba(245,158,11,0.06); color: #fbbf24; }
+    .btn-act.warning:hover { background: rgba(245,158,11,0.12); }
+    .btn-act.success { border-color: rgba(34,197,94,0.2);  background: rgba(34,197,94,0.06);  color: #4ade80; }
+    .btn-act.success:hover { background: rgba(34,197,94,0.12); }
+    .btn-act.orange  { border-color: rgba(249,115,22,0.25); background: rgba(249,115,22,0.08); color: #fb923c; }
+    .btn-act.orange:hover  { background: rgba(249,115,22,0.14); }
+
+    /* ── Meta / KPI rows ── */
+    .meta-bar {
+      padding: 8px 20px;
+      display: flex; flex-wrap: wrap; gap: 16px;
+      background: rgba(0,0,0,0.15);
+      border-top: 1px solid rgba(255,255,255,0.04);
+      border-bottom: 1px solid rgba(255,255,255,0.04);
+    }
+    .kpi-grid {
+      display: flex;
+      border-top: 1px solid rgba(255,255,255,0.04);
+      border-bottom: 1px solid rgba(255,255,255,0.04);
+    }
+    .kpi-cell { flex: 1; padding: 12px 8px; text-align: center; }
+    .kpi-div  { width: 1px; background: rgba(255,255,255,0.04); flex-shrink: 0; }
+
+    /* ── Search input ── */
+    #busca {
+      height: 36px; padding: 0 12px 0 32px;
+      background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.07);
+      border-radius: 10px; color: #fff; font-size: 13px; outline: none;
+      width: 160px; transition: width 0.2s cubic-bezier(0.4,0,0.2,1), border-color 0.15s, background 0.15s;
+    }
+    #busca::placeholder { color: rgba(255,255,255,0.2); }
+    #busca:focus { width: 220px; border-color: rgba(249,115,22,0.4); background: rgba(249,115,22,0.04); }
+
+    /* ── Modal inputs focus ── */
+    .modal-input {
+      width: 100%; height: 44px; padding: 0 14px;
+      background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 12px; color: #fff; font-size: 14px; font-family: inherit; outline: none;
+      transition: border-color 0.15s, background 0.15s, box-shadow 0.15s;
+    }
+    .modal-input::placeholder { color: rgba(255,255,255,0.2); }
+    .modal-input:focus { border-color: #f97316; background: rgba(249,115,22,0.04); box-shadow: 0 0 0 3px rgba(249,115,22,0.1); }
+
+    .modal-textarea {
+      width: 100%; padding: 12px 14px;
+      background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 12px; color: #fff; font-size: 12px; font-family: monospace; outline: none; resize: none;
+      transition: border-color 0.15s, background 0.15s, box-shadow 0.15s;
+    }
+    .modal-textarea::placeholder { color: rgba(255,255,255,0.2); }
+    .modal-textarea:focus { border-color: #f97316; background: rgba(249,115,22,0.04); box-shadow: 0 0 0 3px rgba(249,115,22,0.1); }
+
+    /* ── Preset buttons ── */
+    .dias-preset {
+      flex: 1; height: 40px; border-radius: 10px; font-size: 13px; font-weight: 800; cursor: pointer;
+      border: 1px solid rgba(255,255,255,0.08); background: rgba(255,255,255,0.04);
+      color: rgba(255,255,255,0.55); transition: background 0.12s, border-color 0.12s, color 0.12s;
+    }
+    .dias-preset:hover { background: rgba(255,255,255,0.08); color: #fff; }
+
+    /* ── Stat cards ── */
+    .stat-card {
+      display: flex; align-items: center; gap: 14px;
+      padding: 16px 18px; border-radius: 14px;
+      background: rgba(255,255,255,0.025);
+      border: 1px solid rgba(255,255,255,0.07);
+      transition: border-color 0.15s, background 0.15s;
+    }
+    .stat-card:hover { background: rgba(255,255,255,0.04); border-color: rgba(255,255,255,0.1); }
+    .stat-icon {
+      width: 36px; height: 36px; border-radius: 10px; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .stat-val { font-size: 20px; font-weight: 900; color: #fff; letter-spacing: -0.5px; line-height: 1; }
+    .stat-name { font-size: 11px; font-weight: 600; color: rgba(255,255,255,0.3); margin-top: 3px; }
+
+    /* ── Dropdown menu ── */
+    .dropdown-menu {
+      position: fixed; z-index: 9999;
+      background: rgba(15,15,17,0.97);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 12px; padding: 4px; min-width: 175px;
+      box-shadow: 0 16px 48px rgba(0,0,0,0.7), 0 0 0 0.5px rgba(255,255,255,0.04);
+      backdrop-filter: blur(16px);
+    }
+    .dropdown-menu.hidden { display: none; }
+    @keyframes dropIn {
+      from { opacity:0; transform:translateY(-5px) scale(0.975); }
+      to   { opacity:1; transform:translateY(0)    scale(1); }
+    }
+    @keyframes dropUp {
+      from { opacity:0; transform:translateY(5px) scale(0.975); }
+      to   { opacity:1; transform:translateY(0)   scale(1); }
+    }
+    .dropdown-menu:not(.hidden)         { animation: dropIn 0.14s cubic-bezier(0.22,1,0.36,1) both; }
+    .dropdown-menu:not(.hidden).flipped { animation: dropUp 0.14s cubic-bezier(0.22,1,0.36,1) both; }
+
+    .dd-item {
+      display: flex; align-items: center; gap: 9px; width: 100%;
+      padding: 7px 10px; border-radius: 8px;
+      font-size: 12px; font-weight: 700; color: rgba(255,255,255,0.55);
+      background: none; border: none; cursor: pointer; text-align: left;
+      transition: background 0.1s, color 0.1s; white-space: nowrap;
+      font-family: inherit;
+    }
+    .dd-item svg { flex-shrink: 0; opacity: 0.7; }
+    .dd-item:hover { background: rgba(255,255,255,0.06); color: #fff; }
+    .dd-item:hover svg { opacity: 1; }
+    .dd-item.dd-danger { color: #f87171; }
+    .dd-item.dd-danger:hover { background: rgba(239,68,68,0.1); color: #fca5a5; }
+    .dd-item.dd-warn   { color: #fbbf24; }
+    .dd-item.dd-warn:hover   { background: rgba(245,158,11,0.08); }
+    .dd-item.dd-green  { color: #4ade80; }
+    .dd-item.dd-green:hover  { background: rgba(34,197,94,0.08); }
+    .dd-sep { height: 1px; background: rgba(255,255,255,0.06); margin: 3px 4px; }
+
+    .btn-kebab {
+      width: 30px; height: 30px; border-radius: 9px;
+      background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08);
+      color: rgba(255,255,255,0.4); cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: background 0.12s, color 0.12s, border-color 0.12s;
+    }
+    .btn-kebab:hover { background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.85); }
+    .btn-kebab.open  { background: rgba(255,255,255,0.09); color: #fff; border-color: rgba(255,255,255,0.15); }
+
+    /* ── Nav tabs ── */
+    .nav-pill {
+      display: flex; align-items: center; gap: 1px; padding: 3px;
+      border-radius: 12px; background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.07);
+    }
+    .nav-tab {
+      display: flex; align-items: center; gap: 6px;
+      padding: 6px 14px; border-radius: 9px;
+      font-size: 12px; font-weight: 800; color: rgba(255,255,255,0.38);
+      text-decoration: none; transition: background 0.12s, color 0.12s; white-space: nowrap;
+    }
+    .nav-tab:hover { color: rgba(255,255,255,0.7); background: rgba(255,255,255,0.05); }
+    .nav-tab.active { background: rgba(255,255,255,0.1); color: #fff; }
+
+    /* ── Filter tabs ── */
+    .filter-btn {
+      height: 30px; padding: 0 12px; border-radius: 8px;
+      font-size: 11px; font-weight: 800; cursor: pointer;
+      border: 1px solid rgba(255,255,255,0.07);
+      background: transparent; color: rgba(255,255,255,0.35);
+      transition: background 0.12s, border-color 0.12s, color 0.12s;
+      white-space: nowrap;
+    }
+    .filter-btn:hover { background: rgba(255,255,255,0.05); color: rgba(255,255,255,0.65); }
+    .filter-btn.active {
+      background: rgba(255,255,255,0.08);
+      border-color: rgba(255,255,255,0.14);
+      color: #fff;
+    }
+    .filter-badge {
+      display: inline-flex; align-items: center; justify-content: center;
+      min-width: 16px; height: 16px; padding: 0 4px;
+      border-radius: 99px; font-size: 9px; font-weight: 900;
+      background: rgba(255,255,255,0.1); color: rgba(255,255,255,0.5);
+      margin-left: 5px;
+    }
+    .filter-btn.active .filter-badge { background: rgba(249,115,22,0.25); color: #fb923c; }
+
+    /* ── Page enter ── */
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(10px); }
+      to   { opacity: 1; transform: none; }
+    }
+    main { animation: fadeUp 0.4s cubic-bezier(0.22,1,0.36,1) both; }
+
+    /* ── Scrollbar ── */
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 99px; }
+  </style>
 </head>
-<body class="bg-neutral-950 min-h-screen text-white">
+<body class="bg-[#09090b] min-h-screen text-white antialiased">
 
-  <header class="border-b border-neutral-800 px-6 py-4 flex items-center justify-between">
-    <div class="flex items-center gap-3">
-      <div class="w-9 h-9 rounded-xl bg-orange-500 flex items-center justify-center">
-        <span class="text-white font-black">P</span>
-      </div>
-      <div>
-        <h1 class="text-sm font-black">Painel Central</h1>
-        <p class="text-[11px] text-neutral-500">Suporte · Restaurante PDV</p>
-      </div>
-    </div>
-    <button id="btn-sair" class="text-xs font-black text-red-400 hover:text-red-300">Sair</button>
-  </header>
+  <!-- ── HEADER ── -->
+  <header class="sticky top-0 z-40 border-b border-white/[0.06]"
+    style="background: rgba(9,9,11,0.88); backdrop-filter: blur(20px);">
+    <div class="max-w-5xl mx-auto px-6 h-[58px] items-center"
+      style="display:grid; grid-template-columns:1fr auto 1fr;">
 
-  <main class="max-w-5xl mx-auto p-6">
-    <div class="flex items-center justify-between mb-5">
-      <div>
-        <h2 class="text-xl font-black">Clientes</h2>
-        <p class="text-sm text-neutral-500" id="contagem">—</p>
-      </div>
-      <button id="btn-novo"
-        class="h-10 px-4 rounded-xl bg-orange-500 hover:bg-orange-400 text-white text-xs font-black uppercase tracking-widest transition-all active:scale-95">
-        + Novo Cliente
-      </button>
-    </div>
-
-    <div id="lista" class="space-y-3"></div>
-    <p id="vazio" class="hidden text-center text-neutral-500 text-sm py-12">Nenhum cliente cadastrado ainda</p>
-  </main>
-
-  <!-- MODAL NOVO CLIENTE -->
-  <div id="modal-novo" class="hidden fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-50">
-    <div class="bg-neutral-900 border border-neutral-800 rounded-3xl p-6 w-full max-w-sm">
-      <h3 class="text-lg font-black mb-4">Novo cliente</h3>
-      <label class="text-[10px] font-black uppercase tracking-widest text-neutral-500 block mb-2">Nome fantasia *</label>
-      <input id="novo-nome" type="text" placeholder="Ex: Restaurante do Chef"
-        class="w-full h-11 px-4 mb-4 rounded-xl bg-neutral-800 border border-neutral-700 text-white text-sm outline-none focus:border-orange-500" />
-      <label class="text-[10px] font-black uppercase tracking-widest text-neutral-500 block mb-2">Contato (opcional)</label>
-      <input id="novo-contato" type="text" placeholder="Telefone, WhatsApp ou e-mail"
-        class="w-full h-11 px-4 mb-5 rounded-xl bg-neutral-800 border border-neutral-700 text-white text-sm outline-none focus:border-orange-500" />
-      <div class="flex gap-3">
-        <button id="btn-cancelar-novo" class="flex-1 h-11 rounded-xl border border-neutral-700 text-neutral-400 text-sm font-black hover:bg-neutral-800">Cancelar</button>
-        <button id="btn-criar" class="flex-1 h-11 rounded-xl bg-orange-500 hover:bg-orange-400 text-white text-sm font-black active:scale-95">Criar</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- MODAL TOKEN GERADO (criação) -->
-  <div id="modal-token" class="hidden fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-50">
-    <div class="bg-neutral-900 border border-neutral-800 rounded-3xl p-6 w-full max-w-md">
-      <h3 class="text-lg font-black mb-2">Cliente criado!</h3>
-      <p class="text-xs text-neutral-400 mb-4 leading-relaxed">
-        Copie este token agora — ele não será mostrado de novo. No backend do restaurante, chame
-        <code class="text-orange-400">POST /api/sistema/sync/configurar</code> logado como administrador
-        com <code class="text-orange-400">{ centralUrl, syncToken }</code>.
-      </p>
-      <div class="bg-neutral-800 rounded-xl p-3 mb-5 break-all font-mono text-xs text-green-400" id="token-gerado"></div>
-      <button id="btn-fechar-token" class="w-full h-11 rounded-xl bg-orange-500 hover:bg-orange-400 text-white text-sm font-black active:scale-95">Já copiei</button>
-    </div>
-  </div>
-
-  <!-- MODAL GERAR / RENOVAR LICENÇA -->
-  <div id="modal-licenca" class="hidden fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-50">
-    <div class="bg-neutral-900 border border-neutral-800 rounded-3xl p-6 w-full max-w-sm">
-      <h3 class="text-lg font-black mb-1" id="licenca-titulo">Gerar licença</h3>
-      <p class="text-xs text-neutral-500 mb-4" id="licenca-cliente-nome"></p>
-      <label class="text-[10px] font-black uppercase tracking-widest text-neutral-500 block mb-2">Validade</label>
-      <div class="flex gap-2 mb-3">
-        <button data-dias="30"  class="dias-preset flex-1 h-10 rounded-xl border border-neutral-700 text-sm font-black hover:bg-neutral-800">30 dias</button>
-        <button data-dias="90"  class="dias-preset flex-1 h-10 rounded-xl border border-neutral-700 text-sm font-black hover:bg-neutral-800">90 dias</button>
-        <button data-dias="365" class="dias-preset flex-1 h-10 rounded-xl border border-neutral-700 text-sm font-black hover:bg-neutral-800">1 ano</button>
-      </div>
-      <input id="licenca-dias" type="number" min="1" placeholder="Ou digite os dias..."
-        class="w-full h-11 px-4 mb-5 rounded-xl bg-neutral-800 border border-neutral-700 text-white text-sm outline-none focus:border-orange-500" />
-      <div class="flex gap-3">
-        <button id="btn-cancelar-licenca" class="flex-1 h-11 rounded-xl border border-neutral-700 text-neutral-400 text-sm font-black hover:bg-neutral-800">Cancelar</button>
-        <button id="btn-gerar-licenca" class="flex-1 h-11 rounded-xl bg-orange-500 hover:bg-orange-400 text-white text-sm font-black active:scale-95">Gerar</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- MODAL CHAVE GERADA -->
-  <div id="modal-chave" class="hidden fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-50">
-    <div class="bg-neutral-900 border border-neutral-800 rounded-3xl p-6 w-full max-w-md">
-      <h3 class="text-lg font-black mb-2">Chave de licença gerada</h3>
-      <p class="text-xs text-neutral-400 mb-1 leading-relaxed">
-        Cole esta chave na tela <code class="text-orange-400">/configuracoes</code> do restaurante
-        (aba Ativação) ou chame <code class="text-orange-400">POST /api/sistema/ativar</code> com <code class="text-orange-400">{ chave }</code>.
-      </p>
-      <p class="text-xs text-neutral-500 mb-4" id="chave-expira"></p>
-      <div class="bg-neutral-800 rounded-xl p-3 mb-5 break-all font-mono text-xs text-green-400" id="chave-gerada"></div>
-      <button id="btn-fechar-chave" class="w-full h-11 rounded-xl bg-orange-500 hover:bg-orange-400 text-white text-sm font-black active:scale-95">Já copiei</button>
-    </div>
-  </div>
-
-  <!-- MODAL EDITAR CLIENTE -->
-  <div id="modal-editar" class="hidden fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-50">
-    <div class="bg-neutral-900 border border-neutral-800 rounded-3xl p-6 w-full max-w-sm">
-      <h3 class="text-lg font-black mb-4">Editar cliente</h3>
-      <input type="hidden" id="editar-id" />
-      <label class="text-[10px] font-black uppercase tracking-widest text-neutral-500 block mb-2">Nome fantasia *</label>
-      <input id="editar-nome" type="text"
-        class="w-full h-11 px-4 mb-4 rounded-xl bg-neutral-800 border border-neutral-700 text-white text-sm outline-none focus:border-orange-500" />
-      <label class="text-[10px] font-black uppercase tracking-widest text-neutral-500 block mb-2">Contato</label>
-      <input id="editar-contato" type="text" placeholder="Telefone, WhatsApp ou e-mail"
-        class="w-full h-11 px-4 mb-5 rounded-xl bg-neutral-800 border border-neutral-700 text-white text-sm outline-none focus:border-orange-500" />
-      <div class="flex gap-3">
-        <button id="btn-cancelar-editar" class="flex-1 h-11 rounded-xl border border-neutral-700 text-neutral-400 text-sm font-black hover:bg-neutral-800">Cancelar</button>
-        <button id="btn-salvar-editar" class="flex-1 h-11 rounded-xl bg-orange-500 hover:bg-orange-400 text-white text-sm font-black active:scale-95">Salvar</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- MODAL CONFIRMAR EXCLUSÃO -->
-  <div id="modal-excluir" class="hidden fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-50">
-    <div class="bg-neutral-900 border border-neutral-800 rounded-3xl p-6 w-full max-w-sm">
-      <h3 class="text-lg font-black mb-2">Excluir cliente</h3>
-      <p class="text-sm text-neutral-400 mb-1">Tem certeza que deseja excluir</p>
-      <p class="text-sm font-black mb-4" id="excluir-nome"></p>
-      <p class="text-xs text-red-400 mb-5">Esta ação não pode ser desfeita. A instalação vinculada perderá a conexão com o painel.</p>
-      <input type="hidden" id="excluir-id" />
-      <div class="flex gap-3">
-        <button id="btn-cancelar-excluir" class="flex-1 h-11 rounded-xl border border-neutral-700 text-neutral-400 text-sm font-black hover:bg-neutral-800">Cancelar</button>
-        <button id="btn-confirmar-excluir" class="flex-1 h-11 rounded-xl bg-red-500 hover:bg-red-400 text-white text-sm font-black active:scale-95">Excluir</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- MODAL RESETAR TOKEN -->
-  <div id="modal-reset" class="hidden fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-50">
-    <div class="bg-neutral-900 border border-neutral-800 rounded-3xl p-6 w-full max-w-md">
-      <div id="reset-confirm">
-        <h3 class="text-lg font-black mb-2">Resetar token de sync</h3>
-        <p class="text-sm text-neutral-400 mb-1">Cliente: <span id="reset-nome" class="text-white font-black"></span></p>
-        <p class="text-xs text-amber-400 mb-5 leading-relaxed">
-          Um novo token será gerado. O restaurante precisará ser reconfigurado com o novo token — a conexão de sync ficará inativa até isso ser feito.
-        </p>
-        <input type="hidden" id="reset-id" />
-        <div class="flex gap-3">
-          <button id="btn-cancelar-reset" class="flex-1 h-11 rounded-xl border border-neutral-700 text-neutral-400 text-sm font-black hover:bg-neutral-800">Cancelar</button>
-          <button id="btn-confirmar-reset" class="flex-1 h-11 rounded-xl bg-amber-500 hover:bg-amber-400 text-white text-sm font-black active:scale-95">Resetar</button>
+      <!-- Logo -->
+      <div class="flex items-center gap-3">
+        <div class="w-8 h-8 rounded-xl flex items-center justify-center font-black text-[15px] text-white flex-shrink-0"
+          style="background: linear-gradient(135deg,#f97316,#ea580c); box-shadow: 0 0 18px rgba(249,115,22,0.3);">P</div>
+        <div>
+          <p class="text-[13px] font-black leading-none tracking-tight">Painel Central</p>
+          <p class="text-[10px] text-neutral-500 mt-[3px] leading-none">Suporte · Restaurante PDV</p>
         </div>
       </div>
-      <div id="reset-resultado" class="hidden">
-        <h3 class="text-lg font-black mb-2">Novo token gerado</h3>
-        <p class="text-xs text-neutral-400 mb-4 leading-relaxed">
-          Copie este token agora — ele não será mostrado de novo. Reconfigure o backend do restaurante com
-          <code class="text-orange-400">POST /api/sistema/sync/configurar</code>.
-        </p>
-        <div class="bg-neutral-800 rounded-xl p-3 mb-5 break-all font-mono text-xs text-green-400" id="reset-token-gerado"></div>
-        <button id="btn-fechar-reset" class="w-full h-11 rounded-xl bg-orange-500 hover:bg-orange-400 text-white text-sm font-black active:scale-95">Já copiei</button>
+
+      <!-- Nav (centered) -->
+      <div class="nav-pill">
+        <a href="/index.html" class="nav-tab active">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
+            <path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+          </svg>
+          Clientes
+        </a>
+        <a href="/ativacao.html" class="nav-tab">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="1" y="3" width="15" height="13" rx="2"/><path d="M16 8h4l3 3v5h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/>
+          </svg>
+          Licenças
+        </a>
+      </div>
+
+      <!-- Right actions -->
+      <div class="flex items-center gap-2 justify-end">
+        <div id="badge-online" class="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-full"
+          style="border: 1px solid rgba(255,255,255,0.07); background: rgba(255,255,255,0.03);">
+          <span class="w-[5px] h-[5px] rounded-full bg-green-500 flex-shrink-0"
+            style="box-shadow: 0 0 6px rgba(34,197,94,0.7);"></span>
+          <span id="contagem-online" class="text-[11px] text-neutral-400 font-semibold">—</span>
+        </div>
+        <button id="btn-novo"
+          class="h-[34px] px-4 rounded-xl text-[11px] font-black uppercase tracking-wider text-white transition-all active:scale-95 hover:opacity-90"
+          style="background: linear-gradient(135deg,#f97316,#ea580c); box-shadow: 0 2px 12px rgba(249,115,22,0.22);">
+          + Novo
+        </button>
+        <button id="btn-sair"
+          class="h-[34px] px-3 rounded-xl text-[11px] font-black text-red-400 transition-all hover:bg-red-900/20"
+          style="border: 1px solid rgba(239,68,68,0.2);">
+          Sair
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- ── MAIN ── -->
+  <main class="max-w-5xl mx-auto px-6 py-7">
+
+    <!-- Title + search -->
+    <div class="flex items-center justify-between gap-4 mb-6">
+      <div>
+        <h2 class="text-[18px] font-black tracking-tight">Clientes</h2>
+        <p class="text-[12px] text-neutral-500 mt-0.5" id="contagem">Carregando…</p>
+      </div>
+      <div class="relative">
+        <svg class="absolute left-2.5 top-1/2 -translate-y-1/2 text-neutral-600 pointer-events-none"
+          width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+        </svg>
+        <input id="busca" type="text" placeholder="Buscar cliente…" />
+      </div>
+    </div>
+
+    <!-- Stats -->
+    <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:10px; margin-bottom:20px;" id="stats-grid">
+      <div class="stat-card">
+        <div class="stat-icon" style="background:rgba(99,102,241,0.12); border:1px solid rgba(99,102,241,0.18);">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#818cf8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
+            <path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+          </svg>
+        </div>
+        <div>
+          <p class="stat-val" id="stat-total">—</p>
+          <p class="stat-name">Clientes</p>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon" style="background:rgba(34,197,94,0.1); border:1px solid rgba(34,197,94,0.18);">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#4ade80" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/>
+          </svg>
+        </div>
+        <div>
+          <p class="stat-val" id="stat-online">—</p>
+          <p class="stat-name">Online agora</p>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon" style="background:rgba(249,115,22,0.1); border:1px solid rgba(249,115,22,0.18);">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fb923c" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+          </svg>
+        </div>
+        <div>
+          <p class="stat-val" id="stat-fat" style="font-size:15px;">—</p>
+          <p class="stat-name">Faturamento hoje</p>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon" style="background:rgba(239,68,68,0.08); border:1px solid rgba(239,68,68,0.15);">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#f87171" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+            <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+          </svg>
+        </div>
+        <div>
+          <p class="stat-val" id="stat-vencendo">—</p>
+          <p class="stat-name">Vencendo em 7d</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Filters -->
+    <div style="display:flex; align-items:center; gap:6px; margin-bottom:14px; flex-wrap:wrap;">
+      <button class="filter-btn active" data-filtro="todos">Todos <span class="filter-badge" id="fb-todos">—</span></button>
+      <button class="filter-btn" data-filtro="ativo">Ativos <span class="filter-badge" id="fb-ativos">—</span></button>
+      <button class="filter-btn" data-filtro="suspenso">Suspensos <span class="filter-badge" id="fb-suspensos">—</span></button>
+      <button class="filter-btn" data-filtro="vencendo">A vencer <span class="filter-badge" id="fb-vencendo">—</span></button>
+    </div>
+
+    <div id="lista" class="space-y-2"></div>
+
+    <!-- Empty state -->
+    <div id="vazio" class="hidden flex-col items-center justify-center py-20 text-center">
+      <div class="w-14 h-14 rounded-2xl flex items-center justify-center mb-4"
+        style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06);">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"
+          class="text-neutral-600" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+          <circle cx="9" cy="7" r="4"/>
+          <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+          <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+        </svg>
+      </div>
+      <p class="text-[13px] font-black" style="color: rgba(255,255,255,0.4);" id="vazio-titulo">Nenhum cliente ainda</p>
+      <p class="text-xs text-neutral-600 mt-1" id="vazio-sub">Clique em "+ Novo cliente" para começar</p>
+    </div>
+
+  </main>
+
+  <!-- ══════════════════════════════════════ MODALS ══════════════════════════════════════ -->
+
+  <!-- NOVO CLIENTE -->
+  <div id="modal-novo" class="hidden fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4"
+    style="background: rgba(0,0,0,0.72); backdrop-filter: blur(8px);">
+    <div class="w-full max-w-sm rounded-2xl sm:rounded-3xl p-6"
+      style="background: rgba(16,16,18,0.98); border: 1px solid rgba(255,255,255,0.08);">
+      <h3 class="text-[15px] font-black mb-5">Novo cliente</h3>
+      <label class="modal-label">Nome fantasia *</label>
+      <input id="novo-nome" type="text" placeholder="Ex: Restaurante do Chef"
+        class="modal-input mb-4" />
+      <label class="modal-label">Contato (opcional)</label>
+      <input id="novo-contato" type="text" placeholder="Telefone, WhatsApp ou e-mail"
+        class="modal-input mb-5" />
+      <div class="flex gap-2.5">
+        <button id="btn-cancelar-novo" class="flex-1 h-11 rounded-xl text-sm font-black text-neutral-400 transition-all hover:bg-white/[0.05]"
+          style="border: 1px solid rgba(255,255,255,0.08);">Cancelar</button>
+        <button id="btn-criar" class="flex-1 h-11 rounded-xl text-sm font-black text-white transition-all hover:opacity-90 active:scale-95"
+          style="background: linear-gradient(135deg,#f97316,#ea580c);">Criar</button>
       </div>
     </div>
   </div>
+
+  <!-- CLIENTE CRIADO -->
+  <div id="modal-token" class="hidden fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4"
+    style="background: rgba(0,0,0,0.72); backdrop-filter: blur(8px);">
+    <div class="w-full max-w-sm rounded-2xl sm:rounded-3xl p-6"
+      style="background: rgba(16,16,18,0.98); border: 1px solid rgba(255,255,255,0.08);">
+      <div class="w-10 h-10 rounded-2xl flex items-center justify-center mb-4"
+        style="background: rgba(74,222,128,0.08); border: 1px solid rgba(74,222,128,0.18);">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#4ade80" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22,4 12,14.01 9,11.01"/>
+        </svg>
+      </div>
+      <h3 class="text-[15px] font-black mb-1">Cliente criado!</h3>
+      <p class="text-xs text-neutral-500 mb-5 leading-relaxed">
+        Gere agora a chave de licença para <span id="token-nome-cliente" class="text-white font-black"></span> e envie ao cliente para ativação. A chave já inclui as credenciais de sincronização automaticamente.
+      </p>
+      <div class="flex gap-2.5">
+        <button id="btn-fechar-token" class="flex-1 h-11 rounded-xl text-sm font-black text-neutral-400 transition-all hover:bg-white/[0.05]"
+          style="border: 1px solid rgba(255,255,255,0.08);">Depois</button>
+        <button id="btn-gerar-licenca-novo" class="flex-1 h-11 rounded-xl text-sm font-black text-white transition-all hover:opacity-90 active:scale-95"
+          style="background: linear-gradient(135deg,#f97316,#ea580c);">Gerar licença</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- GERAR / RENOVAR LICENÇA -->
+  <div id="modal-licenca" class="hidden fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4"
+    style="background: rgba(0,0,0,0.72); backdrop-filter: blur(8px);">
+    <div class="w-full max-w-sm rounded-2xl sm:rounded-3xl p-6"
+      style="background: rgba(16,16,18,0.98); border: 1px solid rgba(255,255,255,0.08);">
+      <h3 class="text-[15px] font-black mb-1" id="licenca-titulo">Gerar licença</h3>
+      <p class="text-xs text-neutral-500 mb-5" id="licenca-cliente-nome"></p>
+      <label class="modal-label">Validade</label>
+      <div class="flex gap-2 mb-3">
+        <button data-dias="30"  class="dias-preset">30 d</button>
+        <button data-dias="90"  class="dias-preset">90 d</button>
+        <button data-dias="365" class="dias-preset">1 ano</button>
+      </div>
+      <input id="licenca-dias" type="number" min="1" placeholder="Ou digite os dias…"
+        class="modal-input mb-5" />
+      <div class="flex gap-2.5">
+        <button id="btn-cancelar-licenca" class="flex-1 h-11 rounded-xl text-sm font-black text-neutral-400 transition-all hover:bg-white/[0.05]"
+          style="border: 1px solid rgba(255,255,255,0.08);">Cancelar</button>
+        <button id="btn-gerar-licenca" class="flex-1 h-11 rounded-xl text-sm font-black text-white transition-all hover:opacity-90 active:scale-95"
+          style="background: linear-gradient(135deg,#f97316,#ea580c);">Gerar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- CHAVE GERADA -->
+  <div id="modal-chave" class="hidden fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4"
+    style="background: rgba(0,0,0,0.72); backdrop-filter: blur(8px);">
+    <div class="w-full max-w-md rounded-2xl sm:rounded-3xl p-6"
+      style="background: rgba(16,16,18,0.98); border: 1px solid rgba(255,255,255,0.08);">
+      <div class="w-10 h-10 rounded-2xl flex items-center justify-center mb-4"
+        style="background: rgba(249,115,22,0.08); border: 1px solid rgba(249,115,22,0.18);">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#f97316" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="m21 2-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0 3 3L22 7l-3-3m-3.5 3.5L19 4"/>
+        </svg>
+      </div>
+      <h3 class="text-[15px] font-black mb-1">Chave de licença gerada</h3>
+      <p class="text-xs text-neutral-500 mb-1 leading-relaxed" id="chave-expira"></p>
+
+      <!-- Chave -->
+      <div id="chave-gerada" class="rounded-xl p-3 mt-3 mb-3 break-all font-mono text-xs text-green-400 select-all"
+        style="background: rgba(74,222,128,0.06); border: 1px solid rgba(74,222,128,0.15);"></div>
+
+      <!-- Como ativar -->
+      <div class="rounded-xl p-3 mb-4" style="background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.06);">
+        <p style="font-size:10px;font-weight:800;letter-spacing:0.1em;text-transform:uppercase;color:rgba(255,255,255,0.25);margin-bottom:8px;">Como ativar</p>
+        <div style="display:flex;flex-direction:column;gap:5px;">
+          <p style="font-size:11px;color:rgba(255,255,255,0.45);line-height:1.5;">
+            <span style="color:#f97316;font-weight:800;">1.</span> Copie a chave acima
+          </p>
+          <p style="font-size:11px;color:rgba(255,255,255,0.45);line-height:1.5;">
+            <span style="color:#f97316;font-weight:800;">2.</span> Acesse o sistema do restaurante e vá em <span style="color:rgba(255,255,255,0.7);font-weight:700;">/ativacao</span>
+          </p>
+          <p style="font-size:11px;color:rgba(255,255,255,0.45);line-height:1.5;">
+            <span style="color:#f97316;font-weight:800;">3.</span> Cole a chave e clique em <span style="color:rgba(255,255,255,0.7);font-weight:700;">Ativar licença</span>
+          </p>
+        </div>
+      </div>
+
+      <!-- Ações -->
+      <div style="display:flex;gap:8px;margin-bottom:10px;">
+        <button id="btn-copiar-chave" class="flex-1 h-10 rounded-xl text-xs font-black transition-all active:scale-95"
+          style="border:1px solid rgba(255,255,255,0.1);background:rgba(255,255,255,0.05);color:rgba(255,255,255,0.65);">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline;vertical-align:-1px;margin-right:5px;"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+          Copiar chave
+        </button>
+        <button id="btn-copiar-msg" class="flex-1 h-10 rounded-xl text-xs font-black transition-all active:scale-95"
+          style="border:1px solid rgba(34,197,94,0.2);background:rgba(34,197,94,0.07);color:#4ade80;">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline;vertical-align:-1px;margin-right:5px;"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+          Copiar mensagem
+        </button>
+      </div>
+      <button id="btn-fechar-chave" class="w-full h-10 rounded-xl text-xs font-black text-neutral-400 transition-all hover:bg-white/[0.05]"
+        style="border:1px solid rgba(255,255,255,0.08);">Fechar</button>
+    </div>
+  </div>
+
+  <!-- COLAR CHAVE -->
+  <div id="modal-colar-chave" class="hidden fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4"
+    style="background: rgba(0,0,0,0.72); backdrop-filter: blur(8px);">
+    <div class="w-full max-w-md rounded-2xl sm:rounded-3xl p-6"
+      style="background: rgba(16,16,18,0.98); border: 1px solid rgba(255,255,255,0.08);">
+      <h3 class="text-[15px] font-black mb-1">Aplicar chave de ativação</h3>
+      <p class="text-xs text-neutral-500 mb-5" id="colar-cliente-nome"></p>
+      <input type="hidden" id="colar-id" />
+      <label class="modal-label">Chave de ativação</label>
+      <textarea id="colar-chave" rows="4" placeholder="Cole aqui a chave Base64…"
+        class="modal-textarea mb-5"></textarea>
+      <div class="flex gap-2.5">
+        <button id="btn-cancelar-colar" class="flex-1 h-11 rounded-xl text-sm font-black text-neutral-400 transition-all hover:bg-white/[0.05]"
+          style="border: 1px solid rgba(255,255,255,0.08);">Cancelar</button>
+        <button id="btn-aplicar-chave" class="flex-1 h-11 rounded-xl text-sm font-black text-white transition-all hover:opacity-90 active:scale-95"
+          style="background: linear-gradient(135deg,#f97316,#ea580c);">Aplicar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- EDITAR CLIENTE -->
+  <div id="modal-editar" class="hidden fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4"
+    style="background: rgba(0,0,0,0.72); backdrop-filter: blur(8px);">
+    <div class="w-full max-w-sm rounded-2xl sm:rounded-3xl p-6"
+      style="background: rgba(16,16,18,0.98); border: 1px solid rgba(255,255,255,0.08);">
+      <h3 class="text-[15px] font-black mb-5">Editar cliente</h3>
+      <input type="hidden" id="editar-id" />
+      <label class="modal-label">Nome fantasia *</label>
+      <input id="editar-nome" type="text" class="modal-input mb-4" />
+      <label class="modal-label">Contato</label>
+      <input id="editar-contato" type="text" placeholder="Telefone, WhatsApp ou e-mail"
+        class="modal-input mb-5" />
+      <div class="flex gap-2.5">
+        <button id="btn-cancelar-editar" class="flex-1 h-11 rounded-xl text-sm font-black text-neutral-400 transition-all hover:bg-white/[0.05]"
+          style="border: 1px solid rgba(255,255,255,0.08);">Cancelar</button>
+        <button id="btn-salvar-editar" class="flex-1 h-11 rounded-xl text-sm font-black text-white transition-all hover:opacity-90 active:scale-95"
+          style="background: linear-gradient(135deg,#f97316,#ea580c);">Salvar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- EXCLUIR -->
+  <div id="modal-excluir" class="hidden fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4"
+    style="background: rgba(0,0,0,0.72); backdrop-filter: blur(8px);">
+    <div class="w-full max-w-sm rounded-2xl sm:rounded-3xl p-6"
+      style="background: rgba(16,16,18,0.98); border: 1px solid rgba(255,255,255,0.08);">
+      <div class="w-10 h-10 rounded-2xl flex items-center justify-center mb-4"
+        style="background: rgba(239,68,68,0.08); border: 1px solid rgba(239,68,68,0.18);">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#f87171" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="3 6 5 6 21 6"/>
+          <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
+        </svg>
+      </div>
+      <h3 class="text-[15px] font-black mb-1">Excluir cliente</h3>
+      <p class="text-sm text-neutral-400 mb-1">Deseja excluir permanentemente</p>
+      <p class="text-sm font-black mb-3" id="excluir-nome"></p>
+      <p class="text-xs leading-relaxed mb-5" style="color: rgba(248,113,113,0.75);">
+        Esta ação não pode ser desfeita. A instalação vinculada perderá a conexão com o painel.
+      </p>
+      <input type="hidden" id="excluir-id" />
+      <div class="flex gap-2.5">
+        <button id="btn-cancelar-excluir" class="flex-1 h-11 rounded-xl text-sm font-black text-neutral-400 transition-all hover:bg-white/[0.05]"
+          style="border: 1px solid rgba(255,255,255,0.08);">Cancelar</button>
+        <button id="btn-confirmar-excluir"
+          class="flex-1 h-11 rounded-xl text-sm font-black text-white bg-red-500 hover:bg-red-400 transition-all active:scale-95">Excluir</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- RESETAR TOKEN -->
+  <div id="modal-reset" class="hidden fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4"
+    style="background: rgba(0,0,0,0.72); backdrop-filter: blur(8px);">
+    <div class="w-full max-w-md rounded-2xl sm:rounded-3xl p-6"
+      style="background: rgba(16,16,18,0.98); border: 1px solid rgba(255,255,255,0.08);">
+
+      <div id="reset-confirm">
+        <div class="w-10 h-10 rounded-2xl flex items-center justify-center mb-4"
+          style="background: rgba(245,158,11,0.08); border: 1px solid rgba(245,158,11,0.2);">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#fbbf24" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+            <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+          </svg>
+        </div>
+        <h3 class="text-[15px] font-black mb-1">Resetar token de sync</h3>
+        <p class="text-sm text-neutral-400 mb-1">Cliente: <span id="reset-nome" class="text-white font-black"></span></p>
+        <p class="text-xs leading-relaxed mb-5" style="color: rgba(251,191,36,0.75);">
+          Um novo token será gerado. O restaurante precisará ser reconfigurado — a conexão ficará inativa até isso ser feito.
+        </p>
+        <input type="hidden" id="reset-id" />
+        <div class="flex gap-2.5">
+          <button id="btn-cancelar-reset" class="flex-1 h-11 rounded-xl text-sm font-black text-neutral-400 transition-all hover:bg-white/[0.05]"
+            style="border: 1px solid rgba(255,255,255,0.08);">Cancelar</button>
+          <button id="btn-confirmar-reset"
+            class="flex-1 h-11 rounded-xl text-sm font-black text-white bg-amber-500 hover:bg-amber-400 transition-all active:scale-95">Resetar</button>
+        </div>
+      </div>
+
+      <div id="reset-resultado" class="hidden">
+        <div class="w-10 h-10 rounded-2xl flex items-center justify-center mb-4"
+          style="background: rgba(74,222,128,0.08); border: 1px solid rgba(74,222,128,0.18);">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#4ade80" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22,4 12,14.01 9,11.01"/>
+          </svg>
+        </div>
+        <h3 class="text-[15px] font-black mb-1">Novo token gerado</h3>
+        <p class="text-xs text-neutral-500 mb-4 leading-relaxed">
+          Copie agora — não será exibido novamente. Reconfigure via
+          <code class="text-orange-400" style="background: rgba(249,115,22,0.08); padding: 1px 5px; border-radius: 4px;">POST /api/sistema/sync/configurar</code>.
+        </p>
+        <div id="reset-token-gerado" class="rounded-xl p-3 mb-5 break-all font-mono text-xs text-green-400 select-all"
+          style="background: rgba(74,222,128,0.06); border: 1px solid rgba(74,222,128,0.15);"></div>
+        <button id="btn-fechar-reset" class="w-full h-11 rounded-xl text-sm font-black text-white transition-all hover:opacity-90 active:scale-95"
+          style="background: linear-gradient(135deg,#f97316,#ea580c);">Já copiei</button>
+      </div>
+
+    </div>
+  </div>
+
+  <style>
+    .modal-label {
+      display: block;
+      font-size: 10px; font-weight: 800;
+      letter-spacing: 0.1em; text-transform: uppercase;
+      color: rgba(255,255,255,0.3);
+      margin-bottom: 8px;
+    }
+  </style>
 
   <script src="/app.js"></script>
 </body>

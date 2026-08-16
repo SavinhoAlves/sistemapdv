@@ -39,14 +39,80 @@ async function migrate() {
     `)
     console.log('✓ Tabela clientes criada (ou já existia)')
 
-    // Coluna adicionada após versão inicial
-    const [cols] = await conn.execute(`
+    // Colunas adicionadas após versão inicial
+    const [colsLic] = await conn.execute(`
       SELECT COUNT(*) as cnt FROM information_schema.COLUMNS
       WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'clientes' AND COLUMN_NAME = 'licenca_expira_em'
     `)
-    if (!cols[0].cnt) {
+    if (!colsLic[0].cnt) {
       await conn.execute(`ALTER TABLE clientes ADD COLUMN licenca_expira_em DATETIME DEFAULT NULL`)
       console.log('✓ Coluna licenca_expira_em adicionada')
+    }
+
+    const [colsChave] = await conn.execute(`
+      SELECT COUNT(*) as cnt FROM information_schema.COLUMNS
+      WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'clientes' AND COLUMN_NAME = 'chave_ativacao'
+    `)
+    if (!colsChave[0].cnt) {
+      await conn.execute(`ALTER TABLE clientes ADD COLUMN chave_ativacao TEXT DEFAULT NULL`)
+      console.log('✓ Coluna chave_ativacao adicionada')
+    }
+
+    // Chave aguardando ser aplicada automaticamente no próximo sync do PDV
+    const [colsPend] = await conn.execute(`
+      SELECT COUNT(*) as cnt FROM information_schema.COLUMNS
+      WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'clientes' AND COLUMN_NAME = 'licenca_pendente'
+    `)
+    if (!colsPend[0].cnt) {
+      await conn.execute(`ALTER TABLE clientes ADD COLUMN licenca_pendente TEXT DEFAULT NULL`)
+      console.log('✓ Coluna licenca_pendente adicionada')
+    }
+
+    // Estado real do pdv_config reportado pelo PDV a cada sync
+    const [colsPdvStatus] = await conn.execute(`
+      SELECT COUNT(*) as cnt FROM information_schema.COLUMNS
+      WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'clientes' AND COLUMN_NAME = 'pdv_licenca_status'
+    `)
+    if (!colsPdvStatus[0].cnt) {
+      await conn.execute(`ALTER TABLE clientes ADD COLUMN pdv_licenca_status VARCHAR(20) DEFAULT NULL`)
+      console.log('✓ Coluna pdv_licenca_status adicionada')
+    }
+
+    const [colsPdvExpira] = await conn.execute(`
+      SELECT COUNT(*) as cnt FROM information_schema.COLUMNS
+      WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'clientes' AND COLUMN_NAME = 'pdv_licenca_expira'
+    `)
+    if (!colsPdvExpira[0].cnt) {
+      await conn.execute(`ALTER TABLE clientes ADD COLUMN pdv_licenca_expira DATETIME DEFAULT NULL`)
+      console.log('✓ Coluna pdv_licenca_expira adicionada')
+    }
+
+    // Fingerprint de hardware do PDV (reportado via sync)
+    const [colsFp] = await conn.execute(`
+      SELECT COUNT(*) as cnt FROM information_schema.COLUMNS
+      WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'clientes' AND COLUMN_NAME = 'pdv_host_fingerprint'
+    `)
+    if (!colsFp[0].cnt) {
+      await conn.execute(`ALTER TABLE clientes ADD COLUMN pdv_host_fingerprint VARCHAR(255) DEFAULT NULL`)
+      console.log('✓ Coluna pdv_host_fingerprint adicionada')
+    }
+
+    // Estado real do sync_config reportado pelo PDV a cada sync
+    const syncCols = [
+      ['pdv_sync_bloqueado',   'TINYINT(1) DEFAULT NULL',  'licenca_bloqueada_remoto confirmado no PDV'],
+      ['pdv_sync_suspenso',    'TINYINT(1) DEFAULT NULL',  'suspenso confirmado no PDV'],
+      ['pdv_sync_venda_mobile','TINYINT(1) DEFAULT NULL',  'venda_mobile_permitida confirmado no PDV'],
+      ['pdv_sync_erro',        'VARCHAR(255) DEFAULT NULL', 'último erro de sync reportado pelo PDV'],
+    ]
+    for (const [col, tipo, desc] of syncCols) {
+      const [rows] = await conn.execute(`
+        SELECT COUNT(*) as cnt FROM information_schema.COLUMNS
+        WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'clientes' AND COLUMN_NAME = ?
+      `, [col])
+      if (!rows[0].cnt) {
+        await conn.execute(`ALTER TABLE clientes ADD COLUMN ${col} ${tipo}`)
+        console.log(`✓ Coluna ${col} adicionada (${desc})`)
+      }
     }
 
     console.log('\nMigração concluída com sucesso!')

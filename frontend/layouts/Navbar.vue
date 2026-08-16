@@ -1,5 +1,5 @@
 <template>
-  <header class="w-full bg-white dark:bg-neutral-950 border-b border-neutral-200 dark:border-neutral-800 shrink-0 transition-colors duration-200">
+  <header class="w-full bg-white/95 dark:bg-black/20 backdrop-blur-xl border-b border-gray-200 dark:border-white/[0.08] shrink-0 sticky top-0 z-20">
     <div class="h-14 px-5 flex items-center justify-between gap-4">
 
       <!-- LOGO (só no mobile — em telas maiores ela vive na Sidebar) -->
@@ -7,7 +7,7 @@
         <div class="w-7 h-7 rounded-lg bg-orange-500 flex items-center justify-center">
           <UtensilsCrossed :size="13" class="text-white" />
         </div>
-        <span class="text-sm font-black text-neutral-900 dark:text-white tracking-tight">
+        <span class="text-sm font-black text-gray-900 dark:text-white tracking-tight">
           Restaurante <span class="text-orange-500">PDV</span>
         </span>
       </div>
@@ -24,32 +24,32 @@
             @click="solicitarCaixa"
             class="flex items-center gap-1.5 h-7 px-3 rounded-lg border text-[11px] font-black uppercase tracking-wide transition-all"
             :class="caixaAberto
-              ? 'border-neutral-300 dark:border-neutral-700 bg-neutral-100 dark:bg-neutral-900 text-neutral-500 dark:text-neutral-400 hover:border-red-400 dark:hover:border-red-800 hover:text-red-500 dark:hover:text-red-400'
-              : 'border-green-300 dark:border-green-800/60 bg-green-50 dark:bg-green-950/60 text-green-600 dark:text-green-500 hover:bg-green-100 dark:hover:bg-green-900/40'"
+              ? 'border-gray-200 dark:border-white/10 bg-gray-100 dark:bg-white/[0.06] text-gray-400 dark:text-white/50 hover:border-red-500/40 hover:text-red-400'
+              : 'border-green-500/30 bg-green-500/10 text-green-500 dark:text-green-400 hover:bg-green-500/20'"
           >
             <span
               class="w-1.5 h-1.5 rounded-full shrink-0"
-              :class="caixaAberto ? 'bg-green-500 animate-pulse' : 'bg-neutral-400 dark:bg-neutral-600'"
+              :class="caixaAberto ? 'bg-green-500 animate-pulse' : 'bg-gray-400 dark:bg-white/20'"
             ></span>
             <span class="sm:hidden">{{ caixaAberto ? 'Aberto' : 'Abrir' }}</span>
             <span class="hidden sm:inline">{{ caixaAberto ? 'Caixa Aberto' : 'Abrir Caixa' }}</span>
           </button>
-          <div class="w-px h-5 bg-neutral-200 dark:bg-neutral-800"></div>
+          <div class="w-px h-5 bg-gray-200 dark:bg-white/10"></div>
         </template>
 
         <!-- PROFILE DROPDOWN -->
         <div ref="dropdownRef" class="relative">
           <button
             @click="dropdownAberto = !dropdownAberto"
-            class="flex items-center gap-2 h-8 px-2 rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-900 transition-all"
+            class="flex items-center gap-2 h-8 px-2 rounded-lg hover:bg-gray-100 dark:hover:bg-white/[0.06] transition-all"
           >
-            <div class="w-6 h-6 rounded-md bg-orange-100 dark:bg-orange-500/15 border border-orange-200 dark:border-orange-500/20 flex items-center justify-center shrink-0">
-              <span class="text-[11px] font-black text-orange-600 dark:text-orange-400">{{ inicial }}</span>
+            <div class="w-6 h-6 rounded-md bg-orange-500/15 border border-orange-500/20 flex items-center justify-center shrink-0">
+              <span class="text-[11px] font-black text-orange-400">{{ inicial }}</span>
             </div>
-            <span class="hidden md:block text-xs font-black text-neutral-800 dark:text-neutral-200">{{ primeiroNome }}</span>
+            <span class="hidden md:block text-xs font-black text-gray-900 dark:text-white">{{ primeiroNome }}</span>
             <ChevronDown
               :size="12"
-              class="text-neutral-400 transition-transform duration-200"
+              class="text-gray-400 dark:text-white/40 transition-transform duration-200"
               :class="dropdownAberto ? 'rotate-180' : ''"
             />
           </button>
@@ -65,12 +65,12 @@
           >
             <div
               v-if="dropdownAberto"
-              class="absolute right-0 top-full mt-2 w-52 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl shadow-xl shadow-black/10 dark:shadow-black/40 overflow-hidden z-50"
+              class="absolute right-0 top-full mt-2 w-52 bg-white dark:bg-neutral-900/90 backdrop-blur-xl border border-gray-200 dark:border-white/[0.08] rounded-2xl shadow-xl shadow-gray-200/80 dark:shadow-black/40 overflow-hidden z-50"
             >
               <!-- INFO USUÁRIO -->
-              <div class="px-4 py-3 border-b border-neutral-100 dark:border-neutral-800">
-                <p class="text-xs font-black text-neutral-900 dark:text-white">{{ authStore.usuario?.nome }}</p>
-                <p class="text-[11px] text-neutral-400 dark:text-neutral-600 capitalize mt-0.5">{{ authStore.usuario?.cargo }}</p>
+              <div class="px-4 py-3 border-b border-gray-100 dark:border-white/[0.06]">
+                <p class="text-xs font-black text-gray-900 dark:text-white">{{ authStore.usuario?.nome }}</p>
+                <p class="text-[11px] text-gray-500 dark:text-white/40 capitalize mt-0.5">{{ authStore.usuario?.cargo }}</p>
               </div>
 
               <!-- ITENS -->
@@ -79,14 +79,14 @@
                 <!-- TEMA -->
                 <button
                   @click="themeStore.toggle()"
-                  class="w-full flex items-center gap-3 h-9 px-3 rounded-xl text-xs font-bold text-neutral-600 dark:text-neutral-400 hover:bg-neutral-100 dark:hover:bg-neutral-800 hover:text-neutral-900 dark:hover:text-white transition-all"
+                  class="w-full flex items-center gap-3 h-9 px-3 rounded-xl text-xs font-bold text-gray-500 dark:text-white/60 hover:bg-gray-100 dark:hover:bg-white/[0.06] hover:text-gray-900 dark:hover:text-white transition-all"
                 >
                   <Sun v-if="themeStore.dark" :size="14" />
                   <Moon v-else :size="14" />
                   {{ themeStore.dark ? 'Modo claro' : 'Modo escuro' }}
                 </button>
 
-                <div class="h-px bg-neutral-100 dark:bg-neutral-800 my-1" />
+                <div class="h-px bg-gray-100 dark:bg-white/[0.06] my-1" />
 
                 <!-- SAIR -->
                 <button
@@ -106,7 +106,7 @@
     </div>
 
     <!-- NAVEGAÇÃO MOBILE (< sm) -->
-    <div class="sm:hidden overflow-x-auto nav-scroll border-t border-neutral-100 dark:border-neutral-800">
+    <div class="sm:hidden overflow-x-auto nav-scroll border-t border-gray-200 dark:border-white/[0.06]">
       <div class="flex items-center gap-1 px-2 py-1.5 w-max">
         <button
           v-for="item in navItems"
@@ -115,7 +115,7 @@
           class="flex items-center gap-1.5 h-8 px-3 rounded-lg text-xs font-bold transition-all whitespace-nowrap"
           :class="isAtivo(item.rota)
             ? 'bg-orange-500 text-white shadow-sm shadow-orange-500/30'
-            : 'bg-neutral-100 dark:bg-neutral-800 text-neutral-500 dark:text-neutral-400'"
+            : 'bg-gray-100 dark:bg-white/[0.06] text-gray-500 dark:text-white/50'"
         >
           <component :is="item.icon" :size="12" stroke-width="2.2" />
           <span>{{ item.label }}</span>
@@ -140,18 +140,18 @@
         v-if="modalSaldoInicial"
         class="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4"
       >
-        <div class="bg-white dark:bg-neutral-900 rounded-3xl p-6 w-full max-w-sm shadow-2xl">
+        <div class="bg-white dark:bg-neutral-900/90 backdrop-blur-2xl border border-gray-200 dark:border-white/[0.08] rounded-3xl p-6 w-full max-w-sm shadow-2xl">
           <div class="flex items-center gap-3 mb-5">
-            <div class="w-10 h-10 rounded-2xl bg-green-100 dark:bg-green-950/50 flex items-center justify-center shrink-0">
-              <Landmark :size="18" class="text-green-600 dark:text-green-400" />
+            <div class="w-10 h-10 rounded-2xl bg-green-500/10 flex items-center justify-center shrink-0">
+              <Landmark :size="18" class="text-green-400" />
             </div>
             <div>
-              <h2 class="text-base font-black text-neutral-900 dark:text-white">Saldo inicial do caixa</h2>
-              <p class="text-[11px] text-neutral-400 mt-0.5">Informe o valor de abertura do caixa</p>
+              <h2 class="text-base font-black text-gray-900 dark:text-white">Saldo inicial do caixa</h2>
+              <p class="text-[11px] text-gray-500 dark:text-white/40 mt-0.5">Informe o valor de abertura do caixa</p>
             </div>
           </div>
 
-          <label for="saldoInput" class="block text-[10px] font-black uppercase tracking-widest text-neutral-500 mb-2">
+          <label for="saldoInput" class="block text-[10px] font-black uppercase tracking-widest text-gray-500 dark:text-white/40 mb-2">
             Valor (R$) <span class="text-red-400">*</span>
           </label>
           <input
@@ -164,10 +164,10 @@
             placeholder="0,00"
             autofocus
             @keyup.enter="confirmarAbertura"
-            class="w-full h-12 px-4 bg-neutral-100 dark:bg-neutral-800 border rounded-2xl text-neutral-900 dark:text-white font-bold text-base outline-none transition-all mb-1"
+            class="w-full h-12 px-4 bg-gray-50 dark:bg-white/[0.06] border rounded-2xl text-gray-900 dark:text-white font-bold text-base outline-none transition-all mb-1"
             :class="saldoErro
               ? 'border-red-400 focus:border-red-400'
-              : 'border-neutral-200 dark:border-neutral-700 focus:border-orange-500'"
+              : 'border-gray-200 dark:border-white/10 focus:border-orange-500'"
           />
           <p v-if="saldoErro" class="text-[11px] text-red-400 font-bold mb-4">{{ saldoErro }}</p>
           <div v-else class="mb-4" />
@@ -175,7 +175,7 @@
           <div class="flex gap-3">
             <button
               @click="modalSaldoInicial = false; acaoCaixa = null; usuarioRfid = null"
-              class="flex-1 h-12 rounded-2xl border border-neutral-200 dark:border-neutral-700 text-neutral-600 dark:text-neutral-400 text-sm font-black transition-all hover:bg-neutral-50 dark:hover:bg-neutral-800"
+              class="flex-1 h-12 rounded-2xl border border-gray-200 dark:border-white/10 text-gray-500 dark:text-white/60 text-sm font-black transition-all hover:bg-gray-50 dark:hover:bg-white/5"
             >
               Cancelar
             </button>
@@ -199,37 +199,37 @@
         v-if="modalConferencia"
         class="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4"
       >
-        <div class="bg-white dark:bg-neutral-900 rounded-3xl p-6 w-full max-w-sm shadow-2xl">
+        <div class="bg-white dark:bg-neutral-900/90 backdrop-blur-2xl border border-gray-200 dark:border-white/[0.08] rounded-3xl p-6 w-full max-w-sm shadow-2xl">
           <div class="flex items-center gap-3 mb-5">
-            <div class="w-10 h-10 rounded-2xl bg-red-100 dark:bg-red-950/50 flex items-center justify-center shrink-0">
-              <Landmark :size="18" class="text-red-500 dark:text-red-400" />
+            <div class="w-10 h-10 rounded-2xl bg-red-500/10 flex items-center justify-center shrink-0">
+              <Landmark :size="18" class="text-red-400" />
             </div>
             <div>
-              <h2 class="text-base font-black text-neutral-900 dark:text-white">Fechar caixa</h2>
-              <p class="text-[11px] text-neutral-400 mt-0.5">Conte o dinheiro da gaveta e informe o valor</p>
+              <h2 class="text-base font-black text-gray-900 dark:text-white">Fechar caixa</h2>
+              <p class="text-[11px] text-gray-500 dark:text-white/40 mt-0.5">Conte o dinheiro da gaveta e informe o valor</p>
             </div>
           </div>
 
-          <label for="valorContadoInput" class="block text-[10px] font-black uppercase tracking-widest text-neutral-500 mb-2">
+          <label for="valorContadoInput" class="block text-[10px] font-black uppercase tracking-widest text-gray-500 dark:text-white/40 mb-2">
             Dinheiro contado (R$) <span class="text-red-400">*</span>
           </label>
           <input
             id="valorContadoInput" name="valorContadoInput"
             v-model="valorContado" type="number" min="0" step="0.01" placeholder="0,00" autofocus
             @keyup.enter="confirmarFechamento"
-            class="w-full h-12 px-4 bg-neutral-100 dark:bg-neutral-800 border rounded-2xl text-neutral-900 dark:text-white font-bold text-base outline-none transition-all mb-3"
+            class="w-full h-12 px-4 bg-gray-50 dark:bg-white/[0.06] border rounded-2xl text-gray-900 dark:text-white font-bold text-base outline-none transition-all mb-3"
             :class="fechamentoErro
               ? 'border-red-400 focus:border-red-400'
-              : 'border-neutral-200 dark:border-neutral-700 focus:border-orange-500'"
+              : 'border-gray-200 dark:border-white/10 focus:border-orange-500'"
           />
 
-          <label for="obsFechamentoInput" class="block text-[10px] font-black uppercase tracking-widest text-neutral-500 mb-2">
+          <label for="obsFechamentoInput" class="block text-[10px] font-black uppercase tracking-widest text-gray-500 dark:text-white/40 mb-2">
             Observação (opcional)
           </label>
           <input
             id="obsFechamentoInput" name="obsFechamentoInput"
             v-model="obsFechamento" type="text" maxlength="255" placeholder="Ex: falta justificada por vale"
-            class="w-full h-12 px-4 bg-neutral-100 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-2xl text-neutral-900 dark:text-white font-medium text-sm outline-none focus:border-orange-500 transition-all mb-1"
+            class="w-full h-12 px-4 bg-gray-50 dark:bg-white/[0.06] border border-gray-200 dark:border-white/10 rounded-2xl text-gray-900 dark:text-white font-medium text-sm outline-none focus:border-orange-500 transition-all mb-1"
           />
           <p v-if="fechamentoErro" class="text-[11px] text-red-400 font-bold mb-4">{{ fechamentoErro }}</p>
           <div v-else class="mb-4" />
@@ -237,7 +237,7 @@
           <div class="flex gap-3">
             <button
               @click="cancelarFechamento"
-              class="flex-1 h-12 rounded-2xl border border-neutral-200 dark:border-neutral-700 text-neutral-600 dark:text-neutral-400 text-sm font-black transition-all hover:bg-neutral-50 dark:hover:bg-neutral-800"
+              class="flex-1 h-12 rounded-2xl border border-gray-200 dark:border-white/10 text-gray-500 dark:text-white/60 text-sm font-black transition-all hover:bg-gray-50 dark:hover:bg-white/5"
             >
               Cancelar
             </button>
@@ -261,64 +261,64 @@
         v-if="resumoFechamento"
         class="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4"
       >
-        <div class="bg-white dark:bg-neutral-900 rounded-3xl p-6 w-full max-w-sm shadow-2xl max-h-[90vh] overflow-y-auto">
+        <div class="bg-white dark:bg-neutral-900/90 backdrop-blur-2xl border border-gray-200 dark:border-white/[0.08] rounded-3xl p-6 w-full max-w-sm shadow-2xl max-h-[90vh] overflow-y-auto">
           <div class="text-center mb-5">
-            <div class="w-12 h-12 rounded-2xl bg-green-100 dark:bg-green-950/50 flex items-center justify-center mx-auto mb-3">
-              <Landmark :size="20" class="text-green-600 dark:text-green-400" />
+            <div class="w-12 h-12 rounded-2xl bg-green-500/10 flex items-center justify-center mx-auto mb-3">
+              <Landmark :size="20" class="text-green-400" />
             </div>
-            <h2 class="text-base font-black text-neutral-900 dark:text-white">Caixa fechado</h2>
-            <p class="text-[11px] text-neutral-400 mt-0.5">Resumo do caixa #{{ resumoFechamento.caixa.id }}</p>
+            <h2 class="text-base font-black text-gray-900 dark:text-white">Caixa fechado</h2>
+            <p class="text-[11px] text-gray-500 dark:text-white/40 mt-0.5">Resumo do caixa #{{ resumoFechamento.caixa.id }}</p>
           </div>
 
           <!-- CONFERÊNCIA -->
           <div class="rounded-2xl p-4 mb-3"
             :class="Math.abs(Number(resumoFechamento.caixa.diferenca || 0)) < 0.005
-              ? 'bg-green-50 dark:bg-green-950/30'
-              : 'bg-red-50 dark:bg-red-950/30'">
-            <div class="flex justify-between text-xs text-neutral-500 dark:text-neutral-400 mb-1">
+              ? 'bg-green-500/10'
+              : 'bg-red-500/10'">
+            <div class="flex justify-between text-xs text-gray-500 dark:text-white/50 mb-1">
               <span>Esperado em gaveta</span><span>R$ {{ fmtValor(resumoFechamento.totais.esperado_dinheiro) }}</span>
             </div>
-            <div class="flex justify-between text-xs text-neutral-500 dark:text-neutral-400 mb-1">
+            <div class="flex justify-between text-xs text-gray-500 dark:text-white/50 mb-1">
               <span>Contado</span><span>R$ {{ fmtValor(resumoFechamento.caixa.valor_contado) }}</span>
             </div>
             <div class="flex justify-between text-sm font-black"
               :class="Number(resumoFechamento.caixa.diferenca || 0) < -0.005
-                ? 'text-red-500'
-                : 'text-green-600 dark:text-green-400'">
+                ? 'text-red-400'
+                : 'text-green-400'">
               <span>Diferença</span>
               <span>{{ Number(resumoFechamento.caixa.diferenca || 0) >= 0 ? '+' : '−' }} R$ {{ fmtValor(Math.abs(Number(resumoFechamento.caixa.diferenca || 0))) }}</span>
             </div>
           </div>
 
           <!-- VENDAS POR MÉTODO -->
-          <div class="bg-neutral-50 dark:bg-neutral-800/60 rounded-2xl p-4 mb-3 space-y-1">
-            <p class="text-[10px] font-black uppercase tracking-widest text-neutral-400 mb-2">Vendas por método</p>
-            <div v-if="!resumoFechamento.porMetodo?.length" class="text-xs text-neutral-400">Sem vendas registradas</div>
+          <div class="bg-gray-50 dark:bg-white/5 rounded-2xl p-4 mb-3 space-y-1">
+            <p class="text-[10px] font-black uppercase tracking-widest text-gray-500 dark:text-white/40 mb-2">Vendas por método</p>
+            <div v-if="!resumoFechamento.porMetodo?.length" class="text-xs text-gray-400 dark:text-white/40">Sem vendas registradas</div>
             <div v-for="m in resumoFechamento.porMetodo" :key="m.metodo" class="flex justify-between text-xs">
-              <span class="text-neutral-500 dark:text-neutral-400">{{ m.metodo }} ({{ m.qtd }})</span>
-              <span class="font-bold text-neutral-800 dark:text-neutral-200">R$ {{ fmtValor(m.total) }}</span>
+              <span class="text-gray-500 dark:text-white/50">{{ m.metodo }} ({{ m.qtd }})</span>
+              <span class="font-bold text-gray-900 dark:text-white">R$ {{ fmtValor(m.total) }}</span>
             </div>
-            <div v-if="resumoFechamento.vendas" class="flex justify-between text-xs pt-1 border-t border-neutral-200 dark:border-neutral-700 mt-1">
-              <span class="text-neutral-500 dark:text-neutral-400">{{ resumoFechamento.vendas.quantidade }} vendas · ticket médio</span>
-              <span class="font-bold text-neutral-800 dark:text-neutral-200">R$ {{ fmtValor(resumoFechamento.vendas.ticket_medio) }}</span>
+            <div v-if="resumoFechamento.vendas" class="flex justify-between text-xs pt-1 border-t border-gray-200 dark:border-white/[0.06] mt-1">
+              <span class="text-gray-500 dark:text-white/50">{{ resumoFechamento.vendas.quantidade }} vendas · ticket médio</span>
+              <span class="font-bold text-gray-900 dark:text-white">R$ {{ fmtValor(resumoFechamento.vendas.ticket_medio) }}</span>
             </div>
           </div>
 
           <!-- TOTAIS -->
-          <div class="bg-neutral-50 dark:bg-neutral-800/60 rounded-2xl p-4 mb-5 space-y-1">
+          <div class="bg-gray-50 dark:bg-white/5 rounded-2xl p-4 mb-5 space-y-1">
             <div class="flex justify-between text-xs">
-              <span class="text-neutral-500 dark:text-neutral-400">Saldo inicial</span>
-              <span class="font-bold text-neutral-800 dark:text-neutral-200">R$ {{ fmtValor(resumoFechamento.totais.valor_inicial) }}</span>
+              <span class="text-gray-500 dark:text-white/50">Saldo inicial</span>
+              <span class="font-bold text-gray-900 dark:text-white">R$ {{ fmtValor(resumoFechamento.totais.valor_inicial) }}</span>
             </div>
             <div class="flex justify-between text-xs">
-              <span class="text-neutral-500 dark:text-neutral-400">Entradas</span>
-              <span class="font-bold text-green-600 dark:text-green-400">+ R$ {{ fmtValor(resumoFechamento.totais.total_entradas) }}</span>
+              <span class="text-gray-500 dark:text-white/50">Entradas</span>
+              <span class="font-bold text-green-500 dark:text-green-400">+ R$ {{ fmtValor(resumoFechamento.totais.total_entradas) }}</span>
             </div>
             <div class="flex justify-between text-xs">
-              <span class="text-neutral-500 dark:text-neutral-400">Saídas</span>
-              <span class="font-bold text-red-500">− R$ {{ fmtValor(resumoFechamento.totais.total_saidas) }}</span>
+              <span class="text-gray-500 dark:text-white/50">Saídas</span>
+              <span class="font-bold text-red-500 dark:text-red-400">− R$ {{ fmtValor(resumoFechamento.totais.total_saidas) }}</span>
             </div>
-            <div class="flex justify-between text-sm font-black text-neutral-900 dark:text-white pt-1 border-t border-neutral-200 dark:border-neutral-700">
+            <div class="flex justify-between text-sm font-black text-gray-900 dark:text-white pt-1 border-t border-gray-200 dark:border-white/[0.06]">
               <span>Saldo final</span>
               <span>R$ {{ fmtValor(resumoFechamento.totais.saldo_atual) }}</span>
             </div>
@@ -327,7 +327,7 @@
           <div class="flex gap-3">
             <button
               @click="imprimirFechamento"
-              class="flex-1 h-12 rounded-2xl bg-neutral-100 dark:bg-neutral-800 hover:bg-neutral-200 dark:hover:bg-neutral-700 text-neutral-700 dark:text-neutral-300 text-sm font-black transition-all active:scale-95"
+              class="flex-1 h-12 rounded-2xl bg-gray-100 dark:bg-white/[0.06] hover:bg-gray-200 dark:hover:bg-white/10 border border-gray-200 dark:border-white/10 text-gray-700 dark:text-white/80 text-sm font-black transition-all active:scale-95"
             >
               Imprimir
             </button>
@@ -421,8 +421,25 @@ const saldoErro        = ref('')
 const abrindoCaixa     = ref(false)
 const usuarioRfid      = ref<any>(null)
 
-const solicitarCaixa = () => {
+const solicitarCaixa = async () => {
+  await configStore.carregar()
   acaoCaixa.value = caixaStore.aberto ? 'fechar' : 'abrir'
+
+  if (!configStore.rfid_ativo) {
+    if (acaoCaixa.value === 'abrir') {
+      usuarioRfid.value = authStore.usuario
+      saldoInicial.value = ''
+      saldoErro.value = ''
+      modalSaldoInicial.value = true
+    } else {
+      valorContado.value = ''
+      obsFechamento.value = ''
+      fechamentoErro.value = ''
+      modalConferencia.value = true
+    }
+    return
+  }
+
   modalRfid.value = true
 }
 
@@ -529,6 +546,10 @@ const imprimirFechamento = async () => {
   // Impressão pelo navegador
   const mm  = configStore.impressora_largura === 58 ? 58 : 80
   const dif = Number(resumo.caixa.diferenca || 0)
+  const logo = configStore.logo_base64
+  const logoHtml = logo
+    ? `<img src="${logo}" style="height:30px;object-fit:contain;display:block;margin:0 auto 2mm;" />`
+    : ''
   const fmtData = (v: any) => v ? new Date(v).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' }) : '—'
   const linha = (esq: string, dir: string, bold = false) =>
     `<div class="par${bold ? ' bold' : ''}"><span>${esq}</span><span>${dir}</span></div>`
@@ -547,6 +568,7 @@ const imprimirFechamento = async () => {
     .secao { font-weight: 900; margin-top: 1mm; }
   </style></head><body>
   <div class="cupom">
+    ${logoHtml}
     <div class="centro titulo">${configStore.nome_restaurante}</div>
     <div class="centro bold">FECHAMENTO DE CAIXA</div>
     <div class="centro">Caixa #${resumo.caixa.id}</div>
@@ -619,6 +641,8 @@ const sincronizarCaixa = async () => {
   } catch {
     caixaStore.aberto     = false
     caixaStore.caixaAtual = null
+  } finally {
+    caixaStore.inicializado = true
   }
 }
 

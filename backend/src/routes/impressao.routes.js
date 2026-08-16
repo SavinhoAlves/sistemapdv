@@ -2,7 +2,7 @@ const express = require('express')
 const router = express.Router()
 const { query } = require('../database/connection')
 const { authenticate, authorize, permissoes } = require('../middlewares/auth.middleware')
-const { montarCupomTeste, montarFichas, montarConta, montarFechamento, enviarParaImpressora, logoParaRasterEscPos } = require('../services/impressao.service')
+const { montarCupomTeste, montarFichas, montarConta, montarFechamento, enviarParaImpressora, logoParaRasterEscPos, LOGO_LARGURAS } = require('../services/impressao.service')
 const { resumoCaixa } = require('../services/caixa.service')
 
 async function carregarConfig() {
@@ -10,11 +10,20 @@ async function carregarConfig() {
   return rows[0] || {}
 }
 
+function tamanhoLogo(config) {
+  if (config.logo_tamanho === 'personalizado') {
+    // retorna pixels de altura (>1), tratado como modo altura na função
+    return Math.max(50, Math.min(600, Number(config.logo_altura_custom) || 320))
+  }
+  // retorna percentual (0–1), tratado como modo largura na função
+  return LOGO_LARGURAS[config.logo_tamanho] ?? 0.60
+}
+
 // POST /api/impressao/teste — imprime um cupom de teste (admin)
 router.post('/teste', authenticate, authorize('administrador'), async (req, res) => {
   try {
     const config = await carregarConfig()
-    const logoRaster = await logoParaRasterEscPos(config.logo_base64, config.impressora_largura)
+    const logoRaster = await logoParaRasterEscPos(config.logo_base64, config.impressora_largura, tamanhoLogo(config))
     const cupom = montarCupomTeste(config, logoRaster)
     await enviarParaImpressora(cupom, config)
     return res.json({ success: true, message: 'Cupom de teste enviado à impressora' })
@@ -32,7 +41,7 @@ router.post('/ficha', authenticate, async (req, res) => {
       return res.status(400).json({ error: 'Informe os itens da ficha' })
     }
     const config = await carregarConfig()
-    const logoRaster = await logoParaRasterEscPos(config.logo_base64, config.impressora_largura)
+    const logoRaster = await logoParaRasterEscPos(config.logo_base64, config.impressora_largura, tamanhoLogo(config))
     const cupom = montarFichas(config, { itens, info, codigo }, logoRaster)
     await enviarParaImpressora(cupom, config)
     return res.json({ success: true })
@@ -51,7 +60,7 @@ router.post('/conta', authenticate, async (req, res) => {
       return res.status(400).json({ error: 'A mesa não tem itens para imprimir' })
     }
     const config = await carregarConfig()
-    const logoRaster = await logoParaRasterEscPos(config.logo_base64, config.impressora_largura)
+    const logoRaster = await logoParaRasterEscPos(config.logo_base64, config.impressora_largura, tamanhoLogo(config))
     const cupom = montarConta(config, conta, logoRaster)
     await enviarParaImpressora(cupom, config)
     return res.json({ success: true })
@@ -71,7 +80,7 @@ router.post('/fechamento', authenticate, permissoes.gerenciarCaixa, async (req, 
     if (!resumo) return res.status(404).json({ error: 'Caixa não encontrado' })
 
     const config = await carregarConfig()
-    const logoRaster = await logoParaRasterEscPos(config.logo_base64, config.impressora_largura)
+    const logoRaster = await logoParaRasterEscPos(config.logo_base64, config.impressora_largura, tamanhoLogo(config))
     const cupom = montarFechamento(config, resumo, logoRaster)
     await enviarParaImpressora(cupom, config)
     return res.json({ success: true })

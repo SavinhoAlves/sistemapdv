@@ -3,9 +3,8 @@ import { defineStore } from 'pinia'
 export const useCaixaStore = defineStore('caixa', {
   state: () => ({
     aberto: false,
-
     loading: false,
-
+    inicializado: false,
     caixaAtual: null as any
   }),
 
@@ -41,6 +40,7 @@ export const useCaixaStore = defineStore('caixa', {
 
       } finally {
         this.loading = false
+        this.inicializado = true
       }
     },
 

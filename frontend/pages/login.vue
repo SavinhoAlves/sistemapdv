@@ -1,129 +1,177 @@
 <template>
-  <div class="min-h-screen bg-neutral-950 flex items-center justify-center p-4 relative overflow-hidden">
+  <div class="min-h-screen flex">
 
-    <!-- Fundo decorativo -->
-    <div class="absolute inset-0 pointer-events-none">
-      <div class="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[500px] bg-orange-500/10 rounded-full blur-3xl"></div>
-      <div class="absolute bottom-0 right-0 w-96 h-96 bg-orange-500/5 rounded-full blur-3xl"></div>
-      <div class="absolute top-1/2 -translate-y-1/2 left-0 w-64 h-64 bg-orange-500/5 rounded-full blur-3xl"></div>
-    </div>
+    <!-- ══ PAINEL ESQUERDO — Branding (desktop) ══ -->
+    <div class="hidden lg:flex lg:w-[55%] xl:w-[58%] relative overflow-hidden bg-neutral-950 flex-col justify-between p-10 xl:p-14">
 
-    <div class="w-full max-w-md relative z-10">
+      <!-- Gradientes de fundo -->
+      <div class="absolute inset-0 bg-[radial-gradient(ellipse_80%_60%_at_10%_20%,rgba(249,115,22,0.12),transparent)]"></div>
+      <div class="absolute inset-0 bg-[radial-gradient(ellipse_60%_50%_at_90%_80%,rgba(234,88,12,0.07),transparent)]"></div>
 
-      <!-- Logo -->
-      <div class="flex flex-col items-center mb-8">
-        <div class="w-16 h-16 rounded-3xl bg-orange-500 flex items-center justify-center shadow-lg shadow-orange-500/30 mb-4">
-          <UtensilsCrossed :size="28" class="text-white" />
-        </div>
-        <h1 class="text-2xl font-black text-white tracking-tight">Restaurante <span class="text-orange-400">PDV</span></h1>
-        <p class="text-sm text-neutral-500 mt-1">Sistema de Atendimento</p>
+      <!-- Grid sutil -->
+      <div class="absolute inset-0 opacity-[0.025]"
+        style="background-image: linear-gradient(rgba(255,255,255,1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,1) 1px, transparent 1px); background-size: 40px 40px;">
       </div>
 
-      <!-- Card principal -->
-      <div class="bg-neutral-900 border border-neutral-800 rounded-3xl p-8 shadow-2xl">
+      <!-- Borda de brilho direita -->
+      <div class="absolute right-0 top-0 h-full w-px bg-gradient-to-b from-transparent via-white/[0.06] to-transparent"></div>
 
-        <!-- Tab switcher -->
-        <div class="flex p-1 bg-neutral-800 rounded-2xl mb-8">
-          <button
-            @click="tab = 'rfid'; focusRfid()"
-            class="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-xs font-black uppercase tracking-wider transition-all"
-            :class="tab === 'rfid'
-              ? 'bg-orange-500 text-white shadow-lg shadow-orange-500/20'
-              : 'text-neutral-500 hover:text-neutral-300'"
-          >
-            <CreditCard :size="14" />
-            Cartão RFID
-          </button>
-          <button
-            @click="tab = 'manual'; focusEmail()"
-            class="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-xs font-black uppercase tracking-wider transition-all"
-            :class="tab === 'manual'
-              ? 'bg-orange-500 text-white shadow-lg shadow-orange-500/20'
-              : 'text-neutral-500 hover:text-neutral-300'"
-          >
-            <KeyRound :size="14" />
-            E-mail / Senha
-          </button>
+      <!-- TOPO: Logo -->
+      <div class="relative z-10 flex items-center gap-3">
+        <div class="w-9 h-9 rounded-xl bg-orange-500 flex items-center justify-center shadow-lg shadow-orange-500/30">
+          <UtensilsCrossed :size="16" class="text-white" />
+        </div>
+        <span class="text-white font-black tracking-tight">Restaurante PDV</span>
+      </div>
+
+      <!-- CENTRO: Hero -->
+      <div class="relative z-10 space-y-8">
+        <div>
+          <div class="inline-flex items-center gap-2 bg-orange-500/10 border border-orange-500/20 rounded-full px-3 py-1 mb-6">
+            <span class="w-1.5 h-1.5 rounded-full bg-orange-400 animate-pulse"></span>
+            <span class="text-orange-400 text-[11px] font-black uppercase tracking-widest">Sistema online</span>
+          </div>
+          <h2 class="text-4xl xl:text-5xl font-black text-white leading-[1.1] tracking-tight">
+            Gestão completa<br>
+            para o seu<br>
+            <span class="text-orange-400">restaurante</span>
+          </h2>
+          <p class="text-white/40 text-base mt-4 leading-relaxed max-w-sm">
+            Do controle de mesas à emissão de fichas. Rápido, moderno e feito para o dia a dia da sua operação.
+          </p>
         </div>
 
-        <!-- Alerta de mensagem -->
+        <!-- Features -->
+        <div class="grid grid-cols-2 gap-3">
+          <div v-for="f in features" :key="f.label"
+            class="flex items-center gap-3 bg-white/[0.03] hover:bg-white/[0.06] border border-white/[0.06] hover:border-white/[0.10] rounded-2xl p-4 transition-all duration-200">
+            <div class="w-8 h-8 rounded-xl bg-orange-500/10 flex items-center justify-center shrink-0">
+              <component :is="f.icon" :size="14" class="text-orange-400" />
+            </div>
+            <p class="text-white/70 text-xs font-bold leading-tight">{{ f.label }}</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- FUNDO: Rodapé -->
+      <div class="relative z-10">
+        <p class="text-white/20 text-[11px]">© 2025 Restaurante PDV · v1.0</p>
+      </div>
+    </div>
+
+    <!-- ══ PAINEL DIREITO — Formulário ══ -->
+    <div class="flex-1 login-page-bg flex flex-col items-center justify-center p-6 relative overflow-hidden">
+
+      <!-- Blob de fundo -->
+      <div class="absolute bottom-0 left-1/2 -translate-x-1/2 w-[500px] h-64 bg-orange-500/5 rounded-full blur-3xl pointer-events-none"></div>
+
+      <div class="w-full max-w-[380px] relative z-10">
+
+        <!-- Logo mobile (só aparece em mobile) -->
+        <div class="lg:hidden flex flex-col items-center mb-8">
+          <div class="w-12 h-12 rounded-2xl bg-orange-500 flex items-center justify-center shadow-lg shadow-orange-500/30 mb-3">
+            <UtensilsCrossed :size="20" class="text-white" />
+          </div>
+          <h1 class="text-xl font-black text-gray-900 dark:text-white">
+            Restaurante <span class="text-orange-400">PDV</span>
+          </h1>
+        </div>
+
+        <!-- Cabeçalho do form -->
+        <div class="mb-7">
+          <h2 class="text-2xl font-black text-gray-900 dark:text-white tracking-tight">Bem-vindo de volta</h2>
+          <p class="text-sm text-gray-500 dark:text-white/40 mt-1">Faça login para acessar o sistema</p>
+        </div>
+
+        <!-- Alerta -->
         <Transition name="msg">
           <div
             v-if="msg.text"
-            class="mb-6 px-4 py-3 rounded-2xl text-sm font-bold flex items-center gap-3"
+            class="mb-5 px-4 py-3 rounded-2xl text-sm font-bold flex items-center gap-3"
             :class="msg.type === 'success'
-              ? 'bg-green-500/10 text-green-400 border border-green-500/20'
-              : 'bg-red-500/10 text-red-400 border border-red-500/20'"
+              ? 'bg-green-500/10 text-green-600 dark:text-green-400 border border-green-500/20'
+              : 'bg-red-500/10 text-red-600 dark:text-red-400 border border-red-500/20'"
           >
-            <CheckCircle2 v-if="msg.type === 'success'" :size="16" class="shrink-0" />
-            <AlertCircle v-else :size="16" class="shrink-0" />
+            <CheckCircle2 v-if="msg.type === 'success'" :size="15" class="shrink-0" />
+            <AlertCircle v-else :size="15" class="shrink-0" />
             {{ msg.text }}
           </div>
         </Transition>
 
-        <!-- RFID -->
+        <!-- Tabs (só exibe se RFID estiver ativo) -->
+        <div v-if="rfidAtivo" class="flex bg-gray-100 dark:bg-white/[0.06] rounded-2xl p-1 mb-6">
+          <button
+            @click="setTab('rfid')"
+            class="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-xs font-black uppercase tracking-wider transition-all duration-200 cursor-pointer"
+            :class="tab === 'rfid'
+              ? 'bg-white dark:bg-white/10 text-gray-900 dark:text-white shadow-sm'
+              : 'text-gray-400 dark:text-white/30 hover:text-gray-600 dark:hover:text-white/60'"
+          >
+            <CreditCard :size="13" />
+            Cartão RFID
+          </button>
+          <button
+            @click="setTab('manual')"
+            class="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-xs font-black uppercase tracking-wider transition-all duration-200 cursor-pointer"
+            :class="tab === 'manual'
+              ? 'bg-white dark:bg-white/10 text-gray-900 dark:text-white shadow-sm'
+              : 'text-gray-400 dark:text-white/30 hover:text-gray-600 dark:hover:text-white/60'"
+          >
+            <KeyRound :size="13" />
+            E-mail / Senha
+          </button>
+        </div>
+
+        <!-- Conteúdo das tabs -->
         <Transition name="tab-fade" mode="out-in">
-          <div v-if="tab === 'rfid'" key="rfid" class="text-center">
 
-            <button @click="focusRfid" class="w-full group relative mb-6">
-              <!-- Cartão simulado -->
-              <div
-                class="relative mx-auto w-72 h-44 rounded-3xl border-2 transition-all duration-300 flex flex-col justify-between p-6 overflow-hidden"
-                :class="rfidReading
-                  ? 'border-orange-500 bg-gradient-to-br from-orange-500/20 to-orange-900/20 scale-[1.02]'
-                  : 'border-neutral-700 bg-gradient-to-br from-neutral-800 to-neutral-850 hover:border-orange-500/40 hover:from-neutral-750 hover:to-neutral-800'"
-              >
-                <!-- Círculos decorativos de fundo -->
-                <div class="absolute -right-8 -top-8 w-36 h-36 rounded-full border border-white/5"></div>
-                <div class="absolute -right-4 -top-4 w-24 h-24 rounded-full border border-white/5"></div>
+          <!-- TAB RFID -->
+          <div v-if="tab === 'rfid'" key="rfid"
+            class="bg-white dark:bg-white/[0.04] border border-gray-200 dark:border-white/[0.08] rounded-3xl overflow-hidden shadow-sm">
 
-                <!-- Topo: label do sistema -->
-                <div class="flex items-center justify-between relative z-10">
-                  <span class="text-[10px] font-black uppercase tracking-widest transition-colors duration-300"
-                    :class="rfidReading ? 'text-orange-400' : 'text-neutral-600'">
-                    Restaurante PDV
-                  </span>
-                  <span class="text-[10px] font-bold px-2 py-0.5 rounded-full border transition-colors duration-300"
-                    :class="rfidReading ? 'border-orange-500/40 text-orange-400 bg-orange-500/10' : 'border-neutral-700 text-neutral-600'">
-                    RFID
-                  </span>
-                </div>
-
-                <!-- Centro: ícone de ondas RFID -->
-                <div class="flex items-center justify-center relative z-10">
-                  <div class="relative flex items-center justify-center">
-                    <!-- Ondas animadas ao ler -->
-                    <div v-if="rfidReading" class="absolute w-16 h-16 rounded-full border border-orange-500/30 animate-ping"></div>
-                    <div v-if="rfidReading" class="absolute w-10 h-10 rounded-full border border-orange-500/40 animate-ping" style="animation-delay: 0.15s"></div>
-                    <Wifi
-                      :size="32"
-                      stroke-width="1.5"
-                      class="transition-colors duration-300"
-                      :class="rfidReading ? 'text-orange-400' : 'text-neutral-500 group-hover:text-neutral-400'"
-                    />
-                  </div>
-                </div>
-
-                <!-- Rodapé: instrução -->
-                <div class="relative z-10">
-                  <p class="text-[10px] font-black uppercase tracking-widest transition-colors duration-300"
-                    :class="rfidReading ? 'text-orange-400' : 'text-neutral-600 group-hover:text-neutral-500'">
-                    {{ rfidReading ? 'Identificando...' : 'Aproxime aqui' }}
-                  </p>
-                </div>
-
-                <!-- Brilho pulsante ao ler -->
+            <button @click="focusRfid" class="w-full group flex flex-col items-center gap-5 py-10 px-6 cursor-pointer active:scale-[0.98] transition-transform duration-150">
+              <div class="relative">
                 <div
                   v-if="rfidReading"
-                  class="absolute inset-0 rounded-3xl bg-orange-500/10 animate-pulse"
+                  class="absolute inset-0 rounded-full bg-orange-500/20 animate-ping"
+                  style="transform: scale(2)"
                 ></div>
+                <div
+                  class="w-24 h-24 rounded-3xl border-2 flex items-center justify-center transition-all duration-200"
+                  :class="rfidReading
+                    ? 'border-orange-500 bg-orange-500/10'
+                    : 'border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/[0.04] group-hover:border-orange-400/50 group-hover:bg-orange-500/5'"
+                >
+                  <Wifi
+                    :size="36"
+                    stroke-width="1.25"
+                    class="transition-colors duration-200"
+                    :class="rfidReading ? 'text-orange-400' : 'text-gray-300 dark:text-white/20 group-hover:text-orange-400/60'"
+                  />
+                </div>
+              </div>
+
+              <div class="text-center">
+                <p class="text-base font-black transition-colors duration-200"
+                  :class="rfidReading ? 'text-orange-400' : 'text-gray-700 dark:text-white/70'">
+                  {{ rfidReading ? 'Identificando...' : 'Aproxime o cartão ao leitor' }}
+                </p>
+                <p class="text-xs text-gray-400 dark:text-white/30 mt-1.5">
+                  {{ rfidReading ? 'Aguarde um momento' : 'Toque aqui para ativar o leitor' }}
+                </p>
+              </div>
+
+              <!-- Indicador de status -->
+              <div class="flex items-center gap-2 bg-gray-50 dark:bg-white/[0.04] rounded-xl px-4 py-2">
+                <span class="w-2 h-2 rounded-full transition-colors duration-300"
+                  :class="rfidReading ? 'bg-orange-400 animate-pulse' : 'bg-gray-300 dark:bg-white/20'"></span>
+                <span class="text-[11px] font-bold text-gray-400 dark:text-white/30">
+                  {{ rfidReading ? 'Lendo cartão...' : rfidFocused ? 'Leitor ativo' : 'Clique para ativar' }}
+                </span>
               </div>
             </button>
 
-            <p class="text-xs text-neutral-600">
-              Aproxime seu cartão RFID ao leitor ou clique para ativar
-            </p>
-
+            <!-- Input invisível -->
             <input
               id="rfid-input"
               name="rfid-input"
@@ -139,15 +187,16 @@
             />
           </div>
 
-          <!-- Login Manual -->
-          <form v-else key="manual" @submit.prevent="handleManualLogin" class="space-y-4">
+          <!-- TAB MANUAL -->
+          <form v-else key="manual" @submit.prevent="handleManualLogin"
+            class="bg-white dark:bg-white/[0.04] border border-gray-200 dark:border-white/[0.08] rounded-3xl p-7 shadow-sm space-y-5">
 
-            <div class="space-y-2">
-              <label for="login-email" class="text-[10px] font-black uppercase tracking-widest text-neutral-500 block">
+            <div>
+              <label for="login-email" class="block text-[10px] font-black uppercase tracking-widest text-gray-500 dark:text-white/40 mb-2">
                 E-mail
               </label>
               <div class="relative">
-                <Mail :size="16" class="absolute left-4 top-1/2 -translate-y-1/2 text-neutral-600 pointer-events-none" />
+                <Mail :size="14" class="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 dark:text-white/25 pointer-events-none" />
                 <input
                   id="login-email"
                   name="email"
@@ -155,19 +204,19 @@
                   v-model="form.email"
                   autocomplete="email"
                   type="email"
-                  placeholder="exemplo@pdv.com"
-                  class="w-full h-13 pl-11 pr-4 bg-neutral-800 border border-neutral-700 rounded-2xl text-white placeholder-neutral-600 font-medium text-sm focus:outline-none focus:border-orange-500 focus:bg-neutral-750 transition-all"
+                  placeholder="seu@email.com"
+                  class="w-full h-12 pl-11 pr-4 bg-gray-50 dark:bg-white/[0.06] border border-gray-200 dark:border-white/10 rounded-2xl text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-white/20 text-sm focus:outline-none focus:border-orange-500/70 focus:ring-2 focus:ring-orange-500/15 transition-all duration-200"
                   required
                 />
               </div>
             </div>
 
-            <div class="space-y-2">
-              <label for="login-senha" class="text-[10px] font-black uppercase tracking-widest text-neutral-500 block">
+            <div>
+              <label for="login-senha" class="block text-[10px] font-black uppercase tracking-widest text-gray-500 dark:text-white/40 mb-2">
                 Senha
               </label>
               <div class="relative">
-                <Lock :size="16" class="absolute left-4 top-1/2 -translate-y-1/2 text-neutral-600 pointer-events-none" />
+                <Lock :size="14" class="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 dark:text-white/25 pointer-events-none" />
                 <input
                   id="login-senha"
                   name="senha"
@@ -175,16 +224,16 @@
                   autocomplete="current-password"
                   :type="showPass ? 'text' : 'password'"
                   placeholder="••••••••"
-                  class="w-full h-13 pl-11 pr-12 bg-neutral-800 border border-neutral-700 rounded-2xl text-white placeholder-neutral-600 font-medium text-sm focus:outline-none focus:border-orange-500 transition-all"
+                  class="w-full h-12 pl-11 pr-12 bg-gray-50 dark:bg-white/[0.06] border border-gray-200 dark:border-white/10 rounded-2xl text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-white/20 text-sm focus:outline-none focus:border-orange-500/70 focus:ring-2 focus:ring-orange-500/15 transition-all duration-200"
                   required
                 />
                 <button
                   type="button"
                   @click="showPass = !showPass"
-                  class="absolute right-4 top-1/2 -translate-y-1/2 text-neutral-600 hover:text-neutral-400 transition-colors"
+                  class="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 dark:text-white/25 hover:text-gray-600 dark:hover:text-white/60 transition-colors duration-150 cursor-pointer"
                 >
-                  <Eye v-if="!showPass" :size="16" />
-                  <EyeOff v-else :size="16" />
+                  <Eye v-if="!showPass" :size="14" />
+                  <EyeOff v-else :size="14" />
                 </button>
               </div>
             </div>
@@ -192,33 +241,22 @@
             <button
               type="submit"
               :disabled="loading"
-              class="w-full h-13 mt-2 rounded-2xl bg-orange-500 hover:bg-orange-400 disabled:opacity-40 text-white font-black text-sm uppercase tracking-widest transition-all active:scale-95 flex items-center justify-center gap-2 shadow-lg shadow-orange-500/20"
+              class="w-full h-12 rounded-2xl bg-orange-500 hover:bg-orange-400 disabled:opacity-40 disabled:cursor-not-allowed text-white font-black text-sm uppercase tracking-widest transition-all duration-150 active:scale-95 flex items-center justify-center gap-2 shadow-lg shadow-orange-500/25 cursor-pointer mt-2"
             >
-              <Loader2 v-if="loading" :size="16" class="animate-spin" />
-              <LogIn v-else :size="16" />
+              <Loader2 v-if="loading" :size="15" class="animate-spin" />
+              <LogIn v-else :size="15" />
               {{ loading ? 'Verificando...' : 'Entrar' }}
             </button>
-
-            <div class="pt-2 text-center">
-              <button
-                type="button"
-                @click="authStore.logout()"
-                class="text-[10px] font-black text-neutral-700 uppercase tracking-widest hover:text-red-500 transition-colors"
-              >
-                Limpar Sessão
-              </button>
-            </div>
 
           </form>
         </Transition>
 
+        <!-- Rodapé -->
+        <p class="text-center text-gray-400 dark:text-white/20 text-[11px] mt-6">
+          Versão 1.0 · Restaurante PDV
+        </p>
+
       </div>
-
-      <!-- Rodapé -->
-      <p class="text-center text-neutral-700 text-xs mt-6 font-medium">
-        Versão 1.0 · Restaurante PDV
-      </p>
-
     </div>
   </div>
 </template>
@@ -229,20 +267,22 @@ import { ref, reactive, onMounted, nextTick } from 'vue'
 import {
   UtensilsCrossed, CreditCard, KeyRound, Wifi,
   Mail, Lock, Eye, EyeOff, LogIn, Loader2,
-  CheckCircle2, AlertCircle
+  CheckCircle2, AlertCircle, LayoutGrid, Receipt,
+  BarChart2, Smartphone
 } from 'lucide-vue-next'
-import { useApi } from '../services/api'
-import { useAuthStore } from '../stores/auth'
+import { useApi } from '~/services/api'
+import { useAuthStore } from '~/stores/auth'
 
 definePageMeta({ layout: false })
 
 const authStore = useAuthStore()
 const api = useApi()
 
-const tab       = ref<'rfid' | 'manual'>('rfid')
-const loading   = ref(false)
-const showPass  = ref(false)
-const msg       = reactive({ text: '', type: 'error' as 'error' | 'success' })
+const rfidAtivo = ref(true)
+const tab      = ref<'rfid' | 'manual'>('rfid')
+const loading  = ref(false)
+const showPass = ref(false)
+const msg      = reactive({ text: '', type: 'error' as 'error' | 'success' })
 
 const rfidInputRef = ref<HTMLInputElement>()
 const emailRef     = ref<HTMLInputElement>()
@@ -251,6 +291,20 @@ const rfidReading  = ref(false)
 const rfidBuffer   = ref('')
 const form         = reactive({ email: '', senha: '' })
 let rfidTimer: any = null
+
+const features = [
+  { icon: LayoutGrid,  label: 'Controle de mesas em tempo real' },
+  { icon: Receipt,     label: 'Emissão de fichas térmicas' },
+  { icon: BarChart2,   label: 'Relatórios de vendas e caixa' },
+  { icon: Smartphone,  label: 'Integração com maquininha' },
+]
+
+function setTab(t: 'rfid' | 'manual') {
+  tab.value = t
+  hideMsg()
+  if (t === 'rfid') focusRfid()
+  else focusEmail()
+}
 
 function focusRfid() { rfidInputRef.value?.focus() }
 function focusEmail() { nextTick(() => emailRef.value?.focus()) }
@@ -309,23 +363,35 @@ async function handleManualLogin() {
 function showMsg(type: 'error' | 'success', text: string) { msg.type = type; msg.text = text }
 function hideMsg() { msg.text = '' }
 
-onMounted(() => {
+onMounted(async () => {
   authStore.restoreSession()
   if (authStore.isAuthenticated) return navigateTo('/')
-  setTimeout(() => focusRfid(), 400)
+
+  // Verifica se RFID está habilitado (endpoint público, sem auth)
+  try {
+    const cfg = await api.get<{ rfid_ativo: boolean }>('/sistema/config-publica')
+    rfidAtivo.value = cfg.rfid_ativo !== false
+  } catch {
+    rfidAtivo.value = true // fallback seguro
+  }
+
+  if (!rfidAtivo.value) {
+    tab.value = 'manual'
+    setTimeout(() => focusEmail(), 200)
+  } else {
+    setTimeout(() => focusRfid(), 400)
+  }
 })
 </script>
 
 <style scoped>
-.h-13 { height: 3.25rem; }
-
 .tab-fade-enter-active,
-.tab-fade-leave-active { transition: opacity 0.15s ease, transform 0.15s ease; }
-.tab-fade-enter-from   { opacity: 0; transform: translateX(8px); }
-.tab-fade-leave-to     { opacity: 0; transform: translateX(-8px); }
+.tab-fade-leave-active { transition: opacity 0.12s ease, transform 0.12s ease; }
+.tab-fade-enter-from   { opacity: 0; transform: translateY(6px); }
+.tab-fade-leave-to     { opacity: 0; transform: translateY(-6px); }
 
 .msg-enter-active,
 .msg-leave-active { transition: all 0.2s ease; }
 .msg-enter-from,
-.msg-leave-to     { opacity: 0; transform: translateY(-6px); }
+.msg-leave-to     { opacity: 0; transform: translateY(-4px); }
 </style>

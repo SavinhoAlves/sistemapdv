@@ -49,7 +49,7 @@
             <div class="w-2 h-2 rounded-full bg-green-400 mt-1"></div>
           </div>
           <p class="text-sm font-black text-white truncate">{{ mesa.nome_mesa }}</p>
-          <p v-if="mesa.garcom_nome" class="text-[10px] text-white/40 mt-0.5 truncate">{{ mesa.garcom_nome }}</p>
+          <p v-if="mesa.garcom" class="text-[10px] text-white/40 mt-0.5 truncate">{{ mesa.garcom }}</p>
           <p class="text-[10px] text-orange-400/60 mt-1.5">{{ formatarTempo(mesa.data_abertura) }}</p>
         </button>
       </div>
@@ -74,7 +74,7 @@
             <div class="px-5 pb-3 flex items-center justify-between shrink-0">
               <div>
                 <h3 class="text-base font-black text-white">{{ mesaSelecionada.nome_mesa }}</h3>
-                <p v-if="mesaSelecionada.garcom_nome" class="text-xs text-white/40">{{ mesaSelecionada.garcom_nome }}</p>
+                <p v-if="mesaSelecionada.garcom" class="text-xs text-white/40">{{ mesaSelecionada.garcom }}</p>
               </div>
               <button
                 @click="mesaSelecionada = null"
@@ -104,7 +104,7 @@
                   <span class="text-xs font-black text-orange-400 w-6 shrink-0">{{ item.quantidade }}×</span>
                   <span class="flex-1 text-xs font-bold text-white truncate">{{ item.produto_nome || item.nome }}</span>
                   <span class="text-xs text-white/40 shrink-0">
-                    R$ {{ fmt((item.preco_unit || item.preco || 0) * item.quantidade) }}
+                    R$ {{ fmt(item.total || (item.preco_unitario || 0) * item.quantidade) }}
                   </span>
                 </div>
               </div>
@@ -304,17 +304,8 @@ async function abrirDetalhesMesa(mesa: any) {
   itensMesa.value = []
   loadingItens.value = true
   try {
-    const resp = await api.get<any>(`/mesas/${mesa.id}/pedidos`)
-    // pedidos é um array de pedidos; cada pedido tem itens
-    const itens: any[] = []
-    const data = Array.isArray(resp) ? resp : (resp?.pedidos || [])
-    for (const pedido of data) {
-      const pedidoItens = pedido.itens || []
-      for (const item of pedidoItens) {
-        itens.push(item)
-      }
-    }
-    itensMesa.value = itens
+    const resp = await api.get<any[]>(`/mesas/${mesa.id}/produtos`)
+    itensMesa.value = resp || []
   } catch {
     itensMesa.value = []
   } finally {

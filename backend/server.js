@@ -40,6 +40,7 @@ const vendasRoutes          = require('./src/routes/vendas.routes')
 const configuracoesRoutes   = require('./src/routes/configuracoes.routes')
 const integracoesRoutes     = require('./src/routes/integracoes.routes')
 const perfisRoutes          = require('./src/routes/perfis.routes')
+const impressorasRoutes     = require('./src/routes/impressoras.routes')
 
 /*
 |--------------------------------------------------------------------------
@@ -89,6 +90,7 @@ app.use('/api/vendas',         vendasRoutes)
 app.use('/api/configuracoes',  configuracoesRoutes)
 app.use('/api/integracoes',   integracoesRoutes)
 app.use('/api/impressao',      require('./src/routes/impressao.routes'))
+app.use('/api/impressoras',    impressorasRoutes)
 app.use('/api/perfis',         perfisRoutes)
 /*
 |--------------------------------------------------------------------------

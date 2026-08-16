@@ -398,6 +398,206 @@
             </div>
           </div>
 
+          <!-- ══ CARD: IMPRESSORAS MÚLTIPLAS ══ -->
+          <div class="bg-white dark:bg-white/5 backdrop-blur-xl rounded-2xl border border-gray-200 dark:border-white/[0.08] overflow-hidden">
+            <div class="px-6 py-5 border-b border-gray-100 dark:border-white/[0.06] flex items-center justify-between gap-3">
+              <div class="flex items-center gap-3">
+                <div class="w-8 h-8 rounded-xl bg-indigo-500/10 flex items-center justify-center shrink-0">
+                  <Printer :size="14" class="text-indigo-500" />
+                </div>
+                <div>
+                  <h2 class="text-sm font-black text-gray-900 dark:text-white">Impressoras por Destino</h2>
+                  <p class="text-[11px] text-gray-500 dark:text-white/40 mt-0.5">Configure impressoras diferentes para caixa, cozinha e bar</p>
+                </div>
+              </div>
+              <button
+                @click="adicionarImpressora"
+                class="h-8 px-4 rounded-xl bg-indigo-500 hover:bg-indigo-400 text-white text-xs font-black transition-all active:scale-95 flex items-center gap-1.5 shrink-0"
+              >
+                <Plus :size="12" />
+                Adicionar
+              </button>
+            </div>
+
+            <div class="p-6 space-y-3">
+
+              <!-- Lista vazia -->
+              <div v-if="impressoras.length === 0" class="text-center py-6">
+                <div class="w-12 h-12 rounded-2xl bg-gray-100 dark:bg-white/[0.06] flex items-center justify-center mx-auto mb-3">
+                  <Printer :size="20" class="text-gray-300 dark:text-white/20" />
+                </div>
+                <p class="text-sm font-black text-gray-400 dark:text-white/40">Nenhuma impressora configurada</p>
+                <p class="text-[11px] text-gray-400 dark:text-white/30 mt-1">Adicione impressoras para cada destino (caixa, cozinha, bar)</p>
+                <p class="text-[10px] text-gray-400 dark:text-white/25 mt-2">Se não configurado, usa a impressora padrão acima</p>
+              </div>
+
+              <!-- Cada impressora -->
+              <div
+                v-for="imp in impressoras"
+                :key="imp.id"
+                class="rounded-2xl border border-gray-200 dark:border-white/[0.08] overflow-hidden"
+              >
+                <!-- Cabeçalho da impressora -->
+                <div class="flex items-center gap-3 px-4 py-3 bg-gray-50 dark:bg-white/[0.03]">
+                  <!-- Badge destino -->
+                  <span class="text-[10px] font-black uppercase tracking-widest px-2.5 py-1 rounded-lg shrink-0"
+                    :class="{
+                      'bg-purple-500/10 text-purple-500': imp.destino === 'caixa',
+                      'bg-orange-500/10 text-orange-500': imp.destino === 'cozinha',
+                      'bg-blue-500/10 text-blue-500':    imp.destino === 'bar'
+                    }">
+                    {{ imp.destino === 'caixa' ? 'Caixa' : imp.destino === 'cozinha' ? 'Cozinha' : 'Bar' }}
+                  </span>
+
+                  <!-- Nome -->
+                  <span class="flex-1 text-sm font-black text-gray-900 dark:text-white truncate">{{ imp.nome }}</span>
+
+                  <!-- Tipo tag -->
+                  <span class="text-[10px] font-bold text-gray-400 dark:text-white/40 shrink-0">
+                    {{ imp.tipo === 'rede' ? 'Rede' : imp.tipo === 'windows' ? 'USB' : 'Navegador' }}
+                    {{ imp.largura }}mm
+                  </span>
+
+                  <!-- Ativo toggle -->
+                  <button
+                    @click="toggleAtivo(imp)"
+                    class="shrink-0 w-10 h-5 rounded-full transition-all relative"
+                    :class="imp.ativo ? 'bg-indigo-500' : 'bg-gray-200 dark:bg-white/10'"
+                  >
+                    <span class="absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-all"
+                      :class="imp.ativo ? 'left-[22px]' : 'left-0.5'" />
+                  </button>
+
+                  <!-- Expand -->
+                  <button
+                    @click="toggleExpandImpressora(imp.id)"
+                    class="w-7 h-7 rounded-lg bg-gray-100 dark:bg-white/[0.06] flex items-center justify-center hover:bg-gray-200 dark:hover:bg-white/10 transition-all shrink-0"
+                  >
+                    <ChevronDown :size="14"
+                      class="text-gray-400 dark:text-white/40 transition-transform"
+                      :class="impressoraExpandida === imp.id ? 'rotate-180' : ''" />
+                  </button>
+                </div>
+
+                <!-- Form expandido -->
+                <Transition name="slide-down-mp">
+                  <div v-if="impressoraExpandida === imp.id" class="p-5 border-t border-gray-100 dark:border-white/[0.06] space-y-4">
+
+                    <!-- Nome + Destino -->
+                    <div class="grid grid-cols-2 gap-4">
+                      <div>
+                        <label class="block text-[10px] font-black uppercase tracking-widest text-gray-500 dark:text-white/40 mb-2">Nome</label>
+                        <input v-model="imp.nome" type="text" maxlength="100"
+                          class="w-full h-10 px-3 rounded-xl border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/[0.06] text-gray-900 dark:text-white text-sm font-bold outline-none focus:border-indigo-500/70 transition-all" />
+                      </div>
+                      <div>
+                        <label class="block text-[10px] font-black uppercase tracking-widest text-gray-500 dark:text-white/40 mb-2">Destino</label>
+                        <select v-model="imp.destino"
+                          class="w-full h-10 px-3 rounded-xl border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/[0.06] text-gray-900 dark:text-white text-sm font-bold outline-none focus:border-indigo-500/70 transition-all">
+                          <option value="caixa">Caixa (recibos e conta)</option>
+                          <option value="cozinha">Cozinha (fichas de pedido)</option>
+                          <option value="bar">Bar (fichas do bar)</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    <!-- Largura + Cópias -->
+                    <div class="grid grid-cols-2 gap-4">
+                      <div>
+                        <label class="block text-[10px] font-black uppercase tracking-widest text-gray-500 dark:text-white/40 mb-2">Largura do papel</label>
+                        <div class="grid grid-cols-2 gap-2">
+                          <button v-for="op in larguras" :key="op.value"
+                            @click="imp.largura = op.value"
+                            class="py-2 px-3 rounded-xl border-2 text-sm font-black transition-all"
+                            :class="imp.largura === op.value ? 'border-indigo-500 bg-indigo-500/10 text-indigo-400' : 'border-gray-200 dark:border-white/10 text-gray-500 dark:text-white/50 hover:border-gray-300 dark:hover:border-white/20'">
+                            {{ op.label }}
+                          </button>
+                        </div>
+                      </div>
+                      <div>
+                        <label class="block text-[10px] font-black uppercase tracking-widest text-gray-500 dark:text-white/40 mb-2">Cópias por ficha</label>
+                        <div class="flex items-center gap-2">
+                          <button @click="imp.copias = Math.max(1, imp.copias - 1)"
+                            class="w-9 h-9 rounded-xl bg-gray-100 dark:bg-white/[0.06] hover:bg-gray-200 dark:hover:bg-white/10 flex items-center justify-center transition-all font-black text-gray-500 dark:text-white/60">
+                            <Minus :size="13" />
+                          </button>
+                          <div class="flex-1 h-9 rounded-xl border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/[0.06] flex items-center justify-center">
+                            <span class="text-lg font-black text-gray-900 dark:text-white">{{ imp.copias }}</span>
+                          </div>
+                          <button @click="imp.copias = Math.min(5, imp.copias + 1)"
+                            class="w-9 h-9 rounded-xl bg-gray-100 dark:bg-white/[0.06] hover:bg-gray-200 dark:hover:bg-white/10 flex items-center justify-center transition-all font-black text-gray-500 dark:text-white/60">
+                            <Plus :size="13" />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- Tipo conexão -->
+                    <div>
+                      <label class="block text-[10px] font-black uppercase tracking-widest text-gray-500 dark:text-white/40 mb-2">Conexão</label>
+                      <div class="grid grid-cols-3 gap-2">
+                        <button v-for="op in tiposImpressora" :key="op.value"
+                          @click="imp.tipo = op.value"
+                          class="p-2.5 rounded-xl border-2 transition-all text-left"
+                          :class="imp.tipo === op.value ? 'border-indigo-500 bg-indigo-500/10' : 'border-gray-200 dark:border-white/10 hover:border-gray-300 dark:hover:border-white/20'">
+                          <p class="text-xs font-black" :class="imp.tipo === op.value ? 'text-indigo-400' : 'text-gray-600 dark:text-white/80'">{{ op.label }}</p>
+                          <p class="text-[10px] text-gray-400 dark:text-white/40 mt-0.5 leading-tight">{{ op.desc }}</p>
+                        </button>
+                      </div>
+                    </div>
+
+                    <!-- Host + Porta (Rede) -->
+                    <div v-if="imp.tipo === 'rede'" class="grid grid-cols-3 gap-3">
+                      <div class="col-span-2">
+                        <label class="block text-[10px] font-black uppercase tracking-widest text-gray-500 dark:text-white/40 mb-2">IP da impressora</label>
+                        <input v-model="imp.host" type="text" placeholder="Ex: 192.168.1.200"
+                          class="w-full h-10 px-3 rounded-xl border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/[0.06] text-gray-900 dark:text-white text-sm font-mono outline-none focus:border-indigo-500/70 transition-all placeholder:text-gray-400 dark:placeholder:text-white/25" />
+                      </div>
+                      <div>
+                        <label class="block text-[10px] font-black uppercase tracking-widest text-gray-500 dark:text-white/40 mb-2">Porta</label>
+                        <input v-model.number="imp.porta" type="number" placeholder="9100"
+                          class="w-full h-10 px-3 rounded-xl border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/[0.06] text-gray-900 dark:text-white text-sm font-mono outline-none focus:border-indigo-500/70 transition-all" />
+                      </div>
+                    </div>
+
+                    <!-- Nome Windows (USB) -->
+                    <div v-if="imp.tipo === 'windows'">
+                      <label class="block text-[10px] font-black uppercase tracking-widest text-gray-500 dark:text-white/40 mb-2">Nome da impressora no Windows</label>
+                      <input v-model="imp.host" type="text" placeholder="Ex: EPSON TM-T20 Receipt"
+                        class="w-full h-10 px-3 rounded-xl border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/[0.06] text-gray-900 dark:text-white text-sm outline-none focus:border-indigo-500/70 transition-all placeholder:text-gray-400 dark:placeholder:text-white/25" />
+                    </div>
+
+                    <!-- Ações -->
+                    <div class="flex items-center gap-2 pt-1">
+                      <button @click="salvarImpressora(imp)" :disabled="salvandoImpressora === imp.id"
+                        class="h-9 px-4 rounded-xl bg-indigo-500 hover:bg-indigo-400 disabled:opacity-50 text-white text-xs font-black transition-all active:scale-95 flex items-center gap-1.5">
+                        <Loader2 v-if="salvandoImpressora === imp.id" :size="12" class="animate-spin" />
+                        <Save v-else :size="12" />
+                        Salvar
+                      </button>
+                      <button
+                        v-if="imp.tipo !== 'navegador'"
+                        @click="testarImpressoraById(imp.id)"
+                        :disabled="testandoImpressoraId === imp.id"
+                        class="h-9 px-4 rounded-xl bg-gray-100 dark:bg-white/[0.06] hover:bg-gray-200 dark:hover:bg-white/10 disabled:opacity-50 text-gray-600 dark:text-white/70 text-xs font-black transition-all active:scale-95 flex items-center gap-1.5">
+                        <Loader2 v-if="testandoImpressoraId === imp.id" :size="12" class="animate-spin" />
+                        <Printer v-else :size="12" />
+                        Testar
+                      </button>
+                      <div class="flex-1" />
+                      <button @click="deletarImpressora(imp.id)"
+                        class="h-9 px-3 rounded-xl border border-red-500/30 text-red-400 text-xs font-black hover:bg-red-500/10 transition-all active:scale-95 flex items-center gap-1.5">
+                        <Trash2 :size="12" />
+                        Remover
+                      </button>
+                    </div>
+                  </div>
+                </Transition>
+              </div>
+
+            </div>
+          </div>
+
           <!-- ══ CARD: INTEGRAÇÕES ══ -->
           <div class="bg-white dark:bg-white/5 backdrop-blur-xl rounded-2xl border border-gray-200 dark:border-white/[0.08] overflow-hidden">
             <div class="px-6 py-5 border-b border-gray-100 dark:border-white/[0.06] flex items-center gap-3">
@@ -640,25 +840,103 @@
 import { ref, reactive, computed, onMounted } from 'vue'
 import {
   ImageIcon, Upload, Trash2, Save, Loader2, UtensilsCrossed, Printer, FileText, Eye, EyeOff,
-  Minus, Plus, Plug, CreditCard, RefreshCw, CheckCircle, LayoutGrid, Receipt, Ruler, ShieldCheck
+  Minus, Plus, Plug, CreditCard, RefreshCw, CheckCircle, LayoutGrid, Receipt, Ruler, ShieldCheck,
+  ChevronDown
 } from 'lucide-vue-next'
 import Navbar from '~/layouts/Navbar.vue'
 import Sidebar from '~/components/Sidebar.vue'
 import { useConfigStore }      from '~/stores/configuracoes'
 import { useIntegracoesStore } from '~/stores/integracoes'
+import { useImpressorasStore, type Impressora } from '~/stores/impressoras'
 import { useToastStore }       from '~/stores/toast'
 import { useApi }              from '~/services/api'
 
 definePageMeta({ layout: false })
 
-const configStore = useConfigStore()
-const mpStore     = useIntegracoesStore()
-const toastStore  = useToastStore()
-const api         = useApi()
+const configStore      = useConfigStore()
+const mpStore          = useIntegracoesStore()
+const impressorasStore = useImpressorasStore()
+const toastStore       = useToastStore()
+const api              = useApi()
 
 const inputLogoRef = ref<HTMLInputElement | null>(null)
 const salvando     = ref(false)
 const mostrarToken = ref(false)
+
+// ══ IMPRESSORAS MÚLTIPLAS ══
+const impressoras          = ref<Impressora[]>([])
+const impressoraExpandida  = ref<number | null>(null)
+const salvandoImpressora   = ref<number | null>(null)
+const testandoImpressoraId = ref<number | null>(null)
+
+function toggleExpandImpressora(id: number) {
+  impressoraExpandida.value = impressoraExpandida.value === id ? null : id
+}
+
+function toggleAtivo(imp: Impressora) {
+  imp.ativo = imp.ativo ? 0 : 1
+  salvarImpressora(imp)
+}
+
+async function carregarImpressoras() {
+  try {
+    impressoras.value = await api.get<Impressora[]>('/impressoras')
+    impressorasStore.lista = impressoras.value
+    impressorasStore.carregado = true
+  } catch {}
+}
+
+async function adicionarImpressora() {
+  try {
+    const nova = await api.post<Impressora>('/impressoras', {
+      nome: 'Nova Impressora', destino: 'cozinha', tipo: 'navegador',
+      largura: 80, copias: 1
+    })
+    impressoras.value.push(nova)
+    impressorasStore.lista = impressoras.value
+    impressoraExpandida.value = nova.id
+  } catch (e: any) {
+    toastStore.error('Erro ao adicionar impressora', e?.message)
+  }
+}
+
+async function salvarImpressora(imp: Impressora) {
+  salvandoImpressora.value = imp.id
+  try {
+    const atualizada = await api.put<Impressora>(`/impressoras/${imp.id}`, imp)
+    const idx = impressoras.value.findIndex(i => i.id === imp.id)
+    if (idx >= 0) impressoras.value[idx] = atualizada
+    impressorasStore.lista = impressoras.value
+    toastStore.success('Impressora salva!')
+  } catch (e: any) {
+    toastStore.error('Erro ao salvar impressora', e?.message)
+  } finally {
+    salvandoImpressora.value = null
+  }
+}
+
+async function deletarImpressora(id: number) {
+  try {
+    await api.delete(`/impressoras/${id}`)
+    impressoras.value = impressoras.value.filter(i => i.id !== id)
+    impressorasStore.lista = impressoras.value
+    if (impressoraExpandida.value === id) impressoraExpandida.value = null
+  } catch (e: any) {
+    toastStore.error('Erro ao remover impressora', e?.message)
+  }
+}
+
+async function testarImpressoraById(id: number) {
+  testandoImpressoraId.value = id
+  try {
+    await api.post(`/impressoras/${id}/teste`)
+    toastStore.success('Cupom de teste enviado!')
+  } catch (e: any) {
+    toastStore.error('Falha no teste', e?.message)
+  } finally {
+    testandoImpressoraId.value = null
+  }
+}
 
 
 const mp = reactive({
@@ -738,6 +1016,7 @@ onMounted(async () => {
   mp.ativado   = mpStore.mp.ativado
   mp.device_id = mpStore.mp.device_id
 
+  await carregarImpressoras()
 })
 
 function modoAtivo(modo: 'mesas' | 'direta') {

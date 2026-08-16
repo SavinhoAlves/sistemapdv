@@ -10,16 +10,38 @@ async function carregarConfig() {
   return rows[0] || {}
 }
 
+// Carrega a impressora ativa para um destino (caixa/cozinha/bar).
+// Se não houver impressora configurada para o destino, usa a config global.
+async function carregarImpressoraPorDestino(destino) {
+  const globalCfg = await carregarConfig()
+  try {
+    const rows = await query(
+      'SELECT * FROM impressoras WHERE destino = ? AND ativo = 1 ORDER BY id LIMIT 1',
+      [destino]
+    )
+    if (!rows[0]) return globalCfg
+    const imp = rows[0]
+    return {
+      ...globalCfg,
+      impressora_tipo:    imp.tipo,
+      impressora_host:    imp.host,
+      impressora_porta:   imp.porta,
+      impressora_largura: imp.largura,
+      impressora_copias:  imp.copias,
+    }
+  } catch {
+    return globalCfg
+  }
+}
+
 function tamanhoLogo(config) {
   if (config.logo_tamanho === 'personalizado') {
-    // retorna pixels de altura (>1), tratado como modo altura na função
     return Math.max(50, Math.min(600, Number(config.logo_altura_custom) || 320))
   }
-  // retorna percentual (0–1), tratado como modo largura na função
   return LOGO_LARGURAS[config.logo_tamanho] ?? 0.60
 }
 
-// POST /api/impressao/teste — imprime um cupom de teste (admin)
+// POST /api/impressao/teste — imprime um cupom de teste na impressora padrão (admin)
 router.post('/teste', authenticate, authorize('administrador'), async (req, res) => {
   try {
     const config = await carregarConfig()
@@ -32,15 +54,16 @@ router.post('/teste', authenticate, authorize('administrador'), async (req, res)
   }
 })
 
-// POST /api/impressao/ficha — fichas de produto (venda do caixa ou reimpressão)
-// body: { itens: [{ nome, quantidade }], info?, codigo? }
+// POST /api/impressao/ficha — fichas de produto
+// body: { itens: [{ nome, quantidade }], info?, codigo?, destino? }
+// destino: 'caixa' (venda direta) | 'cozinha' (pedido de mesa, padrão) | 'bar'
 router.post('/ficha', authenticate, async (req, res) => {
   try {
-    const { itens, info, codigo } = req.body
+    const { itens, info, codigo, destino = 'cozinha' } = req.body
     if (!Array.isArray(itens) || !itens.length) {
       return res.status(400).json({ error: 'Informe os itens da ficha' })
     }
-    const config = await carregarConfig()
+    const config = await carregarImpressoraPorDestino(destino)
     const logoRaster = await logoParaRasterEscPos(config.logo_base64, config.impressora_largura, tamanhoLogo(config))
     const cupom = montarFichas(config, { itens, info, codigo }, logoRaster)
     await enviarParaImpressora(cupom, config)
@@ -50,7 +73,7 @@ router.post('/ficha', authenticate, async (req, res) => {
   }
 })
 
-// POST /api/impressao/conta — conta da mesa
+// POST /api/impressao/conta — conta da mesa (usa impressora do caixa)
 // body: { mesa, itens: [{ nome, quantidade, total }], subtotal,
 //         abatimentos: [{ motivo, valor }], taxa_pct, taxa_valor, pago, restante }
 router.post('/conta', authenticate, async (req, res) => {
@@ -59,7 +82,7 @@ router.post('/conta', authenticate, async (req, res) => {
     if (!Array.isArray(conta.itens) || !conta.itens.length) {
       return res.status(400).json({ error: 'A mesa não tem itens para imprimir' })
     }
-    const config = await carregarConfig()
+    const config = await carregarImpressoraPorDestino('caixa')
     const logoRaster = await logoParaRasterEscPos(config.logo_base64, config.impressora_largura, tamanhoLogo(config))
     const cupom = montarConta(config, conta, logoRaster)
     await enviarParaImpressora(cupom, config)
@@ -69,7 +92,7 @@ router.post('/conta', authenticate, async (req, res) => {
   }
 })
 
-// POST /api/impressao/fechamento — resumo de fechamento do caixa
+// POST /api/impressao/fechamento — resumo de fechamento do caixa (usa impressora do caixa)
 // body: { caixa_id }
 router.post('/fechamento', authenticate, permissoes.gerenciarCaixa, async (req, res) => {
   try {
@@ -79,7 +102,7 @@ router.post('/fechamento', authenticate, permissoes.gerenciarCaixa, async (req, 
     const resumo = await resumoCaixa(Number(caixa_id))
     if (!resumo) return res.status(404).json({ error: 'Caixa não encontrado' })
 
-    const config = await carregarConfig()
+    const config = await carregarImpressoraPorDestino('caixa')
     const logoRaster = await logoParaRasterEscPos(config.logo_base64, config.impressora_largura, tamanhoLogo(config))
     const cupom = montarFechamento(config, resumo, logoRaster)
     await enviarParaImpressora(cupom, config)

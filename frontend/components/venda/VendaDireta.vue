@@ -323,6 +323,7 @@ import { useApi } from '~/services/api'
 import { useCaixaStore }        from '~/stores/caixa'
 import { useToastStore }        from '~/stores/toast'
 import { useConfigStore }       from '~/stores/configuracoes'
+import { useImpressorasStore }  from '~/stores/impressoras'
 import { useCarrinhoVendaStore } from '~/stores/carrinhoVenda'
 import { useProdutosStore, type Produto } from '~/stores/produtos'
 import { iconeMetodo } from '~/composables/useIconeMetodo'
@@ -332,8 +333,9 @@ const emit = defineEmits(['venda-registrada'])
 const api              = useApi()
 const caixaStore       = useCaixaStore()
 const toastStore       = useToastStore()
-const configStore      = useConfigStore()
-const carrinhoStore = useCarrinhoVendaStore()
+const configStore       = useConfigStore()
+const impressorasStore  = useImpressorasStore()
+const carrinhoStore     = useCarrinhoVendaStore()
 const produtosStore = useProdutosStore()
 
 const { itens: carrinho, desconto, metodoSelecionado, valorRecebido } = storeToRefs(carrinhoStore)
@@ -451,12 +453,13 @@ async function imprimirFicha() {
   if (!fichaAtual.value) return
   const ficha    = fichaAtual.value
 
-  if (configStore.impressaoDireta) {
+  if (impressorasStore.impressaoDiretaPara('caixa')) {
     try {
       await api.post('/impressao/ficha', {
-        itens:  ficha.itens.map((i: any) => ({ nome: i.nome_produto, quantidade: i.quantidade })),
-        info:   `${fmtFichaDateTime(ficha.createdAt)} · ${ficha.operador || '—'}`,
-        codigo: ficha.numero
+        itens:   ficha.itens.map((i: any) => ({ nome: i.nome_produto, quantidade: i.quantidade })),
+        info:    `${fmtFichaDateTime(ficha.createdAt)} · ${ficha.operador || '—'}`,
+        codigo:  ficha.numero,
+        destino: 'caixa'
       })
     } catch (e: any) {
       toastStore.error('Falha na impressão', e?.message)

@@ -231,6 +231,22 @@ async function migrate() {
     await addColumn(conn, 'usuarios', 'mobile_token_expires', 'DATETIME DEFAULT NULL')
     console.log('✓ Colunas mobile_token adicionadas a usuarios')
 
+    // Múltiplas impressoras por destino (caixa, cozinha, bar)
+    await conn.execute(`
+      CREATE TABLE IF NOT EXISTS impressoras (
+        id      INT AUTO_INCREMENT PRIMARY KEY,
+        nome    VARCHAR(100) NOT NULL DEFAULT 'Impressora',
+        destino ENUM('caixa','cozinha','bar') NOT NULL DEFAULT 'caixa',
+        tipo    ENUM('navegador','rede','windows') NOT NULL DEFAULT 'navegador',
+        host    VARCHAR(100) DEFAULT NULL,
+        porta   INT DEFAULT 9100,
+        largura INT DEFAULT 80,
+        copias  INT DEFAULT 1,
+        ativo   TINYINT(1) DEFAULT 1
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+    `)
+    console.log('✓ Tabela impressoras criada (ou já existia)')
+
     console.log('\nMigração concluída com sucesso!')
   } finally {
     conn.release()

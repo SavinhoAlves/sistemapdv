@@ -394,7 +394,8 @@
 <script setup lang="ts">
 import { ref, computed, watch, nextTick, onBeforeUnmount } from 'vue'
 import { useCaixaStore } from '~/stores/caixa'
-import { useConfigStore } from '~/stores/configuracoes'
+import { useConfigStore }      from '~/stores/configuracoes'
+import { useImpressorasStore } from '~/stores/impressoras'
 import {
   X,
   PrinterIcon,
@@ -419,8 +420,9 @@ const emit = defineEmits(['update:modelValue', 'abrir-produtos', 'estoque-atuali
 
 const api         = useApi()
 const toastStore  = useToastStore()
-const caixaStore  = useCaixaStore()
-const configStore = useConfigStore()
+const caixaStore       = useCaixaStore()
+const configStore      = useConfigStore()
+const impressorasStore = useImpressorasStore()
 const caixaAberto = computed(() => caixaStore.aberto)
 
 function exigirCaixa() {
@@ -596,7 +598,7 @@ async function imprimir() {
   const liquido = totalLiquido.value
   const data   = new Date().toLocaleString('pt-BR')
 
-  if (configStore.impressaoDireta) {
+  if (impressorasStore.impressaoDiretaPara('caixa')) {
     try {
       await api.post('/impressao/conta', {
         mesa: `Mesa ${mesa?.nome_mesa || mesa?.numero || mesa?.id}`,
@@ -858,12 +860,13 @@ async function handleReimprimir() {
   const dataStr = new Date().toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })
   const ref     = `P${String(produto.pedido_id).padStart(6, '0')}`
 
-  if (configStore.impressaoDireta) {
+  if (impressorasStore.impressaoDiretaPara('cozinha')) {
     try {
       await api.post('/impressao/ficha', {
-        itens:  [{ nome: produto.nome, quantidade: produto.quantidade }],
-        info:   `${dataStr} · ${mesa?.nome_mesa || `Mesa ${mesa?.id}`}`,
-        codigo: ref
+        itens:   [{ nome: produto.nome, quantidade: produto.quantidade }],
+        info:    `${dataStr} · ${mesa?.nome_mesa || `Mesa ${mesa?.id}`}`,
+        codigo:  ref,
+        destino: 'cozinha'
       })
     } catch (err: any) {
       toastStore.error('Falha na impressão', err?.message)

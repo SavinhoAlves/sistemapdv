@@ -362,7 +362,8 @@ import { useAuthStore }   from '~/stores/auth'
 import { useToastStore }  from '~/stores/toast'
 import { useCaixaStore }  from '~/stores/caixa'
 import { useThemeStore }  from '~/stores/theme'
-import { useConfigStore } from '~/stores/configuracoes'
+import { useConfigStore }      from '~/stores/configuracoes'
+import { useImpressorasStore } from '~/stores/impressoras'
 import { useNavItems }    from '~/composables/useNavItems'
 import { useApi }         from '~/services/api'
 import ModalRfidAuth      from '~/components/modals/ModalRfidAuth.vue'
@@ -373,8 +374,9 @@ const authStore   = useAuthStore()
 const toastStore  = useToastStore()
 const caixaStore  = useCaixaStore()
 const themeStore  = useThemeStore()
-const configStore = useConfigStore()
-const api         = useApi()
+const configStore      = useConfigStore()
+const impressorasStore = useImpressorasStore()
+const api              = useApi()
 const config      = useRuntimeConfig()
 
 const cargo    = computed(() => authStore.usuario?.cargo)
@@ -533,7 +535,7 @@ const imprimirFechamento = async () => {
   await configStore.carregar()
 
   // Térmica direta via backend
-  if (configStore.impressaoDireta) {
+  if (impressorasStore.impressaoDiretaPara('caixa')) {
     try {
       await api.post('/impressao/fechamento', { caixa_id: resumo.caixa.id })
       toastStore.success('Resumo enviado à impressora')

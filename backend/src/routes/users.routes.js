@@ -1,6 +1,7 @@
 const express  = require('express')
 const router   = express.Router()
 const bcrypt   = require('bcryptjs')
+const crypto   = require('crypto')
 
 const { query }               = require('../database/connection')
 const { authenticate, authorize } = require('../middlewares/auth.middleware')
@@ -99,6 +100,22 @@ router.delete('/:id', authenticate, authorize('administrador'), async (req, res)
   try {
     await query('UPDATE usuarios SET ativo = 0 WHERE id = ?', [req.params.id])
     return res.json({ success: true })
+  } catch (err) {
+    return res.status(500).json({ error: err.message })
+  }
+})
+
+// POST /:id/mobile-token — gerar token QR para acesso mobile
+router.post('/:id/mobile-token', authenticate, authorize('administrador'), async (req, res) => {
+  try {
+    const rows = await query('SELECT id, nome, cargo FROM usuarios WHERE id = ? AND ativo = 1', [req.params.id])
+    const usuario = rows[0]
+    if (!usuario) return res.status(404).json({ error: 'Usuário não encontrado' })
+    const rawToken = crypto.randomBytes(32).toString('hex')
+    const hash = crypto.createHash('sha256').update(rawToken).digest('hex')
+    const expires = new Date(Date.now() + 12 * 60 * 60 * 1000)
+    await query('UPDATE usuarios SET mobile_token = ?, mobile_token_expires = ? WHERE id = ?', [hash, expires, req.params.id])
+    return res.json({ token: rawToken, expiresAt: expires.toISOString() })
   } catch (err) {
     return res.status(500).json({ error: err.message })
   }

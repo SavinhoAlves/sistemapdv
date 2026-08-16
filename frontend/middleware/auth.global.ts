@@ -1,6 +1,9 @@
 import { useAuthStore } from '../stores/auth'
 
 export default defineNuxtRouteMiddleware((to) => {
+  // Allow mobile QR entry page to bypass auth check
+  if (to.path.startsWith('/m')) return
+
   const auth = useAuthStore()
 
   // Restaura sessão do localStorage se a store estiver vazia (essencial para F5)

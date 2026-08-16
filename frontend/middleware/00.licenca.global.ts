@@ -2,7 +2,7 @@
 // um sistema sem licença válida seja bloqueado antes mesmo do formulário
 // de login aparecer (este middleware roda primeiro por causa do prefixo
 // numérico "00." no nome do arquivo).
-const ROTAS_LIVRES = ['/ativacao']
+const ROTAS_LIVRES = ['/ativacao', '/m']
 
 // Cache simples: só reverifica a cada 5 minutos
 let cacheValido: boolean | null = null

@@ -1,4 +1,4 @@
-const ROTAS_LIVRES = ['/ativacao']
+const ROTAS_LIVRES = ['/ativacao', '/m']
 const CACHE_TTL = 5 * 60 * 1000
 
 export default defineNuxtRouteMiddleware(async (to) => {

@@ -226,6 +226,11 @@ async function migrate() {
     // e licenca.service.js)
     await addColumn(conn, 'sync_config', 'licenca_bloqueada_remoto', "TINYINT(1) NOT NULL DEFAULT 0")
 
+    // Mobile QR authentication
+    await addColumn(conn, 'usuarios', 'mobile_token', 'VARCHAR(64) DEFAULT NULL')
+    await addColumn(conn, 'usuarios', 'mobile_token_expires', 'DATETIME DEFAULT NULL')
+    console.log('✓ Colunas mobile_token adicionadas a usuarios')
+
     console.log('\nMigração concluída com sucesso!')
   } finally {
     conn.release()

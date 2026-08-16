@@ -1,5 +1,6 @@
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const crypto = require('crypto');
 
 const { query } = require('../database/connection');
 
@@ -142,4 +143,25 @@ const me = async (req, res) => {
   }
 };
 
-module.exports = { loginRFID, loginSenha, loginPIN, renovar, me };
+// 📱 Login por QR Mobile
+const loginMobile = async (req, res) => {
+  try {
+    const { token } = req.body;
+    if (!token || typeof token !== 'string') return res.status(400).json({ error: 'Token é obrigatório' });
+    const hash = crypto.createHash('sha256').update(token).digest('hex');
+    const rows = await query(
+      'SELECT * FROM usuarios WHERE mobile_token = ? AND mobile_token_expires > NOW() AND ativo = 1',
+      [hash]
+    );
+    const usuario = rows[0];
+    if (!usuario) return res.status(401).json({ error: 'Token inválido ou expirado' });
+    const jwtToken = gerarToken(usuario);
+    const permissoes = await buscarPermissoes(usuario.perfil_id);
+    return respostaLogin(res, jwtToken, usuario, permissoes);
+  } catch (err) {
+    console.error('Erro loginMobile:', err);
+    return res.status(500).json({ error: 'Erro interno' });
+  }
+};
+
+module.exports = { loginRFID, loginSenha, loginPIN, renovar, me, loginMobile };

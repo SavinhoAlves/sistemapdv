@@ -6,7 +6,8 @@ const {
   loginSenha,
   loginPIN,
   renovar,
-  me
+  me,
+  loginMobile
 } = require('../controllers/auth.controller');
 
 const { authenticate } = require('../middlewares/auth.middleware');
@@ -15,6 +16,7 @@ const { authenticate } = require('../middlewares/auth.middleware');
 router.post('/login', loginSenha);
 router.post('/rfid', loginRFID);
 router.post('/pin', loginPIN);
+router.post('/mobile', loginMobile);
 router.get('/renovar', authenticate, renovar);
 router.get('/me', authenticate, me);
 

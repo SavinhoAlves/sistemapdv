@@ -4,11 +4,32 @@ import { useAuthStore } from '~/stores/auth'
 
 let socket: Socket | null = null
 
+// Celular suspende a conexão de WebSocket quando a tela bloqueia ou o
+// navegador vai pra segundo plano; o backoff automático do socket.io pode
+// demorar a perceber isso. Forçamos uma tentativa assim que a aba volta a
+// ficar visível, em vez de esperar o próximo ciclo de reconexão.
+let reconexaoAoVoltarRegistrada = false
+function registrarReconexaoAoVoltar() {
+  if (reconexaoAoVoltarRegistrada || typeof document === 'undefined') return
+  reconexaoAoVoltarRegistrada = true
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden && socket && !socket.connected) {
+      socket.connect()
+    }
+  })
+}
+
 export function useSocket() {
   const authStore = useAuthStore()
 
   function connect(mode?: string) {
-    if (socket?.connected) return socket
+    registrarReconexaoAoVoltar()
+
+    // Checa a existência da instância, não o estado ".connected": várias
+    // telas/componentes podem chamar connect() em ordens diferentes (ex.:
+    // componente filho monta antes do pai) — reconectar/aguardar handshake
+    // é papel do próprio socket.io, aqui só evitamos criar duas instâncias
+    if (socket) return socket
 
     const opts: any = {
       auth: { token: authStore.token },
@@ -21,8 +42,10 @@ export function useSocket() {
 
     if (mode) opts.query = { mode }
 
+    // Mesmo protocolo da página (https quando o certificado local mkcert
+    // está configurado) — wss:// exige origem https
     const socketUrl = process.client
-      ? `http://${window.location.hostname}:3001`
+      ? `${window.location.protocol}//${window.location.hostname}:3001`
       : 'http://localhost:3001'
 
     socket = io(socketUrl, opts)

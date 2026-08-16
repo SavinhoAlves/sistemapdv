@@ -36,3 +36,6 @@ backend/backups/
 # Temporários
 *.tmp
 *.temp
+
+# Certificados HTTPS locais (mkcert) — regerados por iniciar.ps1, IP-específicos
+certs/

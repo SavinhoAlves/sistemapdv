@@ -435,6 +435,7 @@ import { useApi } from '~/services/api'
 import { useCaixaStore }  from '~/stores/caixa'
 import { useToastStore }  from '~/stores/toast'
 import { useAuthStore }   from '~/stores/auth'
+import { useSocket }      from '~/services/socket'
 import { iconeMetodo } from '~/composables/useIconeMetodo'
 
 definePageMeta({ layout: false })
@@ -443,6 +444,7 @@ const api         = useApi()
 const caixaStore  = useCaixaStore()
 const toastStore  = useToastStore()
 const authStore   = useAuthStore()
+const socket      = useSocket()
 
 const isAdmin    = computed(() => ['administrador', 'caixa'].includes(authStore.usuario?.cargo ?? ''))
 const caixaAberto = computed(() => caixaStore.aberto)
@@ -600,6 +602,7 @@ async function atualizarDados() {
 }
 
 let pollingTimer: ReturnType<typeof setInterval> | null = null
+const desinscrever: Array<() => void> = []
 
 function onVisibilityChange() {
   if (!document.hidden) atualizarDados()
@@ -610,11 +613,16 @@ onMounted(async () => {
   if (isAdmin.value && caixaAberto.value) buscarAdmin(true)
   pollingTimer = setInterval(() => { if (!document.hidden) atualizarDados() }, 30000)
   document.addEventListener('visibilitychange', onVisibilityChange)
+
+  // Tempo real via socket (conexão é gerenciada globalmente em
+  // plugins/socket.client.ts); o polling acima continua como rede de segurança
+  desinscrever.push(socket.on('caixa:atualizado', () => atualizarDados()))
 })
 
 onUnmounted(() => {
   if (pollingTimer) clearInterval(pollingTimer)
   document.removeEventListener('visibilitychange', onVisibilityChange)
+  desinscrever.forEach(fn => fn())
 })
 </script>
 

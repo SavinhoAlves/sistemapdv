@@ -1,7 +1,7 @@
 const express = require('express')
 const router  = express.Router()
 const { query } = require('../database/connection')
-const { authenticate } = require('../middlewares/auth.middleware')
+const { authenticate, authorize } = require('../middlewares/auth.middleware')
 const mp = require('../services/mercadopago.service')
 
 async function getCfg() {
@@ -25,8 +25,7 @@ router.get('/mp', authenticate, async (req, res) => {
 })
 
 // PUT /integracoes/mp — salva config (admin)
-router.put('/mp', authenticate, async (req, res) => {
-  if (req.user.cargo !== 'administrador') return res.status(403).json({ error: 'Acesso negado' })
+router.put('/mp', authenticate, authorize('administrador'), async (req, res) => {
   try {
     const { ativado, access_token, device_id } = req.body
 

@@ -2,10 +2,21 @@ const express = require('express')
 const router = express.Router()
 const bcrypt = require('bcryptjs')
 const jwt = require('jsonwebtoken')
+const rateLimit = require('express-rate-limit')
 const { query } = require('../database/connection')
 
+// Sem isso, o login (única porta de entrada do painel) ficava aberto a
+// força bruta — 10 tentativas / 15min por IP
+const limiteLogin = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Muitas tentativas de login — tente novamente em alguns minutos' }
+})
+
 // POST /api/auth/login — único login deste sistema (admin/suporte)
-router.post('/login', async (req, res) => {
+router.post('/login', limiteLogin, async (req, res) => {
   try {
     const { email, senha } = req.body
     if (!email || !senha) {

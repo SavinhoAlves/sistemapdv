@@ -1,42 +1,99 @@
-# Detecta o IP local da máquina (ignora loopback e link-local)
-$ip = (Get-NetIPAddress -AddressFamily IPv4 |
-    Where-Object { $_.IPAddress -notmatch '^127\.' -and $_.IPAddress -notmatch '^169\.' -and $_.PrefixOrigin -ne 'WellKnown' } |
-    Sort-Object -Property PrefixLength -Descending |
-    Select-Object -First 1).IPAddress
+# Inicia o PDV e fica de vigia: se o IP da rede mudar (DHCP), regera o
+# certificado HTTPS e reinicia backend + frontend sozinho, sem precisar
+# rodar este script de novo na mao.
 
-if (-not $ip) {
-    Write-Host "Nao foi possivel detectar o IP da rede. Usando localhost." -ForegroundColor Yellow
-    $ip = "localhost"
+function Detectar-Ip {
+    $ip = (Get-NetIPAddress -AddressFamily IPv4 |
+        Where-Object { $_.IPAddress -notmatch '^127\.' -and $_.IPAddress -notmatch '^169\.' -and $_.PrefixOrigin -ne 'WellKnown' } |
+        Sort-Object -Property PrefixLength -Descending |
+        Select-Object -First 1).IPAddress
+
+    if (-not $ip) { return "localhost" }
+    return $ip
 }
 
-Write-Host ""
-Write-Host "IP detectado: $ip" -ForegroundColor Cyan
+function Configurar-Ambiente($ip) {
+    Write-Host ""
+    Write-Host "IP detectado: $ip" -ForegroundColor Cyan
 
-# Atualiza frontend/.env
-$frontendEnvPath = "$PSScriptRoot\frontend\.env"
-$frontendEnv = "NUXT_PUBLIC_API_URL=http://${ip}:3001`nNUXT_PUBLIC_SOCKET_URL=http://${ip}:3001`nNUXT_PUBLIC_LICENSE_SECRET=nova2020*"
-Set-Content -Path $frontendEnvPath -Value $frontendEnv -Encoding UTF8
+    # Gera/atualiza o certificado HTTPS local (mkcert) pro IP atual - a camera
+    # do celular (login por cracha QR) so funciona em contexto seguro (https).
+    # O CA raiz e instalado uma unica vez (mkcert -install); certificados-folha
+    # novos pra um IP diferente sao aceitos automaticamente pelos celulares que
+    # ja confiam nesse CA, sem precisar reinstalar nada neles.
+    $certDir = "$PSScriptRoot\certs"
+    $mkcert = Get-Command mkcert -ErrorAction SilentlyContinue
+    $usaHttps = $false
 
-# Atualiza CORS_ORIGIN no backend/.env
-$backendEnvPath = "$PSScriptRoot\backend\.env"
-(Get-Content $backendEnvPath) -replace 'CORS_ORIGIN=.*', "CORS_ORIGIN=http://${ip}:3000" |
-    Set-Content $backendEnvPath -Encoding UTF8
+    if ($mkcert) {
+        New-Item -ItemType Directory -Force -Path $certDir | Out-Null
+        & mkcert -cert-file "$certDir\cert.pem" -key-file "$certDir\key.pem" localhost 127.0.0.1 $ip | Out-Null
+        $usaHttps = $true
+    } else {
+        Write-Host "mkcert nao encontrado no PATH - subindo em HTTP (camera do celular nao vai funcionar)." -ForegroundColor Yellow
+    }
 
-Write-Host "Arquivos .env atualizados." -ForegroundColor Green
-Write-Host ""
-Write-Host "Acesse o sistema em: http://${ip}:3000" -ForegroundColor Green
-Write-Host ""
+    $protocolo = if ($usaHttps) { "https" } else { "http" }
 
-# Inicia o backend em uma nova janela
-Start-Process powershell -ArgumentList "-NoExit", "-Command", "cd '$PSScriptRoot\backend'; npm run dev" -WindowStyle Normal
+    $frontendEnvPath = "$PSScriptRoot\frontend\.env"
+    $frontendEnv = "NUXT_PUBLIC_API_URL=${protocolo}://${ip}:3001`nNUXT_PUBLIC_SOCKET_URL=${protocolo}://${ip}:3001`nNUXT_PUBLIC_LICENSE_SECRET=nova2020*"
+    Set-Content -Path $frontendEnvPath -Value $frontendEnv -Encoding UTF8
 
-# Aguarda um momento para o backend subir antes do frontend
-Start-Sleep -Seconds 2
+    $backendEnvPath = "$PSScriptRoot\backend\.env"
+    (Get-Content $backendEnvPath) -replace 'CORS_ORIGIN=.*', "CORS_ORIGIN=${protocolo}://${ip}:3000" |
+        Set-Content $backendEnvPath -Encoding UTF8
 
-# Inicia o frontend em uma nova janela
-Start-Process powershell -ArgumentList "-NoExit", "-Command", "cd '$PSScriptRoot\frontend'; npm run dev" -WindowStyle Normal
+    Write-Host "Arquivos .env atualizados." -ForegroundColor Green
+    Write-Host "Acesse o sistema em: ${protocolo}://${ip}:3000" -ForegroundColor Green
+    Write-Host ""
+}
 
-Write-Host "Servidores iniciados!" -ForegroundColor Green
-Write-Host "Backend: http://${ip}:3001" -ForegroundColor DarkCyan
-Write-Host "Frontend: http://${ip}:3000" -ForegroundColor DarkCyan
-Write-Host ""
+# Mata o que estiver escutando nas portas do PDV - encontra pelo dono real
+# da porta (nao pela janela do PowerShell), assim nao sobra processo node
+# orfao travando a porta na proxima subida
+function Parar-Servidores {
+    foreach ($porta in 3000, 3001) {
+        $conexoes = Get-NetTCPConnection -LocalPort $porta -State Listen -ErrorAction SilentlyContinue
+        foreach ($c in $conexoes) {
+            Stop-Process -Id $c.OwningProcess -Force -ErrorAction SilentlyContinue
+        }
+    }
+    Start-Sleep -Seconds 1
+}
+
+function Iniciar-Servidores {
+    # node server.js direto - o script "npm run dev" do backend aponta pra
+    # um arquivo que nao existe
+    Start-Process powershell -ArgumentList "-NoExit", "-Command", "cd '$PSScriptRoot\backend'; node server.js" -WindowStyle Normal
+    Start-Sleep -Seconds 2
+
+    # O Node tem lista de CAs propria (separada da do Windows), entao nao confia
+    # no certificado do mkcert e o Nuxt/SSR avisa ao chamar o backend em https.
+    # Apontar NODE_EXTRA_CA_CERTS pro CA raiz do mkcert resolve sem afrouxar TLS
+    # (so quando o CA existe; em modo HTTP puro nao ha o que confiar).
+    $rootCA = "$env:LOCALAPPDATA\mkcert\rootCA.pem"
+    $prefixoCA = if (Test-Path $rootCA) { "`$env:NODE_EXTRA_CA_CERTS='$rootCA'; " } else { "" }
+    Start-Process powershell -ArgumentList "-NoExit", "-Command", "${prefixoCA}cd '$PSScriptRoot\frontend'; npm run dev" -WindowStyle Normal
+    Write-Host "Servidores iniciados!" -ForegroundColor Green
+    Write-Host ""
+}
+
+#  boot inicial 
+$ipAtual = Detectar-Ip
+Configurar-Ambiente $ipAtual
+Iniciar-Servidores
+
+#  vigia: reinicia sozinho se o IP da rede mudar 
+Write-Host "Vigiando o IP da rede (Ctrl+C pra parar de vigiar; os servidores continuam rodando)..." -ForegroundColor DarkGray
+while ($true) {
+    Start-Sleep -Seconds 20
+    $ipNovo = Detectar-Ip
+    if ($ipNovo -ne $ipAtual) {
+        Write-Host ""
+        Write-Host "IP mudou de $ipAtual para $ipNovo - regerando certificado e reiniciando..." -ForegroundColor Yellow
+        Parar-Servidores
+        Configurar-Ambiente $ipNovo
+        Iniciar-Servidores
+        $ipAtual = $ipNovo
+    }
+}

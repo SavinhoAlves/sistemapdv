@@ -221,6 +221,11 @@ async function migrate() {
     `)
     console.log('✓ pdv_config.chave_ativacao expandida para TEXT')
 
+    // Suspender/Reativar no painel central agora reflete aqui via sync —
+    // cache local de "licença bloqueada remotamente" (ver sync.service.js
+    // e licenca.service.js)
+    await addColumn(conn, 'sync_config', 'licenca_bloqueada_remoto', "TINYINT(1) NOT NULL DEFAULT 0")
+
     console.log('\nMigração concluída com sucesso!')
   } finally {
     conn.release()

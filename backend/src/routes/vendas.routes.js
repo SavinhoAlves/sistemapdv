@@ -1,12 +1,13 @@
 const express = require('express')
 const router = express.Router()
 const { transaction } = require('../database/connection')
-const { authenticate } = require('../middlewares/auth.middleware')
+const { authenticate, authorize } = require('../middlewares/auth.middleware')
 const { registrarAuditoria } = require('../services/auditoria.service')
 const { registrarMovEstoque } = require('../services/estoque.service')
 
-// POST / — Venda direta (ficha de balcão, sem mesa)
-router.post('/', authenticate, async (req, res) => {
+// POST / — Venda direta (ficha de balcão, sem mesa) — só administrador
+// (mesma restrição já aplicada à rota /vendas no frontend)
+router.post('/', authenticate, authorize('administrador'), async (req, res) => {
   try {
     const { itens, metodo_id, desconto = 0, valor_pago } = req.body
 

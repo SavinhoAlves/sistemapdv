@@ -6,6 +6,7 @@ const { authenticate, authorize, permissoes } = require('../middlewares/auth.mid
 const { registrarAuditoria } = require('../services/auditoria.service')
 const { resumoCaixa, movimentosCaixa } = require('../services/caixa.service')
 const { registrarMovEstoque } = require('../services/estoque.service')
+const { emitir } = require('../services/socket.service')
 
 // GET /atual
 router.get('/atual', authenticate, async (req, res) => {
@@ -45,6 +46,7 @@ router.post('/abrir', authenticate, permissoes.gerenciarCaixa, async (req, res) 
 
     const [caixa] = await query(`SELECT * FROM caixa WHERE id = ?`, [resultado.insertId])
     registrarAuditoria(req.user.id, 'caixa_abrir', 'caixa', resultado.insertId, { valor_inicial: saldo })
+    emitir('caixa:atualizado', { tipo: 'aberto' })
     return res.json({ success: true, caixa })
   } catch (error) {
     console.error('ERRO ABRIR CAIXA:', error)
@@ -99,6 +101,7 @@ router.post('/fechar', authenticate, permissoes.gerenciarCaixa, async (req, res)
     })
 
     const resumoFinal = await resumoCaixa(id)
+    emitir('caixa:atualizado', { tipo: 'fechado' })
     return res.json({ success: true, resumo: resumoFinal })
   } catch (error) {
     console.error('ERRO FECHAR CAIXA:', error)
@@ -137,6 +140,7 @@ router.post('/movimento', authenticate, permissoes.gerenciarCaixa, async (req, r
     registrarAuditoria(req.user.id, `caixa_${tipo}`, 'caixa', caixas[0].id, {
       valor: Number(valor), descricao: descricao || null
     })
+    emitir('caixa:atualizado', { tipo: 'movimento' })
     return res.json({ success: true })
   } catch (error) {
     return res.status(500).json({ error: error.message })

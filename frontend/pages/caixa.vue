@@ -360,10 +360,17 @@
       <Transition name="fade">
         <div v-if="modalMovimento" class="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4" @click.self="modalMovimento = null">
           <div class="bg-white dark:bg-neutral-900/90 backdrop-blur-2xl border border-gray-200 dark:border-white/[0.08] rounded-3xl p-6 w-full max-w-sm shadow-2xl">
-            <h2 class="text-lg font-black text-gray-900 dark:text-white mb-1 capitalize">{{ modalMovimento }}</h2>
-            <p class="text-xs text-gray-500 dark:text-white/40 mb-5">
-              {{ modalMovimento === 'sangria' ? 'Retirada de dinheiro do caixa' : 'Entrada de dinheiro no caixa' }}
-            </p>
+            <div class="flex items-start justify-between mb-5">
+              <div>
+                <h2 class="text-lg font-black text-gray-900 dark:text-white capitalize">{{ modalMovimento }}</h2>
+                <p class="text-xs text-gray-500 dark:text-white/40 mt-0.5">
+                  {{ modalMovimento === 'sangria' ? 'Retirada de dinheiro do caixa' : 'Entrada de dinheiro no caixa' }}
+                </p>
+              </div>
+              <button @click="modalMovimento = null" class="w-8 h-8 rounded-xl bg-gray-100 dark:bg-white/[0.06] hover:bg-red-950/40 hover:text-red-500 text-gray-500 dark:text-white/60 flex items-center justify-center transition-all shrink-0">
+                <X :size="15" />
+              </button>
+            </div>
             <label for="mov-valor" class="block text-[10px] font-black uppercase tracking-widest text-gray-500 dark:text-white/40 mb-2">Valor (R$)</label>
             <input id="mov-valor" name="mov-valor" v-model="movForm.valor" type="number" min="0.01" step="0.01" placeholder="0,00"
               class="w-full h-12 px-4 bg-gray-50 dark:bg-white/[0.06] border border-gray-200 dark:border-white/10 rounded-2xl text-gray-900 dark:text-white font-bold text-sm outline-none focus:border-orange-500 transition-all mb-3" />
@@ -391,7 +398,12 @@
       <Transition name="fade">
         <div v-if="movEstorno" class="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4" @click.self="movEstorno = null">
           <div class="bg-white dark:bg-neutral-900/90 backdrop-blur-2xl border border-gray-200 dark:border-white/[0.08] rounded-3xl p-6 w-full max-w-sm shadow-2xl">
-            <h2 class="text-lg font-black text-gray-900 dark:text-white mb-1">Estornar pagamento</h2>
+            <div class="flex items-start justify-between mb-1">
+              <h2 class="text-lg font-black text-gray-900 dark:text-white">Estornar pagamento</h2>
+              <button @click="movEstorno = null" class="w-8 h-8 rounded-xl bg-gray-100 dark:bg-white/[0.06] hover:bg-red-950/40 hover:text-red-500 text-gray-500 dark:text-white/60 flex items-center justify-center transition-all shrink-0">
+                <X :size="15" />
+              </button>
+            </div>
             <p class="text-xs text-gray-500 dark:text-white/40 mb-1 truncate">{{ movEstorno.descricao || 'Pagamento' }}</p>
             <p class="text-base font-black text-red-400 mb-5">R$ {{ fmt(movEstorno.valor) }}</p>
 
@@ -426,7 +438,7 @@ import { ref, computed, onMounted, onUnmounted, reactive } from 'vue'
 import {
   LockKeyhole, RefreshCw, LayoutGrid, Wallet,
   ArrowLeftRight, ArrowUpRight, ArrowDownLeft,
-  History, Undo2, ChevronDown
+  History, Undo2, ChevronDown, X
 } from 'lucide-vue-next'
 import Navbar from '~/layouts/Navbar.vue'
 import Sidebar from '~/components/Sidebar.vue'

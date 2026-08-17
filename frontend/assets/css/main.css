@@ -36,27 +36,43 @@
     @apply bg-orange-500/30 text-orange-100;
   }
 
+  /* ── Scrollbars (Chromium) ── */
   ::-webkit-scrollbar {
-    width: 5px;
-    height: 5px;
+    width: 6px;
+    height: 6px;
   }
-
   ::-webkit-scrollbar-track {
     background: transparent;
   }
-
   ::-webkit-scrollbar-thumb {
-    @apply bg-white/[0.08] rounded-full;
+    background: rgba(255, 255, 255, 0.14);
+    border-radius: 9999px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.24);
   }
   html:not(.dark) ::-webkit-scrollbar-thumb {
-    background: rgba(0,0,0,0.12);
-  }
-
-  ::-webkit-scrollbar-thumb:hover {
-    @apply bg-white/[0.14];
+    background: rgba(0, 0, 0, 0.16);
   }
   html:not(.dark) ::-webkit-scrollbar-thumb:hover {
-    background: rgba(0,0,0,0.2);
+    background: rgba(0, 0, 0, 0.28);
+  }
+
+  /* ── Scrollbars (Firefox) ── */
+  html {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 255, 255, 0.14) transparent;
+  }
+  html:not(.dark) {
+    scrollbar-color: rgba(0, 0, 0, 0.16) transparent;
+  }
+
+  /* ── Select: respeita dark/light no dropdown nativo ── */
+  select {
+    color-scheme: light;
+  }
+  html.dark select {
+    color-scheme: dark;
   }
 }
 

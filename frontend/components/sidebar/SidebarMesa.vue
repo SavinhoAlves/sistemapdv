@@ -238,7 +238,12 @@
         >
           <div class="w-full bg-white dark:bg-neutral-900/95 backdrop-blur-2xl border border-gray-200 dark:border-white/[0.08] rounded-t-3xl p-6 space-y-5">
 
-            <h3 class="text-lg font-black text-gray-900 dark:text-white">Abater valor</h3>
+            <div class="flex items-center justify-between">
+              <h3 class="text-lg font-black text-gray-900 dark:text-white">Abater valor</h3>
+              <button @click="fecharModalAbater" class="w-8 h-8 rounded-xl bg-gray-100 dark:bg-white/[0.06] hover:bg-red-950/40 hover:text-red-500 text-gray-500 dark:text-white/60 flex items-center justify-center transition-all">
+                <X :size="15" />
+              </button>
+            </div>
 
             <div class="bg-gray-50 dark:bg-white/5 rounded-2xl p-4 flex justify-between items-center">
               <span class="text-sm text-gray-500 dark:text-white/40 font-bold">Total atual</span>
@@ -303,7 +308,12 @@
         >
           <div class="w-full bg-white dark:bg-neutral-900/95 backdrop-blur-2xl border border-gray-200 dark:border-white/[0.08] rounded-t-3xl p-6 space-y-5">
 
-            <h3 class="text-lg font-black text-gray-900 dark:text-white">Aplicar desconto</h3>
+            <div class="flex items-center justify-between">
+              <h3 class="text-lg font-black text-gray-900 dark:text-white">Aplicar desconto</h3>
+              <button @click="fecharModalDesconto" class="w-8 h-8 rounded-xl bg-gray-100 dark:bg-white/[0.06] hover:bg-red-950/40 hover:text-red-500 text-gray-500 dark:text-white/60 flex items-center justify-center transition-all">
+                <X :size="15" />
+              </button>
+            </div>
 
             <!-- toggle % / R$ -->
             <div class="flex bg-gray-100 dark:bg-white/5 rounded-xl p-1 gap-1">
@@ -405,6 +415,7 @@ import {
   BadgePercent,
   Plus,
   Minus,
+  X,
 } from 'lucide-vue-next'
 import MenuFlutuanteProduto from '../modals/MenuFlutuanteProduto.vue'
 import ModalPagamento from '../modals/ModalPagamento.vue'

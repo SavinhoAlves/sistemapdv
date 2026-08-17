@@ -245,9 +245,14 @@
       <Transition name="fade">
         <div v-if="modalFunc" class="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4" @click.self="modalFunc = false">
           <div class="bg-white dark:bg-neutral-900/90 backdrop-blur-2xl border border-gray-200 dark:border-white/[0.08] rounded-3xl p-6 w-full max-w-md shadow-2xl">
-            <h2 class="text-lg font-black text-gray-900 dark:text-white mb-5">
-              {{ funcForm.id ? 'Editar Funcionário' : 'Novo Funcionário' }}
-            </h2>
+            <div class="flex items-center justify-between mb-5">
+              <h2 class="text-lg font-black text-gray-900 dark:text-white">
+                {{ funcForm.id ? 'Editar Funcionário' : 'Novo Funcionário' }}
+              </h2>
+              <button @click="modalFunc = false" class="w-8 h-8 rounded-xl bg-gray-100 dark:bg-white/[0.06] hover:bg-red-950/40 hover:text-red-500 text-gray-500 dark:text-white/60 flex items-center justify-center transition-all shrink-0">
+                <X :size="15" />
+              </button>
+            </div>
 
             <div class="space-y-3">
               <div>
@@ -329,7 +334,12 @@
       <Transition name="fade">
         <div v-if="modalCat" class="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4" @click.self="modalCat = false">
           <div class="bg-white dark:bg-neutral-900/90 backdrop-blur-2xl border border-gray-200 dark:border-white/[0.08] rounded-3xl p-6 w-full max-w-sm shadow-2xl">
-            <h2 class="text-lg font-black text-gray-900 dark:text-white mb-5">{{ catForm.id ? 'Editar' : 'Nova' }} Categoria</h2>
+            <div class="flex items-center justify-between mb-5">
+              <h2 class="text-lg font-black text-gray-900 dark:text-white">{{ catForm.id ? 'Editar' : 'Nova' }} Categoria</h2>
+              <button @click="modalCat = false" class="w-8 h-8 rounded-xl bg-gray-100 dark:bg-white/[0.06] hover:bg-red-950/40 hover:text-red-500 text-gray-500 dark:text-white/60 flex items-center justify-center transition-all shrink-0">
+                <X :size="15" />
+              </button>
+            </div>
             <label for="cNome" class="block text-[10px] font-black uppercase tracking-widest text-gray-500 dark:text-white/40 mb-2">Nome *</label>
             <input id="cNome" v-model="catForm.nome" type="text" placeholder="Ex: Bebidas"
               class="w-full h-11 px-4 bg-gray-50 dark:bg-white/[0.06] border border-gray-200 dark:border-white/10 rounded-xl text-gray-900 dark:text-white text-sm outline-none focus:border-orange-500 transition-all placeholder:text-gray-400 dark:placeholder:text-white/25 mb-5" />
@@ -354,9 +364,14 @@
       <Transition name="fade">
         <div v-if="modalPerfil" class="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4" @click.self="modalPerfil = false">
           <div class="bg-white dark:bg-neutral-900/90 backdrop-blur-2xl border border-gray-200 dark:border-white/[0.08] rounded-3xl p-6 w-full max-w-md shadow-2xl max-h-[90vh] overflow-y-auto">
-            <h2 class="text-lg font-black text-gray-900 dark:text-white mb-5">
-              {{ perfilForm.id ? 'Editar Perfil' : 'Novo Perfil' }}
-            </h2>
+            <div class="flex items-center justify-between mb-5">
+              <h2 class="text-lg font-black text-gray-900 dark:text-white">
+                {{ perfilForm.id ? 'Editar Perfil' : 'Novo Perfil' }}
+              </h2>
+              <button @click="modalPerfil = false" class="w-8 h-8 rounded-xl bg-gray-100 dark:bg-white/[0.06] hover:bg-red-950/40 hover:text-red-500 text-gray-500 dark:text-white/60 flex items-center justify-center transition-all shrink-0">
+                <X :size="15" />
+              </button>
+            </div>
 
             <div class="space-y-3 mb-5">
               <div>
@@ -432,7 +447,12 @@
       <Transition name="fade">
         <div v-if="modalMetodoAberto" class="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4" @click.self="modalMetodoAberto = false">
           <div class="bg-white dark:bg-neutral-900/90 backdrop-blur-2xl border border-gray-200 dark:border-white/[0.08] rounded-3xl p-6 w-full max-w-sm shadow-2xl">
-            <h2 class="text-lg font-black text-gray-900 dark:text-white mb-5">Novo Método de Pagamento</h2>
+            <div class="flex items-center justify-between mb-5">
+              <h2 class="text-lg font-black text-gray-900 dark:text-white">Novo Método de Pagamento</h2>
+              <button @click="modalMetodoAberto = false" class="w-8 h-8 rounded-xl bg-gray-100 dark:bg-white/[0.06] hover:bg-red-950/40 hover:text-red-500 text-gray-500 dark:text-white/60 flex items-center justify-center transition-all shrink-0">
+                <X :size="15" />
+              </button>
+            </div>
             <label for="mNome" class="block text-[10px] font-black uppercase tracking-widest text-gray-500 dark:text-white/40 mb-2">Nome *</label>
             <input id="mNome" v-model="novoMetodo" type="text" placeholder="Ex: Pix"
               class="w-full h-11 px-4 bg-gray-50 dark:bg-white/[0.06] border border-gray-200 dark:border-white/10 rounded-xl text-gray-900 dark:text-white text-sm outline-none focus:border-orange-500 transition-all placeholder:text-gray-400 dark:placeholder:text-white/25 mb-5" />

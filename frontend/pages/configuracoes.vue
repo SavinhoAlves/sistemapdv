@@ -134,88 +134,6 @@
             </div>
           </div>
 
-          <!-- ══ CARD: MODO DE OPERAÇÃO ══ -->
-          <div class="bg-white dark:bg-white/5 backdrop-blur-xl rounded-2xl border border-gray-200 dark:border-white/[0.08] overflow-hidden">
-            <div class="px-6 py-5 border-b border-gray-100 dark:border-white/[0.06] flex items-center gap-3">
-              <div class="w-8 h-8 rounded-xl bg-orange-500/10 flex items-center justify-center shrink-0">
-                <LayoutGrid :size="14" class="text-orange-500" />
-              </div>
-              <div>
-                <h2 class="text-sm font-black text-gray-900 dark:text-white">Modo de operação</h2>
-                <p class="text-[11px] text-gray-500 dark:text-white/40 mt-0.5">Selecione um ou ambos os modos de venda disponíveis</p>
-              </div>
-            </div>
-            <div class="p-6">
-              <div class="grid grid-cols-2 gap-4">
-
-                <!-- Opção: Mesas -->
-                <button
-                  @click="toggleModo('mesas')"
-                  class="flex flex-col items-start gap-3 p-5 rounded-2xl border-2 transition-all text-left"
-                  :class="modoAtivo('mesas')
-                    ? 'border-orange-500 bg-orange-500/10'
-                    : 'border-gray-200 dark:border-white/10 hover:border-gray-300 dark:hover:border-white/20'"
-                >
-                  <div class="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
-                    :class="modoAtivo('mesas') ? 'bg-orange-500/20' : 'bg-gray-100 dark:bg-white/[0.06]'">
-                    <LayoutGrid :size="18"
-                      :class="modoAtivo('mesas') ? 'text-orange-500' : 'text-gray-400 dark:text-white/40'" />
-                  </div>
-                  <div>
-                    <p class="text-sm font-black"
-                      :class="modoAtivo('mesas') ? 'text-orange-500' : 'text-gray-700 dark:text-white/80'">
-                      Mesas
-                    </p>
-                    <p class="text-[11px] leading-snug mt-1"
-                      :class="modoAtivo('mesas') ? 'text-orange-400/80' : 'text-gray-400 dark:text-white/40'">
-                      Abertura de mesa, pedidos individuais e fechamento de conta
-                    </p>
-                  </div>
-                  <div v-if="modoAtivo('mesas')"
-                    class="flex items-center gap-1.5 text-[10px] font-black text-orange-500 uppercase tracking-wider">
-                    <CheckCircle :size="11" />
-                    Ativo
-                  </div>
-                </button>
-
-                <!-- Opção: Venda Direta -->
-                <button
-                  @click="toggleModo('direta')"
-                  class="flex flex-col items-start gap-3 p-5 rounded-2xl border-2 transition-all text-left"
-                  :class="modoAtivo('direta')
-                    ? 'border-orange-500 bg-orange-500/10'
-                    : 'border-gray-200 dark:border-white/10 hover:border-gray-300 dark:hover:border-white/20'"
-                >
-                  <div class="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
-                    :class="modoAtivo('direta') ? 'bg-orange-500/20' : 'bg-gray-100 dark:bg-white/[0.06]'">
-                    <Receipt :size="18"
-                      :class="modoAtivo('direta') ? 'text-orange-500' : 'text-gray-400 dark:text-white/40'" />
-                  </div>
-                  <div>
-                    <p class="text-sm font-black"
-                      :class="modoAtivo('direta') ? 'text-orange-500' : 'text-gray-700 dark:text-white/80'">
-                      Venda direta
-                    </p>
-                    <p class="text-[11px] leading-snug mt-1"
-                      :class="modoAtivo('direta') ? 'text-orange-400/80' : 'text-gray-400 dark:text-white/40'">
-                      Ficha por produto, sem abertura de mesas — ideal para bares e lanchonetes
-                    </p>
-                  </div>
-                  <div v-if="modoAtivo('direta')"
-                    class="flex items-center gap-1.5 text-[10px] font-black text-orange-500 uppercase tracking-wider">
-                    <CheckCircle :size="11" />
-                    Ativo
-                  </div>
-                </button>
-
-              </div>
-              <p v-if="form.modo_venda === 'ambos'" class="mt-3 text-[11px] text-orange-500/80 font-bold flex items-center gap-1.5">
-                <CheckCircle :size="12" />
-                Ambos os modos ativos — o operador escolhe ao iniciar a venda
-              </p>
-            </div>
-          </div>
-
           <!-- ══ CARD: FICHAS ══ -->
           <div class="bg-white dark:bg-white/5 backdrop-blur-xl rounded-2xl border border-gray-200 dark:border-white/[0.08] overflow-hidden">
             <div class="px-6 py-5 border-b border-gray-100 dark:border-white/[0.06] flex items-center gap-3">
@@ -840,7 +758,7 @@
 import { ref, reactive, computed, onMounted } from 'vue'
 import {
   ImageIcon, Upload, Trash2, Save, Loader2, UtensilsCrossed, Printer, FileText, Eye, EyeOff,
-  Minus, Plus, Plug, CreditCard, RefreshCw, CheckCircle, LayoutGrid, Receipt, Ruler, ShieldCheck,
+  Minus, Plus, Plug, CreditCard, RefreshCw, CheckCircle, Ruler, ShieldCheck,
   ChevronDown
 } from 'lucide-vue-next'
 import Navbar from '~/layouts/Navbar.vue'
@@ -991,7 +909,6 @@ const form = reactive({
   impressora_host:          '',
   impressora_porta:         9100,
   taxa_servico_pct:         10,
-  modo_venda:               'mesas' as 'mesas' | 'direta' | 'ambos',
   rfid_ativo:               true
 })
 
@@ -1009,7 +926,6 @@ onMounted(async () => {
   form.impressora_host          = configStore.impressora_host
   form.impressora_porta         = configStore.impressora_porta
   form.taxa_servico_pct         = configStore.taxa_servico_pct
-  form.modo_venda               = configStore.modo_venda
   form.rfid_ativo               = configStore.rfid_ativo
 
   await mpStore.carregar()
@@ -1018,21 +934,6 @@ onMounted(async () => {
 
   await carregarImpressoras()
 })
-
-function modoAtivo(modo: 'mesas' | 'direta') {
-  return form.modo_venda === modo || form.modo_venda === 'ambos'
-}
-
-function toggleModo(modo: 'mesas' | 'direta') {
-  const outra = modo === 'mesas' ? 'direta' : 'mesas'
-  if (form.modo_venda === 'ambos') {
-    form.modo_venda = outra
-  } else if (form.modo_venda === modo) {
-    // não desativa o único modo ativo
-  } else {
-    form.modo_venda = 'ambos'
-  }
-}
 
 async function buscarDispositivos() {
   mp.buscandoDispositivos = true
@@ -1094,7 +995,6 @@ async function salvar() {
         impressora_host:          form.impressora_host.trim(),
         impressora_porta:         form.impressora_porta || 9100,
         taxa_servico_pct:         Math.min(30, Math.max(0, Number(form.taxa_servico_pct) || 0)),
-        modo_venda:               form.modo_venda,
         rfid_ativo:               form.rfid_ativo
       }),
       mpStore.salvar({

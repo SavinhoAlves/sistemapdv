@@ -179,6 +179,9 @@
 
             <!-- resumo das permissões -->
             <div class="flex flex-wrap gap-1.5">
+              <span class="text-[10px] font-black px-2 py-0.5 rounded-full bg-sky-500/10 text-sky-500 dark:text-sky-400 border border-sky-500/20">
+                {{ { mesas: 'Mesas', direta: 'Venda Direta', ambos: 'Ambos' }[p.permissoes?.modo_venda as string || 'ambos'] || 'Ambos' }}
+              </span>
               <template v-for="grupo in GRUPOS_PERMISSOES" :key="grupo.label">
                 <template v-for="item in grupo.itens" :key="item.key">
                   <span v-if="p.permissoes[item.key]"
@@ -187,7 +190,7 @@
                   </span>
                 </template>
               </template>
-              <span v-if="!Object.values(p.permissoes).some(Boolean)"
+              <span v-if="!GRUPOS_PERMISSOES.some(g => g.itens.some(i => p.permissoes[i.key]))"
                 class="text-[10px] text-gray-400 dark:text-white/20 italic">Nenhuma permissão ativa</span>
             </div>
           </div>
@@ -363,6 +366,23 @@
               </div>
             </div>
 
+            <!-- Modo de operação -->
+            <div class="mb-5">
+              <label class="block text-[10px] font-black uppercase tracking-widest text-gray-500 dark:text-white/40 mb-1.5">Modo de operação</label>
+              <p class="text-[11px] text-gray-400 dark:text-white/35 mb-2">Define quais módulos de venda este perfil acessa</p>
+              <div class="grid grid-cols-3 gap-2">
+                <button v-for="m in MODOS_VENDA" :key="m.value"
+                  type="button"
+                  @click="perfilForm.modo_venda = m.value"
+                  class="h-10 rounded-xl text-xs font-black border transition-all"
+                  :class="perfilForm.modo_venda === m.value
+                    ? 'bg-orange-500 border-orange-500 text-white'
+                    : 'bg-gray-50 dark:bg-white/[0.04] border-gray-200 dark:border-white/[0.08] text-gray-500 dark:text-white/40 hover:border-orange-400/50'">
+                  {{ m.label }}
+                </button>
+              </div>
+            </div>
+
             <!-- Permissões agrupadas -->
             <div class="space-y-4">
               <div v-for="grupo in GRUPOS_PERMISSOES" :key="grupo.label">
@@ -472,6 +492,12 @@ const api        = useApi()
 const toastStore = useToastStore()
 const authStore  = useAuthStore()
 
+const MODOS_VENDA = [
+  { value: 'mesas',  label: 'Mesas'       },
+  { value: 'direta', label: 'Venda Direta' },
+  { value: 'ambos',  label: 'Ambos'        },
+] as const
+
 const GRUPOS_PERMISSOES = [
   { label: 'Atendimento', itens: [
     { key: 'adicionarPedido',    label: 'Adicionar e editar pedidos' },
@@ -577,6 +603,7 @@ const perfilForm = reactive({
   id: null as number | null,
   nome: '',
   descricao: '',
+  modo_venda: 'ambos' as 'mesas' | 'direta' | 'ambos',
   permissoes: todasPermissoesFalse() as Record<string, boolean>
 })
 
@@ -587,14 +614,17 @@ async function carregarPerfis() {
 function abrirModalPerfil(p: any) {
   erroPerfil.value = ''
   if (p) {
+    const { modo_venda: mv, ...restPerms } = p.permissoes || {}
     perfilForm.id = p.id
     perfilForm.nome = p.nome
     perfilForm.descricao = p.descricao || ''
-    perfilForm.permissoes = { ...todasPermissoesFalse(), ...p.permissoes }
+    perfilForm.modo_venda = (mv as 'mesas' | 'direta' | 'ambos') || 'ambos'
+    perfilForm.permissoes = { ...todasPermissoesFalse(), ...restPerms }
   } else {
     perfilForm.id = null
     perfilForm.nome = ''
     perfilForm.descricao = ''
+    perfilForm.modo_venda = 'ambos'
     perfilForm.permissoes = todasPermissoesFalse()
   }
   modalPerfil.value = true
@@ -604,7 +634,8 @@ async function salvarPerfil() {
   if (!perfilForm.nome.trim()) { erroPerfil.value = 'Nome é obrigatório'; return }
   salvandoPerfil.value = true; erroPerfil.value = ''
   try {
-    const payload = { nome: perfilForm.nome, descricao: perfilForm.descricao, permissoes: perfilForm.permissoes }
+    const permissoes = { ...perfilForm.permissoes, modo_venda: perfilForm.modo_venda }
+    const payload = { nome: perfilForm.nome, descricao: perfilForm.descricao, permissoes }
     if (perfilForm.id) await api.perfis.atualizar(perfilForm.id, payload)
     else await api.perfis.criar(payload)
     toastStore.success(perfilForm.id ? 'Perfil atualizado!' : 'Perfil criado!')

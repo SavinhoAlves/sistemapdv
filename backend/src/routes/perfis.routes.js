@@ -62,6 +62,7 @@ router.post('/seed', authenticate, authorize('administrador'), async (req, res) 
       nome: 'Garçom',
       descricao: 'Atendimento nas mesas — abre, serve e fecha contas',
       permissoes: {
+        modo_venda:            'mesas',
         adicionarPedido:       true,
         cancelarItemPedido:    true,
         abrirMesa:             true,
@@ -77,6 +78,7 @@ router.post('/seed', authenticate, authorize('administrador'), async (req, res) 
       nome: 'Caixa',
       descricao: 'Operação financeira — recebe pagamentos e gerencia o caixa',
       permissoes: {
+        modo_venda:            'direta',
         adicionarPedido:       true,
         cancelarItemPedido:    true,
         abrirMesa:             false,
@@ -92,6 +94,7 @@ router.post('/seed', authenticate, authorize('administrador'), async (req, res) 
       nome: 'Vendedor',
       descricao: 'Venda direta no balcão — sem gestão de mesas',
       permissoes: {
+        modo_venda:            'direta',
         adicionarPedido:       true,
         cancelarItemPedido:    true,
         abrirMesa:             false,
@@ -107,6 +110,7 @@ router.post('/seed', authenticate, authorize('administrador'), async (req, res) 
       nome: 'Cozinheiro',
       descricao: 'Visualização e preparo dos pedidos na cozinha',
       permissoes: {
+        modo_venda:            'ambos',
         adicionarPedido:       false,
         cancelarItemPedido:    false,
         abrirMesa:             false,
@@ -122,6 +126,7 @@ router.post('/seed', authenticate, authorize('administrador'), async (req, res) 
       nome: 'Gerente',
       descricao: 'Supervisão operacional completa — exceto configurações do sistema',
       permissoes: {
+        modo_venda:            'ambos',
         adicionarPedido:       true,
         cancelarItemPedido:    true,
         abrirMesa:             true,

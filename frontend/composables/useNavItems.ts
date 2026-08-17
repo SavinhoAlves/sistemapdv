@@ -44,13 +44,14 @@ export function useNavItems() {
       { rota: '/configuracoes', label: 'Configurações', icon: Settings    }
     ]
 
-    // Com perfil atribuído: nav baseada nas permissões configuradas
+    // Com perfil atribuído: nav baseada nas permissões e modo de operação do perfil
     if (permissoes && Object.keys(permissoes).length > 0) {
+      const modo  = (permissoes.modo_venda as string) || 'ambos'
       const itens: NavItem[] = []
       const vistas = new Set<string>()
 
       // Dashboard visível se tiver ao menos uma permissão ativa
-      const temAlguma = Object.values(permissoes).some(Boolean)
+      const temAlguma = Object.values(permissoes).some(v => v === true)
       if (temAlguma) {
         itens.push({ rota: '/', label: 'Dashboard', icon: BarChart2 })
         vistas.add('/')
@@ -58,6 +59,9 @@ export function useNavItems() {
 
       for (const { perms, rota, label, icon } of MAPA_PERMISSOES) {
         if (vistas.has(rota)) continue
+        // Filtra por modo de operação do perfil
+        if (rota === '/mesas'  && modo === 'direta') continue
+        if (rota === '/vendas' && modo === 'mesas')  continue
         if (perms.some(p => permissoes[p])) {
           itens.push({ rota, label, icon })
           vistas.add(rota)

@@ -133,6 +133,11 @@
         <div class="flex items-center justify-between mb-4">
           <p class="text-sm text-gray-500 dark:text-white/50">{{ perfis.length }} perfil(s)</p>
           <div class="flex items-center gap-2">
+            <button v-if="perfis.length" @click="seedPerfis(true)" :disabled="seedando"
+              class="h-9 px-4 rounded-xl border border-white/10 text-gray-400 dark:text-white/40 text-xs font-black hover:bg-white/5 disabled:opacity-50 transition-all flex items-center gap-1.5">
+              <RefreshCw :size="13" :class="seedando ? 'animate-spin' : ''" />
+              Recriar padrão
+            </button>
             <button v-if="perfis.length" @click="autoAtribuirPerfis" :disabled="atribuindo"
               class="h-9 px-4 rounded-xl border border-orange-500/30 text-orange-500 dark:text-orange-400 text-xs font-black hover:bg-orange-500/10 disabled:opacity-50 transition-all flex items-center gap-1.5">
               <Users :size="13" />
@@ -478,7 +483,7 @@
 
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue'
-import { Users, Tag, CreditCard, Plus, Pencil, Trash2, ChefHat, ShieldCheck, X, QrCode, Loader2 } from 'lucide-vue-next'
+import { Users, Tag, CreditCard, Plus, Pencil, Trash2, ChefHat, ShieldCheck, X, QrCode, Loader2, RefreshCw } from 'lucide-vue-next'
 import QRCode from 'qrcode'
 import Navbar from '~/layouts/Navbar.vue'
 import Sidebar from '~/components/Sidebar.vue'
@@ -654,11 +659,11 @@ async function excluirPerfil(p: any) {
 }
 
 const seedando = ref(false)
-async function seedPerfis() {
+async function seedPerfis(force = false) {
   seedando.value = true
   try {
-    await api.post('/perfis/seed')
-    toastStore.success('Perfis padrão criados!')
+    await api.post(`/perfis/seed${force ? '?force=true' : ''}`)
+    toastStore.success(force ? 'Perfis padrão recriados!' : 'Perfis padrão criados!')
     await carregarPerfis()
   } catch (e: any) { toastStore.error(e?.message || 'Erro ao criar perfis padrão') }
   finally { seedando.value = false }

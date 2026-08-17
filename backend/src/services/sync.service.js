@@ -1,7 +1,11 @@
 const crypto = require('crypto')
 const { query } = require('../database/connection')
 
-const INTERVALO_MS = (Number(process.env.SYNC_INTERVALO_SEG) || 30) * 1000
+const INTERVALO_MS  = (Number(process.env.SYNC_INTERVALO_SEG) || 30) * 1000
+const TIMEOUT_MS    = Number(process.env.SYNC_TIMEOUT_MS) || 8000
+const BACKOFF_MAX   = 10 * 60 * 1000 // 10 min teto de backoff
+
+let falhasConsecutivas = 0
 
 // Garante a linha singleton (id=1) com um instalacao_uuid definido —
 // gerado uma única vez, sobrevive a reativação de licença (tabela própria,
@@ -103,7 +107,7 @@ async function sincronizar() {
         Authorization: `Bearer ${config.sync_token}`
       },
       body: JSON.stringify({ instalacaoUuid: config.instalacao_uuid, ...snapshot }),
-      signal: AbortSignal.timeout(5000)
+      signal: AbortSignal.timeout(TIMEOUT_MS)
     })
 
     if (resposta.status === 401) {
@@ -191,8 +195,13 @@ async function sincronizar() {
        WHERE id = 1`,
       [dados.vendaMobilePermitida ? 1 : 0, dados.suspenso ? 1 : 0]
     )
+    falhasConsecutivas = 0 // reset backoff no sucesso
   } catch (err) {
-    console.error('[SYNC] Falha na sincronização com a central:', err.message)
+    falhasConsecutivas++
+    // Loga apenas na primeira falha e a cada 5ª seguinte (evita spam no console)
+    if (falhasConsecutivas === 1 || falhasConsecutivas % 5 === 0) {
+      console.error(`[SYNC] Falha na sincronização com a central (tentativa ${falhasConsecutivas}): ${err.message}`)
+    }
     try {
       await query(
         `UPDATE sync_config SET ultimo_sync_sucesso = 0, ultimo_sync_erro = ? WHERE id = 1`,
@@ -202,13 +211,18 @@ async function sincronizar() {
   }
 }
 
-// Roda uma vez logo após o boot (com um pequeno atraso pra deixar o server
-// terminar de subir) e depois a cada SYNC_INTERVALO_SEG segundos (padrão: 30s).
+// Roda logo após o boot e reagenda com backoff exponencial em caso de falha.
+// 0 falhas → INTERVALO_MS (padrão 30s)
+// 1 falha   → 60s, 2 → 120s, 3 → 240s, 4 → 480s, 5+ → 600s (BACKOFF_MAX)
 function agendarSync() {
-  setTimeout(() => {
-    sincronizar()
-    setInterval(sincronizar, INTERVALO_MS)
-  }, 10000)
+  async function ciclo() {
+    await sincronizar()
+    const delay = falhasConsecutivas > 0
+      ? Math.min(INTERVALO_MS * Math.pow(2, Math.min(falhasConsecutivas, 5)), BACKOFF_MAX)
+      : INTERVALO_MS
+    setTimeout(ciclo, delay)
+  }
+  setTimeout(ciclo, 10000) // aguarda 10s após o boot
 }
 
 module.exports = { agendarSync, sincronizar, coletarSnapshot, garantirInstalacaoUuid }

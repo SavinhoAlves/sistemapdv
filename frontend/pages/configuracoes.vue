@@ -649,6 +649,108 @@
             </div>
           </div>
 
+          <!-- ══ CARD: CENTRAL DE SUPORTE ══ -->
+          <div class="bg-white dark:bg-white/5 backdrop-blur-xl rounded-2xl border border-gray-200 dark:border-white/[0.08] overflow-hidden">
+            <div class="px-6 py-5 border-b border-gray-100 dark:border-white/[0.06] flex items-center gap-3">
+              <div class="w-8 h-8 rounded-xl bg-indigo-500/10 flex items-center justify-center shrink-0">
+                <Wifi :size="14" class="text-indigo-500" />
+              </div>
+              <div class="flex-1">
+                <h2 class="text-sm font-black text-gray-900 dark:text-white">Central de Suporte</h2>
+                <p class="text-[11px] text-gray-500 dark:text-white/40 mt-0.5">Sincronização com o painel de gestão de licenças</p>
+              </div>
+              <!-- badge de status -->
+              <span v-if="sync.carregado && sync.configurado" class="text-[10px] font-black px-2.5 py-1 rounded-full flex items-center gap-1.5"
+                :class="sync.falhas > 0
+                  ? 'bg-red-500/10 text-red-500 dark:text-red-400'
+                  : sync.sucesso === false
+                    ? 'bg-yellow-500/10 text-yellow-600 dark:text-yellow-400'
+                    : 'bg-green-500/10 text-green-600 dark:text-green-400'">
+                <span class="w-1.5 h-1.5 rounded-full"
+                  :class="sync.falhas > 0 ? 'bg-red-500' : sync.sucesso === false ? 'bg-yellow-500' : 'bg-green-500'" />
+                {{ sync.falhas > 0 ? `${sync.falhas} falha(s)` : sync.sucesso === false ? 'Erro' : 'Sincronizado' }}
+              </span>
+            </div>
+
+            <div class="p-6 space-y-4">
+
+              <!-- Não configurado -->
+              <template v-if="sync.carregado && !sync.configurado">
+                <p class="text-xs text-gray-500 dark:text-white/40">
+                  A sincronização com a central não está configurada. Informe a URL e o token fornecidos pelo suporte.
+                </p>
+                <div class="space-y-3">
+                  <div>
+                    <label class="label">URL da central</label>
+                    <input v-model="sync.novaUrl" type="url" placeholder="https://central.exemplo.com"
+                      class="w-full h-11 px-4 bg-gray-50 dark:bg-white/[0.06] border border-gray-200 dark:border-white/10 rounded-xl text-sm text-gray-900 dark:text-white outline-none focus:border-indigo-500/70 transition-all placeholder:text-gray-400 dark:placeholder:text-white/25 font-mono" />
+                  </div>
+                  <div>
+                    <label class="label">Token de sincronização</label>
+                    <input v-model="sync.novoToken" type="password" placeholder="••••••••••••••••"
+                      class="w-full h-11 px-4 bg-gray-50 dark:bg-white/[0.06] border border-gray-200 dark:border-white/10 rounded-xl text-sm text-gray-900 dark:text-white outline-none focus:border-indigo-500/70 transition-all placeholder:text-gray-400 dark:placeholder:text-white/25 font-mono" />
+                  </div>
+                  <button @click="conectarCentral" :disabled="!sync.novaUrl.trim() || !sync.novoToken.trim() || sync.conectando"
+                    class="h-10 px-5 rounded-xl bg-indigo-500 hover:bg-indigo-400 active:scale-95 disabled:opacity-40 text-white text-xs font-black transition-all flex items-center gap-2">
+                    <Loader2 v-if="sync.conectando" :size="13" class="animate-spin" />
+                    <Wifi v-else :size="13" />
+                    {{ sync.conectando ? 'Conectando…' : 'Conectar' }}
+                  </button>
+                  <p v-if="sync.erroConexao" class="text-xs text-red-500 font-bold">{{ sync.erroConexao }}</p>
+                </div>
+              </template>
+
+              <!-- Configurado -->
+              <template v-else-if="sync.carregado && sync.configurado">
+                <!-- URL da central -->
+                <div class="flex items-center gap-3 bg-gray-50 dark:bg-white/[0.04] border border-gray-100 dark:border-white/[0.06] rounded-xl px-4 py-3">
+                  <Link2 :size="14" class="text-indigo-400 shrink-0" />
+                  <span class="text-xs font-mono text-gray-600 dark:text-white/60 truncate flex-1">{{ sync.centralUrl }}</span>
+                </div>
+
+                <!-- último sync -->
+                <div v-if="sync.ultimoSyncEm" class="text-xs text-gray-500 dark:text-white/40 flex items-center gap-2">
+                  <component :is="sync.sucesso ? CheckCircle : AlertTriangle" :size="13"
+                    :class="sync.sucesso ? 'text-green-500' : 'text-yellow-500'" />
+                  <span v-if="sync.sucesso">Último sync: {{ fmtSyncDate(sync.ultimoSyncEm) }}</span>
+                  <span v-else>Falhou em: {{ fmtSyncDate(sync.ultimoSyncEm) }}</span>
+                </div>
+
+                <!-- mensagem de erro -->
+                <div v-if="sync.erro" class="bg-red-500/[0.08] border border-red-500/20 rounded-xl px-4 py-3">
+                  <p class="text-[11px] font-black text-red-500 dark:text-red-400 mb-0.5">Erro na sincronização</p>
+                  <p class="text-[11px] text-red-400/80 font-mono break-all">{{ sync.erro }}</p>
+                  <p v-if="sync.falhas > 1" class="text-[10px] text-red-400/60 mt-1">
+                    Próxima tentativa com backoff exponencial ({{ sync.falhas }} falha(s) consecutiva(s))
+                  </p>
+                </div>
+
+                <!-- ações -->
+                <div class="flex gap-2 flex-wrap">
+                  <button @click="sincronizarAgora" :disabled="sync.sincronizando"
+                    class="h-9 px-4 rounded-xl bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/20 text-indigo-500 dark:text-indigo-400 text-xs font-black transition-all flex items-center gap-1.5 disabled:opacity-50">
+                    <Loader2 v-if="sync.sincronizando" :size="13" class="animate-spin" />
+                    <RefreshCw v-else :size="13" />
+                    {{ sync.sincronizando ? 'Sincronizando…' : 'Sincronizar agora' }}
+                  </button>
+                  <button @click="desconectarCentral" :disabled="sync.desconectando"
+                    class="h-9 px-4 rounded-xl border border-red-500/20 text-red-500 dark:text-red-400 text-xs font-black hover:bg-red-500/10 transition-all flex items-center gap-1.5 disabled:opacity-50">
+                    <Loader2 v-if="sync.desconectando" :size="13" class="animate-spin" />
+                    <WifiOff v-else :size="13" />
+                    {{ sync.desconectando ? 'Desconectando…' : 'Desconectar' }}
+                  </button>
+                </div>
+              </template>
+
+              <!-- Carregando -->
+              <div v-else class="flex items-center gap-2 py-2">
+                <Loader2 :size="15" class="animate-spin text-indigo-400" />
+                <span class="text-xs text-gray-400 dark:text-white/30">Carregando status…</span>
+              </div>
+
+            </div>
+          </div>
+
           <!-- ══ CARD: ACESSO ══ -->
           <div class="bg-white dark:bg-white/5 backdrop-blur-xl rounded-2xl border border-gray-200 dark:border-white/[0.08] overflow-hidden">
             <div class="px-6 py-5 border-b border-gray-100 dark:border-white/[0.06] flex items-center gap-3">
@@ -759,7 +861,7 @@ import { ref, reactive, computed, onMounted } from 'vue'
 import {
   ImageIcon, Upload, Trash2, Save, Loader2, UtensilsCrossed, Printer, FileText, Eye, EyeOff,
   Minus, Plus, Plug, CreditCard, RefreshCw, CheckCircle, Ruler, ShieldCheck,
-  ChevronDown
+  ChevronDown, Wifi, WifiOff, Link2, AlertTriangle
 } from 'lucide-vue-next'
 import Navbar from '~/layouts/Navbar.vue'
 import Sidebar from '~/components/Sidebar.vue'
@@ -912,6 +1014,106 @@ const form = reactive({
   rfid_ativo:               true
 })
 
+// ── Central de Suporte ──────────────────────────────────────
+const sync = reactive({
+  carregado:     false,
+  configurado:   false,
+  centralUrl:    '',
+  ultimoSyncEm:  null as string | null,
+  sucesso:       null as boolean | null,
+  erro:          null as string | null,
+  falhas:        0,
+  // ações
+  sincronizando: false,
+  desconectando: false,
+  conectando:    false,
+  erroConexao:   '',
+  // form de conexão
+  novaUrl:       '',
+  novoToken:     '',
+})
+
+function fmtSyncDate(iso: string | null) {
+  if (!iso) return '—'
+  const d = new Date(iso)
+  if (isNaN(d.getTime())) return '—'
+  const diff = Math.floor((Date.now() - d.getTime()) / 60000)
+  if (diff < 1)  return 'agora mesmo'
+  if (diff < 60) return `há ${diff} min`
+  const h = Math.floor(diff / 60)
+  return h < 24 ? `há ${h}h` : d.toLocaleDateString('pt-BR')
+}
+
+async function carregarSyncStatus() {
+  try {
+    const r = await api.get<any>('/sistema/sync/status')
+    sync.carregado   = true
+    sync.configurado = r.configurado
+    sync.centralUrl  = r.centralUrl || ''
+    sync.ultimoSyncEm = r.ultimoSyncEm || null
+    sync.sucesso     = r.ultimoSyncSucesso
+    sync.erro        = r.ultimoSyncErro || null
+    sync.falhas      = r.falhasConsecutivas ?? 0
+  } catch {}
+}
+
+async function sincronizarAgora() {
+  sync.sincronizando = true
+  try {
+    const r = await api.post<any>('/sistema/sync/agora')
+    sync.ultimoSyncEm = r.ultimoSyncEm || null
+    sync.sucesso      = r.ultimoSyncSucesso
+    sync.erro         = r.ultimoSyncErro || null
+    sync.falhas       = r.falhasConsecutivas ?? 0
+    if (r.ultimoSyncSucesso) toastStore.success('Sincronização concluída!')
+    else toastStore.error('Falha na sincronização', sync.erro || '')
+  } catch (e: any) {
+    toastStore.error('Erro ao sincronizar', e?.message)
+  } finally {
+    sync.sincronizando = false
+  }
+}
+
+async function desconectarCentral() {
+  if (!confirm('Desconectar da central? A licença local permanece válida até o vencimento.')) return
+  sync.desconectando = true
+  try {
+    await api.post('/sistema/sync/desconectar')
+    sync.configurado = false
+    sync.centralUrl  = ''
+    sync.sucesso     = null
+    sync.erro        = null
+    sync.falhas      = 0
+    sync.novaUrl     = ''
+    sync.novoToken   = ''
+    toastStore.success('Desconectado da central.')
+  } catch (e: any) {
+    toastStore.error('Erro ao desconectar', e?.message)
+  } finally {
+    sync.desconectando = false
+  }
+}
+
+async function conectarCentral() {
+  sync.erroConexao = ''
+  sync.conectando  = true
+  try {
+    await api.post('/sistema/sync/configurar', {
+      centralUrl: sync.novaUrl.trim(),
+      syncToken:  sync.novoToken.trim()
+    })
+    toastStore.success('Conectado! Sincronizando…')
+    sync.novaUrl   = ''
+    sync.novoToken = ''
+    await carregarSyncStatus()
+    await sincronizarAgora()
+  } catch (e: any) {
+    sync.erroConexao = e?.data?.error || e?.message || 'Erro ao conectar'
+  } finally {
+    sync.conectando = false
+  }
+}
+
 onMounted(async () => {
   await configStore.carregar()
   form.nome_restaurante         = configStore.nome_restaurante
@@ -932,7 +1134,7 @@ onMounted(async () => {
   mp.ativado   = mpStore.mp.ativado
   mp.device_id = mpStore.mp.device_id
 
-  await carregarImpressoras()
+  await Promise.all([carregarImpressoras(), carregarSyncStatus()])
 })
 
 async function buscarDispositivos() {

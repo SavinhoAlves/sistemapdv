@@ -184,10 +184,7 @@ router.get('/status-licenca', async (req, res) => {
 
 // ──────────────────────────────────────────────────
 // POST /api/sistema/sync/configurar
-// Body: { centralUrl: string, syncToken: string }
-// Guarda a URL/token do painel central de suporte. Executado uma única vez
-// no onboarding de cada instalação (só administrador). Diferente de
-// /ativar, esta rota exige login pois o sistema já está licenciado.
+// Body: { centralUrl, syncToken }
 // ──────────────────────────────────────────────────
 router.post('/sync/configurar', authenticate, authorize('administrador'), async (req, res) => {
   const { centralUrl, syncToken } = req.body
@@ -196,15 +193,21 @@ router.post('/sync/configurar', authenticate, authorize('administrador'), async 
     return res.status(400).json({ error: 'Informe centralUrl e syncToken' })
   }
 
+  let url
+  try { url = new URL(centralUrl.trim()) } catch {
+    return res.status(400).json({ error: 'centralUrl não é uma URL válida' })
+  }
+  if (!['http:', 'https:'].includes(url.protocol)) {
+    return res.status(400).json({ error: 'centralUrl deve usar http ou https' })
+  }
+
   try {
     const { garantirInstalacaoUuid } = require('../services/sync.service')
     await garantirInstalacaoUuid()
-
     await query(
       `UPDATE sync_config SET central_url = ?, sync_token = ? WHERE id = 1`,
-      [centralUrl.trim(), syncToken.trim()]
+      [url.origin + url.pathname.replace(/\/$/, ''), syncToken.trim()]
     )
-
     return res.json({ success: true })
   } catch (err) {
     console.error('[SYNC] Erro ao configurar:', err.message)
@@ -213,11 +216,33 @@ router.post('/sync/configurar', authenticate, authorize('administrador'), async 
 })
 
 // ──────────────────────────────────────────────────
+// POST /api/sistema/sync/desconectar
+// Remove as credenciais da central (não revoga a licença local)
+// ──────────────────────────────────────────────────
+router.post('/sync/desconectar', authenticate, authorize('administrador'), async (req, res) => {
+  try {
+    await query(
+      `UPDATE sync_config SET central_url = NULL, sync_token = NULL WHERE id = 1`
+    )
+    console.log('[SYNC] Desconectado da central pelo administrador')
+    return res.json({ success: true })
+  } catch (err) {
+    console.error('[SYNC] Erro ao desconectar:', err.message)
+    return res.status(500).json({ error: 'Erro ao desconectar da central' })
+  }
+})
+
+// ──────────────────────────────────────────────────
 // GET /api/sistema/sync/status
 // ──────────────────────────────────────────────────
 router.get('/sync/status', authenticate, authorize('administrador'), async (req, res) => {
   try {
-    const rows = await query('SELECT central_url, venda_mobile_permitida, ultimo_sync_em, ultimo_sync_sucesso, ultimo_sync_erro FROM sync_config WHERE id = 1')
+    const { getFalhasConsecutivas } = require('../services/sync.service')
+    const rows = await query(`
+      SELECT central_url, venda_mobile_permitida,
+             ultimo_sync_em, ultimo_sync_sucesso, ultimo_sync_erro
+      FROM sync_config WHERE id = 1
+    `)
     if (!rows.length) return res.json({ configurado: false })
     const r = rows[0]
     return res.json({
@@ -226,7 +251,8 @@ router.get('/sync/status', authenticate, authorize('administrador'), async (req,
       vendaMobilePermitida: Boolean(r.venda_mobile_permitida),
       ultimoSyncEm:         r.ultimo_sync_em,
       ultimoSyncSucesso:    r.ultimo_sync_sucesso === null ? null : Boolean(r.ultimo_sync_sucesso),
-      ultimoSyncErro:       r.ultimo_sync_erro || null
+      ultimoSyncErro:       r.ultimo_sync_erro || null,
+      falhasConsecutivas:   getFalhasConsecutivas()
     })
   } catch (err) {
     console.error('[SYNC] Erro ao buscar status:', err.message)
@@ -239,15 +265,19 @@ router.get('/sync/status', authenticate, authorize('administrador'), async (req,
 // ──────────────────────────────────────────────────
 router.post('/sync/agora', authenticate, authorize('administrador'), async (req, res) => {
   try {
-    const { sincronizar } = require('../services/sync.service')
+    const { sincronizar, getFalhasConsecutivas } = require('../services/sync.service')
     await sincronizar()
-    const rows = await query('SELECT ultimo_sync_em, ultimo_sync_sucesso, ultimo_sync_erro FROM sync_config WHERE id = 1')
+    const rows = await query(`
+      SELECT ultimo_sync_em, ultimo_sync_sucesso, ultimo_sync_erro
+      FROM sync_config WHERE id = 1
+    `)
     const r = rows[0] || {}
     return res.json({
-      success:         true,
-      ultimoSyncEm:    r.ultimo_sync_em,
-      ultimoSyncSucesso: r.ultimo_sync_sucesso === null ? null : Boolean(r.ultimo_sync_sucesso),
-      ultimoSyncErro:  r.ultimo_sync_erro || null
+      success:            true,
+      ultimoSyncEm:       r.ultimo_sync_em,
+      ultimoSyncSucesso:  r.ultimo_sync_sucesso === null ? null : Boolean(r.ultimo_sync_sucesso),
+      ultimoSyncErro:     r.ultimo_sync_erro || null,
+      falhasConsecutivas: getFalhasConsecutivas()
     })
   } catch (err) {
     console.error('[SYNC] Erro ao sincronizar:', err.message)

@@ -17,7 +17,7 @@
           <p class="text-sm text-gray-400 dark:text-white/30 mt-1.5 font-medium">Resumo de hoje em tempo real</p>
         </div>
         <button
-          @click="carregar"
+          @click="() => carregar()"
           :class="carregando ? 'opacity-40 pointer-events-none' : 'hover:bg-gray-100 dark:hover:bg-white/[0.08]'"
           class="shrink-0 flex items-center gap-2 h-9 px-4 rounded-xl bg-gray-50 dark:bg-white/[0.05] border border-gray-200 dark:border-white/[0.07] text-gray-500 dark:text-white/50 text-xs font-bold transition-all"
         >

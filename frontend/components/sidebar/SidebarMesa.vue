@@ -415,7 +415,6 @@ import {
   BadgePercent,
   Plus,
   Minus,
-  X,
 } from 'lucide-vue-next'
 import MenuFlutuanteProduto from '../modals/MenuFlutuanteProduto.vue'
 import ModalPagamento from '../modals/ModalPagamento.vue'

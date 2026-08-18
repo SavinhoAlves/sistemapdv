@@ -46,7 +46,7 @@
             <div class="w-6 h-6 rounded-md bg-orange-500/15 border border-orange-500/20 flex items-center justify-center shrink-0">
               <span class="text-[11px] font-black text-orange-400">{{ inicial }}</span>
             </div>
-            <span class="hidden md:block text-xs font-black text-gray-900 dark:text-white">{{ primeiroNome }}</span>
+            <span class="text-xs font-black text-gray-900 dark:text-white">{{ primeiroNome }}</span>
             <ChevronDown
               :size="12"
               class="text-gray-400 dark:text-white/40 transition-transform duration-200"
@@ -70,7 +70,7 @@
               <!-- INFO USUÁRIO -->
               <div class="px-4 py-3 border-b border-gray-100 dark:border-white/[0.06]">
                 <p class="text-xs font-black text-gray-900 dark:text-white">{{ authStore.usuario?.nome }}</p>
-                <p class="text-[11px] text-gray-500 dark:text-white/40 capitalize mt-0.5">{{ authStore.usuario?.cargo }}</p>
+                <p class="text-[11px] text-gray-500 dark:text-white/40 mt-0.5">{{ labelCargo }}</p>
               </div>
 
               <!-- ITENS -->
@@ -388,6 +388,16 @@ const isCozinha = computed(() => cargo.value === 'cozinha')
 const inicial      = computed(() => (authStore.usuario?.nome || 'U')[0].toUpperCase())
 const primeiroNome = computed(() => authStore.usuario?.nome?.split(' ')[0] || '')
 const caixaAberto  = computed(() => caixaStore.aberto)
+
+const LABEL_CARGO: Record<string, string> = {
+  administrador: 'Administrador',
+  garcom:        'Garçom',
+  caixa:         'Caixa',
+  cozinha:       'Cozinheiro',
+}
+const labelCargo = computed(() =>
+  LABEL_CARGO[authStore.usuario?.cargo ?? ''] ?? authStore.usuario?.cargo ?? ''
+)
 
 // Navegação mobile (< sm)
 const { navItems } = useNavItems()

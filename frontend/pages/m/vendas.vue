@@ -267,8 +267,9 @@
                 </div>
               </div>
 
-              <!-- Desconto -->
+              <!-- Desconto (só caixa/admin) -->
               <div
+                v-if="authStore.temPermissao('fecharMesa')"
                 class="flex items-center gap-2.5 rounded-[12px] px-3.5 h-11"
                 style="background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.06);"
               >
@@ -555,7 +556,7 @@ async function carregarProdutos() {
 async function carregarMetodos() {
   try {
     const rows = await api.get<any[]>('/pagamentos/metodos')
-    metodos.value = (rows || []).filter((m: any) => m.ativo)
+    metodos.value = rows || []
   } catch {}
 }
 

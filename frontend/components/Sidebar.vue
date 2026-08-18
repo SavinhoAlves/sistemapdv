@@ -6,6 +6,15 @@
     @click="expandida = false"
   />
 
+  <!-- RFID gate para Vendas -->
+  <ModalRfidAuth
+    v-model="rfidAberto"
+    mensagem="Aproxime o cartão RFID para acessar o PDV de Vendas"
+    :erro="rfidErro"
+    @auth-success="onRfidSuccess"
+    @cancelar="rfidAberto = false"
+  />
+
   <aside
     class="hidden sm:flex fixed left-0 top-0 h-screen z-40 flex-col
            bg-black/40 backdrop-blur-xl border-r border-white/[0.08]
@@ -59,12 +68,13 @@
 </template>
 
 <script setup lang="ts">
-import { watch } from 'vue'
+import { ref, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { sidebarExpandida as expandida } from '~/composables/useSidebar'
 import { useNavItems } from '~/composables/useNavItems'
 import { UtensilsCrossed, LogOut } from 'lucide-vue-next'
 import { useAuthStore } from '~/stores/auth'
+import ModalRfidAuth from '~/components/modals/ModalRfidAuth.vue'
 
 const router    = useRouter()
 const route     = useRoute()
@@ -72,18 +82,36 @@ const authStore = useAuthStore()
 
 const { navItems } = useNavItems()
 
+const rfidAberto = ref(false)
+const rfidErro   = ref('')
+
 function isAtivo(rota: string) {
   if (rota === '/') return route.path === '/'
   return route.path.startsWith(rota)
 }
 
-// Expandida por clique na logo; empurra o conteúdo via classe global no <html>
 watch(expandida, aberta => {
   document.documentElement.classList.toggle('sidebar-expandida', aberta)
 }, { immediate: true })
 
 function navegar(rota: string) {
   expandida.value = false
+  if (rota === '/vendas') {
+    rfidErro.value   = ''
+    rfidAberto.value = true
+    return
+  }
   router.push(rota)
+}
+
+async function onRfidSuccess(codigo: string) {
+  rfidErro.value = ''
+  const ok = await authStore.loginWithRfid(codigo)
+  if (ok) {
+    rfidAberto.value = false
+    router.push('/vendas')
+  } else {
+    rfidErro.value = 'Cartão não reconhecido. Tente novamente.'
+  }
 }
 </script>

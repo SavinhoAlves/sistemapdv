@@ -19,6 +19,9 @@
               <h2 class="text-xl font-black text-gray-900 dark:text-white truncate">
                 {{ mesa?.cliente || 'Sem cliente' }}
               </h2>
+              <p v-if="rfidAtivo && garcomRfid" class="text-[11px] font-bold text-orange-400 mt-0.5">
+                Garçom: {{ garcomRfid.nome }}
+              </p>
               <p class="text-xs text-gray-500 dark:text-white/40 mt-1">Segure para reimprimir · Toque no lixo para remover</p>
             </div>
 
@@ -203,9 +206,9 @@
             </button>
           </div>
 
-          <div class="grid grid-cols-2 gap-2">
+          <div :class="podeFecharMesa ? 'grid grid-cols-2 gap-2' : 'grid grid-cols-1 gap-2'">
             <button
-              @click="caixaAberto ? $emit('abrir-produtos') : exigirCaixa()"
+              @click="emitirAbrirProdutosComRfid"
               class="h-12 rounded-xl border text-sm font-black uppercase tracking-wider transition-all flex items-center justify-center gap-1.5"
               :class="caixaAberto
                 ? 'border-orange-500 text-orange-400 hover:bg-orange-500/10 active:scale-95'
@@ -215,6 +218,7 @@
               Produtos
             </button>
             <button
+              v-if="podeFecharMesa"
               @click="caixaAberto ? (modalPagamento = true) : exigirCaixa()"
               class="h-12 rounded-xl text-white text-sm font-black uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 active:scale-95"
               :class="caixaAberto
@@ -399,6 +403,15 @@
     @remover="handleRemover"
     @reimprimir="handleReimprimir"
   />
+
+  <!-- RFID: identificação do garçom antes de lançar produto -->
+  <ModalRfidAuth
+    v-model="rfidModal"
+    :mensagem="rfidMensagem"
+    :erro="erroModal"
+    @auth-success="onRfidSuccess"
+    @cancelar="onRfidCancelar"
+  />
 </template>
 
 <script setup lang="ts">
@@ -406,6 +419,7 @@ import { ref, computed, watch, nextTick, onBeforeUnmount } from 'vue'
 import { useCaixaStore } from '~/stores/caixa'
 import { useConfigStore }      from '~/stores/configuracoes'
 import { useImpressorasStore } from '~/stores/impressoras'
+import { useAuthStore } from '~/stores/auth'
 import {
   X,
   PrinterIcon,
@@ -418,22 +432,60 @@ import {
 } from 'lucide-vue-next'
 import MenuFlutuanteProduto from '../modals/MenuFlutuanteProduto.vue'
 import ModalPagamento from '../modals/ModalPagamento.vue'
+import ModalRfidAuth from '../modals/ModalRfidAuth.vue'
 import { useApi } from '~/services/api'
 import { useToastStore } from '~/stores/toast'
+import { useRfidIdentify } from '~/composables/useRfidIdentify'
 
 const props = defineProps({
-  modelValue: Boolean,
-  mesa: { type: Object, default: null }
+  modelValue:   Boolean,
+  mesa:         { type: Object, default: null },
+  garcomSessao: { type: Object as () => { id: number; nome: string } | null, default: null }
 })
 
-const emit = defineEmits(['update:modelValue', 'abrir-produtos', 'estoque-atualizado', 'mesa-fechada'])
+const emit = defineEmits(['update:modelValue', 'abrir-produtos', 'estoque-atualizado', 'mesa-fechada', 'garcom-mismatch'])
 
 const api         = useApi()
 const toastStore  = useToastStore()
 const caixaStore       = useCaixaStore()
 const configStore      = useConfigStore()
 const impressorasStore = useImpressorasStore()
+const authStore        = useAuthStore()
+const { rfidAtivo, modalAberto: rfidModal, mensagemModal: rfidMensagem, erroModal, identificarViaRfid, onRfidSuccess, onRfidCancelar } = useRfidIdentify()
 const caixaAberto = computed(() => caixaStore.aberto)
+const podeFecharMesa = computed(() => authStore.isCaixa || authStore.temPermissao('fecharMesa'))
+
+// Identificação RFID do garçom para a sessão atual (null = sem RFID identificado)
+const garcomRfid       = ref<{ id: number; nome: string } | null>(null)
+const abrindoProdutos  = ref(false)
+
+async function emitirAbrirProdutosComRfid() {
+  if (!caixaAberto.value) { exigirCaixa(); return }
+  if (abrindoProdutos.value) return
+  abrindoProdutos.value = true
+  try {
+    // Usa sessão da página se disponível; senão solicita cartão
+    let garcom: { id: number; nome: string } | null = props.garcomSessao || null
+    if (!garcom) {
+      const lido = await identificarViaRfid('Passe o cartão para identificar o garçom')
+      if (lido) garcom = lido
+    }
+
+    if (garcom) {
+      const donoDaMesa = props.mesa?.garcom_id
+      if (donoDaMesa && donoDaMesa !== garcom.id) {
+        emit('garcom-mismatch', garcom)
+        return
+      }
+      garcomRfid.value = { id: garcom.id, nome: garcom.nome }
+    }
+    emit('abrir-produtos')
+  } catch {
+    // cancelado ou cartão inválido
+  } finally {
+    abrindoProdutos.value = false
+  }
+}
 
 function exigirCaixa() {
   toastStore.warning('Abra o caixa para realizar esta ação')
@@ -796,7 +848,8 @@ async function adicionarItem(produto: ProdutoMesa) {
     await api.post('/pedidos/adicionar', {
       mesa_id:    props.mesa.id,
       produto_id: produto.produto_id,
-      quantidade: 1
+      quantidade: 1,
+      ...(garcomRfid.value ? { garcom_id: garcomRfid.value.id } : {})
     })
   } catch {
     produto.quantidade--
@@ -973,6 +1026,7 @@ const fechar = () => emit('update:modelValue', false)
 watch(
   [() => props.modelValue, () => props.mesa?.id],
   ([aberto, mesaId]) => {
+    garcomRfid.value = null // limpa sempre que muda de mesa ou fecha
     if (aberto && mesaId) {
       fecharRadial()
       carregarProdutos()

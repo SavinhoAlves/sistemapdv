@@ -229,6 +229,14 @@
     </span>
   </button>
 
+  <ModalRfidAuth
+    v-model="rfidModal"
+    :mensagem="rfidMensagem"
+    :erro="erroModal"
+    @auth-success="onRfidSuccess"
+    @cancelar="onRfidCancelar"
+  />
+
   <!-- ══ MODAL FICHA ══ -->
   <Teleport to="body">
     <Transition name="fade">
@@ -327,6 +335,8 @@ import { useImpressorasStore }  from '~/stores/impressoras'
 import { useCarrinhoVendaStore } from '~/stores/carrinhoVenda'
 import { useProdutosStore, type Produto } from '~/stores/produtos'
 import { iconeMetodo } from '~/composables/useIconeMetodo'
+import { useRfidIdentify } from '~/composables/useRfidIdentify'
+import ModalRfidAuth from '~/components/modals/ModalRfidAuth.vue'
 
 const emit = defineEmits(['venda-registrada'])
 
@@ -342,6 +352,7 @@ const { itens: carrinho, desconto, metodoSelecionado, valorRecebido } = storeToR
 const { lista: todosProdutos } = storeToRefs(produtosStore)
 
 const carrinhoAberto = ref(false)
+const { modalAberto: rfidModal, mensagemModal: rfidMensagem, erroModal, identificarViaRfid, onRfidSuccess, onRfidCancelar } = useRfidIdentify()
 
 // ══ PRODUTOS ══
 const categorias      = ref<string[]>([])
@@ -426,6 +437,11 @@ const fichaAtual = ref<any>(null)
 
 async function confirmarVenda() {
   if (!podePagar.value || processando.value) return
+  try {
+    await identificarViaRfid('Passe o cartão para confirmar a venda')
+  } catch {
+    return // cancelado
+  }
   processando.value = true
   try {
     const resp = await api.post<any>('/vendas', {

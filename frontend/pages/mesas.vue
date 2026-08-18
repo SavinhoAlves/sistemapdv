@@ -227,15 +227,25 @@
       ref="sidebarRef"
       v-model="sidebarMesa"
       :mesa="mesaSelecionada"
+      :garcom-sessao="garcomSessao"
       @abrir-produtos="abrirProdutos"
       @estoque-atualizado="painelRef?.recarregar()"
       @mesa-fechada="onMesaFechada"
+      @garcom-mismatch="onGarcomMismatch"
     />
 
     <!-- MODAL ABRIR MESA -->
     <ModalAbrirMesa
       v-model="modalAbrirMesa"
       @mesa-aberta="() => carregarMesas()"
+    />
+
+    <ModalRfidAuth
+      v-model="rfidModal"
+      :mensagem="rfidMensagem"
+      :erro="erroModal"
+      @auth-success="onRfidSuccess"
+      @cancelar="onRfidCancelar"
     />
 
   </div>
@@ -254,6 +264,9 @@ import PainelProdutos from '~/components/produtos/PainelProdutos.vue'
 import { useApi } from '~/services/api'
 import { useCaixaStore } from '~/stores/caixa'
 import { useToastStore } from '~/stores/toast'
+import { useAuthStore } from '~/stores/auth'
+import { useRfidIdentify } from '~/composables/useRfidIdentify'
+import ModalRfidAuth from '~/components/modals/ModalRfidAuth.vue'
 
 definePageMeta({ layout: false })
 
@@ -263,15 +276,20 @@ interface Mesa {
   nome_mesa?: string
   cliente?: string
   garcom?: string
+  garcom_id?: number
   status: string
 }
 
 const api         = useApi()
 const caixaStore  = useCaixaStore()
 const toastStore  = useToastStore()
+const authStore   = useAuthStore()
+const { modalAberto: rfidModal, mensagemModal: rfidMensagem, erroModal, identificarViaRfid, onRfidSuccess, onRfidCancelar } = useRfidIdentify()
 const caixaAberto = computed(() => caixaStore.aberto)
 const sidebarRef  = ref()
 const painelRef   = ref()
+
+const garcomSessao = ref<{ id: number; nome: string } | null>(null)
 
 const loading         = ref(true)
 const mesas           = ref<Mesa[]>([])
@@ -286,6 +304,23 @@ const viewMode  = ref<'grade' | 'lista'>((savedView === 'lista' ? 'lista' : 'gra
 watch(viewMode, v => { if (typeof localStorage !== 'undefined') localStorage.setItem('mesas-view', v) })
 
 const abrirProdutos = () => { modoProdutos.value = true }
+
+function onGarcomMismatch(garcom: { id: number; nome: string }) {
+  const mesasDoGarcom = mesas.value.filter(m => m.garcom_id === garcom.id)
+  if (mesasDoGarcom.length === 0) {
+    toastStore.warning(`${garcom.nome} não tem mesa aberta. Abra uma mesa primeiro.`)
+    sidebarMesa.value = false
+    return
+  }
+  if (mesasDoGarcom.length === 1) {
+    mesaSelecionada.value = mesasDoGarcom[0]
+    toastStore.success(`Mesa de ${garcom.nome} selecionada.`)
+    modoProdutos.value = true
+  } else {
+    toastStore.info(`${garcom.nome} tem ${mesasDoGarcom.length} mesas abertas. Selecione a correta.`)
+    sidebarMesa.value = false
+  }
+}
 
 const produtoSelecionado = async () => {
   if (sidebarMesa.value) sidebarRef.value?.recarregar()
@@ -322,8 +357,25 @@ function onVisibilityChange() {
   if (!document.hidden) carregarMesas()
 }
 
-onMounted(() => {
+onMounted(async () => {
   carregarMesas(true)
+
+  if (authStore.usuario?.cargo === 'garcom') {
+    try {
+      const garcom = await identificarViaRfid('Passe o cartão para identificar o garçom')
+      if (garcom) {
+        garcomSessao.value = garcom
+        // Aguarda mesas carregarem se ainda estiver loading
+        await new Promise<void>(r => {
+          if (!loading.value) return r()
+          const stop = watch(loading, v => { if (!v) { stop(); r() } })
+        })
+        const mesasDoGarcom = mesas.value.filter(m => m.garcom_id === garcom.id)
+        if (mesasDoGarcom.length === 1) abrirMesa(mesasDoGarcom[0])
+      }
+    } catch {}
+  }
+
   pollingTimer = setInterval(() => { if (!document.hidden) carregarMesas() }, 20000)
   document.addEventListener('visibilitychange', onVisibilityChange)
 })

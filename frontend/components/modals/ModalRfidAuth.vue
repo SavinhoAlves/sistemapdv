@@ -2,7 +2,7 @@
   <Transition name="fade">
     <div
       v-if="modelValue"
-      class="fixed inset-0 z-[999] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
+      class="fixed inset-0 z-[99999] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
     >
       <div
         class="w-full max-w-md bg-white dark:bg-neutral-900/90 backdrop-blur-2xl border border-gray-200 dark:border-white/[0.08] rounded-[32px] shadow-2xl p-8 text-center animate-pop-in"
@@ -28,9 +28,17 @@
           {{ mensagem }}
         </p>
 
+        <!-- ERRO DE CARTÃO -->
+        <div
+          v-if="erro"
+          class="mt-5 px-4 py-2.5 bg-red-500/10 border border-red-500/20 rounded-2xl"
+        >
+          <p class="text-sm font-bold text-red-400">{{ erro }}</p>
+        </div>
+
         <!-- STATUS -->
         <div
-          class="mt-8 flex items-center justify-center gap-3"
+          class="mt-6 flex items-center justify-center gap-3"
         >
           <span
             class="w-3 h-3 rounded-full bg-orange-500 animate-pulse"
@@ -39,7 +47,7 @@
           <span
             class="text-xs uppercase tracking-[0.25em] font-black text-orange-500"
           >
-            Aguardando cartão
+            {{ erro ? 'Tente novamente' : 'Aguardando cartão' }}
           </span>
         </div>
 
@@ -64,10 +72,13 @@ const props = defineProps({
     type: Boolean,
     default: false
   },
-
   mensagem: {
     type: String,
     default: 'Aproxime o cartão RFID'
+  },
+  erro: {
+    type: String,
+    default: ''
   }
 })
 

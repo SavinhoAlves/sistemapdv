@@ -500,8 +500,19 @@
               <Loader2 :size="28" class="animate-spin text-orange-500" />
             </div>
             <img v-else-if="qrDataUrl" :src="qrDataUrl" class="mx-auto rounded-2xl border border-gray-200 dark:border-white/10" />
+
+            <!-- URL completa e clicável para teste -->
+            <a
+              v-if="qrUrl"
+              :href="qrUrl"
+              target="_blank"
+              class="block mt-3 px-3 py-2 rounded-xl bg-gray-50 dark:bg-white/[0.04] border border-gray-200 dark:border-white/[0.08] text-[10px] font-mono text-orange-500 hover:text-orange-400 break-all transition-colors"
+            >
+              {{ qrUrl }}
+            </a>
+
             <p class="text-[10px] text-gray-400 dark:text-white/30 mt-3">
-              Válido por 12 horas · Peça ao funcionário para escanear com a câmera
+              Válido por 10 horas ou até o caixa fechar · Peça ao funcionário para escanear com a câmera
             </p>
             <button @click="gerarQrMobile(qrFuncionario)" :disabled="gerandoQr" class="mt-4 w-full h-10 rounded-2xl border border-orange-500/30 text-orange-500 text-xs font-black hover:bg-orange-500/10 disabled:opacity-50 transition-all">
               Regenerar QR
@@ -805,6 +816,7 @@ const qrFuncionario = ref<any>(null)
 const qrToken       = ref('')
 const qrExpiresAt   = ref('')
 const qrDataUrl     = ref('')
+const qrUrl         = ref('')
 const gerandoQr     = ref(false)
 const qrLocalIps    = ref<string[]>([])
 const qrIpSelecionado = ref('')
@@ -812,6 +824,7 @@ const qrIpSelecionado = ref('')
 async function gerarQrDataUrl(token: string, ip: string) {
   const port = window.location.port ? `:${window.location.port}` : ''
   const url  = `${window.location.protocol}//${ip}${port}/m?t=${token}`
+  qrUrl.value = url
   return QRCode.toDataURL(url, { width: 240, margin: 2, color: { dark: '#000000', light: '#ffffff' } })
 }
 
@@ -824,6 +837,7 @@ async function gerarQrMobile(f: any) {
   qrFuncionario.value   = f
   qrToken.value         = ''
   qrDataUrl.value       = ''
+  qrUrl.value           = ''
   qrLocalIps.value      = []
   qrIpSelecionado.value = ''
   gerandoQr.value       = true

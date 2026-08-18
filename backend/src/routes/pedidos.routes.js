@@ -45,7 +45,18 @@ router.post('/adicionar', authenticate, permissoes.adicionarPedido, async (req, 
 
     const mesaId = mesa[0].id
 
-    const garcomId = req.user.id
+    // Se o cliente enviar garcom_id via RFID, valida que o usuário existe e está ativo
+    let garcomId = req.user.id
+    if (req.body.garcom_id && req.body.garcom_id !== req.user.id) {
+      const garcomRows = await query(
+        'SELECT id FROM usuarios WHERE id = ? AND ativo = 1 LIMIT 1',
+        [req.body.garcom_id]
+      )
+      if (!garcomRows.length) {
+        return res.status(400).json({ error: 'Garçom identificado pelo RFID não encontrado ou inativo' })
+      }
+      garcomId = req.body.garcom_id
+    }
 
     // ======================
     // OPERAÇÃO ATÔMICA

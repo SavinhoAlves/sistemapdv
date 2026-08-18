@@ -148,13 +148,23 @@ const loginMobile = async (req, res) => {
   try {
     const { token } = req.body;
     if (!token || typeof token !== 'string') return res.status(400).json({ error: 'Token é obrigatório' });
+
+    const cfgRows = await query('SELECT venda_mobile_permitida FROM sync_config WHERE id = 1').catch(() => [])
+    const mobileAtivo = cfgRows.length === 0 || Boolean(cfgRows[0]?.venda_mobile_permitida)
+    if (!mobileAtivo) {
+      return res.status(403).json({ error: 'Acesso mobile desativado. Contate o administrador.' })
+    }
+    // Exige caixa aberto — token só é útil durante o plantão
+    const [caixaAberto] = await query(`SELECT id FROM caixa WHERE status = 'aberto' LIMIT 1`).catch(() => [[]])
+    if (!caixaAberto) return res.status(403).json({ error: 'Caixa fechado. Aguarde o administrador abrir o caixa.' })
+
     const hash = crypto.createHash('sha256').update(token).digest('hex');
     const rows = await query(
       'SELECT * FROM usuarios WHERE mobile_token = ? AND mobile_token_expires > NOW() AND ativo = 1',
       [hash]
     );
     const usuario = rows[0];
-    if (!usuario) return res.status(401).json({ error: 'Token inválido ou expirado' });
+    if (!usuario) return res.status(401).json({ error: 'Token inválido ou expirado. Peça um novo QR Code ao administrador.' });
     const jwtToken = gerarToken(usuario);
     const permissoes = await buscarPermissoes(usuario.perfil_id);
     return respostaLogin(res, jwtToken, usuario, permissoes);

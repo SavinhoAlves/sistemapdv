@@ -67,13 +67,21 @@ function Iniciar-Servidores {
     Start-Process powershell -ArgumentList "-NoExit", "-Command", "cd '$PSScriptRoot\backend'; node server.js" -WindowStyle Normal
     Start-Sleep -Seconds 2
 
-    # O Node tem lista de CAs propria (separada da do Windows), entao nao confia
-    # no certificado do mkcert e o Nuxt/SSR avisa ao chamar o backend em https.
-    # Apontar NODE_EXTRA_CA_CERTS pro CA raiz do mkcert resolve sem afrouxar TLS
-    # (so quando o CA existe; em modo HTTP puro nao ha o que confiar).
+    # Frontend em modo PRODUCAO: o servidor de dev (Vite) nao serve sub-caminhos
+    # (/m, /login, etc.) corretamente para clientes externos como celulares.
+    # O build gera um servidor Node real que trata todas as rotas.
+    $outputServer = "$PSScriptRoot\frontend\.output\server\index.mjs"
     $rootCA = "$env:LOCALAPPDATA\mkcert\rootCA.pem"
     $prefixoCA = if (Test-Path $rootCA) { "`$env:NODE_EXTRA_CA_CERTS='$rootCA'; " } else { "" }
-    Start-Process powershell -ArgumentList "-NoExit", "-Command", "${prefixoCA}cd '$PSScriptRoot\frontend'; npm run dev" -WindowStyle Normal
+
+    if (-not (Test-Path $outputServer)) {
+        Write-Host "Build do frontend nao encontrado. Gerando agora (aguarde ~1 min)..." -ForegroundColor Yellow
+        Push-Location "$PSScriptRoot\frontend"
+        npm run build
+        Pop-Location
+    }
+
+    Start-Process powershell -ArgumentList "-NoExit", "-Command", "${prefixoCA}cd '$PSScriptRoot\frontend'; npm run start" -WindowStyle Normal
     Write-Host "Servidores iniciados!" -ForegroundColor Green
     Write-Host ""
 }

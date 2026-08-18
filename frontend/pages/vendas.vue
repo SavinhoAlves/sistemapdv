@@ -29,6 +29,7 @@
 
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted } from 'vue'
+import { useRouter } from 'vue-router'
 import { LockKeyhole } from 'lucide-vue-next'
 import Navbar from '~/layouts/Navbar.vue'
 import Sidebar from '~/components/Sidebar.vue'
@@ -40,6 +41,7 @@ import { useSocket } from '~/services/socket'
 
 definePageMeta({ layout: false })
 
+const router      = useRouter()
 const api         = useApi()
 const caixaStore  = useCaixaStore()
 const authStore   = useAuthStore()
@@ -59,6 +61,7 @@ async function atualizarStatusCaixa() {
 let pararDeEscutar: (() => void) | null = null
 
 onMounted(async () => {
+  if (authStore.usuario?.cargo === 'garcom') return router.replace('/mesas')
   await atualizarStatusCaixa()
 
   // Conexão do socket é gerenciada globalmente em plugins/socket.client.ts

@@ -23,7 +23,33 @@
                 </button>
               </div>
 
-              <div class="overflow-y-auto flex-1 p-6 space-y-6">
+              <!-- MESA SEM ITENS: fechar sem pagamento -->
+              <template v-if="semPagamento">
+                <div class="p-8 flex flex-col items-center gap-5 text-center">
+                  <div class="w-20 h-20 rounded-3xl bg-gray-100 dark:bg-white/5 border border-gray-200 dark:border-white/[0.08] flex items-center justify-center">
+                    <UtensilsCrossed :size="32" class="text-gray-300 dark:text-white/20" />
+                  </div>
+                  <div>
+                    <p class="font-black text-gray-900 dark:text-white">Nenhum item adicionado</p>
+                    <p class="text-sm text-gray-500 dark:text-white/50 mt-1">Esta mesa não tem produtos. Feche-a sem pagamento.</p>
+                  </div>
+                </div>
+                <div class="p-6 border-t border-gray-100 dark:border-white/[0.08]">
+                  <button
+                    @click="fecharSemPagamento"
+                    :disabled="salvando"
+                    class="w-full h-14 rounded-2xl bg-orange-500 hover:bg-orange-600 disabled:opacity-40 text-white font-black text-lg transition-all active:scale-95 flex items-center justify-center gap-3"
+                  >
+                    <CheckCircle2 v-if="!salvando" :size="22" />
+                    <Loader2 v-else :size="22" class="animate-spin" />
+                    {{ salvando ? 'Fechando...' : 'Fechar Mesa' }}
+                  </button>
+                </div>
+              </template>
+
+              <!-- PAGAMENTO NORMAL -->
+              <template v-else>
+                <div class="overflow-y-auto flex-1 p-6 space-y-6">
 
                 <!-- RESUMO -->
                 <div class="bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/[0.06] rounded-2xl p-5">
@@ -175,6 +201,7 @@
                 </button>
 
               </div>
+              </template><!-- /v-else pagamento normal -->
 
             </template>
 
@@ -312,6 +339,8 @@ const podePagar = computed(() => {
   return true
 })
 
+const semPagamento = computed(() => props.total === 0)
+
 function fecharSePermitido() {
   if (estado.value === 'aguardando') return
   emit('fechar')
@@ -372,6 +401,20 @@ async function confirmar() {
     }
   } catch (err: any) {
     toastStore.error(err?.message || 'Erro ao registrar pagamento')
+  } finally {
+    salvando.value = false
+  }
+}
+
+async function fecharSemPagamento() {
+  if (!props.mesa?.id || salvando.value) return
+  salvando.value = true
+  try {
+    await api.mesas.fechar(props.mesa.id)
+    toastStore.success('Mesa fechada!')
+    emit('pago')
+  } catch (err: any) {
+    toastStore.error(err?.message || 'Erro ao fechar mesa')
   } finally {
     salvando.value = false
   }

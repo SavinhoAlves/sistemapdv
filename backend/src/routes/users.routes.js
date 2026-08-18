@@ -114,7 +114,7 @@ router.post('/:id/mobile-token', authenticate, authorize('administrador'), async
     if (!usuario) return res.status(404).json({ error: 'Usuário não encontrado' })
     const rawToken = crypto.randomBytes(32).toString('hex')
     const hash = crypto.createHash('sha256').update(rawToken).digest('hex')
-    const expires = new Date(Date.now() + 12 * 60 * 60 * 1000)
+    const expires = new Date(Date.now() + 10 * 60 * 60 * 1000) // 10h = duração máxima de um plantão
     await query('UPDATE usuarios SET mobile_token = ?, mobile_token_expires = ? WHERE id = ?', [hash, expires, req.params.id])
     const localIps = getLocalIps()
     return res.json({ token: rawToken, expiresAt: expires.toISOString(), localIp: localIps[0] ?? null, localIps })

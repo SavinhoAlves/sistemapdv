@@ -25,7 +25,13 @@
       <!-- HEADER + BUSCA -->
       <div class="px-4 pt-4 pb-2 space-y-3 shrink-0">
         <div class="flex items-center justify-between">
-          <h1 class="text-xl font-black text-white">Venda Direta</h1>
+          <div>
+            <h1 class="text-xl font-black text-white">Venda Direta</h1>
+            <p v-if="carrinho.length" class="text-[11px] font-bold text-orange-400 mt-0.5">
+              {{ totalItens }} item{{ totalItens !== 1 ? 's' : '' }} no carrinho
+            </p>
+            <p v-else class="text-[11px] text-white/35 mt-0.5">Selecione os produtos</p>
+          </div>
         </div>
 
         <div class="relative">
@@ -34,7 +40,7 @@
             v-model="busca"
             type="text"
             placeholder="Buscar produto..."
-            class="w-full h-10 pl-9 pr-4 bg-white/[0.06] border border-white/10 rounded-xl text-sm text-white placeholder:text-white/25 outline-none focus:border-orange-400/60 transition-all"
+            class="w-full h-10 pl-9 pr-4 bg-white/[0.06] border border-white/[0.08] rounded-xl text-sm text-white placeholder:text-white/20 outline-none focus:border-orange-500/50 transition-all"
           />
         </div>
 
@@ -44,7 +50,7 @@
             v-for="cat in ['Todos', ...categorias]"
             :key="cat"
             @click="categoriaAtiva = cat"
-            class="h-7 px-3 rounded-lg text-[11px] font-black whitespace-nowrap shrink-0 transition-all"
+            class="h-7 px-3 rounded-xl text-[11px] font-black whitespace-nowrap shrink-0 transition-all active:scale-95"
             :class="categoriaAtiva === cat
               ? 'bg-orange-500 text-white'
               : 'bg-white/[0.06] border border-white/[0.08] text-white/40'"
@@ -118,7 +124,7 @@
             <!-- Header -->
             <div class="px-5 pb-3 flex items-center justify-between shrink-0">
               <div>
-                <p class="text-[10px] font-black uppercase tracking-widest text-orange-400">Venda Direta</p>
+                <p class="text-[10px] font-black uppercase tracking-[0.12em] text-orange-400">Venda Direta</p>
                 <h3 class="text-lg font-black text-white">Carrinho</h3>
               </div>
               <div class="flex items-center gap-2">
@@ -185,20 +191,20 @@
 
               <!-- Desconto -->
               <div class="flex items-center gap-2">
-                <label class="text-[10px] font-black uppercase tracking-widest text-white/40 shrink-0">Desconto R$</label>
+                <label class="text-[10px] font-black uppercase tracking-[0.12em] text-white/40 shrink-0">Desconto R$</label>
                 <input
                   v-model="desconto"
                   type="number"
                   min="0"
                   step="0.01"
                   placeholder="0,00"
-                  class="flex-1 h-9 px-3 bg-white/[0.06] border border-white/10 rounded-xl text-xs font-bold text-white placeholder:text-white/25 outline-none focus:border-orange-400/60 text-right"
+                  class="flex-1 h-9 px-3 bg-white/[0.06] border border-white/[0.08] rounded-xl text-xs font-bold text-white placeholder:text-white/20 outline-none focus:border-orange-500/50 text-right"
                 />
               </div>
 
               <!-- Métodos de pagamento -->
               <div>
-                <p class="text-[10px] font-black uppercase tracking-widest text-white/40 mb-2">Pagamento</p>
+                <p class="text-[10px] font-black uppercase tracking-[0.12em] text-white/40 mb-2">Pagamento</p>
                 <div class="grid grid-cols-2 gap-1.5">
                   <button
                     v-for="m in metodos"
@@ -220,7 +226,7 @@
                   min="0"
                   step="0.01"
                   placeholder="Valor recebido"
-                  class="w-full h-10 px-3 bg-white/[0.06] border border-white/10 rounded-xl text-sm font-black text-white placeholder:text-white/25 outline-none focus:border-orange-400/60"
+                  class="w-full h-10 px-3 bg-white/[0.06] border border-white/[0.08] rounded-xl text-sm font-black text-white placeholder:text-white/20 outline-none focus:border-orange-500/50"
                 />
                 <div v-if="trocoVal > 0" class="flex justify-between items-center bg-green-500/10 rounded-xl px-3 py-2">
                   <span class="text-xs font-bold text-green-400">Troco</span>
@@ -447,13 +453,16 @@ onMounted(async () => {
 
 <style scoped>
 .sheet-enter-active,
-.sheet-leave-active {
-  transition: opacity 0.25s;
+.sheet-leave-active { transition: opacity 0.22s; }
+.sheet-enter-active .absolute.bottom-0,
+.sheet-leave-active .absolute.bottom-0 {
+  transition: transform 0.28s cubic-bezier(0.32, 0.72, 0, 1);
 }
 .sheet-enter-from,
-.sheet-leave-to {
-  opacity: 0;
-}
+.sheet-leave-to { opacity: 0; }
+.sheet-enter-from .absolute.bottom-0,
+.sheet-leave-to .absolute.bottom-0 { transform: translateY(100%); }
+
 .fade-enter-active, .fade-leave-active { transition: opacity .2s; }
 .fade-enter-from, .fade-leave-to { opacity: 0; }
 .scrollbar-none::-webkit-scrollbar { display: none; }

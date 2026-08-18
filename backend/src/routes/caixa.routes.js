@@ -100,6 +100,9 @@ router.post('/fechar', authenticate, permissoes.gerenciarCaixa, async (req, res)
       diferenca
     })
 
+    // Revoga todos os acessos mobile ao fechar o caixa — cada plantão exige novo QR
+    await query(`UPDATE usuarios SET mobile_token = NULL, mobile_token_expires = NULL WHERE mobile_token IS NOT NULL`)
+
     const resumoFinal = await resumoCaixa(id)
     emitir('caixa:atualizado', { tipo: 'fechado' })
     return res.json({ success: true, resumo: resumoFinal })

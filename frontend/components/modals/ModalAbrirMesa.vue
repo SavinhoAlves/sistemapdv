@@ -145,6 +145,14 @@
       </div>
     </div>
   </Transition>
+
+  <ModalRfidAuth
+    v-model="rfidModal"
+    :mensagem="rfidMensagem"
+    :erro="erroModal"
+    @auth-success="onRfidSuccess"
+    @cancelar="onRfidCancelar"
+  />
 </template>
 
 <script setup lang="ts">
@@ -161,6 +169,8 @@ import { useToastStore } from '~/stores/toast'
 import { useAuthStore } from '~/stores/auth'
 import { useCaixaStore } from '~/stores/caixa'
 import { useApi } from '~/services/api'
+import { useRfidIdentify } from '~/composables/useRfidIdentify'
+import ModalRfidAuth from '~/components/modals/ModalRfidAuth.vue'
 
 const props = defineProps({
   modelValue: {
@@ -178,6 +188,7 @@ const router = useRouter()
 const toastStore = useToastStore()
 const authStore = useAuthStore()
 const caixaStore = useCaixaStore()
+const { rfidAtivo, modalAberto: rfidModal, mensagemModal: rfidMensagem, erroModal, identificarViaRfid, onRfidSuccess, onRfidCancelar } = useRfidIdentify()
 
 const loading = ref(false)
 const isAdmin = computed(() => authStore.usuario?.cargo === 'administrador')
@@ -205,6 +216,15 @@ const irParaVendas = () => {
 }
 
 const abrirMesa = async () => {
+  let garcomId = authStore.usuario?.id ?? null
+
+  try {
+    const garcom = await identificarViaRfid('Passe o cartão para identificar o garçom')
+    if (garcom) garcomId = garcom.id
+  } catch {
+    return // cancelado ou cartão inválido
+  }
+
   try {
 
     loading.value = true
@@ -214,7 +234,7 @@ const abrirMesa = async () => {
     const resposta = await api.mesas.abrirMesa({
       cliente:    form.cliente,
       nome_mesa:  form.nome_mesa.trim() || null,
-      garcom_id:  authStore.usuario?.id ?? null,
+      garcom_id:  garcomId,
       caixa_id:   caixaStore.caixaAtual?.id ?? null
     })
 

@@ -34,7 +34,7 @@ export const useConfigStore = defineStore('configuracoes', {
     impressora_porta:         9100,
     taxa_servico_pct:         10,
     modo_venda:               'mesas' as 'mesas' | 'direta' | 'ambos',
-    rfid_ativo:               true,
+    rfid_ativo:               false,
     venda_mobile_permitida:   true,
     carregado:       false,
     ultimaCarregada: 0
@@ -64,7 +64,7 @@ export const useConfigStore = defineStore('configuracoes', {
         this.impressora_porta         = Number(data.impressora_porta)         || 9100
         this.taxa_servico_pct         = Number(data.taxa_servico_pct ?? 10)
         this.modo_venda               = (['mesas','direta','ambos'].includes(data.modo_venda) ? data.modo_venda : 'mesas') as 'mesas' | 'direta' | 'ambos'
-        this.rfid_ativo               = data.rfid_ativo ?? true
+        this.rfid_ativo               = data.rfid_ativo ?? false
         this.venda_mobile_permitida   = data.venda_mobile_permitida ?? true
         this.carregado       = true
         this.ultimaCarregada = Date.now()

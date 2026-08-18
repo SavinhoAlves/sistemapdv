@@ -72,7 +72,7 @@
       <div class="h-px mx-5 shrink-0 bg-white/[0.05]"></div>
 
       <!-- GRID DE PRODUTOS -->
-      <div class="flex-1 overflow-y-auto px-4 pt-3 pb-40">
+      <div class="flex-1 overflow-y-auto px-4 pt-3 pb-32">
         <div v-if="!produtosFiltrados.length" class="flex flex-col items-center justify-center h-48 gap-3 text-white/20">
           <Package :size="28" class="text-white/[0.08]" />
           <p class="text-[13px] font-semibold">Nenhum produto</p>
@@ -110,25 +110,31 @@
         </div>
       </div>
 
-      <!-- CART BAR -->
-      <div v-if="carrinho.length" class="fixed bottom-24 left-0 right-0 px-5 z-20">
+      <!-- FAB CARRINHO -->
+      <Transition name="fab">
         <button
+          v-if="carrinho.length"
           @click="carrinhoAberto = true"
-          class="w-full h-[56px] rounded-[18px] flex items-center justify-between px-5 active:scale-[0.98] transition-all"
-          style="background: linear-gradient(135deg, #f97316 0%, #ea6c0a 100%); box-shadow: 0 8px 28px rgba(249,115,22,0.4);"
+          class="fixed bottom-[100px] right-4 z-20 active:scale-90 transition-transform duration-150"
+          style="filter: drop-shadow(0 8px 22px rgba(249,115,22,0.55));"
         >
-          <div class="flex items-center gap-3">
-            <div
-              class="w-7 h-7 rounded-[10px] flex items-center justify-center text-[12px] font-black text-orange-500"
-              style="background: rgba(255,255,255,0.22);"
-            >
-              {{ totalItens }}
-            </div>
-            <span class="text-[14px] font-black text-white">Ver Carrinho</span>
+          <!-- Círculo principal -->
+          <div
+            class="w-[58px] h-[58px] rounded-full flex items-center justify-center"
+            style="background: linear-gradient(145deg, #fb923c, #ea6c0a);"
+          >
+            <ShoppingCart :size="23" class="text-white" />
           </div>
-          <span class="text-[15px] font-black text-white">R$ {{ fmt(total) }}</span>
+          <!-- Badge counter -->
+          <div
+            :key="totalItens"
+            class="absolute -top-1.5 -right-1.5 min-w-[22px] h-[22px] rounded-full flex items-center justify-center text-[11px] font-black badge-pop"
+            style="background: #fff; color: #ea580c; border: 2.5px solid #0d0d10;"
+          >
+            {{ totalItens > 99 ? '99+' : totalItens }}
+          </div>
         </button>
-      </div>
+      </Transition>
 
     </template>
 
@@ -518,6 +524,20 @@ onMounted(async () => {
 
 .fade-enter-active, .fade-leave-active { transition: opacity 0.2s; }
 .fade-enter-from, .fade-leave-to { opacity: 0; }
+
+/* FAB aparecer/sumir */
+.fab-enter-active { transition: transform 0.28s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.18s ease; }
+.fab-leave-active { transition: transform 0.18s ease-in, opacity 0.18s ease; }
+.fab-enter-from, .fab-leave-to { transform: scale(0); opacity: 0; }
+
+/* Pop do badge quando o contador muda */
+@keyframes badge-pop {
+  0%   { transform: scale(1); }
+  45%  { transform: scale(1.45); }
+  100% { transform: scale(1); }
+}
+.badge-pop { animation: badge-pop 0.28s cubic-bezier(0.34, 1.56, 0.64, 1); }
+
 .scrollbar-none::-webkit-scrollbar { display: none; }
 .scrollbar-none { -ms-overflow-style: none; scrollbar-width: none; }
 </style>

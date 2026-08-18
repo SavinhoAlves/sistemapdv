@@ -1,76 +1,100 @@
 <template>
   <div class="flex flex-col min-h-full">
 
-    <!-- HEADER -->
-    <div class="px-5 pt-5 pb-4 flex items-center justify-between">
-      <div>
-        <h1 class="text-2xl font-black text-white tracking-tight">Mesas</h1>
-        <p class="text-[11px] font-medium text-white/30 mt-0.5">
-          <template v-if="authStore.usuario?.cargo === 'garcom'">{{ authStore.usuario.nome }}</template>
-          <template v-else>{{ mesasAbertas.length }} abertas</template>
-        </p>
+    <!-- PAGE HEADER -->
+    <div class="relative px-5 pt-6 pb-5 overflow-hidden">
+      <!-- Glow ambiental laranja -->
+      <div
+        class="absolute inset-0 pointer-events-none"
+        style="background: radial-gradient(ellipse 70% 90% at 0% 0%, rgba(249,115,22,0.09) 0%, transparent 70%);"
+      ></div>
+      <div class="relative flex items-start justify-between">
+        <div>
+          <h1 class="text-[30px] font-black text-white tracking-tight leading-none">Mesas</h1>
+          <p class="text-[12px] font-medium mt-2" :class="mesasAbertas.length ? 'text-white/35' : 'text-white/20'">
+            <template v-if="authStore.usuario?.cargo === 'garcom'">{{ authStore.usuario.nome }}</template>
+            <template v-else-if="mesasAbertas.length">{{ mesasAbertas.length }} mesa{{ mesasAbertas.length !== 1 ? 's' : '' }} em atendimento</template>
+            <template v-else>Nenhuma mesa aberta</template>
+          </p>
+        </div>
+        <button
+          v-if="authStore.temPermissao('abrirMesa')"
+          @click="modalNovaMesa = true"
+          class="flex items-center gap-2 h-9 px-4 rounded-[14px] bg-orange-500 text-white text-[12px] font-black active:scale-95 transition-all mt-0.5"
+          style="box-shadow: 0 4px 14px rgba(249,115,22,0.35);"
+        >
+          <Plus :size="13" />
+          Nova Mesa
+        </button>
       </div>
-      <button
-        v-if="authStore.temPermissao('abrirMesa')"
-        @click="modalNovaMesa = true"
-        class="h-8 px-3.5 rounded-2xl bg-orange-500 hover:bg-orange-400 active:scale-95 text-white text-xs font-black transition-all flex items-center gap-1.5 shadow-lg shadow-orange-500/20"
-      >
-        <Plus :size="13" />
-        Nova Mesa
-      </button>
     </div>
 
     <!-- LOADING -->
     <div v-if="loading" class="flex-1 flex items-center justify-center">
-      <Loader2 :size="22" class="animate-spin text-orange-400" />
+      <Loader2 :size="22" class="animate-spin text-orange-500/60" />
     </div>
 
     <!-- EMPTY -->
-    <div v-else-if="!mesasAbertas.length" class="flex-1 flex flex-col items-center justify-center gap-4 text-center px-8">
-      <div class="w-16 h-16 rounded-3xl bg-white/[0.03] border border-white/[0.06] flex items-center justify-center">
-        <LayoutGrid :size="22" class="text-white/15" />
+    <div v-else-if="!mesasAbertas.length" class="flex-1 flex flex-col items-center justify-center gap-5 text-center px-8 pb-24">
+      <div
+        class="w-20 h-20 rounded-[24px] flex items-center justify-center"
+        style="background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.06);"
+      >
+        <LayoutGrid :size="26" class="text-white/15" />
       </div>
       <div>
-        <p class="text-sm font-black text-white/40">Nenhuma mesa aberta</p>
-        <p class="text-xs text-white/20 mt-1">Toque em "Nova Mesa" para começar</p>
+        <p class="text-[15px] font-black text-white/35">Nenhuma mesa aberta</p>
+        <p class="text-[12px] text-white/18 mt-1.5 font-medium">Toque em "Nova Mesa" para começar</p>
       </div>
     </div>
 
-    <!-- GRID DE MESAS -->
-    <div v-else class="px-4 pb-32">
+    <!-- CONTEÚDO PRINCIPAL -->
+    <div v-else class="px-4 pb-36">
 
-      <!-- Banner filtro -->
-      <div v-if="garcomFiltroId" class="mb-3 flex items-center gap-2.5 px-3.5 py-2.5 bg-orange-500/8 border border-orange-500/20 rounded-2xl">
-        <UserCheck :size="13" class="text-orange-400 shrink-0" />
-        <span class="text-[11px] font-bold text-orange-300/80 flex-1">Mesas de {{ garcomFiltroNome }}</span>
+      <!-- Banner filtro garçom -->
+      <div
+        v-if="garcomFiltroId"
+        class="mb-4 flex items-center gap-3 px-4 py-3 rounded-[16px]"
+        style="background: rgba(249,115,22,0.08); border: 1px solid rgba(249,115,22,0.18);"
+      >
+        <UserCheck :size="14" class="text-orange-400 shrink-0" />
+        <span class="text-[12px] font-bold text-orange-300/75 flex-1">Mesas de {{ garcomFiltroNome }}</span>
         <button
           @click="garcomFiltroId = null; garcomFiltroNome = ''"
-          class="text-[10px] font-black text-white/30 hover:text-white/60 transition-colors"
+          class="text-[11px] font-black text-white/25 hover:text-white/50 transition-colors"
         >
           Ver todas
         </button>
       </div>
 
-      <div class="grid grid-cols-2 gap-2.5">
+      <!-- GRID DE MESAS -->
+      <div class="grid grid-cols-2 gap-3">
         <button
           v-for="mesa in mesasAbertas"
           :key="mesa.id"
           @click="abrirDetalhesMesa(mesa)"
           :disabled="garcomFiltroId !== null && mesa.garcom_id !== garcomFiltroId"
-          class="rounded-3xl p-4 text-left transition-all border"
-          :class="garcomFiltroId !== null && mesa.garcom_id !== garcomFiltroId
-            ? 'border-white/[0.04] bg-white/[0.02] opacity-20 cursor-not-allowed'
-            : 'border-white/[0.07] bg-white/[0.04] active:scale-[0.97] active:bg-white/[0.07] hover:border-white/[0.12]'"
+          class="text-left transition-all rounded-[20px] p-4"
+          :style="garcomFiltroId !== null && mesa.garcom_id !== garcomFiltroId
+            ? 'background:#161619; border:1px solid rgba(255,255,255,0.04); opacity:0.2; cursor:not-allowed;'
+            : 'background:#161619; border:1px solid rgba(255,255,255,0.07);'"
+          @mousedown="garcomFiltroId === null || mesa.garcom_id === garcomFiltroId ? $event.currentTarget.style.background='#1c1c1f' : null"
+          @mouseup="$event.currentTarget.style.background='#161619'"
+          @touchstart="garcomFiltroId === null || mesa.garcom_id === garcomFiltroId ? $event.currentTarget.style.background='#1c1c1f' : null"
+          @touchend="$event.currentTarget.style.background='#161619'"
         >
           <!-- Status + tempo -->
           <div class="flex items-center justify-between mb-4">
-            <span class="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.45)]"></span>
-            <span class="text-[10px] font-bold text-white/20 tabular-nums">{{ formatarTempo(mesa.data_abertura) }}</span>
+            <span
+              class="w-2 h-2 rounded-full bg-emerald-400"
+              style="box-shadow: 0 0 6px rgba(52,211,153,0.5);"
+            ></span>
+            <span class="text-[10px] font-semibold text-white/20 tabular-nums">{{ formatarTempo(mesa.data_abertura) }}</span>
           </div>
           <!-- Nome -->
           <p class="text-[15px] font-black text-white leading-tight line-clamp-2">{{ mesa.nome_mesa }}</p>
           <!-- Garçom -->
-          <p v-if="mesa.garcom" class="text-[11px] text-white/30 mt-1 truncate">{{ mesa.garcom }}</p>
+          <p v-if="mesa.garcom" class="text-[11px] font-medium text-white/30 mt-1 truncate">{{ mesa.garcom }}</p>
         </button>
       </div>
     </div>
@@ -79,66 +103,78 @@
     <Teleport to="body">
       <Transition name="sheet">
         <div v-if="mesaSelecionada" class="fixed inset-0 z-50">
-          <div class="absolute inset-0 bg-black/65" @click="mesaSelecionada = null"></div>
-          <div class="absolute bottom-0 left-0 right-0 bg-neutral-900 border-t border-white/[0.07] rounded-t-3xl max-h-[85vh] flex flex-col">
-
+          <div class="absolute inset-0 bg-black/60" @click="mesaSelecionada = null"></div>
+          <div
+            class="absolute bottom-0 left-0 right-0 rounded-t-[28px] max-h-[85vh] flex flex-col"
+            style="background: #141417; border-top: 1px solid rgba(255,255,255,0.07);"
+          >
             <div class="flex justify-center pt-3 pb-1 shrink-0">
-              <div class="w-10 h-1 rounded-full bg-white/10"></div>
+              <div class="w-10 h-1 rounded-full bg-white/[0.09]"></div>
             </div>
 
-            <div class="px-5 py-3 flex items-start justify-between shrink-0">
+            <div class="px-5 py-3.5 flex items-start justify-between shrink-0">
               <div>
-                <p class="text-[10px] font-black uppercase tracking-[0.12em] text-orange-400">Mesa aberta</p>
-                <h3 class="text-lg font-black text-white mt-0.5">{{ mesaSelecionada.nome_mesa }}</h3>
-                <p v-if="mesaSelecionada.garcom" class="text-xs text-white/30 mt-0.5">{{ mesaSelecionada.garcom }}</p>
+                <p class="text-[10px] font-bold uppercase tracking-[0.14em] text-orange-500/70">Mesa aberta</p>
+                <h3 class="text-[20px] font-black text-white mt-1 leading-tight">{{ mesaSelecionada.nome_mesa }}</h3>
+                <p v-if="mesaSelecionada.garcom" class="text-[12px] font-medium text-white/30 mt-0.5">{{ mesaSelecionada.garcom }}</p>
               </div>
               <button
                 @click="mesaSelecionada = null"
-                class="w-8 h-8 rounded-xl bg-white/[0.06] flex items-center justify-center text-white/30 hover:text-white transition-all shrink-0 mt-0.5"
+                class="w-8 h-8 rounded-full flex items-center justify-center text-white/25 hover:text-white/60 transition-all shrink-0 mt-1"
+                style="background: rgba(255,255,255,0.06);"
               >
                 <X :size="15" />
               </button>
             </div>
 
-            <div class="h-px bg-white/[0.06] mx-5 shrink-0"></div>
+            <div class="h-px mx-5 shrink-0 bg-white/[0.05]"></div>
 
-            <div class="flex-1 overflow-y-auto px-5 py-3 space-y-2">
+            <div class="flex-1 overflow-y-auto px-5 py-4 space-y-2">
               <div v-if="loadingItens" class="flex justify-center py-10">
-                <Loader2 :size="20" class="animate-spin text-orange-400" />
+                <Loader2 :size="20" class="animate-spin text-orange-400/60" />
               </div>
               <template v-else-if="itensMesa.length">
                 <div
                   v-for="item in itensMesa"
                   :key="item.id"
-                  class="flex items-center gap-3 bg-white/[0.03] border border-white/[0.05] rounded-2xl px-3.5 py-2.5"
+                  class="flex items-center gap-3 rounded-[14px] px-3.5 py-2.5"
+                  style="background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.05);"
                 >
-                  <span class="w-6 h-6 rounded-lg bg-orange-500/15 flex items-center justify-center text-[11px] font-black text-orange-400 shrink-0">
+                  <div
+                    class="w-6 h-6 rounded-[8px] flex items-center justify-center text-[11px] font-black text-orange-400 shrink-0"
+                    style="background: rgba(249,115,22,0.12);"
+                  >
                     {{ item.quantidade }}
-                  </span>
-                  <span class="flex-1 text-xs font-bold text-white truncate">{{ item.produto_nome || item.nome }}</span>
-                  <span class="text-xs font-black text-white/40 shrink-0">
+                  </div>
+                  <span class="flex-1 text-[13px] font-semibold text-white/85 truncate">{{ item.produto_nome || item.nome }}</span>
+                  <span class="text-[12px] font-black text-white/40 shrink-0">
                     R$ {{ fmt(item.total || (item.preco_unitario || 0) * item.quantidade) }}
                   </span>
                 </div>
 
-                <div class="flex justify-between items-center bg-orange-500/6 border border-orange-500/15 rounded-2xl px-3.5 py-2.5 mt-1">
-                  <span class="text-xs font-black text-white/40">Total da mesa</span>
-                  <span class="text-sm font-black text-orange-400">R$ {{ fmt(totalMesa) }}</span>
+                <!-- Total -->
+                <div
+                  class="flex justify-between items-center rounded-[14px] px-3.5 py-3 mt-1"
+                  style="background: rgba(249,115,22,0.07); border: 1px solid rgba(249,115,22,0.15);"
+                >
+                  <span class="text-[12px] font-bold text-white/40">Total da mesa</span>
+                  <span class="text-[15px] font-black text-orange-400">R$ {{ fmt(totalMesa) }}</span>
                 </div>
               </template>
-              <div v-else class="flex flex-col items-center justify-center py-10 gap-2.5">
-                <ShoppingBag :size="24" class="text-white/10" />
-                <p class="text-xs text-white/20 font-bold">Nenhum item ainda</p>
+              <div v-else class="flex flex-col items-center justify-center py-12 gap-3">
+                <ShoppingBag :size="26" class="text-white/[0.08]" />
+                <p class="text-[12px] font-semibold text-white/20">Nenhum item ainda</p>
               </div>
             </div>
 
-            <div class="px-5 py-4 border-t border-white/[0.06] shrink-0">
+            <div class="px-5 py-4 shrink-0" style="border-top: 1px solid rgba(255,255,255,0.05);">
               <button
                 v-if="authStore.temPermissao('adicionarPedido')"
                 @click="abrirProdutos"
-                class="w-full h-12 rounded-2xl bg-orange-500 hover:bg-orange-400 active:scale-95 text-white font-black text-sm transition-all flex items-center justify-center gap-2 shadow-lg shadow-orange-500/20"
+                class="w-full h-[52px] rounded-[16px] text-white font-black text-[14px] transition-all active:scale-[0.98] flex items-center justify-center gap-2"
+                style="background: #f97316; box-shadow: 0 6px 20px rgba(249,115,22,0.3);"
               >
-                <Plus :size="16" />
+                <Plus :size="17" />
                 Adicionar Item
               </button>
             </div>
@@ -151,19 +187,25 @@
     <Teleport to="body">
       <Transition name="sheet">
         <div v-if="modalProdutos" class="fixed inset-0 z-[60]">
-          <div class="absolute inset-0 bg-black/70" @click="modalProdutos = false"></div>
-          <div class="absolute bottom-0 left-0 right-0 bg-neutral-900 border-t border-white/[0.07] rounded-t-3xl max-h-[92vh] flex flex-col">
-
+          <div class="absolute inset-0 bg-black/65" @click="modalProdutos = false"></div>
+          <div
+            class="absolute bottom-0 left-0 right-0 rounded-t-[28px] max-h-[92vh] flex flex-col"
+            style="background: #141417; border-top: 1px solid rgba(255,255,255,0.07);"
+          >
             <div class="flex justify-center pt-3 pb-1 shrink-0">
-              <div class="w-10 h-1 rounded-full bg-white/10"></div>
+              <div class="w-10 h-1 rounded-full bg-white/[0.09]"></div>
             </div>
 
             <div class="px-5 pb-3 flex items-center justify-between shrink-0">
               <div>
-                <p class="text-[10px] font-black uppercase tracking-[0.12em] text-orange-400">{{ mesaSelecionada?.nome_mesa }}</p>
-                <h3 class="text-base font-black text-white mt-0.5">Adicionar Item</h3>
+                <p class="text-[10px] font-bold uppercase tracking-[0.14em] text-orange-500/70">{{ mesaSelecionada?.nome_mesa }}</p>
+                <h3 class="text-[17px] font-black text-white mt-0.5">Adicionar Item</h3>
               </div>
-              <button @click="modalProdutos = false" class="w-8 h-8 rounded-xl bg-white/[0.06] flex items-center justify-center text-white/30">
+              <button
+                @click="modalProdutos = false"
+                class="w-8 h-8 rounded-full flex items-center justify-center text-white/25"
+                style="background: rgba(255,255,255,0.06);"
+              >
                 <X :size="15" />
               </button>
             </div>
@@ -175,17 +217,20 @@
                   v-model="buscaProduto"
                   type="text"
                   placeholder="Buscar produto..."
-                  class="w-full h-10 pl-9 pr-4 bg-white/[0.05] border border-white/[0.07] rounded-xl text-sm text-white placeholder:text-white/20 outline-none focus:border-orange-500/40 transition-all"
+                  class="w-full h-10 pl-9 pr-4 rounded-[12px] text-[13px] text-white placeholder:text-white/20 outline-none transition-all"
+                  style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.07);"
+                  @focus="($event.target as HTMLInputElement).style.borderColor='rgba(249,115,22,0.4)'"
+                  @blur="($event.target as HTMLInputElement).style.borderColor='rgba(255,255,255,0.07)'"
                 />
               </div>
             </div>
 
-            <div class="h-px bg-white/[0.05] mx-5 shrink-0"></div>
+            <div class="h-px mx-5 shrink-0 bg-white/[0.05]"></div>
 
             <div class="flex-1 overflow-y-auto px-4 py-3">
-              <div v-if="!produtosFiltrados.length" class="flex flex-col items-center justify-center py-12 gap-2">
-                <UtensilsCrossed :size="22" class="text-white/10" />
-                <p class="text-xs text-white/20 font-bold">Nenhum produto encontrado</p>
+              <div v-if="!produtosFiltrados.length" class="flex flex-col items-center justify-center py-12 gap-2.5">
+                <UtensilsCrossed :size="24" class="text-white/[0.08]" />
+                <p class="text-[12px] font-semibold text-white/20">Nenhum produto encontrado</p>
               </div>
               <div v-else class="grid grid-cols-2 gap-2.5">
                 <button
@@ -193,15 +238,19 @@
                   :key="p.id"
                   @click="adicionarItemMesa(p)"
                   :disabled="adicionando === p.id"
-                  class="bg-white/[0.04] border border-white/[0.06] rounded-3xl p-3.5 flex flex-col items-center text-center active:scale-[0.97] transition-all disabled:opacity-50 hover:border-white/[0.12] hover:bg-white/[0.07]"
+                  class="flex flex-col items-center text-center rounded-[18px] p-4 transition-all active:scale-[0.97] disabled:opacity-40"
+                  style="background: #161619; border: 1px solid rgba(255,255,255,0.06);"
                 >
-                  <div class="w-10 h-10 rounded-2xl bg-orange-500/10 flex items-center justify-center mb-2.5 shrink-0">
+                  <div
+                    class="w-10 h-10 rounded-[14px] flex items-center justify-center mb-3 shrink-0"
+                    style="background: rgba(249,115,22,0.1);"
+                  >
                     <Loader2 v-if="adicionando === p.id" :size="15" class="animate-spin text-orange-400" />
-                    <UtensilsCrossed v-else :size="15" class="text-orange-400/70" />
+                    <UtensilsCrossed v-else :size="15" class="text-orange-400/60" />
                   </div>
-                  <p class="text-xs font-black text-white leading-snug line-clamp-2">{{ p.nome }}</p>
-                  <p v-if="p.categoria" class="text-[10px] text-white/20 mt-0.5 truncate w-full">{{ p.categoria }}</p>
-                  <p class="text-sm font-black text-orange-400 mt-2">R$ {{ fmt(p.preco) }}</p>
+                  <p class="text-[12px] font-black text-white leading-snug line-clamp-2">{{ p.nome }}</p>
+                  <p v-if="p.categoria" class="text-[10px] text-white/20 mt-0.5 truncate w-full font-medium">{{ p.categoria }}</p>
+                  <p class="text-[14px] font-black text-orange-400 mt-2">R$ {{ fmt(p.preco) }}</p>
                 </button>
               </div>
             </div>
@@ -214,21 +263,24 @@
     <Teleport to="body">
       <Transition name="sheet">
         <div v-if="modalNovaMesa" class="fixed inset-0 z-50">
-          <div class="absolute inset-0 bg-black/65" @click="modalNovaMesa = false; novaMesaNome = ''"></div>
-          <div class="absolute bottom-0 left-0 right-0 bg-neutral-900 border-t border-white/[0.07] rounded-t-3xl px-5 pt-3 pb-8">
-
-            <div class="flex justify-center mb-4">
-              <div class="w-10 h-1 rounded-full bg-white/10"></div>
+          <div class="absolute inset-0 bg-black/60" @click="modalNovaMesa = false; novaMesaNome = ''"></div>
+          <div
+            class="absolute bottom-0 left-0 right-0 rounded-t-[28px] px-5 pt-3 pb-8"
+            style="background: #141417; border-top: 1px solid rgba(255,255,255,0.07);"
+          >
+            <div class="flex justify-center mb-5">
+              <div class="w-10 h-1 rounded-full bg-white/[0.09]"></div>
             </div>
 
-            <div class="flex items-center justify-between mb-5">
+            <div class="flex items-center justify-between mb-6">
               <div>
-                <p class="text-[10px] font-black uppercase tracking-[0.12em] text-orange-400">Novo atendimento</p>
-                <h3 class="text-base font-black text-white mt-0.5">Abrir Mesa</h3>
+                <p class="text-[10px] font-bold uppercase tracking-[0.14em] text-orange-500/70">Novo atendimento</p>
+                <h3 class="text-[18px] font-black text-white mt-0.5">Abrir Mesa</h3>
               </div>
               <button
                 @click="modalNovaMesa = false; novaMesaNome = ''"
-                class="w-8 h-8 rounded-xl bg-white/[0.06] flex items-center justify-center text-white/30"
+                class="w-8 h-8 rounded-full flex items-center justify-center text-white/25"
+                style="background: rgba(255,255,255,0.06);"
               >
                 <X :size="15" />
               </button>
@@ -238,20 +290,25 @@
               v-model="novaMesaNome"
               type="text"
               placeholder="Nome da mesa (ex: Mesa 5, Varanda...)"
-              class="w-full h-12 px-4 bg-white/[0.05] border border-white/[0.07] rounded-2xl text-sm text-white placeholder:text-white/20 outline-none focus:border-orange-500/40 transition-all mb-4"
+              class="w-full h-[50px] px-4 rounded-[14px] text-[14px] text-white placeholder:text-white/20 outline-none transition-all mb-4"
+              style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.07);"
+              @focus="($event.target as HTMLInputElement).style.borderColor='rgba(249,115,22,0.4)'"
+              @blur="($event.target as HTMLInputElement).style.borderColor='rgba(255,255,255,0.07)'"
             />
 
-            <div class="flex gap-2.5">
+            <div class="flex gap-3">
               <button
                 @click="modalNovaMesa = false; novaMesaNome = ''"
-                class="flex-1 h-12 rounded-2xl border border-white/[0.07] text-white/30 text-sm font-black transition-all active:scale-95 hover:bg-white/[0.04]"
+                class="flex-1 h-[50px] rounded-[14px] text-white/30 text-[13px] font-black transition-all active:scale-95"
+                style="border: 1px solid rgba(255,255,255,0.07);"
               >
                 Cancelar
               </button>
               <button
                 @click="abrirMesa"
                 :disabled="abrindoMesa"
-                class="flex-1 h-12 rounded-2xl bg-orange-500 hover:bg-orange-400 disabled:opacity-50 active:scale-95 text-white text-sm font-black transition-all shadow-lg shadow-orange-500/20"
+                class="flex-1 h-[50px] rounded-[14px] text-white text-[13px] font-black transition-all active:scale-95 disabled:opacity-50"
+                style="background: #f97316; box-shadow: 0 4px 16px rgba(249,115,22,0.3);"
               >
                 {{ abrindoMesa ? 'Abrindo...' : 'Abrir Mesa' }}
               </button>

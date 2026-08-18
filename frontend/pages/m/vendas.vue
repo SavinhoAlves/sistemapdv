@@ -1,172 +1,205 @@
 <template>
   <div class="flex flex-col min-h-full">
 
-    <!-- LOADING INICIAL -->
+    <!-- LOADING -->
     <div v-if="iniciando" class="flex-1 flex items-center justify-center">
-      <Loader2 :size="28" class="animate-spin text-orange-400" />
+      <Loader2 :size="24" class="animate-spin text-orange-500/60" />
     </div>
 
     <!-- CAIXA FECHADO -->
-    <div v-else-if="!caixaStore.aberto" class="flex-1 flex flex-col items-center justify-center gap-5 text-center p-8">
-      <div class="w-16 h-16 rounded-2xl bg-white/[0.04] border border-white/[0.08] flex items-center justify-center">
-        <LockKeyhole :size="28" class="text-white/20" />
+    <div v-else-if="!caixaStore.aberto" class="flex-1 flex flex-col items-center justify-center gap-5 text-center p-8 pb-24">
+      <div
+        class="w-20 h-20 rounded-[24px] flex items-center justify-center"
+        style="background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.06);"
+      >
+        <LockKeyhole :size="28" class="text-white/15" />
       </div>
       <div>
-        <h3 class="text-lg font-black text-white/60">Caixa fechado</h3>
-        <p class="text-sm text-white/30 mt-1.5 max-w-xs leading-relaxed">
+        <h3 class="text-[17px] font-black text-white/50">Caixa fechado</h3>
+        <p class="text-[13px] font-medium text-white/25 mt-2 max-w-xs leading-relaxed">
           O administrador precisa abrir o caixa para iniciar as vendas.
         </p>
       </div>
     </div>
 
-    <!-- POS MOBILE -->
     <template v-else>
 
-      <!-- HEADER + BUSCA -->
-      <div class="px-4 pt-4 pb-2 space-y-3 shrink-0">
-        <div class="flex items-center justify-between">
-          <div>
-            <h1 class="text-xl font-black text-white">Venda Direta</h1>
-            <p v-if="carrinho.length" class="text-[11px] font-bold text-orange-400 mt-0.5">
-              {{ totalItens }} item{{ totalItens !== 1 ? 's' : '' }} no carrinho
-            </p>
-            <p v-else class="text-[11px] text-white/35 mt-0.5">Selecione os produtos</p>
-          </div>
-        </div>
-
+      <!-- PAGE HEADER -->
+      <div class="relative px-5 pt-6 pb-4 overflow-hidden shrink-0">
+        <div
+          class="absolute inset-0 pointer-events-none"
+          style="background: radial-gradient(ellipse 60% 80% at 100% 0%, rgba(249,115,22,0.07) 0%, transparent 65%);"
+        ></div>
         <div class="relative">
-          <Search :size="14" class="absolute left-3 top-1/2 -translate-y-1/2 text-white/30" />
+          <h1 class="text-[30px] font-black text-white tracking-tight leading-none">Venda Direta</h1>
+          <p class="text-[12px] font-medium mt-2" :class="carrinho.length ? 'text-orange-400/70' : 'text-white/25'">
+            <template v-if="carrinho.length">{{ totalItens }} item{{ totalItens !== 1 ? 's' : '' }} no carrinho · R$ {{ fmt(total) }}</template>
+            <template v-else>Selecione os produtos abaixo</template>
+          </p>
+        </div>
+      </div>
+
+      <!-- BUSCA -->
+      <div class="px-5 pb-3 shrink-0">
+        <div class="relative">
+          <Search :size="13" class="absolute left-3.5 top-1/2 -translate-y-1/2 text-white/20" />
           <input
             v-model="busca"
             type="text"
             placeholder="Buscar produto..."
-            class="w-full h-10 pl-9 pr-4 bg-white/[0.06] border border-white/[0.08] rounded-xl text-sm text-white placeholder:text-white/20 outline-none focus:border-orange-500/50 transition-all"
+            class="w-full h-10 pl-9 pr-4 rounded-[12px] text-[13px] text-white placeholder:text-white/20 outline-none transition-all"
+            style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.07);"
+            @focus="($event.target as HTMLInputElement).style.borderColor='rgba(249,115,22,0.35)'"
+            @blur="($event.target as HTMLInputElement).style.borderColor='rgba(255,255,255,0.07)'"
           />
-        </div>
-
-        <!-- Chips de categoria -->
-        <div class="flex gap-1.5 overflow-x-auto pb-1 scrollbar-none">
-          <button
-            v-for="cat in ['Todos', ...categorias]"
-            :key="cat"
-            @click="categoriaAtiva = cat"
-            class="h-7 px-3 rounded-xl text-[11px] font-black whitespace-nowrap shrink-0 transition-all active:scale-95"
-            :class="categoriaAtiva === cat
-              ? 'bg-orange-500 text-white'
-              : 'bg-white/[0.06] border border-white/[0.08] text-white/40'"
-          >{{ cat }}</button>
         </div>
       </div>
 
-      <!-- GRID PRODUTOS -->
-      <div class="flex-1 overflow-y-auto px-4 pb-40">
-        <div v-if="!produtosFiltrados.length" class="flex flex-col items-center justify-center h-48 gap-2 text-white/30">
-          <Package :size="24" />
-          <p class="text-sm">Nenhum produto</p>
+      <!-- CHIPS DE CATEGORIA -->
+      <div class="flex gap-2 overflow-x-auto px-5 pb-3 shrink-0 scrollbar-none">
+        <button
+          v-for="cat in ['Todos', ...categorias]"
+          :key="cat"
+          @click="categoriaAtiva = cat"
+          class="h-[30px] px-3.5 rounded-[10px] text-[11px] font-black whitespace-nowrap shrink-0 transition-all active:scale-95"
+          :class="categoriaAtiva === cat ? 'text-white' : 'text-white/30'"
+          :style="categoriaAtiva === cat
+            ? 'background: #f97316; box-shadow: 0 3px 10px rgba(249,115,22,0.3);'
+            : 'background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.07);'"
+        >{{ cat }}</button>
+      </div>
+
+      <div class="h-px mx-5 shrink-0 bg-white/[0.05]"></div>
+
+      <!-- GRID DE PRODUTOS -->
+      <div class="flex-1 overflow-y-auto px-4 pt-3 pb-40">
+        <div v-if="!produtosFiltrados.length" class="flex flex-col items-center justify-center h-48 gap-3 text-white/20">
+          <Package :size="28" class="text-white/[0.08]" />
+          <p class="text-[13px] font-semibold">Nenhum produto</p>
         </div>
-        <div v-else class="grid grid-cols-2 gap-2.5 pt-1">
+        <div v-else class="grid grid-cols-2 gap-2.5">
           <button
             v-for="p in produtosFiltrados"
             :key="p.id"
             @click="adicionarAoCarrinho(p)"
-            class="bg-white/[0.04] border border-white/[0.06] rounded-2xl p-3.5 flex flex-col items-center text-center active:scale-95 transition-all"
-            :class="p.gerenciar_estoque && p.estoque_atual <= 0
-              ? 'opacity-50 cursor-not-allowed'
-              : 'hover:border-orange-500/40 hover:bg-white/[0.07]'"
+            class="rounded-[18px] p-4 flex flex-col items-center text-center transition-all"
+            :style="p.gerenciar_estoque && p.estoque_atual <= 0
+              ? 'background:#161619; border:1px solid rgba(255,255,255,0.05); opacity:0.45; cursor:not-allowed;'
+              : 'background:#161619; border:1px solid rgba(255,255,255,0.06);'"
+            :disabled="p.gerenciar_estoque && p.estoque_atual <= 0"
+            @mousedown="!(p.gerenciar_estoque && p.estoque_atual <= 0) ? $event.currentTarget.style.background='#1c1c1f' : null"
+            @mouseup="$event.currentTarget.style.background='#161619'"
+            @touchstart="!(p.gerenciar_estoque && p.estoque_atual <= 0) ? $event.currentTarget.style.background='#1c1c1f' : null"
+            @touchend="$event.currentTarget.style.background='#161619'"
           >
             <span
               v-if="p.gerenciar_estoque && p.estoque_atual <= 0"
-              class="text-[9px] font-black bg-red-500/15 text-red-400 px-1.5 py-0.5 rounded-md mb-2"
+              class="text-[9px] font-black px-2 py-0.5 rounded-[6px] mb-2"
+              style="background: rgba(239,68,68,0.12); color: rgb(248,113,113);"
             >Esgotado</span>
-            <div class="w-9 h-9 rounded-xl bg-orange-500/10 flex items-center justify-center mb-2">
-              <UtensilsCrossed :size="14" class="text-orange-400" />
+            <div
+              class="w-10 h-10 rounded-[14px] flex items-center justify-center mb-3 shrink-0"
+              style="background: rgba(249,115,22,0.1);"
+            >
+              <UtensilsCrossed :size="15" class="text-orange-400/60" />
             </div>
-            <p class="text-xs font-black text-white leading-snug line-clamp-2">{{ p.nome }}</p>
-            <p v-if="p.categoria" class="text-[10px] text-white/30 mt-0.5 truncate w-full">{{ p.categoria }}</p>
-            <p class="text-sm font-black text-orange-400 mt-1.5">R$ {{ fmt(p.preco) }}</p>
+            <p class="text-[12px] font-black text-white leading-snug line-clamp-2">{{ p.nome }}</p>
+            <p v-if="p.categoria" class="text-[10px] font-medium text-white/20 mt-0.5 truncate w-full">{{ p.categoria }}</p>
+            <p class="text-[15px] font-black text-orange-400 mt-2">R$ {{ fmt(p.preco) }}</p>
           </button>
         </div>
       </div>
 
-      <!-- BARRA DO CARRINHO (FIXA) -->
-      <div
-        v-if="carrinho.length"
-        class="fixed bottom-24 left-0 right-0 px-4 z-20"
-      >
+      <!-- CART BAR -->
+      <div v-if="carrinho.length" class="fixed bottom-24 left-0 right-0 px-5 z-20">
         <button
           @click="carrinhoAberto = true"
-          class="w-full h-14 rounded-2xl bg-orange-500 shadow-xl shadow-orange-500/30 flex items-center justify-between px-5 active:scale-95 transition-all"
+          class="w-full h-[56px] rounded-[18px] flex items-center justify-between px-5 active:scale-[0.98] transition-all"
+          style="background: linear-gradient(135deg, #f97316 0%, #ea6c0a 100%); box-shadow: 0 8px 28px rgba(249,115,22,0.4);"
         >
-          <div class="flex items-center gap-2">
-            <span class="w-6 h-6 rounded-lg bg-white/20 text-white text-xs font-black flex items-center justify-center">
+          <div class="flex items-center gap-3">
+            <div
+              class="w-7 h-7 rounded-[10px] flex items-center justify-center text-[12px] font-black text-orange-500"
+              style="background: rgba(255,255,255,0.22);"
+            >
               {{ totalItens }}
-            </span>
-            <span class="text-sm font-black text-white">Ver Carrinho</span>
+            </div>
+            <span class="text-[14px] font-black text-white">Ver Carrinho</span>
           </div>
-          <span class="text-base font-black text-white">R$ {{ fmt(total) }}</span>
+          <span class="text-[15px] font-black text-white">R$ {{ fmt(total) }}</span>
         </button>
       </div>
 
     </template>
 
-    <!-- BOTTOM SHEET CARRINHO -->
+    <!-- BOTTOM SHEET: CARRINHO -->
     <Teleport to="body">
       <Transition name="sheet">
         <div v-if="carrinhoAberto" class="fixed inset-0 z-50">
-          <div class="absolute inset-0 bg-black/60" @click="carrinhoAberto = false"></div>
-          <div class="absolute bottom-0 left-0 right-0 bg-neutral-900 border-t border-white/[0.08] rounded-t-3xl max-h-[92vh] flex flex-col">
-
-            <!-- Handle -->
+          <div class="absolute inset-0 bg-black/65" @click="carrinhoAberto = false"></div>
+          <div
+            class="absolute bottom-0 left-0 right-0 rounded-t-[28px] max-h-[92vh] flex flex-col"
+            style="background: #141417; border-top: 1px solid rgba(255,255,255,0.07);"
+          >
             <div class="flex justify-center pt-3 pb-1 shrink-0">
-              <div class="w-10 h-1 rounded-full bg-white/20"></div>
+              <div class="w-10 h-1 rounded-full bg-white/[0.09]"></div>
             </div>
 
-            <!-- Header -->
             <div class="px-5 pb-3 flex items-center justify-between shrink-0">
               <div>
-                <p class="text-[10px] font-black uppercase tracking-[0.12em] text-orange-400">Venda Direta</p>
-                <h3 class="text-lg font-black text-white">Carrinho</h3>
+                <p class="text-[10px] font-bold uppercase tracking-[0.14em] text-orange-500/70">Venda Direta</p>
+                <h3 class="text-[20px] font-black text-white mt-0.5">Carrinho</h3>
               </div>
-              <div class="flex items-center gap-2">
-                <button v-if="carrinho.length" @click="limparCarrinho" class="text-xs font-black text-red-400 hover:text-red-300">
+              <div class="flex items-center gap-3">
+                <button v-if="carrinho.length" @click="limparCarrinho" class="text-[12px] font-black text-red-400/70 hover:text-red-400 transition-colors">
                   Limpar
                 </button>
-                <button @click="carrinhoAberto = false" class="w-8 h-8 rounded-xl bg-white/[0.06] flex items-center justify-center text-white/40">
-                  <X :size="16" />
+                <button
+                  @click="carrinhoAberto = false"
+                  class="w-8 h-8 rounded-full flex items-center justify-center text-white/25"
+                  style="background: rgba(255,255,255,0.06);"
+                >
+                  <X :size="15" />
                 </button>
               </div>
             </div>
 
-            <div class="h-px bg-white/[0.06] mx-5 shrink-0"></div>
+            <div class="h-px mx-5 shrink-0 bg-white/[0.05]"></div>
 
-            <!-- Itens -->
+            <!-- ITENS -->
             <div class="flex-1 overflow-y-auto">
-              <div v-if="!carrinho.length" class="flex flex-col items-center justify-center py-12 text-white/30 gap-2">
-                <ShoppingCart :size="24" />
-                <p class="text-xs">Nenhum item</p>
+              <div v-if="!carrinho.length" class="flex flex-col items-center justify-center py-14 text-white/20 gap-3">
+                <ShoppingCart :size="28" class="text-white/[0.08]" />
+                <p class="text-[12px] font-semibold">Nenhum item</p>
               </div>
-              <div v-else class="divide-y divide-white/[0.05]">
+              <div v-else class="divide-y" style="border-color: rgba(255,255,255,0.04);">
                 <div
                   v-for="(item, idx) in carrinho"
                   :key="item.produto_id"
-                  class="flex items-center gap-3 px-5 py-3"
+                  class="flex items-center gap-3.5 px-5 py-3.5"
                 >
                   <div class="flex-1 min-w-0">
-                    <p class="text-xs font-black text-white truncate">{{ item.nome_produto }}</p>
-                    <p class="text-[11px] text-orange-400">R$ {{ fmt(item.preco_unit) }}</p>
+                    <p class="text-[13px] font-black text-white/90 truncate">{{ item.nome_produto }}</p>
+                    <p class="text-[11px] font-semibold text-orange-400/70 mt-0.5">R$ {{ fmt(item.preco_unit) }}</p>
                   </div>
                   <div class="flex items-center gap-2 shrink-0">
-                    <button @click="decrementar(idx)"
-                      class="w-7 h-7 rounded-lg bg-white/[0.06] flex items-center justify-center text-white/60 active:scale-95">
+                    <button
+                      @click="decrementar(idx)"
+                      class="w-7 h-7 rounded-[8px] flex items-center justify-center text-white/50 active:scale-95 transition-all"
+                      style="background: rgba(255,255,255,0.06);"
+                    >
                       <Minus :size="12" />
                     </button>
-                    <span class="w-6 text-center text-sm font-black text-white">{{ item.quantidade }}</span>
-                    <button @click="incrementar(idx)"
-                      class="w-7 h-7 rounded-lg bg-white/[0.06] flex items-center justify-center text-white/60 active:scale-95">
+                    <span class="w-6 text-center text-[13px] font-black text-white tabular-nums">{{ item.quantidade }}</span>
+                    <button
+                      @click="incrementar(idx)"
+                      class="w-7 h-7 rounded-[8px] flex items-center justify-center text-white/50 active:scale-95 transition-all"
+                      style="background: rgba(255,255,255,0.06);"
+                    >
                       <Plus :size="12" />
                     </button>
                   </div>
-                  <span class="text-xs font-black text-white/60 w-16 text-right shrink-0">
+                  <span class="text-[12px] font-black text-white/45 w-14 text-right shrink-0 tabular-nums">
                     R$ {{ fmt(item.preco_unit * item.quantidade) }}
                   </span>
                 </div>
@@ -174,51 +207,52 @@
             </div>
 
             <!-- FOOTER -->
-            <div class="border-t border-white/[0.06] px-5 py-4 space-y-3 shrink-0">
+            <div class="px-5 py-4 space-y-3.5 shrink-0" style="border-top: 1px solid rgba(255,255,255,0.05);">
 
               <!-- Totais -->
-              <div class="bg-white/[0.04] rounded-xl p-3 space-y-1.5">
-                <div class="flex justify-between text-xs text-white/40">
-                  <span>Subtotal</span><span>R$ {{ fmt(subtotal) }}</span>
+              <div class="rounded-[14px] p-3.5 space-y-2" style="background: rgba(255,255,255,0.04);">
+                <div class="flex justify-between text-[12px] text-white/35 font-medium">
+                  <span>Subtotal</span><span class="tabular-nums">R$ {{ fmt(subtotal) }}</span>
                 </div>
-                <div v-if="descontoNum > 0" class="flex justify-between text-xs text-green-400">
-                  <span>Desconto</span><span>− R$ {{ fmt(descontoNum) }}</span>
+                <div v-if="descontoNum > 0" class="flex justify-between text-[12px] font-bold text-emerald-400">
+                  <span>Desconto</span><span class="tabular-nums">− R$ {{ fmt(descontoNum) }}</span>
                 </div>
-                <div class="flex justify-between text-sm font-black text-white pt-1.5 border-t border-white/[0.06]">
-                  <span>Total</span><span>R$ {{ fmt(total) }}</span>
+                <div class="flex justify-between text-[14px] font-black text-white pt-2" style="border-top: 1px solid rgba(255,255,255,0.06);">
+                  <span>Total</span><span class="tabular-nums">R$ {{ fmt(total) }}</span>
                 </div>
               </div>
 
               <!-- Desconto -->
-              <div class="flex items-center gap-2">
-                <label class="text-[10px] font-black uppercase tracking-[0.12em] text-white/40 shrink-0">Desconto R$</label>
+              <div class="flex items-center gap-3">
+                <label class="text-[10px] font-black uppercase tracking-[0.14em] text-white/25 shrink-0 w-20">Desconto R$</label>
                 <input
                   v-model="desconto"
                   type="number"
                   min="0"
                   step="0.01"
                   placeholder="0,00"
-                  class="flex-1 h-9 px-3 bg-white/[0.06] border border-white/[0.08] rounded-xl text-xs font-bold text-white placeholder:text-white/20 outline-none focus:border-orange-500/50 text-right"
+                  class="flex-1 h-9 px-3 rounded-[10px] text-[12px] font-bold text-white placeholder:text-white/20 outline-none text-right transition-all"
+                  style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.07);"
                 />
               </div>
 
-              <!-- Métodos de pagamento -->
+              <!-- Pagamento -->
               <div>
-                <p class="text-[10px] font-black uppercase tracking-[0.12em] text-white/40 mb-2">Pagamento</p>
-                <div class="grid grid-cols-2 gap-1.5">
+                <p class="text-[10px] font-black uppercase tracking-[0.14em] text-white/25 mb-2.5">Pagamento</p>
+                <div class="grid grid-cols-2 gap-2">
                   <button
                     v-for="m in metodos"
                     :key="m.id"
                     @click="metodoSelecionado = m; valorRecebido = ''"
-                    class="h-10 rounded-xl border text-[11px] font-black transition-all"
-                    :class="metodoSelecionado?.id === m.id
-                      ? 'border-orange-500 bg-orange-500/15 text-orange-400'
-                      : 'border-white/[0.08] text-white/50'"
+                    class="h-10 rounded-[12px] text-[12px] font-black transition-all active:scale-[0.97]"
+                    :style="metodoSelecionado?.id === m.id
+                      ? 'background:rgba(249,115,22,0.15); border:1px solid rgba(249,115,22,0.45); color:rgb(251,146,60);'
+                      : 'background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.07); color:rgba(255,255,255,0.4);'"
                   >{{ m.nome }}</button>
                 </div>
               </div>
 
-              <!-- Troco (Dinheiro) -->
+              <!-- Troco -->
               <div v-if="metodoSelecionado?.nome === 'Dinheiro'" class="space-y-2">
                 <input
                   v-model="valorRecebido"
@@ -226,26 +260,33 @@
                   min="0"
                   step="0.01"
                   placeholder="Valor recebido"
-                  class="w-full h-10 px-3 bg-white/[0.06] border border-white/[0.08] rounded-xl text-sm font-black text-white placeholder:text-white/20 outline-none focus:border-orange-500/50"
+                  class="w-full h-10 px-3 rounded-[12px] text-[13px] font-black text-white placeholder:text-white/20 outline-none transition-all"
+                  style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.07);"
                 />
-                <div v-if="trocoVal > 0" class="flex justify-between items-center bg-green-500/10 rounded-xl px-3 py-2">
-                  <span class="text-xs font-bold text-green-400">Troco</span>
-                  <span class="text-sm font-black text-green-400">R$ {{ fmt(trocoVal) }}</span>
+                <div
+                  v-if="trocoVal > 0"
+                  class="flex justify-between items-center rounded-[12px] px-3.5 py-2.5"
+                  style="background: rgba(52,211,153,0.08); border: 1px solid rgba(52,211,153,0.15);"
+                >
+                  <span class="text-[12px] font-bold text-emerald-400">Troco</span>
+                  <span class="text-[14px] font-black text-emerald-400 tabular-nums">R$ {{ fmt(trocoVal) }}</span>
                 </div>
-                <p v-if="valorRecebidoNum > 0 && valorRecebidoNum < total" class="text-xs text-red-400 font-bold text-center">
+                <p v-if="valorRecebidoNum > 0 && valorRecebidoNum < total" class="text-[11px] font-bold text-center" style="color: rgb(248,113,113);">
                   Valor insuficiente — faltam R$ {{ fmt(total - valorRecebidoNum) }}
                 </p>
               </div>
 
-              <!-- Botão confirmar -->
+              <!-- Confirmar -->
               <button
                 @click="confirmarVenda"
                 :disabled="!podePagar || processando"
-                class="w-full h-12 rounded-2xl text-white text-sm font-black transition-all active:scale-95 disabled:opacity-40 flex items-center justify-center gap-2"
-                :class="podePagar ? 'bg-green-500 hover:bg-green-400' : 'bg-white/10'"
+                class="w-full h-[52px] rounded-[16px] text-white text-[14px] font-black transition-all active:scale-[0.98] disabled:opacity-35 flex items-center justify-center gap-2.5"
+                :style="podePagar
+                  ? 'background: #22c55e; box-shadow: 0 6px 20px rgba(34,197,94,0.3);'
+                  : 'background: rgba(255,255,255,0.07);'"
               >
                 <Loader2 v-if="processando" :size="16" class="animate-spin" />
-                <CheckCircle2 v-else :size="16" />
+                <CheckCircle2 v-else :size="17" />
                 {{ processando ? 'Processando...' : 'Confirmar Venda' }}
               </button>
 
@@ -255,41 +296,52 @@
       </Transition>
     </Teleport>
 
-    <!-- FICHA (VENDA CONFIRMADA) -->
+    <!-- FICHA -->
     <Teleport to="body">
       <Transition name="fade">
-        <div v-if="fichaAtual" class="fixed inset-0 bg-black/70 z-[60] flex items-center justify-center p-4">
-          <div class="bg-neutral-900 border border-white/[0.08] rounded-3xl w-full max-w-xs overflow-hidden">
-            <div class="px-5 pt-6 pb-4 text-center border-b border-dashed border-white/20">
-              <div class="w-11 h-11 rounded-2xl bg-green-500/20 border border-green-500/30 flex items-center justify-center mx-auto mb-3">
-                <CheckCircle2 :size="20" class="text-green-400" />
+        <div v-if="fichaAtual" class="fixed inset-0 z-[60] flex items-center justify-center p-5" style="background: rgba(0,0,0,0.75);">
+          <div
+            class="w-full max-w-xs overflow-hidden rounded-[24px]"
+            style="background: #141417; border: 1px solid rgba(255,255,255,0.07);"
+          >
+            <div class="px-5 pt-7 pb-4 text-center" style="border-bottom: 1px dashed rgba(255,255,255,0.08);">
+              <div
+                class="w-12 h-12 rounded-[16px] flex items-center justify-center mx-auto mb-4"
+                style="background: rgba(34,197,94,0.12); border: 1px solid rgba(34,197,94,0.2);"
+              >
+                <CheckCircle2 :size="22" class="text-emerald-400" />
               </div>
-              <p class="font-black text-white text-sm">Venda Confirmada!</p>
-              <p class="text-[10px] text-white/40 mt-1">{{ fichaAtual.numero }}</p>
+              <p class="font-black text-white text-[15px]">Venda Confirmada!</p>
+              <p class="text-[11px] text-white/30 font-medium mt-1">{{ fichaAtual.numero }}</p>
             </div>
 
-            <div class="px-5 py-3 border-b border-dashed border-white/20 space-y-1.5">
+            <div class="px-5 py-3.5 space-y-2" style="border-bottom: 1px dashed rgba(255,255,255,0.08);">
               <div v-for="item in fichaAtual.itens" :key="item.produto_id" class="flex items-center justify-between gap-2">
                 <div class="flex items-center gap-2 min-w-0">
-                  <span class="text-[11px] font-black text-orange-400">{{ item.quantidade }}×</span>
-                  <span class="text-xs text-white/80 truncate">{{ item.nome_produto }}</span>
+                  <span class="text-[11px] font-black text-orange-400 shrink-0">{{ item.quantidade }}×</span>
+                  <span class="text-[12px] text-white/70 truncate">{{ item.nome_produto }}</span>
                 </div>
-                <span class="text-xs font-black text-white shrink-0">R$ {{ fmt(item.preco_unit * item.quantidade) }}</span>
+                <span class="text-[12px] font-black text-white shrink-0 tabular-nums">R$ {{ fmt(item.preco_unit * item.quantidade) }}</span>
               </div>
             </div>
 
-            <div class="px-5 py-3 space-y-1">
-              <div class="flex justify-between text-xs text-white/40">
-                <span>Total</span><span class="text-white font-black">R$ {{ fmt(fichaAtual.totalLiquido) }}</span>
+            <div class="px-5 py-3 space-y-1.5">
+              <div class="flex justify-between">
+                <span class="text-[12px] text-white/30 font-medium">Total</span>
+                <span class="text-[14px] font-black text-white tabular-nums">R$ {{ fmt(fichaAtual.totalLiquido) }}</span>
               </div>
-              <div v-if="fichaAtual.troco > 0" class="flex justify-between text-xs font-black text-green-400">
-                <span>Troco</span><span>R$ {{ fmt(fichaAtual.troco) }}</span>
+              <div v-if="fichaAtual.troco > 0" class="flex justify-between">
+                <span class="text-[12px] font-bold text-emerald-400">Troco</span>
+                <span class="text-[13px] font-black text-emerald-400 tabular-nums">R$ {{ fmt(fichaAtual.troco) }}</span>
               </div>
             </div>
 
-            <div class="px-4 pb-5 pt-2">
-              <button @click="fichaAtual = null"
-                class="w-full h-11 rounded-2xl bg-orange-500 hover:bg-orange-400 text-white text-sm font-black active:scale-95 transition-all">
+            <div class="px-5 pb-6 pt-1">
+              <button
+                @click="fichaAtual = null"
+                class="w-full h-[48px] rounded-[14px] text-white text-[13px] font-black active:scale-[0.98] transition-all"
+                style="background: #f97316; box-shadow: 0 4px 16px rgba(249,115,22,0.3);"
+              >
                 Nova Venda
               </button>
             </div>
@@ -317,10 +369,10 @@ import { useAuthStore } from '~/stores/auth'
 
 definePageMeta({ layout: 'mobile' })
 
-const api          = useApi()
-const caixaStore   = useCaixaStore()
-const toastStore   = useToastStore()
-const authStore    = useAuthStore()
+const api           = useApi()
+const caixaStore    = useCaixaStore()
+const toastStore    = useToastStore()
+const authStore     = useAuthStore()
 const carrinhoStore = useCarrinhoVendaStore()
 const produtosStore = useProdutosStore()
 
@@ -352,13 +404,13 @@ const produtosFiltrados = computed(() => {
   return lista
 })
 
-const totalItens    = computed(() => carrinho.value.reduce((s, i) => s + i.quantidade, 0))
-const subtotal      = computed(() => carrinho.value.reduce((s, i) => s + i.preco_unit * i.quantidade, 0))
-const descontoNum   = computed(() => Math.min(Math.max(Number(desconto.value) || 0, 0), subtotal.value))
-const total         = computed(() => subtotal.value - descontoNum.value)
+const totalItens       = computed(() => carrinho.value.reduce((s, i) => s + i.quantidade, 0))
+const subtotal         = computed(() => carrinho.value.reduce((s, i) => s + i.preco_unit * i.quantidade, 0))
+const descontoNum      = computed(() => Math.min(Math.max(Number(desconto.value) || 0, 0), subtotal.value))
+const total            = computed(() => subtotal.value - descontoNum.value)
 const valorRecebidoNum = computed(() => Number(valorRecebido.value) || 0)
-const trocoVal      = computed(() => metodoSelecionado.value?.nome === 'Dinheiro' ? Math.max(0, valorRecebidoNum.value - total.value) : 0)
-const podePagar     = computed(() => {
+const trocoVal         = computed(() => metodoSelecionado.value?.nome === 'Dinheiro' ? Math.max(0, valorRecebidoNum.value - total.value) : 0)
+const podePagar        = computed(() => {
   if (!carrinho.value.length || !metodoSelecionado.value || total.value <= 0) return false
   if (metodoSelecionado.value.nome === 'Dinheiro') return valorRecebidoNum.value >= total.value
   return true
@@ -370,11 +422,8 @@ function adicionarAoCarrinho(p: any) {
     return
   }
   const idx = carrinho.value.findIndex(i => i.produto_id === p.id)
-  if (idx >= 0) {
-    carrinho.value[idx].quantidade++
-  } else {
-    carrinho.value.push({ produto_id: p.id, nome_produto: p.nome, preco_unit: Number(p.preco), quantidade: 1 })
-  }
+  if (idx >= 0) carrinho.value[idx].quantidade++
+  else carrinho.value.push({ produto_id: p.id, nome_produto: p.nome, preco_unit: Number(p.preco), quantidade: 1 })
   if (p.gerenciar_estoque) p.estoque_atual--
 }
 
@@ -417,7 +466,6 @@ async function confirmarVenda() {
     fichaAtual.value = resp.ficha
     carrinhoStore.limpar()
     carrinhoAberto.value = false
-    // Atualiza produtos e caixa em background
     carregarProdutos()
     caixaStore.carregarStatus()
   } catch (e: any) {
@@ -442,18 +490,14 @@ async function carregarMetodos() {
 }
 
 onMounted(async () => {
-  await Promise.all([
-    caixaStore.carregarStatus(),
-    carregarProdutos(),
-    carregarMetodos()
-  ])
+  await Promise.all([caixaStore.carregarStatus(), carregarProdutos(), carregarMetodos()])
   iniciando.value = false
 })
 </script>
 
 <style scoped>
 .sheet-enter-active,
-.sheet-leave-active { transition: opacity 0.22s; }
+.sheet-leave-active { transition: opacity 0.2s; }
 .sheet-enter-active .absolute.bottom-0,
 .sheet-leave-active .absolute.bottom-0 {
   transition: transform 0.28s cubic-bezier(0.32, 0.72, 0, 1);
@@ -463,7 +507,7 @@ onMounted(async () => {
 .sheet-enter-from .absolute.bottom-0,
 .sheet-leave-to .absolute.bottom-0 { transform: translateY(100%); }
 
-.fade-enter-active, .fade-leave-active { transition: opacity .2s; }
+.fade-enter-active, .fade-leave-active { transition: opacity 0.2s; }
 .fade-enter-from, .fade-leave-to { opacity: 0; }
 .scrollbar-none::-webkit-scrollbar { display: none; }
 .scrollbar-none { -ms-overflow-style: none; scrollbar-width: none; }

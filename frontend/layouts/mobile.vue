@@ -2,7 +2,7 @@
   <div class="min-h-screen bg-[#0d0d10] flex flex-col text-white">
 
     <!-- HEADER -->
-    <header class="shrink-0 flex items-center justify-between px-5 pt-5 pb-4">
+    <header class="shrink-0 flex items-center justify-between px-5 pb-4" style="padding-top: max(20px, env(safe-area-inset-top));">
       <div class="flex items-center gap-3">
         <div class="w-8 h-8 rounded-[12px] bg-orange-500 flex items-center justify-center shadow-[0_4px_14px_rgba(249,115,22,0.4)]">
           <UtensilsCrossed :size="14" class="text-white" />

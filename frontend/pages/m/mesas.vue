@@ -44,7 +44,7 @@
       </div>
       <div>
         <p class="text-[15px] font-black text-white/35">Nenhuma mesa aberta</p>
-        <p class="text-[12px] text-white/18 mt-1.5 font-medium">Toque em "Nova Mesa" para começar</p>
+        <p class="text-[12px] text-white/20 mt-1.5 font-medium">Toque em "Nova Mesa" para começar</p>
       </div>
     </div>
 
@@ -103,7 +103,7 @@
     <Teleport to="body">
       <Transition name="sheet">
         <div v-if="mesaSelecionada" class="fixed inset-0 z-50">
-          <div class="absolute inset-0 bg-black/60" @click="mesaSelecionada = null"></div>
+          <div class="absolute inset-0 bg-black/65" @click="mesaSelecionada = null"></div>
           <div
             class="absolute bottom-0 left-0 right-0 rounded-t-[28px] max-h-[85vh] flex flex-col"
             style="background: #141417; border-top: 1px solid rgba(255,255,255,0.07);"
@@ -167,7 +167,10 @@
               </div>
             </div>
 
-            <div class="px-5 py-4 shrink-0" style="border-top: 1px solid rgba(255,255,255,0.05);">
+            <div
+              class="px-5 pt-4 shrink-0"
+              style="border-top: 1px solid rgba(255,255,255,0.05); padding-bottom: max(20px, env(safe-area-inset-bottom));"
+            >
               <button
                 v-if="authStore.temPermissao('adicionarPedido')"
                 @click="abrirProdutos"
@@ -227,7 +230,7 @@
 
             <div class="h-px mx-5 shrink-0 bg-white/[0.05]"></div>
 
-            <div class="flex-1 overflow-y-auto px-4 py-3">
+            <div class="flex-1 overflow-y-auto px-4 pt-3 pb-6">
               <div v-if="!produtosFiltrados.length" class="flex flex-col items-center justify-center py-12 gap-2.5">
                 <UtensilsCrossed :size="24" class="text-white/[0.08]" />
                 <p class="text-[12px] font-semibold text-white/20">Nenhum produto encontrado</p>
@@ -263,10 +266,10 @@
     <Teleport to="body">
       <Transition name="sheet">
         <div v-if="modalNovaMesa" class="fixed inset-0 z-50">
-          <div class="absolute inset-0 bg-black/60" @click="modalNovaMesa = false; novaMesaNome = ''"></div>
+          <div class="absolute inset-0 bg-black/65" @click="modalNovaMesa = false; novaMesaNome = ''"></div>
           <div
-            class="absolute bottom-0 left-0 right-0 rounded-t-[28px] px-5 pt-3 pb-8"
-            style="background: #141417; border-top: 1px solid rgba(255,255,255,0.07);"
+            class="absolute bottom-0 left-0 right-0 rounded-t-[28px] px-5 pt-3"
+            style="background: #141417; border-top: 1px solid rgba(255,255,255,0.07); padding-bottom: max(28px, env(safe-area-inset-bottom));"
           >
             <div class="flex justify-center mb-5">
               <div class="w-10 h-1 rounded-full bg-white/[0.09]"></div>
@@ -294,13 +297,14 @@
               style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.07);"
               @focus="($event.target as HTMLInputElement).style.borderColor='rgba(249,115,22,0.4)'"
               @blur="($event.target as HTMLInputElement).style.borderColor='rgba(255,255,255,0.07)'"
+              @keypress.enter="abrirMesa"
             />
 
             <div class="flex gap-3">
               <button
                 @click="modalNovaMesa = false; novaMesaNome = ''"
                 class="flex-1 h-[50px] rounded-[14px] text-white/30 text-[13px] font-black transition-all active:scale-95"
-                style="border: 1px solid rgba(255,255,255,0.07);"
+                style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.07);"
               >
                 Cancelar
               </button>

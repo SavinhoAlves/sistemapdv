@@ -202,7 +202,7 @@
                   v-for="(item, idx) in carrinho"
                   :key="item.produto_id"
                   class="flex items-center gap-3 px-5 py-3.5"
-                  style="border-bottom: 1px solid rgba(255,255,255,0.04);"
+                  :style="idx < carrinho.length - 1 ? 'border-bottom: 1px solid rgba(255,255,255,0.04);' : ''"
                 >
                   <!-- Accent bar -->
                   <div
@@ -241,7 +241,7 @@
 
             <!-- FOOTER -->
             <div
-              class="px-5 pt-4 pb-5 space-y-3 shrink-0"
+              class="px-5 pt-4 space-y-3 shrink-0"
               style="border-top: 1px solid rgba(255,255,255,0.05); padding-bottom: max(20px, env(safe-area-inset-bottom));"
             >
 

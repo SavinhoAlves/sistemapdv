@@ -34,9 +34,9 @@ export function useSocket() {
     const opts: any = {
       auth: { token: authStore.token },
       reconnection: true,
-      reconnectionAttempts: 10,
+      reconnectionAttempts: Infinity,
       reconnectionDelay: 2000,
-      reconnectionDelayMax: 10000,
+      reconnectionDelayMax: 15000,
       transports: ['websocket', 'polling']
     }
 

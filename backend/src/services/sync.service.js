@@ -1,5 +1,6 @@
 const crypto = require('crypto')
 const { query } = require('../database/connection')
+const { getLocalIps } = require('../utils/network')
 
 const INTERVALO_MS  = (Number(process.env.SYNC_INTERVALO_SEG) || 30) * 1000
 const TIMEOUT_MS    = Number(process.env.SYNC_TIMEOUT_MS) || 8000
@@ -230,10 +231,54 @@ function agendarSync() {
   setTimeout(ciclo, 10000) // aguarda 10s após boot
 }
 
+// ─────────────────────────────────────────────────────────────
+// Monitor de IP: detecta mudança de IP local e atualiza
+// central_url no banco para evitar interrupções no sync.
+// ─────────────────────────────────────────────────────────────
+const IP_MONITOR_INTERVALO = 30 * 1000 // 30s
+let _ipAnterior = null
+
+async function verificarMudancaDeIp() {
+  const ips = getLocalIps()
+  const ipAtual = ips[0] ?? null
+
+  if (_ipAnterior === null) {
+    _ipAnterior = ipAtual
+    return
+  }
+
+  if (!ipAtual || ipAtual === _ipAnterior) return
+
+  console.log(`[IP] Mudança detectada: ${_ipAnterior} → ${ipAtual}`)
+
+  try {
+    const rows = await query('SELECT central_url FROM sync_config WHERE id = 1')
+    const url = rows[0]?.central_url
+    if (url && url.includes(_ipAnterior)) {
+      const novaUrl = url.replaceAll(_ipAnterior, ipAtual)
+      await query('UPDATE sync_config SET central_url = ? WHERE id = 1', [novaUrl])
+      console.log(`[IP] central_url atualizado: ${url} → ${novaUrl}`)
+      falhasConsecutivas = 0 // força sync imediato no próximo ciclo
+    }
+  } catch (err) {
+    console.error('[IP] Erro ao atualizar central_url:', err.message)
+  }
+
+  _ipAnterior = ipAtual
+}
+
+function agendarMonitorIp() {
+  // Leitura inicial sem log para estabelecer baseline
+  _ipAnterior = getLocalIps()[0] ?? null
+
+  setInterval(verificarMudancaDeIp, IP_MONITOR_INTERVALO)
+}
+
 function getFalhasConsecutivas() { return falhasConsecutivas }
 
 module.exports = {
   agendarSync,
+  agendarMonitorIp,
   sincronizar,
   coletarSnapshot,
   garantirInstalacaoUuid,

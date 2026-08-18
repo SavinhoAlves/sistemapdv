@@ -2,6 +2,7 @@ const express  = require('express')
 const router   = express.Router()
 const bcrypt   = require('bcryptjs')
 const crypto   = require('crypto')
+const { getLocalIps } = require('../utils/network')
 
 const { query }               = require('../database/connection')
 const { authenticate, authorize } = require('../middlewares/auth.middleware')
@@ -115,7 +116,8 @@ router.post('/:id/mobile-token', authenticate, authorize('administrador'), async
     const hash = crypto.createHash('sha256').update(rawToken).digest('hex')
     const expires = new Date(Date.now() + 12 * 60 * 60 * 1000)
     await query('UPDATE usuarios SET mobile_token = ?, mobile_token_expires = ? WHERE id = ?', [hash, expires, req.params.id])
-    return res.json({ token: rawToken, expiresAt: expires.toISOString() })
+    const localIps = getLocalIps()
+    return res.json({ token: rawToken, expiresAt: expires.toISOString(), localIp: localIps[0] ?? null, localIps })
   } catch (err) {
     return res.status(500).json({ error: err.message })
   }

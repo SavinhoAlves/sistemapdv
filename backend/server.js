@@ -118,5 +118,7 @@ server.listen(PORT, '0.0.0.0', () => {
 
   // Sincronização best-effort com o painel central de suporte (opcional —
   // no-op silencioso se a instalação nunca foi configurada)
-  require('./src/services/sync.service').agendarSync()
+  const syncService = require('./src/services/sync.service')
+  syncService.agendarSync()
+  syncService.agendarMonitorIp()
 })

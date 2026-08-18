@@ -483,6 +483,19 @@
               </button>
             </div>
             <p class="text-sm text-gray-500 dark:text-white/50 mb-4">{{ qrFuncionario?.nome }}</p>
+
+            <!-- Seletor de IP (só aparece em localhost com múltiplas interfaces) -->
+            <div v-if="qrLocalIps.length > 1" class="mb-3 flex flex-wrap gap-1.5 justify-center">
+              <button v-for="ip in qrLocalIps" :key="ip" @click="trocarIpQr(ip)"
+                class="text-[10px] font-black px-2.5 py-1 rounded-lg border transition-all"
+                :class="qrIpSelecionado === ip
+                  ? 'bg-orange-500 border-orange-500 text-white'
+                  : 'bg-gray-100 dark:bg-white/[0.06] border-gray-200 dark:border-white/10 text-gray-500 dark:text-white/40 hover:border-orange-400/50'">
+                {{ ip }}
+              </button>
+            </div>
+            <p v-else-if="qrIpSelecionado" class="text-[10px] font-mono text-orange-400 mb-3">{{ qrIpSelecionado }}</p>
+
             <div v-if="gerandoQr" class="flex items-center justify-center h-40">
               <Loader2 :size="28" class="animate-spin text-orange-500" />
             </div>
@@ -793,22 +806,44 @@ const qrToken       = ref('')
 const qrExpiresAt   = ref('')
 const qrDataUrl     = ref('')
 const gerandoQr     = ref(false)
+const qrLocalIps    = ref<string[]>([])
+const qrIpSelecionado = ref('')
+
+async function gerarQrDataUrl(token: string, ip: string) {
+  const port = window.location.port ? `:${window.location.port}` : ''
+  const url  = `${window.location.protocol}//${ip}${port}/m?t=${token}`
+  return QRCode.toDataURL(url, { width: 240, margin: 2, color: { dark: '#000000', light: '#ffffff' } })
+}
+
+async function trocarIpQr(ip: string) {
+  qrIpSelecionado.value = ip
+  if (qrToken.value) qrDataUrl.value = await gerarQrDataUrl(qrToken.value, ip)
+}
 
 async function gerarQrMobile(f: any) {
-  qrFuncionario.value = f
-  qrToken.value       = ''
-  qrDataUrl.value     = ''
-  gerandoQr.value     = true
-  modalQr.value       = true
+  qrFuncionario.value   = f
+  qrToken.value         = ''
+  qrDataUrl.value       = ''
+  qrLocalIps.value      = []
+  qrIpSelecionado.value = ''
+  gerandoQr.value       = true
+  modalQr.value         = true
   try {
     const res = await api.post<any>(`/users/${f.id}/mobile-token`)
     qrToken.value     = res.token
     qrExpiresAt.value = res.expiresAt
-    const url = `${window.location.origin}/m?t=${res.token}`
-    qrDataUrl.value = await QRCode.toDataURL(url, {
-      width: 240, margin: 2,
-      color: { dark: '#000000', light: '#ffffff' }
-    })
+
+    const hostname = window.location.hostname
+    const isLocal  = hostname === 'localhost' || hostname === '127.0.0.1'
+
+    if (isLocal && res.localIps?.length) {
+      qrLocalIps.value      = res.localIps
+      qrIpSelecionado.value = res.localIps[0]
+    } else {
+      qrIpSelecionado.value = hostname
+    }
+
+    qrDataUrl.value = await gerarQrDataUrl(res.token, qrIpSelecionado.value)
   } catch (e: any) {
     toastStore.error(e?.message || 'Erro ao gerar QR')
     modalQr.value = false

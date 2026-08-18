@@ -51,13 +51,6 @@
           </span>
         </div>
 
-        <!-- BOTÃO -->
-        <button
-          @click="cancelar"
-          class="mt-8 w-full h-14 rounded-2xl border border-gray-200 dark:border-white/10 text-gray-500 dark:text-white/60 hover:bg-gray-50 dark:hover:bg-white/5 transition-all text-sm font-black uppercase tracking-wider active:scale-95"
-        >
-          Cancelar
-        </button>
       </div>
     </div>
   </Transition>

@@ -1,57 +1,48 @@
 <template>
   <div class="min-h-screen bg-neutral-950 flex flex-col text-white">
 
-    <!-- TOP BAR -->
-    <header class="shrink-0">
-      <div class="h-0.5 bg-gradient-to-r from-orange-500 via-amber-400 to-orange-500"></div>
-      <div class="flex items-center justify-between px-4 py-3 bg-neutral-900/95 backdrop-blur border-b border-white/[0.07]">
-        <div class="flex items-center gap-3">
-          <div class="w-8 h-8 rounded-xl bg-gradient-to-br from-orange-500 to-amber-500 flex items-center justify-center shrink-0 shadow-lg shadow-orange-500/20">
-            <UtensilsCrossed :size="15" class="text-white" />
-          </div>
-          <div>
-            <p class="text-[9px] font-black uppercase tracking-[0.15em] text-orange-400 leading-none">PDV Mobile</p>
-            <p class="text-[13px] font-black text-white leading-tight mt-0.5 truncate max-w-[160px]">
-              {{ authStore.usuario?.nome || 'Funcionário' }}
-            </p>
-          </div>
+    <!-- HEADER -->
+    <header class="shrink-0 flex items-center justify-between px-5 pt-5 pb-4">
+      <div class="flex items-center gap-3">
+        <div class="w-8 h-8 rounded-2xl bg-orange-500 flex items-center justify-center shadow-lg shadow-orange-500/25">
+          <UtensilsCrossed :size="14" class="text-white" />
         </div>
-
-        <button
-          @click="authStore.logout()"
-          class="h-8 px-3 rounded-xl bg-white/[0.06] hover:bg-red-500/15 hover:text-red-400 text-white/40 text-[11px] font-black transition-all active:scale-95 flex items-center gap-1.5 border border-white/[0.06]"
-        >
-          <LogOut :size="12" />
-          Sair
-        </button>
+        <div class="leading-none">
+          <p class="text-[9px] font-bold text-white/25 uppercase tracking-[0.18em]">PDV Mobile</p>
+          <p class="text-[14px] font-black text-white mt-1">{{ authStore.usuario?.nome || 'Funcionário' }}</p>
+        </div>
       </div>
+
+      <button
+        @click="authStore.logout()"
+        title="Sair da conta"
+        class="w-9 h-9 rounded-full bg-white/[0.07] border border-white/[0.06] flex items-center justify-center text-[13px] font-black text-white/40 hover:bg-red-500/12 hover:text-red-400 hover:border-red-500/20 active:scale-95 transition-all"
+      >
+        {{ inicial }}
+      </button>
     </header>
 
-    <!-- MAIN CONTENT -->
+    <div class="h-px bg-white/[0.06] mx-5 shrink-0"></div>
+
+    <!-- CONTENT -->
     <main class="flex-1 overflow-auto">
       <slot />
     </main>
 
-    <!-- BOTTOM NAVIGATION -->
-    <nav
-      v-if="navTabs.length > 1"
-      class="shrink-0 bg-neutral-900/95 backdrop-blur border-t border-white/[0.07] safe-area-bottom"
-    >
-      <div class="flex px-2">
+    <!-- FLOATING PILL NAV -->
+    <nav v-if="navTabs.length > 1" class="shrink-0 px-4 pt-3 nav-bottom">
+      <div class="flex items-stretch bg-neutral-900/85 backdrop-blur-2xl border border-white/[0.07] rounded-[26px] p-1.5 gap-1.5 shadow-2xl shadow-black/40">
         <button
           v-for="tab in navTabs"
           :key="tab.path"
           @click="navigateTo(tab.path)"
-          class="flex-1 flex flex-col items-center justify-center gap-1 py-2 transition-all active:scale-95"
-          :class="isActive(tab.path) ? 'text-orange-400' : 'text-white/30 hover:text-white/60'"
+          class="flex-1 flex items-center justify-center gap-2 py-[13px] rounded-[20px] transition-all duration-200 active:scale-[0.96]"
+          :class="isActive(tab.path)
+            ? 'bg-orange-500 text-white font-black shadow-lg shadow-orange-500/20'
+            : 'text-white/25 hover:text-white/50 font-bold'"
         >
-          <div
-            class="w-11 h-8 rounded-xl flex items-center justify-center transition-all"
-            :class="isActive(tab.path) ? 'bg-orange-500/20' : ''"
-          >
-            <component :is="tab.icon" :size="19" />
-          </div>
-          <span class="text-[9px] font-black uppercase tracking-wider">{{ tab.label }}</span>
+          <component :is="tab.icon" :size="18" />
+          <span v-if="isActive(tab.path)" class="text-[13px]">{{ tab.label }}</span>
         </button>
       </div>
     </nav>
@@ -62,11 +53,15 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useRoute } from 'vue-router'
-import { UtensilsCrossed, LogOut, LayoutGrid, ShoppingCart } from 'lucide-vue-next'
+import { UtensilsCrossed, LayoutGrid, ShoppingCart } from 'lucide-vue-next'
 import { useAuthStore } from '~/stores/auth'
 
 const authStore = useAuthStore()
 const route = useRoute()
+
+const inicial = computed(() =>
+  (authStore.usuario?.nome || '?').charAt(0).toUpperCase()
+)
 
 function isActive(path: string) {
   return route.path === path || route.path.startsWith(path + '/')
@@ -83,7 +78,7 @@ const navTabs = computed(() => {
 </script>
 
 <style scoped>
-.safe-area-bottom {
-  padding-bottom: max(8px, env(safe-area-inset-bottom));
+.nav-bottom {
+  padding-bottom: max(20px, env(safe-area-inset-bottom));
 }
 </style>

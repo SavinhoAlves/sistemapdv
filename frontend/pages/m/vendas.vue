@@ -59,7 +59,7 @@
       </div>
 
       <!-- GRID PRODUTOS -->
-      <div class="flex-1 overflow-y-auto px-4 pb-28">
+      <div class="flex-1 overflow-y-auto px-4 pb-40">
         <div v-if="!produtosFiltrados.length" class="flex flex-col items-center justify-center h-48 gap-2 text-white/30">
           <Package :size="24" />
           <p class="text-sm">Nenhum produto</p>
@@ -91,7 +91,7 @@
       <!-- BARRA DO CARRINHO (FIXA) -->
       <div
         v-if="carrinho.length"
-        class="fixed bottom-16 left-0 right-0 px-4 z-20"
+        class="fixed bottom-24 left-0 right-0 px-4 z-20"
       >
         <button
           @click="carrinhoAberto = true"

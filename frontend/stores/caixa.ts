@@ -1,4 +1,5 @@
 import { defineStore } from 'pinia'
+import { useApi } from '~/services/api'
 
 export const useCaixaStore = defineStore('caixa', {
   state: () => ({
@@ -10,114 +11,46 @@ export const useCaixaStore = defineStore('caixa', {
 
   actions: {
 
-    // ======================
-    // CARREGAR STATUS
-    // ======================
     async carregarStatus() {
-      const config = useRuntimeConfig()
-
       try {
-
         this.loading = true
-
-        const resposta = await $fetch<any>(
-          `${config.public.apiUrl}/api/caixa/atual`
-        )
-
-        this.aberto = resposta?.aberto || false
-
-        this.caixaAtual = resposta?.caixa || null
-
-      } catch (error) {
-
-        console.error(
-          'Erro ao carregar status do caixa:',
-          error
-        )
-
-        this.aberto = false
+        const api = useApi()
+        const resposta = await api.get<any>('/caixa/atual')
+        this.aberto     = resposta?.aberto || false
+        this.caixaAtual = resposta?.caixa  || null
+      } catch {
+        this.aberto     = false
         this.caixaAtual = null
-
       } finally {
-        this.loading = false
+        this.loading      = false
         this.inicializado = true
       }
     },
 
-    // ======================
-    // ABRIR CAIXA
-    // ======================
     async abrir(usuarioId: number) {
-      const config = useRuntimeConfig()
-
       try {
-
         this.loading = true
-
-        const resposta = await $fetch<any>(
-          `${config.public.apiUrl}/api/caixa/abrir`,
-          {
-            method: 'POST',
-
-            body: {
-              usuario_id: usuarioId
-            }
-          }
-        )
-
+        const api = useApi()
+        const resposta = await api.post<any>('/caixa/abrir', { usuario_id: usuarioId })
         await this.carregarStatus()
-
         return resposta
-
       } catch (error) {
-
-        console.error(
-          'Erro ao abrir caixa:',
-          error
-        )
-
         throw error
-
       } finally {
         this.loading = false
       }
     },
 
-    // ======================
-    // FECHAR CAIXA
-    // ======================
     async fechar(caixaId: number) {
-      const config = useRuntimeConfig()
-
       try {
-
         this.loading = true
-
-        const resposta = await $fetch<any>(
-          `${config.public.apiUrl}/api/caixa/fechar`,
-          {
-            method: 'POST',
-
-            body: {
-              caixa_id: caixaId
-            }
-          }
-        )
-
-        this.aberto = false
+        const api = useApi()
+        const resposta = await api.post<any>('/caixa/fechar', { caixa_id: caixaId })
+        this.aberto     = false
         this.caixaAtual = null
-
         return resposta
-
       } catch (error) {
-
-        console.error(
-          'Erro ao fechar caixa:',
-          error
-        )
-
         throw error
-
       } finally {
         this.loading = false
       }

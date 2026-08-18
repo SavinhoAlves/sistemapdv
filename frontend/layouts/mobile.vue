@@ -86,12 +86,19 @@ function isActive(path: string) {
   return route.path === path || route.path.startsWith(path + '/')
 }
 
+const modoVenda = computed((): string => {
+  if (authStore.usuario?.cargo === 'administrador') return 'ambos'
+  return (authStore.usuario?.permissoes?.modo_venda as string) || 'ambos'
+})
+
 const navTabs = computed(() => {
   const tabs: { path: string; label: string; icon: any }[] = []
-  const podeMesas  = authStore.temPermissao('adicionarPedido') && authStore.temPermissao('abrirMesa')
-  const podeVendas = authStore.temPermissao('adicionarPedido')
-  if (podeMesas)  tabs.push({ path: '/m/mesas',  label: 'Mesas',  icon: LayoutGrid })
-  if (podeVendas) tabs.push({ path: '/m/vendas', label: 'Vendas', icon: ShoppingCart })
+  const podeAdicionar = authStore.temPermissao('adicionarPedido')
+  const modo = modoVenda.value
+  if (podeAdicionar && (modo === 'mesas' || modo === 'ambos'))
+    tabs.push({ path: '/m/mesas',  label: 'Mesas',  icon: LayoutGrid })
+  if (podeAdicionar && (modo === 'direta' || modo === 'ambos'))
+    tabs.push({ path: '/m/vendas', label: 'Vendas', icon: ShoppingCart })
   return tabs
 })
 </script>

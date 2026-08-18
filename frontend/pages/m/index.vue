@@ -81,13 +81,17 @@ const erro             = ref('')
 const mobileDesativado = ref(false)
 const caixaFechado     = ref(false)
 
+function getModoVenda(): string {
+  if (authStore.usuario?.cargo === 'administrador') return 'ambos'
+  return (authStore.usuario?.permissoes?.modo_venda as string) || 'ambos'
+}
+
 async function primeiraRotaMobile(): Promise<string> {
-  // Redireciona para a primeira página que o usuário tem permissão
-  const podeMesas  = authStore.temPermissao('adicionarPedido') && authStore.temPermissao('abrirMesa')
-  const podeVendas = authStore.temPermissao('adicionarPedido')
-  if (podeMesas)  return '/m/mesas'
-  if (podeVendas) return '/m/vendas'
-  return '/m/mesas' // fallback
+  const podeAdicionar = authStore.temPermissao('adicionarPedido')
+  const modo = getModoVenda()
+  if (podeAdicionar && (modo === 'mesas' || modo === 'ambos'))  return '/m/mesas'
+  if (podeAdicionar && (modo === 'direta' || modo === 'ambos')) return '/m/vendas'
+  return '/m/mesas'
 }
 
 onMounted(async () => {

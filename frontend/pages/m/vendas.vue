@@ -490,6 +490,15 @@ async function carregarMetodos() {
 }
 
 onMounted(async () => {
+  // Guard: só perfis com modo_venda 'direta' ou 'ambos' acessam esta página
+  const modo = authStore.usuario?.cargo === 'administrador'
+    ? 'ambos'
+    : (authStore.usuario?.permissoes?.modo_venda as string) || 'ambos'
+  if (!authStore.temPermissao('adicionarPedido') || (modo !== 'direta' && modo !== 'ambos')) {
+    navigateTo('/m/mesas')
+    return
+  }
+
   await Promise.all([caixaStore.carregarStatus(), carregarProdutos(), carregarMetodos()])
   iniciando.value = false
 })

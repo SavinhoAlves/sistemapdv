@@ -476,6 +476,15 @@ async function abrirMesa() {
 }
 
 onMounted(async () => {
+  // Guard: só perfis com modo_venda 'mesas' ou 'ambos' acessam esta página
+  const modo = authStore.usuario?.cargo === 'administrador'
+    ? 'ambos'
+    : (authStore.usuario?.permissoes?.modo_venda as string) || 'ambos'
+  if (!authStore.temPermissao('adicionarPedido') || (modo !== 'mesas' && modo !== 'ambos')) {
+    navigateTo('/m/vendas')
+    return
+  }
+
   await Promise.all([carregarMesas(), carregarProdutos()])
 
   const userId = authStore.usuario?.id

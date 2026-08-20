@@ -69,54 +69,120 @@ router.get('/', async (req, res) => {
   }
 })
 
-// ── POST /api/clientes — cria tenant ─────────────────────────────────────────
+// ── POST /api/clientes — cria tenant com provisionamento completo ─────────────
 router.post('/', async (req, res) => {
+  const bcrypt = require('bcryptjs')
   try {
-    const { nome_fantasia, contato, cnpj, responsavel, telefone, endereco, dias } = req.body
+    const {
+      nome_fantasia, contato, cnpj, responsavel, telefone, endereco, dias,
+      admin_email, admin_senha, num_mesas, slug: slugCustom,
+    } = req.body
+
     if (!nome_fantasia?.trim()) {
       return res.status(400).json({ error: 'Informe o nome do cliente' })
     }
 
-    const slug = nome_fantasia.trim()
+    // Slug: usa o fornecido (limpo) ou gera a partir do nome
+    const slugBase = (slugCustom?.trim() || nome_fantasia.trim())
       .toLowerCase()
       .normalize('NFD').replace(/[̀-ͯ]/g, '')
       .replace(/[^a-z0-9]+/g, '-')
       .replace(/^-|-$/g, '')
 
+    // Garante unicidade sem sufixo aleatório quando slug customizado
+    const slugFinal = slugCustom?.trim()
+      ? slugBase
+      : slugBase + '-' + crypto.randomBytes(3).toString('hex')
+
     const tenant = await prisma.tenant.create({
       data: {
-        nome:       nome_fantasia.trim(),
-        slug:       slug + '-' + crypto.randomBytes(3).toString('hex'),
-        contato:    contato?.trim()     || null,
-        cnpj:       cnpj?.trim()        || null,
-        responsavel: responsavel?.trim() || null,
-        telefone:   telefone?.trim()    || null,
-        endereco:   endereco?.trim()    || null,
+        nome:        nome_fantasia.trim(),
+        slug:        slugFinal,
+        contato:     contato?.trim()      || null,
+        cnpj:        cnpj?.trim()         || null,
+        responsavel: responsavel?.trim()  || null,
+        telefone:    telefone?.trim()     || null,
+        endereco:    endereco?.trim()     || null,
+        status:      'ativo',
       },
     })
 
-    const resposta = { success: true, id: tenant.id, slug: tenant.slug }
+    // ── Provisionamento automático ────────────────────────────────────────────
+
+    // 1. Configurações padrão
+    await prisma.configuracoes.create({
+      data: {
+        tenantId:         tenant.id,
+        nomeRestaurante:  nome_fantasia.trim(),
+        taxaServicoPct:   10,
+        modoVenda:        'mesa',
+      },
+    })
+
+    // 2. Métodos de pagamento padrão
+    await prisma.metodoPagamento.createMany({
+      data: [
+        { tenantId: tenant.id, nome: 'Dinheiro',       ativo: true },
+        { tenantId: tenant.id, nome: 'PIX',             ativo: true },
+        { tenantId: tenant.id, nome: 'Cartão Débito',   ativo: true },
+        { tenantId: tenant.id, nome: 'Cartão Crédito',  ativo: true },
+      ],
+    })
+
+    // 3. Mesas iniciais (padrão 10 se não informado)
+    const qtdMesas = Math.max(0, Math.min(50, Number(num_mesas) || 10))
+    if (qtdMesas > 0) {
+      await prisma.mesa.createMany({
+        data: Array.from({ length: qtdMesas }, (_, i) => ({
+          tenantId:   tenant.id,
+          numero:     i + 1,
+          capacidade: 4,
+          status:     'livre',
+        })),
+      })
+    }
+
+    // 4. Usuário administrador inicial
+    let adminCriado = null
+    if (admin_email?.trim()) {
+      const senhaFinal = admin_senha?.trim() || crypto.randomBytes(6).toString('hex')
+      const senhaHash  = await bcrypt.hash(senhaFinal, 10)
+      await prisma.usuario.create({
+        data: {
+          tenantId: tenant.id,
+          nome:     responsavel?.trim() || 'Administrador',
+          email:    admin_email.trim().toLowerCase(),
+          senhaHash,
+          cargo:    'administrador',
+          ativo:    true,
+        },
+      })
+      adminCriado = { email: admin_email.trim().toLowerCase(), senha: senhaFinal }
+    }
+
+    // ── Licença ────────────────────────────────────────────────────────────────
+    const resposta = { success: true, id: tenant.id, slug: tenant.slug, admin: adminCriado }
 
     if (Number(dias) > 0) {
       const expira = new Date()
       expira.setDate(expira.getDate() + Number(dias))
       await prisma.licenca.create({
         data: {
-          tenantId:      tenant.id,
-          status:        'ativado',
-          dataAtivacao:  new Date(),
+          tenantId:       tenant.id,
+          status:         'ativado',
+          dataAtivacao:   new Date(),
           dataVencimento: expira,
         },
       })
       resposta.diasLicenca = Number(dias)
-      resposta.expira = expira.toISOString()
+      resposta.expira      = expira.toISOString()
     }
 
     return res.status(201).json(resposta)
   } catch (error) {
     console.error('Erro ao criar cliente:', error)
     if (error.code === 'P2002') {
-      return res.status(409).json({ error: 'Slug já existe — tente um nome diferente' })
+      return res.status(409).json({ error: 'Slug já existe — escolha um slug diferente' })
     }
     return res.status(500).json({ error: 'Erro ao criar cliente' })
   }

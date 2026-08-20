@@ -94,10 +94,10 @@ tr.row:hover td{background:rgba(255,255,255,.025)}
       <thead>
         <tr>
           <th>Cliente</th>
-          <th>CNPJ / CPF</th>
+          <th>Slug / CNPJ</th>
           <th>Status</th>
           <th>Licença</th>
-          <th>Último sync</th>
+          <th>Operação</th>
           <th></th>
         </tr>
       </thead>
@@ -113,16 +113,31 @@ tr.row:hover td{background:rgba(255,255,255,.025)}
       <h2 class="modal-title">Novo Cliente</h2>
       <button class="modal-close" onclick="fecharModal('modal-novo')">✕</button>
     </div>
-    <div class="field"><label>Nome / Razão Social *</label><input id="n-nome" placeholder="Ex: Restaurante do Chef"></div>
+    <div class="field"><label>Nome / Razão Social *</label><input id="n-nome" placeholder="Ex: Restaurante do Chef" oninput="gerarSlug()"></div>
+    <div class="field">
+      <label>Slug (identificador único) *</label>
+      <input id="n-slug" placeholder="restaurante-do-chef" style="font-family:monospace">
+      <div style="font-size:11px;color:rgba(255,255,255,.25);margin-top:4px;">Usado na URL e configuração do frontend (NUXT_PUBLIC_TENANT_SLUG)</div>
+    </div>
     <div class="field-row">
       <div class="field"><label>Responsável</label><input id="n-responsavel" placeholder="Nome do responsável"></div>
       <div class="field"><label>CNPJ / CPF</label><input id="n-cnpj" placeholder="00.000.000/0001-00"></div>
     </div>
     <div class="field-row">
       <div class="field"><label>Telefone</label><input id="n-telefone" placeholder="(11) 99999-9999"></div>
-      <div class="field"><label>E-mail</label><input id="n-contato" placeholder="contato@email.com"></div>
+      <div class="field"><label>E-mail de contato</label><input id="n-contato" placeholder="contato@email.com"></div>
     </div>
     <div class="field"><label>Endereço</label><input id="n-endereco" placeholder="Rua, número, cidade"></div>
+    <hr style="border:none;border-top:1px solid rgba(255,255,255,.06);margin:16px 0">
+    <div style="font-size:11px;font-weight:700;color:rgba(255,255,255,.3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:12px">Acesso inicial ao PDV</div>
+    <div class="field-row">
+      <div class="field"><label>E-mail do admin</label><input id="n-admin-email" type="email" placeholder="admin@restaurante.com"></div>
+      <div class="field"><label>Senha inicial</label><input id="n-admin-senha" type="text" placeholder="Deixe em branco para gerar"></div>
+    </div>
+    <div class="field-row">
+      <div class="field"><label>Número de mesas</label><input id="n-mesas" type="number" min="0" max="50" value="10" placeholder="10"></div>
+      <div class="field"><label>Dias de licença</label><input id="n-dias" type="number" min="0" value="30" placeholder="30"></div>
+    </div>
     <div class="modal-footer">
       <button class="btn-cancel" onclick="fecharModal('modal-novo')">Cancelar</button>
       <button class="btn-save" id="btn-criar">Criar cliente</button>
@@ -130,18 +145,26 @@ tr.row:hover td{background:rgba(255,255,255,.025)}
   </div>
 </div>
 
-<!-- Modal: Token de sync gerado -->
-<div class="modal" id="modal-token">
+<!-- Modal: Cliente criado com sucesso -->
+<div class="modal" id="modal-criado">
   <div class="modal-box">
     <div class="modal-header">
-      <h2 class="modal-title">Token de sincronização</h2>
-      <button class="modal-close" onclick="fecharModal('modal-token')">✕</button>
+      <h2 class="modal-title">✓ Cliente criado!</h2>
+      <button class="modal-close" onclick="fecharModal('modal-criado')">✕</button>
     </div>
-    <p style="font-size:13px;color:rgba(255,255,255,.55);line-height:1.6;margin-bottom:16px;">Guarde este token com segurança. Ele só é exibido uma vez e não pode ser recuperado depois.</p>
-    <div class="token-box" id="token-box-valor"></div>
-    <div style="display:flex;gap:8px;flex-wrap:wrap;">
-      <button class="copy-btn" onclick="copiar(document.getElementById('token-box-valor').textContent,'Token copiado!')">Copiar token</button>
-      <button class="btn-primary" id="btn-ir-cliente" onclick="">Ver ficha do cliente →</button>
+    <p style="font-size:13px;color:rgba(255,255,255,.55);line-height:1.6;margin-bottom:4px;">Configure o frontend com este slug:</p>
+    <div style="margin-bottom:16px">
+      <div style="font-size:10px;font-weight:700;color:rgba(255,255,255,.3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px">NUXT_PUBLIC_TENANT_SLUG</div>
+      <div class="token-box" id="criado-slug"></div>
+      <button class="copy-btn" style="margin-top:6px" onclick="copiar(document.getElementById('criado-slug').textContent,'Slug copiado!')">Copiar slug</button>
+    </div>
+    <div id="criado-admin-wrap" style="display:none;margin-bottom:16px">
+      <div style="font-size:10px;font-weight:700;color:rgba(255,255,255,.3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px">Login do administrador PDV</div>
+      <div class="token-box" id="criado-admin"></div>
+      <button class="copy-btn" style="margin-top:6px" onclick="copiar(document.getElementById('criado-admin').textContent,'Copiado!')">Copiar credenciais</button>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:4px">
+      <button class="btn-primary" id="btn-ir-cliente">Ver ficha do cliente →</button>
     </div>
   </div>
 </div>
@@ -226,13 +249,16 @@ function renderTabela(lista) {
           </div>
         </div>
       </td>
-      <td style="color:rgba(255,255,255,.4);font-size:12px;">${escapeHtml(c.cnpj||'—')}</td>
+      <td>
+        <div style="font-family:monospace;font-size:11px;color:rgba(249,115,22,.7);margin-bottom:2px">${escapeHtml(c.slug)}</div>
+        <div style="font-size:11px;color:rgba(255,255,255,.25)">${escapeHtml(c.cnpj||'')}</div>
+      </td>
       <td>${badgeStatus(c.status||'ativo')}</td>
       <td>${badgeLicenca(c.licenca_expira_em)}</td>
       <td>
         <div style="display:flex;align-items:center;gap:6px;">
           <span class="dot ${c.online?'dot-green':'dot-gray'}"></span>
-          <span style="font-size:12px;color:rgba(255,255,255,.4);">${tempoAtras(c.ultimo_sync_em)}</span>
+          <span style="font-size:12px;color:rgba(255,255,255,.4);">${c.online?'Caixa aberto':'Offline'}</span>
         </div>
       </td>
       <td onclick="event.stopPropagation()" style="text-align:right;white-space:nowrap;">
@@ -247,17 +273,31 @@ function renderTabela(lista) {
   }).join('')
 }
 
+function gerarSlug() {
+  const nome = document.getElementById('n-nome').value
+  const slug = nome.trim()
+    .toLowerCase()
+    .normalize('NFD').replace(/[̀-ͯ]/g, '')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '')
+  document.getElementById('n-slug').value = slug
+}
+
 function abrirModalNovo() {
-  ['n-nome','n-responsavel','n-cnpj','n-telefone','n-contato','n-endereco'].forEach(id => {
+  ['n-nome','n-slug','n-responsavel','n-cnpj','n-telefone','n-contato','n-endereco','n-admin-email','n-admin-senha'].forEach(id => {
     document.getElementById(id).value = ''
   })
+  document.getElementById('n-mesas').value = '10'
+  document.getElementById('n-dias').value  = '30'
   document.getElementById('modal-novo').style.display = 'flex'
   setTimeout(() => document.getElementById('n-nome').focus(), 80)
 }
 
 async function criarCliente() {
   const nome = document.getElementById('n-nome').value.trim()
+  const slug = document.getElementById('n-slug').value.trim()
   if (!nome) { toast('Informe o nome do cliente','error'); return }
+  if (!slug) { toast('Informe o slug','error'); return }
 
   const btn = document.getElementById('btn-criar')
   btn.disabled = true; btn.textContent = 'Criando...'
@@ -267,11 +307,16 @@ async function criarCliente() {
       method: 'POST', headers,
       body: JSON.stringify({
         nome_fantasia: nome,
+        slug,
         responsavel:   document.getElementById('n-responsavel').value.trim()||null,
         cnpj:          document.getElementById('n-cnpj').value.trim()||null,
         telefone:      document.getElementById('n-telefone').value.trim()||null,
         contato:       document.getElementById('n-contato').value.trim()||null,
         endereco:      document.getElementById('n-endereco').value.trim()||null,
+        admin_email:   document.getElementById('n-admin-email').value.trim()||null,
+        admin_senha:   document.getElementById('n-admin-senha').value.trim()||null,
+        num_mesas:     Number(document.getElementById('n-mesas').value)||10,
+        dias:          Number(document.getElementById('n-dias').value)||0,
       })
     })
     const data = await res.json()
@@ -280,12 +325,21 @@ async function criarCliente() {
     fecharModal('modal-novo')
     toast('Cliente criado com sucesso!','success')
 
-    document.getElementById('token-box-valor').textContent = data.syncToken
+    // Modal de resultado
+    document.getElementById('criado-slug').textContent = data.slug
+    const adminWrap = document.getElementById('criado-admin-wrap')
+    if (data.admin) {
+      document.getElementById('criado-admin').textContent =
+        `E-mail: ${data.admin.email}\nSenha:  ${data.admin.senha}`
+      adminWrap.style.display = ''
+    } else {
+      adminWrap.style.display = 'none'
+    }
     document.getElementById('btn-ir-cliente').onclick = () => {
-      fecharModal('modal-token')
+      fecharModal('modal-criado')
       location.href = `/cliente.html?id=${data.id}`
     }
-    document.getElementById('modal-token').style.display = 'flex'
+    document.getElementById('modal-criado').style.display = 'flex'
     await carregar()
   } catch(e) {
     toast('Erro de conexão','error')

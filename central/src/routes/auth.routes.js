@@ -1,21 +1,19 @@
-const express = require('express')
-const router = express.Router()
-const bcrypt = require('bcryptjs')
-const jwt = require('jsonwebtoken')
-const rateLimit = require('express-rate-limit')
-const { query } = require('../database/connection')
+const express    = require('express')
+const router     = express.Router()
+const bcrypt     = require('bcryptjs')
+const jwt        = require('jsonwebtoken')
+const rateLimit  = require('express-rate-limit')
+const { prisma } = require('../lib/prisma')
 
-// Sem isso, o login (única porta de entrada do painel) ficava aberto a
-// força bruta — 10 tentativas / 15min por IP
 const limiteLogin = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 10,
   standardHeaders: true,
   legacyHeaders: false,
-  message: { error: 'Muitas tentativas de login — tente novamente em alguns minutos' }
+  message: { error: 'Muitas tentativas de login — tente novamente em alguns minutos' },
 })
 
-// POST /api/auth/login — único login deste sistema (admin/suporte)
+// POST /api/auth/login
 router.post('/login', limiteLogin, async (req, res) => {
   try {
     const { email, senha } = req.body
@@ -23,12 +21,12 @@ router.post('/login', limiteLogin, async (req, res) => {
       return res.status(400).json({ error: 'E-mail e senha são obrigatórios' })
     }
 
-    const [admin] = await query('SELECT * FROM admins WHERE email = ? LIMIT 1', [email])
-    if (!admin) {
+    const admin = await prisma.platformUser.findUnique({ where: { email } })
+    if (!admin || !admin.ativo) {
       return res.status(401).json({ error: 'Credenciais inválidas' })
     }
 
-    const senhaValida = await bcrypt.compare(senha, admin.senha_hash)
+    const senhaValida = await bcrypt.compare(senha, admin.senhaHash)
     if (!senhaValida) {
       return res.status(401).json({ error: 'Credenciais inválidas' })
     }
@@ -39,7 +37,7 @@ router.post('/login', limiteLogin, async (req, res) => {
       { expiresIn: process.env.JWT_EXPIRES_IN || '8h' }
     )
 
-    return res.json({ token, admin: { id: admin.id, email: admin.email } })
+    return res.json({ token, admin: { id: admin.id, email: admin.email, nome: admin.nome } })
   } catch (error) {
     console.error('Erro login central:', error)
     return res.status(500).json({ error: 'Erro interno' })

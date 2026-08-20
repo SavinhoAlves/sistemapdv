@@ -1,0 +1,662 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ── Enums ──────────────────────────────────────────────────────────────────────
+
+enum TenantStatus {
+  ativo
+  suspenso
+  cancelado
+}
+
+enum PlatformRole {
+  SUPER_ADMIN
+  SUPPORT
+}
+
+enum UserCargo {
+  administrador
+  garcom
+  caixa
+  cozinha
+}
+
+enum MesaStatus {
+  livre
+  aberta
+  fechada
+  ocupada
+  fechando
+  finalizada
+}
+
+enum PedidoStatus {
+  aberto
+  preparando
+  pronto
+  entregue
+  fechado
+  cancelado
+}
+
+enum PedidoItemStatus {
+  pendente
+  preparando
+  pronto
+  entregue
+  cancelado
+}
+
+enum CaixaStatus {
+  aberto
+  fechado
+}
+
+enum MovimentoCaixaTipo {
+  suprimento
+  sangria
+  pagamento
+  estorno
+}
+
+enum PagamentoStatus {
+  pendente
+  confirmado
+  estornado
+}
+
+enum LicencaStatus {
+  ativado
+  pendente
+  bloqueado
+}
+
+enum DispositivoStatus {
+  ativo
+  suspenso
+  bloqueado
+  inativo
+}
+
+enum EstoqueMovimentoTipo {
+  entrada
+  saida
+}
+
+// ── Tenant ─────────────────────────────────────────────────────────────────────
+
+model Tenant {
+  id                   String       @id @default(uuid())
+  nome                 String
+  slug                 String       @unique
+  cnpj                 String?      @unique
+  contato              String?
+  responsavel          String?
+  telefone             String?
+  endereco             String?
+  observacoes          String?
+  vendaMobilePermitida Boolean      @default(true) @map("venda_mobile_permitida")
+  status               TenantStatus @default(ativo)
+  createdAt            DateTime     @default(now()) @map("created_at")
+  updatedAt            DateTime     @updatedAt @map("updated_at")
+
+  usuarios             Usuario[]
+  perfis               Perfil[]
+  categorias           Categoria[]
+  produtos             Produto[]
+  metodosPagamento     MetodoPagamento[]
+  mesas                Mesa[]
+  pedidos              Pedido[]
+  caixas               Caixa[]
+  movimentosCaixa      MovimentoCaixa[]
+  pagamentos           Pagamento[]
+  auditoria            Auditoria[]
+  configuracoes        Configuracoes?
+  impressoras          Impressora[]
+  movimentacoesEstoque MovimentacaoEstoque[]
+  dispositivos         Dispositivo[]
+  licencas             Licenca[]
+  contratos            Contrato[]
+  tickets              TicketSuporte[]
+
+  @@map("tenants")
+}
+
+// ── Platform User ──────────────────────────────────────────────────────────────
+
+model PlatformUser {
+  id        String       @id @default(uuid())
+  nome      String
+  email     String       @unique
+  senhaHash String       @map("senha_hash")
+  role      PlatformRole @default(SUPPORT)
+  ativo     Boolean      @default(true)
+  createdAt DateTime     @default(now()) @map("created_at")
+  updatedAt DateTime     @updatedAt @map("updated_at")
+
+  refreshTokens PlatformRefreshToken[]
+
+  @@map("platform_users")
+}
+
+model PlatformRefreshToken {
+  id             String    @id @default(uuid())
+  platformUserId String    @map("platform_user_id")
+  tokenHash      String    @unique @map("token_hash")
+  userAgent      String?   @map("user_agent")
+  ipAddress      String?   @map("ip_address")
+  revokedAt      DateTime? @map("revoked_at")
+  expiresAt      DateTime  @map("expires_at")
+  createdAt      DateTime  @default(now()) @map("created_at")
+
+  platformUser PlatformUser @relation(fields: [platformUserId], references: [id], onDelete: Cascade)
+
+  @@map("platform_refresh_tokens")
+}
+
+// ── Usuário do Tenant ──────────────────────────────────────────────────────────
+
+model Usuario {
+  id          String    @id @default(uuid())
+  tenantId    String    @map("tenant_id")
+  nome        String
+  email       String?
+  senhaHash   String?   @map("senha_hash")
+  cartaoRfid  String?   @map("cartao_rfid")
+  cargo       UserCargo
+  pin         String?
+  perfilId    String?   @map("perfil_id")
+  ativo       Boolean   @default(true)
+  ultimoLogin DateTime? @map("ultimo_login")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  tenant               Tenant                @relation(fields: [tenantId], references: [id])
+  perfil               Perfil?               @relation(fields: [perfilId], references: [id])
+  refreshTokens        RefreshToken[]
+  mesasGarcom          Mesa[]                @relation("GarcomMesas")
+  pedidos              Pedido[]
+  caixasAbertos        Caixa[]               @relation("FuncionarioCaixa")
+  caixasFechados       Caixa[]               @relation("FechadoPor")
+  movimentosCaixa      MovimentoCaixa[]
+  pagamentos           Pagamento[]
+  auditoria            Auditoria[]
+  movimentacoesEstoque MovimentacaoEstoque[]
+
+  @@unique([tenantId, email])
+  @@unique([tenantId, cartaoRfid])
+  @@index([tenantId])
+  @@map("usuarios")
+}
+
+model RefreshToken {
+  id        String    @id @default(uuid())
+  usuarioId String    @map("usuario_id")
+  tokenHash String    @unique @map("token_hash")
+  userAgent String?   @map("user_agent")
+  ipAddress String?   @map("ip_address")
+  revokedAt DateTime? @map("revoked_at")
+  expiresAt DateTime  @map("expires_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  usuario Usuario @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+
+  @@index([usuarioId])
+  @@map("refresh_tokens")
+}
+
+// ── Perfis de Permissão ────────────────────────────────────────────────────────
+
+model Perfil {
+  id        String   @id @default(uuid())
+  tenantId  String   @map("tenant_id")
+  nome      String
+  descricao String?
+  permissoes Json    @default("{}")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  tenant   Tenant    @relation(fields: [tenantId], references: [id])
+  usuarios Usuario[]
+
+  @@unique([tenantId, nome])
+  @@index([tenantId])
+  @@map("perfis")
+}
+
+// ── Categorias ─────────────────────────────────────────────────────────────────
+
+model Categoria {
+  id         String   @id @default(uuid())
+  tenantId   String   @map("tenant_id")
+  nome       String
+  vaiCozinha Boolean  @default(true) @map("vai_cozinha")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  tenant   Tenant    @relation(fields: [tenantId], references: [id])
+  produtos Produto[]
+
+  @@unique([tenantId, nome])
+  @@index([tenantId])
+  @@map("categorias")
+}
+
+// ── Produtos ───────────────────────────────────────────────────────────────────
+
+model Produto {
+  id                  String   @id @default(uuid())
+  tenantId            String   @map("tenant_id")
+  nome                String
+  descricao           String?
+  preco               Decimal  @db.Decimal(10, 2)
+  categoriaId         String?  @map("categoria_id")
+  imagemUrl           String?  @map("imagem_url")
+  tempoPreparoMinutos Int      @default(0) @map("tempo_preparo_minutos")
+  ativo               Boolean  @default(true)
+  estoqueAtual        Decimal  @default(0) @db.Decimal(10, 3) @map("estoque_atual")
+  estoqueMinimo       Decimal  @default(0) @db.Decimal(10, 3) @map("estoque_minimo")
+  gerenciarEstoque    Boolean  @default(false) @map("gerenciar_estoque")
+  createdAt           DateTime @default(now()) @map("created_at")
+  updatedAt           DateTime @updatedAt @map("updated_at")
+
+  tenant               Tenant                @relation(fields: [tenantId], references: [id])
+  categoria            Categoria?            @relation(fields: [categoriaId], references: [id])
+  pedidoItens          PedidoItem[]
+  movimentacoesEstoque MovimentacaoEstoque[]
+
+  @@index([tenantId])
+  @@index([tenantId, ativo])
+  @@map("produtos")
+}
+
+// ── Métodos de Pagamento ───────────────────────────────────────────────────────
+
+model MetodoPagamento {
+  id       String  @id @default(uuid())
+  tenantId String  @map("tenant_id")
+  nome     String
+  ativo    Boolean @default(true)
+
+  tenant     Tenant      @relation(fields: [tenantId], references: [id])
+  pagamentos Pagamento[]
+
+  @@unique([tenantId, nome])
+  @@index([tenantId])
+  @@map("metodos_pagamento")
+}
+
+// ── Mesas ──────────────────────────────────────────────────────────────────────
+
+model Mesa {
+  id             String     @id @default(uuid())
+  tenantId       String     @map("tenant_id")
+  numero         Int
+  capacidade     Int        @default(4)
+  cliente        String?
+  nomeMesa       String?    @map("nome_mesa")
+  status         MesaStatus @default(livre)
+  garcomId       String?    @map("garcom_id")
+  caixaId        String?    @map("caixa_id")
+  dataAbertura   DateTime?  @map("data_abertura")
+  dataFechamento DateTime?  @map("data_fechamento")
+  observacoes    String?
+  createdAt      DateTime   @default(now()) @map("created_at")
+  updatedAt      DateTime   @updatedAt @map("updated_at")
+
+  tenant     Tenant     @relation(fields: [tenantId], references: [id])
+  garcom     Usuario?   @relation("GarcomMesas", fields: [garcomId], references: [id])
+  caixa      Caixa?     @relation(fields: [caixaId], references: [id])
+  pedidos    Pedido[]
+  pagamentos Pagamento[]
+
+  @@unique([tenantId, numero])
+  @@index([tenantId])
+  @@index([tenantId, status])
+  @@map("mesas")
+}
+
+// ── Pedidos ────────────────────────────────────────────────────────────────────
+
+model Pedido {
+  id          String       @id @default(uuid())
+  tenantId    String       @map("tenant_id")
+  mesaId      String?      @map("mesa_id")
+  garcomId    String       @map("garcom_id")
+  status      PedidoStatus @default(aberto)
+  total       Decimal      @default(0) @db.Decimal(10, 2)
+  desconto    Decimal      @default(0) @db.Decimal(10, 2)
+  taxaPct     Decimal      @default(0) @db.Decimal(5, 2) @map("taxa_pct")
+  observacoes String?
+  createdAt   DateTime     @default(now()) @map("created_at")
+  updatedAt   DateTime     @updatedAt @map("updated_at")
+
+  tenant     Tenant      @relation(fields: [tenantId], references: [id])
+  mesa       Mesa?       @relation(fields: [mesaId], references: [id])
+  garcom     Usuario     @relation(fields: [garcomId], references: [id])
+  itens      PedidoItem[]
+  pagamentos Pagamento[]
+
+  @@index([tenantId])
+  @@index([tenantId, status])
+  @@index([tenantId, mesaId])
+  @@map("pedidos")
+}
+
+model PedidoItem {
+  id            String           @id @default(uuid())
+  tenantId      String           @map("tenant_id")
+  pedidoId      String           @map("pedido_id")
+  produtoId     String           @map("produto_id")
+  quantidade    Int
+  precoUnitario Decimal          @db.Decimal(10, 2) @map("preco_unitario")
+  precoTotal    Decimal          @db.Decimal(10, 2) @map("preco_total")
+  status        PedidoItemStatus @default(pendente)
+  observacao    String?
+  createdAt     DateTime         @default(now()) @map("created_at")
+  updatedAt     DateTime         @updatedAt @map("updated_at")
+
+  pedido  Pedido  @relation(fields: [pedidoId], references: [id], onDelete: Cascade)
+  produto Produto @relation(fields: [produtoId], references: [id])
+
+  @@index([tenantId])
+  @@index([pedidoId])
+  @@map("pedido_itens")
+}
+
+// ── Caixa ──────────────────────────────────────────────────────────────────────
+
+model Caixa {
+  id                   String      @id @default(uuid())
+  tenantId             String      @map("tenant_id")
+  funcionarioId        String      @map("funcionario_id")
+  valorInicial         Decimal     @db.Decimal(10, 2) @map("valor_inicial")
+  valorFechamento      Decimal?    @db.Decimal(10, 2) @map("valor_fechamento")
+  dataAbertura         DateTime    @default(now()) @map("data_abertura")
+  fechadoEm            DateTime?   @map("fechado_em")
+  status               CaixaStatus @default(aberto)
+  valorContado         Decimal?    @db.Decimal(10, 2) @map("valor_contado")
+  diferenca            Decimal?    @db.Decimal(10, 2)
+  observacaoFechamento String?     @map("observacao_fechamento")
+  fechadoPorId         String?     @map("fechado_por")
+
+  tenant      Tenant           @relation(fields: [tenantId], references: [id])
+  funcionario Usuario          @relation("FuncionarioCaixa", fields: [funcionarioId], references: [id])
+  fechadoPor  Usuario?         @relation("FechadoPor", fields: [fechadoPorId], references: [id])
+  movimentos  MovimentoCaixa[]
+  mesas       Mesa[]
+  pagamentos  Pagamento[]
+
+  @@index([tenantId])
+  @@index([tenantId, status])
+  @@map("caixa")
+}
+
+model MovimentoCaixa {
+  id        String             @id @default(uuid())
+  tenantId  String             @map("tenant_id")
+  caixaId   String             @map("caixa_id")
+  tipo      MovimentoCaixaTipo
+  valor     Decimal            @db.Decimal(10, 2)
+  descricao String?
+  usuarioId String             @map("usuario_id")
+  createdAt DateTime           @default(now()) @map("created_at")
+
+  tenant  Tenant  @relation(fields: [tenantId], references: [id])
+  caixa   Caixa   @relation(fields: [caixaId], references: [id])
+  usuario Usuario @relation(fields: [usuarioId], references: [id])
+
+  @@index([tenantId])
+  @@index([caixaId])
+  @@map("movimentos_caixa")
+}
+
+// ── Pagamentos ─────────────────────────────────────────────────────────────────
+
+model Pagamento {
+  id        String          @id @default(uuid())
+  tenantId  String          @map("tenant_id")
+  mesaId    String?         @map("mesa_id")
+  pedidoId  String?         @map("pedido_id")
+  metodoId  String          @map("metodo_id")
+  valor     Decimal         @db.Decimal(10, 2)
+  troco     Decimal         @default(0) @db.Decimal(10, 2)
+  caixaId   String          @map("caixa_id")
+  usuarioId String          @map("usuario_id")
+  status    PagamentoStatus @default(confirmado)
+  createdAt DateTime        @default(now()) @map("created_at")
+
+  tenant  Tenant          @relation(fields: [tenantId], references: [id])
+  mesa    Mesa?           @relation(fields: [mesaId], references: [id])
+  pedido  Pedido?         @relation(fields: [pedidoId], references: [id])
+  metodo  MetodoPagamento @relation(fields: [metodoId], references: [id])
+  caixa   Caixa           @relation(fields: [caixaId], references: [id])
+  usuario Usuario         @relation(fields: [usuarioId], references: [id])
+
+  @@index([tenantId])
+  @@index([tenantId, mesaId])
+  @@map("pagamentos")
+}
+
+// ── Auditoria ──────────────────────────────────────────────────────────────────
+
+model Auditoria {
+  id         String   @id @default(uuid())
+  tenantId   String   @map("tenant_id")
+  usuarioId  String?  @map("usuario_id")
+  acao       String
+  entidade   String?
+  entidadeId String?  @map("entidade_id")
+  detalhes   Json?
+  ip         String?
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  tenant  Tenant   @relation(fields: [tenantId], references: [id])
+  usuario Usuario? @relation(fields: [usuarioId], references: [id])
+
+  @@index([tenantId])
+  @@index([tenantId, createdAt(sort: Desc)])
+  @@map("auditoria")
+}
+
+// ── Configurações ──────────────────────────────────────────────────────────────
+
+model Configuracoes {
+  id                     String  @id @default(uuid())
+  tenantId               String  @unique @map("tenant_id")
+  nomeRestaurante        String  @default("Restaurante") @map("nome_restaurante")
+  logoBase64             String? @map("logo_base64")
+  logoTamanho            String? @map("logo_tamanho")
+  logoAlturaCustom       Int?    @map("logo_altura_custom")
+  mensagemFicha          String? @map("mensagem_ficha")
+  impressoraLargura      Int     @default(80) @map("impressora_largura")
+  impressoraCopias       Int     @default(1) @map("impressora_copias")
+  impressoraAutoImprimir Boolean @default(false) @map("impressora_auto_imprimir")
+  impressoraTipo         String  @default("usb") @map("impressora_tipo")
+  impressoraHost         String? @map("impressora_host")
+  impressoraPorta        Int?    @map("impressora_porta")
+  taxaServicoPct         Decimal @default(0) @db.Decimal(5, 2) @map("taxa_servico_pct")
+  modoVenda              String  @default("mesa") @map("modo_venda")
+  rfidAtivo              Boolean @default(false) @map("rfid_ativo")
+  mpAtivado              Boolean @default(false) @map("mp_ativado")
+  mpAccessToken          String? @map("mp_access_token")
+  mpDeviceId             String? @map("mp_device_id")
+
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+
+  @@map("configuracoes")
+}
+
+// ── Impressoras ────────────────────────────────────────────────────────────────
+
+model Impressora {
+  id        String   @id @default(uuid())
+  tenantId  String   @map("tenant_id")
+  nome      String
+  destino   String   // caixa | cozinha | bar
+  tipo      String   // navegador | rede | windows
+  host      String?
+  porta     Int      @default(9100)
+  largura   Int      @default(80)
+  copias    Int      @default(1)
+  ativo     Boolean  @default(true)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+
+  @@index([tenantId])
+  @@map("impressoras")
+}
+
+// ── Estoque ────────────────────────────────────────────────────────────────────
+
+model MovimentacaoEstoque {
+  id         String               @id @default(uuid())
+  tenantId   String               @map("tenant_id")
+  produtoId  String               @map("produto_id")
+  tipo       EstoqueMovimentoTipo
+  quantidade Decimal              @db.Decimal(10, 3)
+  motivo     String?
+  usuarioId  String?              @map("usuario_id")
+  createdAt  DateTime             @default(now()) @map("created_at")
+
+  tenant  Tenant   @relation(fields: [tenantId], references: [id])
+  produto Produto  @relation(fields: [produtoId], references: [id])
+  usuario Usuario? @relation(fields: [usuarioId], references: [id])
+
+  @@index([tenantId])
+  @@index([tenantId, produtoId])
+  @@map("movimentacoes_estoque")
+}
+
+// ── Dispositivo / Instalação ───────────────────────────────────────────────────
+
+model Dispositivo {
+  id                   String            @id @default(uuid())
+  tenantId             String            @map("tenant_id")
+  licencaId            String?           @map("licenca_id")
+  instalacaoUuid       String?           @unique @map("instalacao_uuid")
+  nome                 String?
+  versao               String?
+  hostFingerprint      String?           @map("host_fingerprint")
+  status               DispositivoStatus @default(ativo)
+  syncToken            String?           @unique @map("sync_token")
+  syncBloqueado        Boolean           @default(false) @map("sync_bloqueado")
+  syncSuspenso         Boolean           @default(false) @map("sync_suspenso")
+  vendaMobilePermitida Boolean           @default(false) @map("venda_mobile_permitida")
+  ultimoSyncEm         DateTime?         @map("ultimo_sync_em")
+  ultimoSyncErro       String?           @map("ultimo_sync_erro")
+  centralUrl           String?           @map("central_url")
+  createdAt            DateTime          @default(now()) @map("created_at")
+  updatedAt            DateTime          @updatedAt @map("updated_at")
+
+  tenant  Tenant   @relation(fields: [tenantId], references: [id])
+  licenca Licenca? @relation(fields: [licencaId], references: [id])
+
+  @@index([tenantId])
+  @@map("dispositivos")
+}
+
+// ── Licença ────────────────────────────────────────────────────────────────────
+
+model Licenca {
+  id                String        @id @default(uuid())
+  tenantId          String        @map("tenant_id")
+  chaveAtivacao     String?       @map("chave_ativacao")
+  status            LicencaStatus @default(pendente)
+  dataAtivacao      DateTime?     @map("data_ativacao")
+  dataVencimento    DateTime?     @map("data_vencimento")
+  ultimaVerificacao DateTime?     @map("ultima_verificacao")
+  createdAt         DateTime      @default(now()) @map("created_at")
+  updatedAt         DateTime      @updatedAt @map("updated_at")
+
+  tenant       Tenant        @relation(fields: [tenantId], references: [id])
+  dispositivos Dispositivo[]
+
+  @@index([tenantId])
+  @@map("licencas")
+}
+
+// ── Contratos (CRM de plataforma) ─────────────────────────────────────────────
+
+enum ContratoCiclo {
+  mensal
+  trimestral
+  semestral
+  anual
+}
+
+enum ContratoStatus {
+  trial
+  ativo
+  suspenso
+  cancelado
+}
+
+model Contrato {
+  id          String         @id @default(uuid())
+  tenantId    String         @map("tenant_id")
+  plano       String
+  valor       Decimal?       @db.Decimal(10, 2)
+  ciclo       ContratoCiclo  @default(mensal)
+  dataInicio  DateTime?      @map("data_inicio") @db.Date
+  dataFim     DateTime?      @map("data_fim") @db.Date
+  status      ContratoStatus @default(ativo)
+  observacoes String?
+  createdAt   DateTime       @default(now()) @map("created_at")
+  updatedAt   DateTime       @updatedAt @map("updated_at")
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@map("contratos")
+}
+
+// ── Tickets de Suporte (CRM de plataforma) ───────────────────────────────────
+
+enum TicketTipo {
+  sync
+  instalacao
+  bug
+  cobranca
+  outro
+}
+
+enum TicketPrioridade {
+  baixa
+  media
+  alta
+  urgente
+}
+
+enum TicketStatus {
+  aberto
+  em_andamento
+  resolvido
+  fechado
+}
+
+model TicketSuporte {
+  id          String           @id @default(uuid())
+  tenantId    String           @map("tenant_id")
+  tipo        TicketTipo       @default(outro)
+  prioridade  TicketPrioridade @default(media)
+  status      TicketStatus     @default(aberto)
+  titulo      String
+  descricao   String?
+  resolucao   String?
+  createdAt   DateTime         @default(now()) @map("created_at")
+  updatedAt   DateTime         @updatedAt @map("updated_at")
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([status])
+  @@map("tickets_suporte")
+}

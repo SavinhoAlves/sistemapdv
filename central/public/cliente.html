@@ -1,0 +1,977 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Cliente – Painel Central</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Inter',sans-serif;background:#09090b;color:#fff;display:flex;min-height:100vh;overflow-x:hidden}
+#sidebar{width:220px;min-width:220px;background:#0f0f11;border-right:1px solid rgba(255,255,255,.05);display:flex;flex-direction:column;position:fixed;top:0;left:0;bottom:0;z-index:100}
+#main{margin-left:220px;flex:1;min-height:100vh;display:flex;flex-direction:column}
+.back-bar{padding:16px 32px;border-bottom:1px solid rgba(255,255,255,.05);}
+.back-link{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:700;color:rgba(255,255,255,.35);text-decoration:none;transition:color .12s}
+.back-link:hover{color:rgba(255,255,255,.7)}
+.hero{padding:24px 32px 0;border-bottom:1px solid rgba(255,255,255,.05)}
+.hero-inner{display:flex;align-items:flex-start;gap:20px;padding-bottom:20px}
+.hero-avatar{width:56px;height:56px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:900;color:#fff;flex-shrink:0}
+.hero-name{font-size:22px;font-weight:900;letter-spacing:-.4px}
+.hero-meta{font-size:13px;color:rgba(255,255,255,.35);margin-top:4px}
+.hero-badges{display:flex;align-items:center;gap:8px;margin-top:10px;flex-wrap:wrap}
+.tabs{display:flex;gap:0;padding:0 32px}
+.tab-btn{padding:12px 18px;font-size:13px;font-weight:700;color:rgba(255,255,255,.35);background:none;border:none;border-bottom:2px solid transparent;cursor:pointer;font-family:inherit;transition:all .15s;white-space:nowrap}
+.tab-btn.active{color:#f97316;border-bottom-color:#f97316}
+.tab-btn:hover:not(.active){color:rgba(255,255,255,.65)}
+.tab-content{flex:1;padding:28px 32px;overflow-y:auto}
+.tab-pane{display:none}
+.tab-pane.active{display:block}
+.section-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+.section-title{font-size:15px;font-weight:800;letter-spacing:-.2px}
+.card{background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.07);border-radius:14px;padding:22px}
+.info-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.info-item label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:rgba(255,255,255,.28);display:block;margin-bottom:4px}
+.info-item p{font-size:13px;font-weight:500;color:rgba(255,255,255,.8)}
+.info-item p.empty{color:rgba(255,255,255,.2);font-style:italic}
+.btn-sm{display:inline-flex;align-items:center;gap:5px;padding:7px 14px;border-radius:9px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;border:none;transition:all .12s}
+.btn-secondary{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.08);color:rgba(255,255,255,.6)}
+.btn-secondary:hover{background:rgba(255,255,255,.1);color:#fff}
+.btn-danger{background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.15);color:#f87171}
+.btn-danger:hover{background:rgba(239,68,68,.15)}
+.btn-primary{background:#f97316;color:#fff}
+.btn-primary:hover{background:#ea580c}
+.contract-card{background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.07);border-radius:12px;padding:18px 20px;margin-bottom:12px}
+.contract-card:last-child{margin-bottom:0}
+.contract-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.contract-plan{font-size:15px;font-weight:800}
+.contract-row{display:flex;align-items:center;gap:20px;flex-wrap:wrap;margin-top:8px}
+.contract-field label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:rgba(255,255,255,.28);display:block;margin-bottom:3px}
+.contract-field p{font-size:13px;font-weight:600}
+.ticket-row{display:flex;align-items:flex-start;gap:12px;padding:14px 0;border-bottom:1px solid rgba(255,255,255,.05)}
+.ticket-row:last-child{border-bottom:none}
+.ticket-title{font-size:13px;font-weight:600;color:rgba(255,255,255,.85)}
+.ticket-meta{font-size:11px;color:rgba(255,255,255,.3);margin-top:3px}
+.ticket-actions{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap}
+.filter-pills{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:18px}
+.pill{padding:5px 12px;border-radius:7px;font-size:12px;font-weight:700;border:1px solid rgba(255,255,255,.08);background:none;color:rgba(255,255,255,.35);cursor:pointer;font-family:inherit;transition:all .12s}
+.pill.active,.pill:hover{background:rgba(249,115,22,.09);border-color:rgba(249,115,22,.3);color:#f97316}
+.sync-row{display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid rgba(255,255,255,.05)}
+.sync-row:last-child{border-bottom:none}
+.sync-label{font-size:12px;font-weight:700;color:rgba(255,255,255,.4);text-transform:uppercase;letter-spacing:.08em}
+.sync-val{font-size:13px;font-weight:600;color:rgba(255,255,255,.8)}
+.toggle-switch{position:relative;display:inline-block;width:40px;height:22px}
+.toggle-switch input{opacity:0;width:0;height:0;position:absolute}
+.toggle-track{position:absolute;inset:0;border-radius:99px;background:rgba(255,255,255,.1);cursor:pointer;transition:background .2s}
+.toggle-track:before{content:'';position:absolute;width:16px;height:16px;border-radius:50%;background:#fff;top:3px;left:3px;transition:transform .2s}
+.toggle-switch input:checked+.toggle-track{background:#f97316}
+.toggle-switch input:checked+.toggle-track:before{transform:translateX(18px)}
+.license-status-card{background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.07);border-radius:12px;padding:20px;margin-bottom:16px}
+.empty-state{padding:40px 20px;text-align:center;font-size:13px;color:rgba(255,255,255,.2)}
+/* Modals */
+.modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:1000;align-items:center;justify-content:center;padding:16px}
+.modal-box{background:#18181b;border:1px solid rgba(255,255,255,.09);border-radius:18px;width:min(480px,100%);max-height:92vh;overflow-y:auto;padding:28px}
+.modal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:22px}
+.modal-title{font-size:17px;font-weight:900;letter-spacing:-.3px}
+.modal-close{background:none;border:none;cursor:pointer;color:rgba(255,255,255,.3);font-size:18px;font-weight:700;padding:2px 6px;transition:color .1s}
+.modal-close:hover{color:#fff}
+.field{margin-bottom:16px}
+.field label{display:block;font-size:11px;font-weight:700;color:rgba(255,255,255,.4);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px}
+.field input,.field textarea,.field select{width:100%;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.09);border-radius:10px;padding:10px 12px;font-size:13px;font-weight:500;color:#fff;outline:none;font-family:inherit;transition:border .15s}
+.field input::placeholder,.field textarea::placeholder{color:rgba(255,255,255,.2)}
+.field input:focus,.field textarea:focus,.field select:focus{border-color:rgba(249,115,22,.5);background:rgba(255,255,255,.07)}
+.field select{appearance:none;cursor:pointer;color-scheme:dark}
+.field textarea{resize:vertical;min-height:80px}
+.field-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.modal-footer{display:flex;gap:10px;margin-top:24px;justify-content:flex-end}
+.btn-cancel{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.08);color:rgba(255,255,255,.6);border-radius:10px;padding:9px 18px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;transition:all .12s}
+.btn-cancel:hover{background:rgba(255,255,255,.1)}
+.btn-save{background:#f97316;border:none;color:#fff;border-radius:10px;padding:9px 20px;font-size:13px;font-weight:800;cursor:pointer;font-family:inherit;transition:background .15s}
+.btn-save:hover{background:#ea580c}
+.token-box{background:rgba(249,115,22,.07);border:1px solid rgba(249,115,22,.2);border-radius:10px;padding:12px 14px;font-family:monospace;font-size:12px;word-break:break-all;color:rgba(255,255,255,.7);line-height:1.5;margin:12px 0}
+.alert-warn{background:rgba(245,158,11,.07);border:1px solid rgba(245,158,11,.2);border-radius:10px;padding:12px 14px;font-size:12px;color:rgba(255,190,80,.8);line-height:1.6;margin-bottom:16px}
+</style>
+</head>
+<body>
+<div id="sidebar"></div>
+<div id="main">
+  <div class="back-bar">
+    <a href="/clientes.html" class="back-link">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+      Clientes
+    </a>
+  </div>
+
+  <div class="hero" id="hero" style="display:none">
+    <div class="hero-inner">
+      <div class="hero-avatar" id="hero-avatar"></div>
+      <div style="flex:1;min-width:0;">
+        <h1 class="hero-name" id="hero-name"></h1>
+        <p class="hero-meta" id="hero-meta"></p>
+        <div class="hero-badges" id="hero-badges"></div>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <button class="btn-sm btn-secondary" onclick="abrirModalEditar()">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4z"/></svg>
+          Editar
+        </button>
+        <button class="btn-sm btn-danger" onclick="confirmarExcluir()">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
+          Excluir
+        </button>
+      </div>
+    </div>
+    <div class="tabs" role="tablist">
+      <button class="tab-btn active" onclick="mudarTab('geral')">Visão Geral</button>
+      <button class="tab-btn" onclick="mudarTab('contrato')">Contrato</button>
+      <button class="tab-btn" onclick="mudarTab('tickets')">Tickets</button>
+      <button class="tab-btn" onclick="mudarTab('licenca')">Licença</button>
+      <button class="tab-btn" onclick="mudarTab('sync')">Sincronização</button>
+    </div>
+  </div>
+
+  <div class="tab-content">
+    <!-- GERAL -->
+    <div class="tab-pane active" id="tab-geral">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;">
+        <div class="card">
+          <div class="section-header" style="margin-bottom:18px;">
+            <span class="section-title">Informações</span>
+          </div>
+          <div class="info-grid">
+            <div class="info-item"><label>CNPJ / CPF</label><p id="g-cnpj" class="empty">—</p></div>
+            <div class="info-item"><label>Telefone</label><p id="g-telefone" class="empty">—</p></div>
+            <div class="info-item"><label>Responsável</label><p id="g-responsavel" class="empty">—</p></div>
+            <div class="info-item"><label>E-mail</label><p id="g-contato" class="empty">—</p></div>
+            <div class="info-item" style="grid-column:1/-1"><label>Endereço</label><p id="g-endereco" class="empty">—</p></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="section-header" style="margin-bottom:18px;">
+            <span class="section-title">Metadados</span>
+          </div>
+          <div class="info-grid">
+            <div class="info-item"><label>Cadastrado em</label><p id="g-created"></p></div>
+            <div class="info-item"><label>Status da conta</label><p id="g-status"></p></div>
+            <div class="info-item"><label>Pedidos hoje</label><p id="g-pedidos"></p></div>
+            <div class="info-item"><label>Ticket médio</label><p id="g-ticket-medio"></p></div>
+            <div class="info-item" style="grid-column:1/-1"><label>Observações internas</label><p id="g-obs" class="empty">—</p></div>
+          </div>
+        </div>
+      </div>
+      <div class="card" id="g-operacional">
+        <div class="section-header" style="margin-bottom:18px;">
+          <span class="section-title">Operacional</span>
+        </div>
+        <div class="info-grid">
+          <div class="info-item"><label>Caixa</label><p id="g-caixa"></p></div>
+          <div class="info-item"><label>Caixa aberto desde</label><p id="g-caixa-desde"></p></div>
+          <div class="info-item"><label>Mesas abertas</label><p id="g-mesas"></p></div>
+          <div class="info-item"><label>Faturamento hoje</label><p id="g-faturamento"></p></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CONTRATO -->
+    <div class="tab-pane" id="tab-contrato">
+      <div class="section-header">
+        <span class="section-title">Contratos</span>
+        <button class="btn-sm btn-primary" onclick="abrirModalContrato()">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Novo contrato
+        </button>
+      </div>
+      <div id="contratos-lista"></div>
+    </div>
+
+    <!-- TICKETS -->
+    <div class="tab-pane" id="tab-tickets">
+      <div class="section-header">
+        <span class="section-title">Tickets de Suporte</span>
+        <button class="btn-sm btn-primary" onclick="abrirModalTicket()">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Novo ticket
+        </button>
+      </div>
+      <div class="filter-pills" id="tickets-filtros">
+        <button class="pill active" data-f="todos" onclick="setTicketFiltro('todos')">Todos</button>
+        <button class="pill" data-f="aberto" onclick="setTicketFiltro('aberto')">Abertos</button>
+        <button class="pill" data-f="em_andamento" onclick="setTicketFiltro('em_andamento')">Em andamento</button>
+        <button class="pill" data-f="resolvido" onclick="setTicketFiltro('resolvido')">Resolvidos</button>
+        <button class="pill" data-f="fechado" onclick="setTicketFiltro('fechado')">Fechados</button>
+      </div>
+      <div id="tickets-lista"></div>
+    </div>
+
+    <!-- LICENÇA -->
+    <div class="tab-pane" id="tab-licenca">
+      <div class="section-header">
+        <span class="section-title">Licença PDV</span>
+        <div style="display:flex;gap:8px;">
+          <button class="btn-sm btn-secondary" onclick="abrirModalAplicarChave()">Aplicar chave externa</button>
+          <button class="btn-sm btn-primary" onclick="abrirModalLicenca()">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m21 2-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0 3 3L22 7l-3-3m-3.5 3.5L19 4"/></svg>
+            Gerar licença
+          </button>
+        </div>
+      </div>
+      <div id="licenca-conteudo"></div>
+    </div>
+
+    <!-- SYNC -->
+    <div class="tab-pane" id="tab-sync">
+      <div class="section-header">
+        <span class="section-title">Sincronização</span>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 340px;gap:16px;align-items:start">
+        <div class="card">
+          <div id="sync-rows"></div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:12px">
+          <div class="card" style="padding:18px">
+            <p style="font-size:13px;font-weight:800;margin-bottom:14px">Controles</p>
+            <div style="display:flex;flex-direction:column;gap:12px">
+              <div style="display:flex;align-items:center;justify-content:space-between">
+                <div>
+                  <p style="font-size:13px;font-weight:600">Venda mobile</p>
+                  <p style="font-size:11px;color:rgba(255,255,255,.3);margin-top:2px">Permite pedidos pelo app</p>
+                </div>
+                <label class="toggle-switch">
+                  <input type="checkbox" id="toggle-mobile">
+                  <span class="toggle-track"></span>
+                </label>
+              </div>
+              <div style="display:flex;align-items:center;justify-content:space-between">
+                <div>
+                  <p style="font-size:13px;font-weight:600">Sync suspenso</p>
+                  <p style="font-size:11px;color:rgba(255,255,255,.3);margin-top:2px">Bloqueia relatórios ao PDV</p>
+                </div>
+                <label class="toggle-switch">
+                  <input type="checkbox" id="toggle-suspenso">
+                  <span class="toggle-track"></span>
+                </label>
+              </div>
+            </div>
+          </div>
+          <button class="btn-sm btn-secondary" style="width:100%;justify-content:center;padding:10px" onclick="resetarToken()">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+            Resetar token de sync
+          </button>
+        </div>
+      </div>
+    </div>
+  </div><!-- /tab-content -->
+</div><!-- /main -->
+
+<!-- ── Modais ────────────────────────────────────────────────────────────── -->
+
+<!-- Editar cliente -->
+<div class="modal" id="modal-editar">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h2 class="modal-title">Editar Cliente</h2>
+      <button class="modal-close" onclick="fecharModal('modal-editar')">✕</button>
+    </div>
+    <div class="field"><label>Nome / Razão Social *</label><input id="e-nome" placeholder="Nome do cliente"></div>
+    <div class="field-row">
+      <div class="field"><label>Responsável</label><input id="e-responsavel"></div>
+      <div class="field"><label>CNPJ / CPF</label><input id="e-cnpj"></div>
+    </div>
+    <div class="field-row">
+      <div class="field"><label>Telefone</label><input id="e-telefone"></div>
+      <div class="field"><label>E-mail</label><input id="e-contato"></div>
+    </div>
+    <div class="field"><label>Endereço</label><input id="e-endereco"></div>
+    <div class="field">
+      <label>Status da conta</label>
+      <select id="e-status">
+        <option value="ativo">Ativo</option>
+        <option value="suspenso">Suspenso</option>
+        <option value="cancelado">Cancelado</option>
+      </select>
+    </div>
+    <div class="field"><label>Observações internas</label><textarea id="e-obs" placeholder="Notas internas visíveis apenas no painel"></textarea></div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="fecharModal('modal-editar')">Cancelar</button>
+      <button class="btn-save" id="btn-salvar-editar">Salvar alterações</button>
+    </div>
+  </div>
+</div>
+
+<!-- Novo / editar contrato -->
+<div class="modal" id="modal-contrato">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h2 class="modal-title" id="mc-title">Novo Contrato</h2>
+      <button class="modal-close" onclick="fecharModal('modal-contrato')">✕</button>
+    </div>
+    <div class="field"><label>Plano *</label><input id="c-plano" placeholder="Ex: Pro, Essencial, Enterprise"></div>
+    <div class="field-row">
+      <div class="field"><label>Valor (R$)</label><input id="c-valor" type="number" step="0.01" min="0" placeholder="0,00"></div>
+      <div class="field"><label>Ciclo</label>
+        <select id="c-ciclo">
+          <option value="mensal">Mensal</option>
+          <option value="trimestral">Trimestral</option>
+          <option value="semestral">Semestral</option>
+          <option value="anual">Anual</option>
+        </select>
+      </div>
+    </div>
+    <div class="field-row">
+      <div class="field"><label>Início</label><input id="c-inicio" type="date" style="color-scheme:dark"></div>
+      <div class="field"><label>Fim</label><input id="c-fim" type="date" style="color-scheme:dark"></div>
+    </div>
+    <div class="field"><label>Status</label>
+      <select id="c-status">
+        <option value="trial">Trial</option>
+        <option value="ativo">Ativo</option>
+        <option value="suspenso">Suspenso</option>
+        <option value="cancelado">Cancelado</option>
+      </select>
+    </div>
+    <div class="field"><label>Observações</label><textarea id="c-obs" placeholder="Inclui suporte, SLA, cláusulas..."></textarea></div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="fecharModal('modal-contrato')">Cancelar</button>
+      <button class="btn-save" id="btn-salvar-contrato">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Novo / editar ticket -->
+<div class="modal" id="modal-ticket">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h2 class="modal-title" id="mt-title">Novo Ticket</h2>
+      <button class="modal-close" onclick="fecharModal('modal-ticket')">✕</button>
+    </div>
+    <div class="field-row">
+      <div class="field"><label>Tipo</label>
+        <select id="t-tipo">
+          <option value="sync">Sync</option>
+          <option value="instalacao">Instalação</option>
+          <option value="bug">Bug</option>
+          <option value="cobranca">Cobrança</option>
+          <option value="outro">Outro</option>
+        </select>
+      </div>
+      <div class="field"><label>Prioridade</label>
+        <select id="t-prioridade">
+          <option value="baixa">Baixa</option>
+          <option value="media">Média</option>
+          <option value="alta">Alta</option>
+          <option value="urgente">Urgente</option>
+        </select>
+      </div>
+    </div>
+    <div class="field"><label>Título *</label><input id="t-titulo" placeholder="Descreva brevemente o problema"></div>
+    <div class="field"><label>Descrição</label><textarea id="t-descricao" placeholder="Detalhes, passos para reproduzir..."></textarea></div>
+    <div id="t-edit-fields" style="display:none">
+      <div class="field"><label>Status</label>
+        <select id="t-status">
+          <option value="aberto">Aberto</option>
+          <option value="em_andamento">Em andamento</option>
+          <option value="resolvido">Resolvido</option>
+          <option value="fechado">Fechado</option>
+        </select>
+      </div>
+      <div class="field"><label>Resolução</label><textarea id="t-resolucao" placeholder="Como foi resolvido..."></textarea></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="fecharModal('modal-ticket')">Cancelar</button>
+      <button class="btn-save" id="btn-salvar-ticket">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Gerar licença -->
+<div class="modal" id="modal-licenca">
+  <div class="modal-box" style="width:min(380px,100%)">
+    <div class="modal-header">
+      <h2 class="modal-title">Gerar Licença</h2>
+      <button class="modal-close" onclick="fecharModal('modal-licenca')">✕</button>
+    </div>
+    <div class="alert-warn">A chave gerada inclui um novo token de sync. O PDV se auto-configura ao ativar a licença.</div>
+    <div class="field"><label>Validade (dias) *</label><input id="lic-dias" type="number" min="1" placeholder="Ex: 365"></div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="fecharModal('modal-licenca')">Cancelar</button>
+      <button class="btn-save" id="btn-gerar-licenca">Gerar chave</button>
+    </div>
+  </div>
+</div>
+
+<!-- Chave gerada -->
+<div class="modal" id="modal-chave">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h2 class="modal-title">Chave de Ativação</h2>
+      <button class="modal-close" onclick="fecharModal('modal-chave')">✕</button>
+    </div>
+    <p style="font-size:13px;color:rgba(255,255,255,.45);line-height:1.6;margin-bottom:14px;">Envie esta chave ao cliente para ativação do PDV. A chave contém o token de sincronização.</p>
+    <div class="token-box" id="chave-box"></div>
+    <div id="chave-info" style="font-size:12px;color:rgba(255,255,255,.35);margin-bottom:16px;"></div>
+    <button class="btn-save" onclick="copiar(document.getElementById('chave-box').textContent,'Chave copiada!')">Copiar chave</button>
+  </div>
+</div>
+
+<!-- Aplicar chave externa -->
+<div class="modal" id="modal-aplicar">
+  <div class="modal-box" style="width:min(420px,100%)">
+    <div class="modal-header">
+      <h2 class="modal-title">Aplicar Chave Externa</h2>
+      <button class="modal-close" onclick="fecharModal('modal-aplicar')">✕</button>
+    </div>
+    <div class="field"><label>Chave de ativação</label><textarea id="aplicar-chave" placeholder="Cole a chave Base64 aqui..." style="font-family:monospace;font-size:12px;min-height:100px"></textarea></div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="fecharModal('modal-aplicar')">Cancelar</button>
+      <button class="btn-save" id="btn-aplicar-chave">Aplicar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Token de sync -->
+<div class="modal" id="modal-token">
+  <div class="modal-box" style="width:min(420px,100%)">
+    <div class="modal-header">
+      <h2 class="modal-title">Novo Token de Sync</h2>
+      <button class="modal-close" onclick="fecharModal('modal-token');carregarCliente()">✕</button>
+    </div>
+    <p style="font-size:13px;color:rgba(255,255,255,.45);line-height:1.6;margin-bottom:14px;">Token gerado. Não será exibido novamente. O UUID de instalação foi apagado — o PDV precisará se reconectar.</p>
+    <div class="token-box" id="token-novo-box"></div>
+    <button class="btn-save" onclick="copiar(document.getElementById('token-novo-box').textContent,'Token copiado!')">Copiar token</button>
+  </div>
+</div>
+
+<!-- Confirmar exclusão -->
+<div class="modal" id="modal-excluir">
+  <div class="modal-box" style="width:min(360px,100%)">
+    <div class="modal-header">
+      <h2 class="modal-title" style="color:#f87171">Excluir cliente?</h2>
+      <button class="modal-close" onclick="fecharModal('modal-excluir')">✕</button>
+    </div>
+    <p style="font-size:13px;color:rgba(255,255,255,.5);line-height:1.6">Todos os contratos, tickets e histórico de sincronização serão removidos permanentemente. Esta ação não pode ser desfeita.</p>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="fecharModal('modal-excluir')">Cancelar</button>
+      <button id="btn-confirmar-excluir" style="background:#ef4444;border:none;color:#fff;border-radius:10px;padding:9px 20px;font-size:13px;font-weight:800;cursor:pointer;font-family:inherit">Excluir permanentemente</button>
+    </div>
+  </div>
+</div>
+
+<script src="/shared.js"></script>
+<script>
+// ── Estado ────────────────────────────────────────────────────────────────────
+const params   = new URLSearchParams(location.search)
+const clienteId = params.get('id')
+let cliente     = null
+let contratos   = []
+let tickets     = []
+let ticketFiltro = 'todos'
+let contratoEditId = null
+let ticketEditId   = null
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', async () => {
+  initSidebar('clientes')
+  if (!clienteId) { location.href='/clientes.html'; return }
+
+  const tabParam = params.get('tab')
+  if (tabParam) mudarTab(tabParam)
+
+  await carregarCliente()
+
+  // Toggles de sync
+  document.getElementById('toggle-mobile').addEventListener('change', async e => {
+    await fetch(`/api/clientes/${clienteId}`, {
+      method:'PATCH', headers,
+      body: JSON.stringify({ venda_mobile_permitida: e.target.checked })
+    })
+    toast(e.target.checked ? 'Venda mobile habilitada' : 'Venda mobile desabilitada', 'success')
+  })
+  document.getElementById('toggle-suspenso').addEventListener('change', async e => {
+    await fetch(`/api/clientes/${clienteId}`, {
+      method:'PATCH', headers,
+      body: JSON.stringify({ status: e.target.checked ? 'suspenso' : 'ativo' })
+    })
+    toast(e.target.checked ? 'Conta suspensa' : 'Conta reativada', e.target.checked ? 'warning' : 'success')
+    await carregarCliente()
+  })
+
+  // Salvar editar
+  document.getElementById('btn-salvar-editar').addEventListener('click', salvarEditar)
+  document.getElementById('btn-salvar-contrato').addEventListener('click', salvarContrato)
+  document.getElementById('btn-salvar-ticket').addEventListener('click', salvarTicket)
+  document.getElementById('btn-gerar-licenca').addEventListener('click', gerarLicenca)
+  document.getElementById('btn-aplicar-chave').addEventListener('click', aplicarChave)
+})
+
+// ── Carregar dados ─────────────────────────────────────────────────────────────
+async function carregarCliente() {
+  const [rd, rco, rt] = await Promise.all([
+    fetch(`/api/clientes/${clienteId}/detalhes`, { headers }),
+    fetch(`/api/contratos/cliente/${clienteId}`, { headers }),
+    fetch(`/api/tickets/cliente/${clienteId}`, { headers })
+  ])
+  if (rd.status === 401) { localStorage.removeItem('central_token'); location.href='/login.html'; return }
+  if (!rd.ok) { toast('Cliente não encontrado','error'); setTimeout(()=>location.href='/clientes.html',1500); return }
+
+  const raw = await rd.json()
+  const licenca = raw.licencas?.[0] ?? null
+  const caixaAberto = (raw.caixas?.length ?? 0) > 0
+
+  // Normalize Prisma object to match render functions
+  cliente = {
+    id:                   raw.id,
+    nome_fantasia:        raw.nome,
+    slug:                 raw.slug,
+    contato:              raw.contato,
+    cnpj:                 raw.cnpj,
+    responsavel:          raw.responsavel,
+    telefone:             raw.telefone,
+    endereco:             raw.endereco,
+    observacoes:          raw.observacoes,
+    venda_mobile_permitida: raw.vendaMobilePermitida,
+    status:               raw.status,
+    caixa_aberto:         caixaAberto,
+    caixa_aberto_desde:   raw.caixas?.[0]?.createdAt ?? null,
+    faturamento_hoje:     0,
+    mesas_abertas:        raw._count?.mesas ?? 0,
+    pedidos_hoje:         0,
+    ticket_medio:         0,
+    licenca_expira_em:    licenca?.dataVencimento ?? null,
+    licenca_status:       licenca?.status ?? 'sem_licenca',
+    online:               caixaAberto,
+    created_at:           raw.createdAt,
+    _raw:                 raw,
+  }
+  contratos = rco.ok ? await rco.json() : []
+  tickets   = rt.ok ? await rt.json() : []
+
+  renderHero()
+  renderGeral()
+  renderContratos()
+  renderTickets()
+  renderLicenca()
+  renderSync()
+  document.getElementById('hero').style.display = ''
+  document.title = `${cliente.nome_fantasia} – Painel Central`
+}
+
+// ── Hero ──────────────────────────────────────────────────────────────────────
+function renderHero() {
+  const cor = avatarColor(cliente.nome_fantasia||'')
+  const initials = (cliente.nome_fantasia||'?').slice(0,2).toUpperCase()
+  const avEl = document.getElementById('hero-avatar')
+  avEl.style.background = cor; avEl.textContent = initials
+
+  document.getElementById('hero-name').textContent = cliente.nome_fantasia
+  const meta = [cliente.responsavel, cliente.contato, cliente.telefone].filter(Boolean).join(' · ')
+  document.getElementById('hero-meta').textContent = meta || 'Sem informações adicionais'
+
+  const badgesEl = document.getElementById('hero-badges')
+  const onlineDot = cliente.online
+    ? `<span style="display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:700;color:#4ade80;"><span style="width:6px;height:6px;border-radius:50%;background:#22c55e;box-shadow:0 0 5px rgba(34,197,94,.7);"></span>Online</span>`
+    : ''
+  badgesEl.innerHTML = badgeStatus(cliente.status||'ativo') + (onlineDot ? ' ' + onlineDot : '')
+}
+
+// ── Tab: Geral ─────────────────────────────────────────────────────────────────
+function renderGeral() {
+  const set = (id, val, fallback='—') => {
+    const el = document.getElementById(id)
+    if (!el) return
+    el.textContent = val || fallback
+    el.className = val ? '' : 'empty'
+  }
+  set('g-cnpj',      cliente.cnpj)
+  set('g-telefone',  cliente.telefone)
+  set('g-responsavel', cliente.responsavel)
+  set('g-contato',   cliente.contato)
+  set('g-endereco',  cliente.endereco)
+  set('g-obs',       cliente.observacoes)
+  document.getElementById('g-created').textContent = fmtData(cliente.created_at)
+  document.getElementById('g-status').innerHTML    = badgeStatus(cliente.status||'ativo')
+  document.getElementById('g-pedidos').textContent = String(cliente.pedidos_hoje||0)
+  document.getElementById('g-ticket-medio').textContent = cliente.ticket_medio ? 'R$'+fmtMoeda(cliente.ticket_medio) : '—'
+  document.getElementById('g-caixa').innerHTML  = cliente.caixa_aberto
+    ? '<span style="color:#4ade80;font-weight:700;">Aberto</span>'
+    : '<span style="color:rgba(255,255,255,.3);">Fechado</span>'
+  document.getElementById('g-caixa-desde').textContent = cliente.caixa_aberto_desde ? fmtData(cliente.caixa_aberto_desde) : '—'
+  document.getElementById('g-mesas').textContent      = String(cliente.mesas_abertas||0)
+  document.getElementById('g-faturamento').textContent = 'R$'+fmtMoeda(cliente.faturamento_hoje)
+}
+
+// ── Tab: Contratos ─────────────────────────────────────────────────────────────
+function renderContratos() {
+  const el = document.getElementById('contratos-lista')
+  if (!contratos.length) {
+    el.innerHTML = '<div class="empty-state">Nenhum contrato cadastrado.</div>'; return
+  }
+  el.innerHTML = contratos.map(ct => `
+    <div class="contract-card">
+      <div class="contract-top">
+        <span class="contract-plan">${escapeHtml(ct.plano)}</span>
+        ${badgeContratoStatus(ct.status)}
+      </div>
+      <div class="contract-row">
+        ${ct.valor != null ? `<div class="contract-field"><label>Valor</label><p>R$${fmtMoeda(ct.valor)}</p></div>` : ''}
+        <div class="contract-field"><label>Ciclo</label><p>${{mensal:'Mensal',trimestral:'Trimestral',semestral:'Semestral',anual:'Anual'}[ct.ciclo]||ct.ciclo}</p></div>
+        ${ct.data_inicio ? `<div class="contract-field"><label>Início</label><p>${fmtDataCurta(ct.data_inicio)}</p></div>` : ''}
+        ${ct.data_fim ? `<div class="contract-field"><label>Fim</label><p>${fmtDataCurta(ct.data_fim)}</p></div>` : ''}
+      </div>
+      ${ct.observacoes ? `<p style="font-size:12px;color:rgba(255,255,255,.35);margin-top:10px;line-height:1.5;">${escapeHtml(ct.observacoes)}</p>` : ''}
+      <div style="display:flex;gap:8px;margin-top:14px;">
+        <button class="btn-sm btn-secondary" onclick="abrirModalContrato('${ct.id}')">Editar</button>
+        <button class="btn-sm btn-danger" onclick="excluirContrato('${ct.id}')">Excluir</button>
+      </div>
+    </div>`
+  ).join('')
+}
+
+// ── Tab: Tickets ──────────────────────────────────────────────────────────────
+function setTicketFiltro(f) {
+  ticketFiltro = f
+  document.querySelectorAll('#tickets-filtros .pill').forEach(p => {
+    p.classList.toggle('active', p.dataset.f === f)
+  })
+  renderTickets()
+}
+
+function renderTickets() {
+  const el = document.getElementById('tickets-lista')
+  const lista = ticketFiltro === 'todos' ? tickets : tickets.filter(t => t.status === ticketFiltro)
+
+  if (!lista.length) {
+    el.innerHTML = '<div class="empty-state">Nenhum ticket encontrado.</div>'; return
+  }
+
+  const ord = {urgente:0,alta:1,media:2,baixa:3}
+  const sorted = [...lista].sort((a,b) => (ord[a.prioridade]||9)-(ord[b.prioridade]||9))
+
+  el.innerHTML = sorted.map(t => `
+    <div class="ticket-row">
+      <div style="margin-top:3px;">${badgePrioridade(t.prioridade)}</div>
+      <div style="flex:1;min-width:0;">
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+          <span class="ticket-title">${escapeHtml(t.titulo)}</span>
+          ${badgeTicketStatus(t.status)}
+          <span style="font-size:11px;color:rgba(255,255,255,.25);">${labelTipo(t.tipo)}</span>
+        </div>
+        ${t.descricao ? `<p style="font-size:12px;color:rgba(255,255,255,.35);margin-top:4px;line-height:1.5;">${escapeHtml(t.descricao)}</p>` : ''}
+        ${t.resolucao ? `<p style="font-size:12px;color:rgba(74,222,128,.6);margin-top:4px;line-height:1.5;">✓ ${escapeHtml(t.resolucao)}</p>` : ''}
+        <div class="ticket-meta" style="margin-top:6px;">${tempoAtras(t.created_at)} atrás</div>
+        <div class="ticket-actions">
+          <button class="btn-sm btn-secondary" onclick="abrirModalTicket('${t.id}')">Editar</button>
+          ${t.status !== 'resolvido' && t.status !== 'fechado'
+            ? `<button class="btn-sm btn-secondary" onclick="resolverTicket('${t.id}')">Marcar resolvido</button>` : ''}
+          <button class="btn-sm btn-danger" onclick="excluirTicket('${t.id}')">Excluir</button>
+        </div>
+      </div>
+    </div>`
+  ).join('')
+}
+
+// ── Tab: Licença ──────────────────────────────────────────────────────────────
+function renderLicenca() {
+  const el = document.getElementById('licenca-conteudo')
+  const c  = cliente
+  const dias = diasAteVencer(c.licenca_expira_em)
+  const statusCor = dias < 0 ? '#f87171' : dias <= 7 ? '#fbbf24' : '#4ade80'
+  const statusTxt = dias === Infinity ? 'Sem licença' : dias < 0 ? `Vencida há ${Math.abs(dias)}d` : `${dias} dias restantes`
+
+  el.innerHTML = `
+    <div class="license-status-card">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+        <span style="font-size:13px;font-weight:800;">Status da licença</span>
+        <span style="font-size:20px;font-weight:900;color:${statusCor};">${statusTxt}</span>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:16px;">
+        <div><label style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:rgba(255,255,255,.28);display:block;margin-bottom:4px;">Expira em</label>
+          <p style="font-size:13px;font-weight:600;">${c.licenca_expira_em ? fmtDataCurta(c.licenca_expira_em) : '—'}</p></div>
+        <div><label style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:rgba(255,255,255,.28);display:block;margin-bottom:4px;">Status</label>
+          <p style="font-size:13px;font-weight:600;text-transform:capitalize;">${c.licenca_status || 'sem_licenca'}</p></div>
+      </div>
+    </div>
+    ${!c.licenca_expira_em ? '<div class="empty-state">Nenhuma licença ativa. Clique em "Gerar licença" para criar uma.</div>' : ''}`
+}
+
+// ── Tab: Sync ─────────────────────────────────────────────────────────────────
+function renderSync() {
+  const c = cliente
+  document.getElementById('toggle-mobile').checked   = !!c.venda_mobile_permitida
+  document.getElementById('toggle-suspenso').checked = c.status === 'suspenso'
+
+  const onlineHtml = c.online
+    ? '<span style="color:#4ade80;font-weight:700;">● Online</span>'
+    : '<span style="color:rgba(255,255,255,.3);">○ Offline</span>'
+
+  document.getElementById('sync-rows').innerHTML = [
+    ['Conectividade',     onlineHtml, true],
+    ['Slug (multi-tenant)', escapeHtml(c.slug||'—')],
+    ['Venda mobile',      c.venda_mobile_permitida ? '<span style="color:#4ade80">Habilitada</span>' : '<span style="color:rgba(255,255,255,.3)">Desabilitada</span>', true],
+    ['Caixa',             c.caixa_aberto ? '<span style="color:#4ade80;font-weight:700;">Aberto</span>' : 'Fechado', true],
+    ['Usuários cadastrados', String(c._raw?._count?.usuarios ?? '—')],
+    ['Mesas configuradas',  String(c._raw?._count?.mesas ?? '—')],
+    ['Produtos ativos',     String(c._raw?._count?.produtos ?? '—')],
+  ].map(([label, val, raw]) => `
+    <div class="sync-row">
+      <span class="sync-label">${label}</span>
+      <span class="sync-val">${raw ? val : escapeHtml(String(val||'—'))}</span>
+    </div>`
+  ).join('')
+}
+
+// ── Tab switching ─────────────────────────────────────────────────────────────
+function mudarTab(tab) {
+  document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'))
+  document.querySelectorAll('.tab-btn').forEach((b,i) => {
+    const tabs = ['geral','contrato','tickets','licenca','sync']
+    b.classList.toggle('active', tabs[i] === tab)
+  })
+  const el = document.getElementById('tab-' + tab)
+  if (el) el.classList.add('active')
+}
+
+// ── Modal: Editar cliente ──────────────────────────────────────────────────────
+function abrirModalEditar() {
+  document.getElementById('e-nome').value        = cliente.nome_fantasia||''
+  document.getElementById('e-responsavel').value = cliente.responsavel||''
+  document.getElementById('e-cnpj').value        = cliente.cnpj||''
+  document.getElementById('e-telefone').value    = cliente.telefone||''
+  document.getElementById('e-contato').value     = cliente.contato||''
+  document.getElementById('e-endereco').value    = cliente.endereco||''
+  document.getElementById('e-status').value      = cliente.status||'ativo'
+  document.getElementById('e-obs').value         = cliente.observacoes||''
+  document.getElementById('modal-editar').style.display='flex'
+}
+
+async function salvarEditar() {
+  const nome = document.getElementById('e-nome').value.trim()
+  if (!nome) { toast('Nome é obrigatório','error'); return }
+  const btn = document.getElementById('btn-salvar-editar')
+  btn.disabled=true; btn.textContent='Salvando...'
+  try {
+    const res = await fetch(`/api/clientes/${clienteId}`, {
+      method:'PATCH', headers,
+      body: JSON.stringify({
+        nome_fantasia: nome,
+        responsavel:   document.getElementById('e-responsavel').value.trim()||null,
+        cnpj:          document.getElementById('e-cnpj').value.trim()||null,
+        telefone:      document.getElementById('e-telefone').value.trim()||null,
+        contato:       document.getElementById('e-contato').value.trim()||null,
+        endereco:      document.getElementById('e-endereco').value.trim()||null,
+        status:        document.getElementById('e-status').value,
+        observacoes:   document.getElementById('e-obs').value.trim()||null,
+      })
+    })
+    if (!res.ok) { const d=await res.json(); toast(d.error||'Erro','error'); return }
+    fecharModal('modal-editar')
+    toast('Alterações salvas','success')
+    await carregarCliente()
+  } finally { btn.disabled=false; btn.textContent='Salvar alterações' }
+}
+
+// ── Modal: Contrato ────────────────────────────────────────────────────────────
+function abrirModalContrato(id = null) {
+  contratoEditId = id
+  document.getElementById('mc-title').textContent = id ? 'Editar Contrato' : 'Novo Contrato'
+  if (id) {
+    const ct = contratos.find(c => c.id === id)
+    if (ct) {
+      document.getElementById('c-plano').value   = ct.plano||''
+      document.getElementById('c-valor').value   = ct.valor||''
+      document.getElementById('c-ciclo').value   = ct.ciclo||'mensal'
+      document.getElementById('c-inicio').value  = String(ct.data_inicio||'').slice(0,10)
+      document.getElementById('c-fim').value     = String(ct.data_fim||'').slice(0,10)
+      document.getElementById('c-status').value  = ct.status||'ativo'
+      document.getElementById('c-obs').value     = ct.observacoes||''
+    }
+  } else {
+    ['c-plano','c-valor','c-inicio','c-fim','c-obs'].forEach(id => document.getElementById(id).value='')
+    document.getElementById('c-ciclo').value  = 'mensal'
+    document.getElementById('c-status').value = 'ativo'
+  }
+  document.getElementById('modal-contrato').style.display='flex'
+}
+
+async function salvarContrato() {
+  const plano = document.getElementById('c-plano').value.trim()
+  if (!plano) { toast('Informe o plano','error'); return }
+  const btn = document.getElementById('btn-salvar-contrato')
+  btn.disabled=true; btn.textContent='Salvando...'
+  const body = {
+    plano,
+    valor:       document.getElementById('c-valor').value||null,
+    ciclo:       document.getElementById('c-ciclo').value,
+    data_inicio: document.getElementById('c-inicio').value||null,
+    data_fim:    document.getElementById('c-fim').value||null,
+    status:      document.getElementById('c-status').value,
+    observacoes: document.getElementById('c-obs').value.trim()||null,
+  }
+  try {
+    const url  = contratoEditId ? `/api/contratos/${contratoEditId}` : `/api/contratos/cliente/${clienteId}`
+    const method = contratoEditId ? 'PATCH' : 'POST'
+    const res  = await fetch(url, { method, headers, body: JSON.stringify(body) })
+    if (!res.ok) { const d=await res.json(); toast(d.error||'Erro','error'); return }
+    fecharModal('modal-contrato')
+    toast(contratoEditId ? 'Contrato atualizado' : 'Contrato criado','success')
+    const rco = await fetch(`/api/contratos/cliente/${clienteId}`, { headers })
+    contratos  = rco.ok ? await rco.json() : []
+    renderContratos()
+  } finally { btn.disabled=false; btn.textContent='Salvar' }
+}
+
+async function excluirContrato(id) {
+  if (!confirm('Excluir este contrato?')) return
+  const res = await fetch(`/api/contratos/${id}`, { method:'DELETE', headers })
+  if (res.ok) {
+    contratos = contratos.filter(c => c.id !== id)
+    renderContratos()
+    toast('Contrato removido','success')
+  }
+}
+
+// ── Modal: Ticket ─────────────────────────────────────────────────────────────
+function abrirModalTicket(id = null) {
+  ticketEditId = id
+  const editFields = document.getElementById('t-edit-fields')
+  document.getElementById('mt-title').textContent = id ? 'Editar Ticket' : 'Novo Ticket'
+  if (id) {
+    const t = tickets.find(t => t.id === id)
+    if (t) {
+      document.getElementById('t-tipo').value       = t.tipo||'outro'
+      document.getElementById('t-prioridade').value = t.prioridade||'media'
+      document.getElementById('t-titulo').value     = t.titulo||''
+      document.getElementById('t-descricao').value  = t.descricao||''
+      document.getElementById('t-status').value     = t.status||'aberto'
+      document.getElementById('t-resolucao').value  = t.resolucao||''
+    }
+    editFields.style.display = ''
+  } else {
+    ['t-titulo','t-descricao','t-resolucao'].forEach(id => document.getElementById(id).value='')
+    document.getElementById('t-tipo').value       = 'outro'
+    document.getElementById('t-prioridade').value = 'media'
+    document.getElementById('t-status').value     = 'aberto'
+    editFields.style.display = 'none'
+  }
+  document.getElementById('modal-ticket').style.display='flex'
+}
+
+async function salvarTicket() {
+  const titulo = document.getElementById('t-titulo').value.trim()
+  if (!titulo) { toast('Informe o título','error'); return }
+  const btn = document.getElementById('btn-salvar-ticket')
+  btn.disabled=true; btn.textContent='Salvando...'
+  const body = {
+    tipo:       document.getElementById('t-tipo').value,
+    prioridade: document.getElementById('t-prioridade').value,
+    titulo,
+    descricao:  document.getElementById('t-descricao').value.trim()||null,
+    ...(ticketEditId ? {
+      status:    document.getElementById('t-status').value,
+      resolucao: document.getElementById('t-resolucao').value.trim()||null,
+    } : {})
+  }
+  try {
+    const url    = ticketEditId ? `/api/tickets/${ticketEditId}` : `/api/tickets/cliente/${clienteId}`
+    const method = ticketEditId ? 'PATCH' : 'POST'
+    const res    = await fetch(url, { method, headers, body: JSON.stringify(body) })
+    if (!res.ok) { const d=await res.json(); toast(d.error||'Erro','error'); return }
+    fecharModal('modal-ticket')
+    toast(ticketEditId ? 'Ticket atualizado' : 'Ticket criado','success')
+    const rt = await fetch(`/api/tickets/cliente/${clienteId}`, { headers })
+    tickets = rt.ok ? await rt.json() : []
+    renderTickets()
+  } finally { btn.disabled=false; btn.textContent='Salvar' }
+}
+
+async function resolverTicket(id) {
+  const res = await fetch(`/api/tickets/${id}`, {
+    method:'PATCH', headers, body: JSON.stringify({ status:'resolvido' })
+  })
+  if (res.ok) {
+    const rt = await fetch(`/api/tickets/cliente/${clienteId}`, { headers })
+    tickets = rt.ok ? await rt.json() : []
+    renderTickets(); toast('Ticket resolvido','success')
+  }
+}
+
+async function excluirTicket(id) {
+  if (!confirm('Excluir este ticket?')) return
+  const res = await fetch(`/api/tickets/${id}`, { method:'DELETE', headers })
+  if (res.ok) {
+    tickets = tickets.filter(t => t.id !== id)
+    renderTickets(); toast('Ticket removido','success')
+  }
+}
+
+// ── Licença ───────────────────────────────────────────────────────────────────
+function abrirModalLicenca() {
+  document.getElementById('lic-dias').value = ''
+  document.getElementById('modal-licenca').style.display='flex'
+  setTimeout(() => document.getElementById('lic-dias').focus(), 80)
+}
+
+async function gerarLicenca() {
+  const dias = Number(document.getElementById('lic-dias').value)
+  if (!dias || dias <= 0) { toast('Informe a validade em dias','error'); return }
+  const btn = document.getElementById('btn-gerar-licenca')
+  btn.disabled=true; btn.textContent='Gerando...'
+  try {
+    const res  = await fetch(`/api/clientes/${clienteId}/licenca`, {
+      method:'POST', headers, body: JSON.stringify({ dias })
+    })
+    const data = await res.json()
+    if (!res.ok) { toast(data.error||'Erro','error'); return }
+    fecharModal('modal-licenca')
+    toast(`Licença gerada · válida por ${data.dias} dias · expira em ${fmtDataCurta(data.expira)}`, 'success')
+    await carregarCliente()
+  } finally { btn.disabled=false; btn.textContent='Gerar chave' }
+}
+
+function abrirModalAplicarChave() {
+  document.getElementById('aplicar-chave').value = ''
+  document.getElementById('modal-aplicar').style.display='flex'
+}
+
+async function aplicarChave() {
+  const chave = document.getElementById('aplicar-chave').value.trim()
+  if (!chave) { toast('Cole a chave primeiro','error'); return }
+  const btn = document.getElementById('btn-aplicar-chave')
+  btn.disabled=true; btn.textContent='Aplicando...'
+  try {
+    const res  = await fetch(`/api/clientes/${clienteId}/aplicar-chave`, {
+      method:'POST', headers, body: JSON.stringify({ chave })
+    })
+    const data = await res.json()
+    if (!res.ok) { toast(data.error||'Chave inválida','error'); return }
+    fecharModal('modal-aplicar')
+    toast(`Chave aplicada · ${data.dias} dias`, 'success')
+    await carregarCliente()
+  } finally { btn.disabled=false; btn.textContent='Aplicar' }
+}
+
+// ── Sync: reset token ─────────────────────────────────────────────────────────
+async function resetarToken() {
+  if (!confirm('Gerar novo token? O PDV precisará ser reconfigurado.')) return
+  const res  = await fetch(`/api/clientes/${clienteId}/reset-token`, { method:'POST', headers })
+  const data = await res.json()
+  if (!res.ok) { toast(data.error||'Erro','error'); return }
+  document.getElementById('token-novo-box').textContent = data.syncToken
+  document.getElementById('modal-token').style.display='flex'
+  await carregarCliente()
+}
+
+// ── Excluir cliente ────────────────────────────────────────────────────────────
+function confirmarExcluir() {
+  document.getElementById('modal-excluir').style.display='flex'
+  document.getElementById('btn-confirmar-excluir').onclick = async () => {
+    const res = await fetch(`/api/clientes/${clienteId}`, { method:'DELETE', headers })
+    if (res.ok) { toast('Cliente excluído','success'); setTimeout(()=>location.href='/clientes.html',800) }
+    else { const d=await res.json(); toast(d.error||'Erro','error') }
+  }
+}
+
+function fecharModal(id) { document.getElementById(id).style.display='none' }
+function copiar(txt, msg) { navigator.clipboard.writeText(txt).then(()=>toast(msg||'Copiado!','success')) }
+</script>
+</body>
+</html>

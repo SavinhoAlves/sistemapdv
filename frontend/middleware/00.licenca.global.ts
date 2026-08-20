@@ -1,5 +1,5 @@
 const ROTAS_LIVRES = ['/ativacao', '/m']
-const CACHE_TTL = 5 * 60 * 1000
+const CACHE_TTL = 60 * 1000
 
 export default defineNuxtRouteMiddleware(async (to) => {
   if (ROTAS_LIVRES.some(r => to.path.startsWith(r))) return

@@ -139,8 +139,8 @@
             <span class="text-sm text-green-600 font-bold">− R$ {{ desconto.toFixed(2) }}</span>
           </div>
 
-          <!-- TAXA DE SERVIÇO -->
-          <div class="flex items-center justify-between mb-1">
+          <!-- TAXA DE SERVIÇO (somente admin/caixa) -->
+          <div v-if="podeTaxa" class="flex items-center justify-between mb-1">
             <button
               @click="alternarTaxa"
               :disabled="alternandoTaxa || !pedidoId"
@@ -454,6 +454,7 @@ const authStore        = useAuthStore()
 const { rfidAtivo, modalAberto: rfidModal, mensagemModal: rfidMensagem, erroModal, identificarViaRfid, onRfidSuccess, onRfidCancelar } = useRfidIdentify()
 const caixaAberto = computed(() => caixaStore.aberto)
 const podeFecharMesa = computed(() => authStore.isCaixa || authStore.temPermissao('fecharMesa'))
+const podeTaxa       = computed(() => authStore.usuario?.cargo === 'administrador' || authStore.isCaixa)
 
 // Identificação RFID do garçom para a sessão atual (null = sem RFID identificado)
 const garcomRfid       = ref<{ id: number; nome: string } | null>(null)

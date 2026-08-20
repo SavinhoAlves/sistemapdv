@@ -10,7 +10,7 @@
     <div v-else-if="!caixaStore.aberto" class="flex-1 flex flex-col items-center justify-center gap-5 text-center p-8 pb-24">
       <div
         class="w-20 h-20 rounded-[24px] flex items-center justify-center"
-        style="background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.06);"
+        style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06);"
       >
         <LockKeyhole :size="28" class="text-white/15" />
       </div>
@@ -25,17 +25,29 @@
     <template v-else>
 
       <!-- PAGE HEADER -->
-      <div class="relative px-5 pt-6 pb-4 overflow-hidden shrink-0">
+      <div class="relative px-5 pt-5 pb-4 shrink-0 overflow-hidden">
         <div
           class="absolute inset-0 pointer-events-none"
-          style="background: radial-gradient(ellipse 60% 80% at 100% 0%, rgba(249,115,22,0.07) 0%, transparent 65%);"
+          style="background: radial-gradient(ellipse 70% 90% at 100% 0%, rgba(249,115,22,0.08) 0%, transparent 65%);"
         ></div>
-        <div class="relative">
-          <h1 class="text-[30px] font-black text-white tracking-tight leading-none">Venda Direta</h1>
-          <p class="text-[12px] font-medium mt-2" :class="carrinho.length ? 'text-orange-400/70' : 'text-white/25'">
-            <template v-if="carrinho.length">{{ totalItens }} item{{ totalItens !== 1 ? 's' : '' }} no carrinho · R$ {{ fmt(total) }}</template>
-            <template v-else>Selecione os produtos abaixo</template>
-          </p>
+        <div class="relative flex items-center justify-between gap-3">
+          <div class="min-w-0">
+            <h1 class="text-[26px] font-black text-white tracking-tight leading-none">Venda Direta</h1>
+            <p class="text-[12px] font-medium mt-1.5 truncate" :class="carrinho.length ? 'text-orange-400/80' : 'text-white/25'">
+              <template v-if="carrinho.length">{{ totalItens }} item{{ totalItens !== 1 ? 's' : '' }} · R$ {{ fmt(total) }}</template>
+              <template v-else>Selecione os produtos abaixo</template>
+            </p>
+          </div>
+          <!-- Limpar carrinho atalho no header -->
+          <button
+            v-if="carrinho.length"
+            @click="limparCarrinho"
+            class="shrink-0 flex items-center gap-1.5 h-8 px-3 rounded-[10px] text-[11px] font-black transition-all active:scale-95"
+            style="background: rgba(239,68,68,0.07); color: rgba(248,113,113,0.55); border: 1px solid rgba(239,68,68,0.1);"
+          >
+            <Trash2 :size="11" />
+            Limpar
+          </button>
         </div>
       </div>
 
@@ -61,10 +73,10 @@
           v-for="cat in ['Todos', ...categorias]"
           :key="cat"
           @click="categoriaAtiva = cat"
-          class="h-[30px] px-3.5 rounded-[10px] text-[11px] font-black whitespace-nowrap shrink-0 transition-all active:scale-95"
+          class="h-[28px] px-3.5 rounded-[10px] text-[11px] font-black whitespace-nowrap shrink-0 transition-all active:scale-95"
           :class="categoriaAtiva === cat ? 'text-white' : 'text-white/30'"
           :style="categoriaAtiva === cat
-            ? 'background: #f97316; box-shadow: 0 3px 10px rgba(249,115,22,0.3);'
+            ? 'background: #f97316; box-shadow: 0 2px 10px rgba(249,115,22,0.3);'
             : 'background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.07);'"
         >{{ cat }}</button>
       </div>
@@ -72,40 +84,57 @@
       <div class="h-px mx-5 shrink-0 bg-white/[0.05]"></div>
 
       <!-- GRID DE PRODUTOS -->
-      <div class="flex-1 overflow-y-auto px-4 pt-3 pb-32">
-        <div v-if="!produtosFiltrados.length" class="flex flex-col items-center justify-center h-48 gap-3 text-white/20">
-          <Package :size="28" class="text-white/[0.08]" />
-          <p class="text-[13px] font-semibold">Nenhum produto</p>
+      <div class="px-4 pt-3 pb-36">
+        <div v-if="!produtosFiltrados.length" class="flex flex-col items-center justify-center h-48 gap-3">
+          <Package :size="26" class="text-white/[0.07]" />
+          <p class="text-[13px] font-semibold text-white/20">Nenhum produto encontrado</p>
         </div>
         <div v-else class="grid grid-cols-2 gap-2.5">
           <button
             v-for="p in produtosFiltrados"
             :key="p.id"
             @click="adicionarAoCarrinho(p)"
-            class="rounded-[18px] p-4 flex flex-col items-center text-center transition-all"
+            class="relative rounded-[20px] p-4 flex flex-col items-center text-center transition-all active:scale-[0.95] overflow-visible"
             :style="p.gerenciar_estoque && p.estoque_atual <= 0
-              ? 'background:#161619; border:1px solid rgba(255,255,255,0.05); opacity:0.45; cursor:not-allowed;'
-              : 'background:#161619; border:1px solid rgba(255,255,255,0.06);'"
+              ? 'background:#161619; border:1px solid rgba(255,255,255,0.05); opacity:0.4; cursor:not-allowed;'
+              : qtdNoCarrinho(p.id)
+                ? 'background:rgba(249,115,22,0.05); border:1px solid rgba(249,115,22,0.22);'
+                : 'background:#161619; border:1px solid rgba(255,255,255,0.06);'"
             :disabled="p.gerenciar_estoque && p.estoque_atual <= 0"
-            @mousedown="!(p.gerenciar_estoque && p.estoque_atual <= 0) ? $event.currentTarget.style.background='#1c1c1f' : null"
-            @mouseup="$event.currentTarget.style.background='#161619'"
-            @touchstart="!(p.gerenciar_estoque && p.estoque_atual <= 0) ? $event.currentTarget.style.background='#1c1c1f' : null"
-            @touchend="$event.currentTarget.style.background='#161619'"
           >
+            <!-- Badge de quantidade no carrinho -->
+            <div
+              v-if="qtdNoCarrinho(p.id)"
+              :key="qtdNoCarrinho(p.id)"
+              class="absolute -top-2 -right-2 min-w-[22px] h-[22px] rounded-full flex items-center justify-center text-[11px] font-black z-10 badge-pop"
+              style="background: #f97316; color: white; box-shadow: 0 2px 8px rgba(249,115,22,0.5); border: 2px solid #0d0d10;"
+            >
+              {{ qtdNoCarrinho(p.id) }}
+            </div>
+
+            <!-- Badge esgotado -->
             <span
               v-if="p.gerenciar_estoque && p.estoque_atual <= 0"
               class="text-[9px] font-black px-2 py-0.5 rounded-[6px] mb-2"
               style="background: rgba(239,68,68,0.12); color: rgb(248,113,113);"
             >Esgotado</span>
+
+            <!-- Ícone -->
             <div
-              class="w-10 h-10 rounded-[14px] flex items-center justify-center mb-3 shrink-0"
-              style="background: rgba(249,115,22,0.1);"
+              class="w-10 h-10 rounded-[14px] flex items-center justify-center mb-3 shrink-0 transition-all"
+              :style="qtdNoCarrinho(p.id)
+                ? 'background: rgba(249,115,22,0.15); border: 1px solid rgba(249,115,22,0.2);'
+                : 'background: rgba(249,115,22,0.08);'"
             >
-              <UtensilsCrossed :size="15" class="text-orange-400/60" />
+              <UtensilsCrossed :size="15" :class="qtdNoCarrinho(p.id) ? 'text-orange-400' : 'text-orange-400/50'" />
             </div>
+
             <p class="text-[12px] font-black text-white leading-snug line-clamp-2">{{ p.nome }}</p>
             <p v-if="p.categoria" class="text-[10px] font-medium text-white/20 mt-0.5 truncate w-full">{{ p.categoria }}</p>
-            <p class="text-[15px] font-black text-orange-400 mt-2">R$ {{ fmt(p.preco) }}</p>
+            <p
+              class="text-[15px] font-black mt-2 transition-colors"
+              :class="qtdNoCarrinho(p.id) ? 'text-orange-400' : 'text-orange-400/75'"
+            >R$ {{ fmt(p.preco) }}</p>
           </button>
         </div>
       </div>
@@ -115,23 +144,18 @@
         <button
           v-if="carrinho.length"
           @click="carrinhoAberto = true"
-          class="fixed bottom-[100px] right-4 z-20 active:scale-90 transition-transform duration-150"
-          style="filter: drop-shadow(0 8px 22px rgba(249,115,22,0.55));"
+          class="fixed bottom-[88px] right-4 z-20 w-[54px] h-[54px] rounded-[16px] flex items-center justify-center active:scale-[0.95] transition-transform duration-150"
+          style="background: linear-gradient(135deg, #fb923c, #ea580c); box-shadow: 0 8px 28px rgba(249,115,22,0.5);"
         >
-          <!-- Círculo principal -->
-          <div
-            class="w-[58px] h-[58px] rounded-full flex items-center justify-center"
-            style="background: linear-gradient(145deg, #fb923c, #ea6c0a);"
-          >
-            <ShoppingCart :size="23" class="text-white" />
-          </div>
-          <!-- Badge counter -->
-          <div
-            :key="totalItens"
-            class="absolute -top-1.5 -right-1.5 min-w-[22px] h-[22px] rounded-full flex items-center justify-center text-[11px] font-black badge-pop"
-            style="background: #fff; color: #ea580c; border: 2.5px solid #0d0d10;"
-          >
-            {{ totalItens > 99 ? '99+' : totalItens }}
+          <div class="relative">
+            <ShoppingCart :size="22" class="text-white" />
+            <div
+              :key="totalItens"
+              class="absolute -top-3 -right-3 min-w-[18px] h-[18px] rounded-full flex items-center justify-center text-[10px] font-black badge-pop"
+              style="background: white; color: #ea580c;"
+            >
+              {{ totalItens > 9 ? '9+' : totalItens }}
+            </div>
           </div>
         </button>
       </Transition>
@@ -142,46 +166,31 @@
     <Teleport to="body">
       <Transition name="sheet">
         <div v-if="carrinhoAberto" class="fixed inset-0 z-50">
-          <div class="absolute inset-0 bg-black/65" @click="carrinhoAberto = false"></div>
+          <div class="absolute inset-0 bg-black/70 backdrop-blur-[2px]" @click="carrinhoAberto = false"></div>
           <div
             class="absolute bottom-0 left-0 right-0 rounded-t-[28px] max-h-[92vh] flex flex-col"
-            style="background: #141417; border-top: 1px solid rgba(255,255,255,0.07);"
+            style="background: #141417; border-top: 1px solid rgba(255,255,255,0.08);"
           >
             <!-- Handle -->
-            <div class="flex justify-center pt-3 pb-1 shrink-0">
-              <div class="w-10 h-1 rounded-full bg-white/[0.09]"></div>
+            <div class="flex justify-center pt-3 pb-2 shrink-0">
+              <div class="w-9 h-[3px] rounded-full bg-white/[0.1]"></div>
             </div>
 
             <!-- Header -->
-            <div class="px-5 pb-3.5 flex items-center justify-between shrink-0">
-              <div class="flex items-center gap-2.5">
-                <h3 class="text-[22px] font-black text-white">Carrinho</h3>
-                <span
-                  v-if="carrinho.length"
-                  class="text-[11px] font-black px-2 py-0.5 rounded-full tabular-nums"
-                  style="background: rgba(249,115,22,0.12); color: rgb(251,146,60); border: 1px solid rgba(249,115,22,0.2);"
-                >
-                  {{ totalItens }} {{ totalItens !== 1 ? 'itens' : 'item' }}
-                </span>
+            <div class="px-5 pb-3 flex items-center justify-between shrink-0">
+              <div>
+                <h3 class="text-[20px] font-black text-white">Carrinho</h3>
+                <p class="text-[12px] font-medium text-white/30 mt-0.5" v-if="carrinho.length">
+                  {{ totalItens }} item{{ totalItens !== 1 ? 's' : '' }}
+                </p>
               </div>
-              <div class="flex items-center gap-2">
-                <button
-                  v-if="carrinho.length"
-                  @click="limparCarrinho"
-                  class="flex items-center gap-1.5 h-8 px-3 rounded-[10px] text-[11px] font-black transition-all active:scale-95"
-                  style="background: rgba(239,68,68,0.08); color: rgba(248,113,113,0.65); border: 1px solid rgba(239,68,68,0.12);"
-                >
-                  <Trash2 :size="11" />
-                  Limpar
-                </button>
-                <button
-                  @click="carrinhoAberto = false"
-                  class="w-8 h-8 rounded-full flex items-center justify-center"
-                  style="background: rgba(255,255,255,0.06);"
-                >
-                  <X :size="15" class="text-white/40" />
-                </button>
-              </div>
+              <button
+                @click="carrinhoAberto = false"
+                class="w-8 h-8 rounded-full flex items-center justify-center transition-all active:scale-90"
+                style="background: rgba(255,255,255,0.07);"
+              >
+                <X :size="16" class="text-white/50" />
+              </button>
             </div>
 
             <div class="h-px mx-5 shrink-0 bg-white/[0.05]"></div>
@@ -195,46 +204,57 @@
                 >
                   <ShoppingCart :size="22" class="text-white/15" />
                 </div>
-                <p class="text-[13px] font-semibold text-white/25">Nenhum item no carrinho</p>
+                <p class="text-[13px] font-semibold text-white/25">Carrinho vazio</p>
               </div>
               <div v-else>
                 <div
                   v-for="(item, idx) in carrinho"
                   :key="item.produto_id"
-                  class="flex items-center gap-3 px-5 py-3.5"
+                  class="flex items-center justify-between px-5 py-3.5"
                   :style="idx < carrinho.length - 1 ? 'border-bottom: 1px solid rgba(255,255,255,0.04);' : ''"
                 >
-                  <!-- Accent bar -->
-                  <div
-                    class="w-1 self-stretch rounded-full shrink-0 min-h-[38px]"
-                    style="background: linear-gradient(to bottom, rgba(249,115,22,0.5), rgba(249,115,22,0.04));"
-                  ></div>
-                  <!-- Info + stepper -->
-                  <div class="flex-1 min-w-0">
-                    <p class="text-[13px] font-black text-white leading-snug truncate">{{ item.nome_produto }}</p>
-                    <div class="flex items-center gap-2 mt-2">
-                      <button
-                        @click="decrementar(idx)"
-                        class="w-7 h-7 rounded-[8px] flex items-center justify-center active:scale-90 transition-transform"
-                        style="background: rgba(255,255,255,0.07);"
-                      >
-                        <Minus :size="11" class="text-white/45" />
-                      </button>
-                      <span class="w-6 text-center text-[14px] font-black text-white tabular-nums">{{ item.quantidade }}</span>
-                      <button
-                        @click="incrementar(idx)"
-                        class="w-7 h-7 rounded-[8px] flex items-center justify-center active:scale-90 transition-transform"
-                        style="background: rgba(249,115,22,0.12); border: 1px solid rgba(249,115,22,0.18);"
-                      >
-                        <Plus :size="11" class="text-orange-400" />
-                      </button>
-                      <span class="text-[11px] text-white/20 ml-0.5 tabular-nums">× R$ {{ fmt(item.preco_unit) }}</span>
-                    </div>
+                  <!-- Esquerda: accent + nome (agrupados como 1 coluna) -->
+                  <div class="flex items-center gap-3 flex-1 min-w-0">
+                    <div
+                      class="w-0.5 self-stretch rounded-full shrink-0 min-h-[36px]"
+                      style="background: linear-gradient(to bottom, rgba(249,115,22,0.55), rgba(249,115,22,0.03));"
+                    ></div>
+                    <p class="min-w-0 text-[13px] font-black text-white truncate">{{ item.nome_produto }}</p>
                   </div>
-                  <!-- Total -->
-                  <span class="text-[15px] font-black text-white tabular-nums shrink-0">
-                    R$ {{ fmt(item.preco_unit * item.quantidade) }}
-                  </span>
+
+                  <!-- Centro: stepper -->
+                  <div class="flex items-center gap-1.5 shrink-0 mx-3">
+                    <button
+                      @click="decrementar(idx)"
+                      class="w-8 h-8 rounded-[10px] flex items-center justify-center active:scale-90 transition-transform"
+                      style="background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.09);"
+                    >
+                      <Minus :size="12" class="text-white/50" />
+                    </button>
+                    <span class="w-5 text-center text-[15px] font-black text-white tabular-nums shrink-0">{{ item.quantidade }}</span>
+                    <button
+                      @click="incrementar(idx)"
+                      class="w-8 h-8 rounded-[10px] flex items-center justify-center active:scale-90 transition-transform"
+                      style="background: rgba(249,115,22,0.12); border: 1px solid rgba(249,115,22,0.18);"
+                    >
+                      <Plus :size="12" class="text-orange-400" />
+                    </button>
+                  </div>
+
+                  <!-- Direita: valor + remover -->
+                  <div class="flex flex-col items-end shrink-0 gap-1">
+                    <span class="text-[14px] font-black text-white tabular-nums whitespace-nowrap">
+                      R$ {{ fmt(item.preco_unit * item.quantidade) }}
+                    </span>
+                    <button
+                      @click="removerTudo(idx)"
+                      class="flex items-center gap-1 text-[10px] font-bold transition-colors active:scale-90"
+                      style="color: rgba(248,113,113,0.35);"
+                    >
+                      <Trash2 :size="10" />
+                      remover
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -248,7 +268,7 @@
               <!-- Totais -->
               <div
                 class="rounded-[14px] px-4 py-3 space-y-2"
-                style="background: rgba(255,255,255,0.035); border: 1px solid rgba(255,255,255,0.05);"
+                style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.05);"
               >
                 <div class="flex justify-between items-center">
                   <span class="text-[12px] font-medium text-white/35">Subtotal</span>
@@ -262,7 +282,7 @@
                   class="flex justify-between items-center pt-2.5"
                   style="border-top: 1px solid rgba(255,255,255,0.06);"
                 >
-                  <span class="text-[15px] font-black text-white">Total</span>
+                  <span class="text-[14px] font-black text-white">Total</span>
                   <span class="text-[22px] font-black text-white tabular-nums leading-none">R$ {{ fmt(total) }}</span>
                 </div>
               </div>
@@ -273,8 +293,7 @@
                 class="flex items-center gap-2.5 rounded-[12px] px-3.5 h-11"
                 style="background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.06);"
               >
-                <span class="text-[10px] font-black uppercase tracking-[0.14em] text-white/20 shrink-0">Desconto</span>
-                <span class="text-white/15 text-[12px] shrink-0">R$</span>
+                <span class="text-[10px] font-black uppercase tracking-[0.14em] text-white/20 shrink-0">Desconto R$</span>
                 <input
                   v-model="desconto"
                   type="number"
@@ -285,7 +304,7 @@
                 />
               </div>
 
-              <!-- Pagamento -->
+              <!-- Métodos de Pagamento -->
               <div>
                 <p class="text-[10px] font-black uppercase tracking-[0.14em] text-white/20 mb-2">Forma de Pagamento</p>
                 <div class="grid grid-cols-2 gap-2">
@@ -293,10 +312,10 @@
                     v-for="m in metodos"
                     :key="m.id"
                     @click="metodoSelecionado = m; valorRecebido = ''"
-                    class="h-[52px] rounded-[14px] flex items-center justify-center gap-2 text-[12px] font-black transition-all active:scale-[0.97]"
+                    class="h-[50px] rounded-[14px] flex items-center justify-center gap-2 text-[12px] font-black transition-all active:scale-[0.97]"
                     :style="metodoSelecionado?.id === m.id
                       ? 'background: rgba(249,115,22,0.12); border: 1.5px solid rgba(249,115,22,0.4); color: rgb(251,146,60);'
-                      : 'background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.07); color: rgba(255,255,255,0.35);'"
+                      : 'background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.07); color: rgba(255,255,255,0.30);'"
                   >
                     <component :is="getMetodoIcon(m)" :size="15" />
                     {{ m.nome }}
@@ -310,8 +329,7 @@
                   class="flex items-center gap-2.5 rounded-[12px] px-3.5 h-11"
                   style="background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.06);"
                 >
-                  <span class="text-[10px] font-black uppercase tracking-[0.14em] text-white/20 shrink-0">Recebido</span>
-                  <span class="text-white/15 text-[12px] shrink-0">R$</span>
+                  <span class="text-[10px] font-black uppercase tracking-[0.14em] text-white/20 shrink-0">Recebido R$</span>
                   <input
                     v-model="valorRecebido"
                     type="number"
@@ -332,7 +350,7 @@
                 <p
                   v-if="valorRecebidoNum > 0 && valorRecebidoNum < total"
                   class="text-center text-[11px] font-bold"
-                  style="color: rgba(248,113,113,0.75);"
+                  style="color: rgba(248,113,113,0.7);"
                 >
                   Faltam R$ {{ fmt(total - valorRecebidoNum) }}
                 </p>
@@ -342,10 +360,10 @@
               <button
                 @click="confirmarVenda"
                 :disabled="!podePagar || processando"
-                class="w-full h-[56px] rounded-[18px] text-white text-[15px] font-black transition-all active:scale-[0.98] disabled:opacity-30 flex items-center justify-center gap-2.5"
-                :style="podePagar
+                class="w-full h-[56px] rounded-[18px] text-white text-[15px] font-black transition-all active:scale-[0.98] disabled:opacity-25 flex items-center justify-center gap-2.5"
+                :style="podePagar && !processando
                   ? 'background: linear-gradient(135deg, #22c55e, #16a34a); box-shadow: 0 6px 24px rgba(34,197,94,0.28);'
-                  : 'background: rgba(255,255,255,0.06);'"
+                  : 'background: rgba(255,255,255,0.05);'"
               >
                 <Loader2 v-if="processando" :size="18" class="animate-spin" />
                 <CheckCircle2 v-else :size="18" />
@@ -358,51 +376,57 @@
       </Transition>
     </Teleport>
 
-    <!-- FICHA -->
+    <!-- MODAL SUCESSO -->
     <Teleport to="body">
-      <Transition name="fade">
-        <div v-if="fichaAtual" class="fixed inset-0 z-[60] flex items-center justify-center p-5" style="background: rgba(0,0,0,0.75);">
+      <Transition name="pop">
+        <div v-if="fichaAtual" class="fixed inset-0 z-[60] flex items-center justify-center p-5" style="background: rgba(0,0,0,0.8); backdrop-filter: blur(4px);">
           <div
-            class="w-full max-w-xs overflow-hidden rounded-[24px]"
-            style="background: #141417; border: 1px solid rgba(255,255,255,0.07);"
+            class="w-full max-w-xs overflow-hidden rounded-[28px]"
+            style="background: #141417; border: 1px solid rgba(255,255,255,0.08);"
           >
-            <div class="px-5 pt-7 pb-4 text-center" style="border-bottom: 1px dashed rgba(255,255,255,0.08);">
+            <!-- Topo verde -->
+            <div class="h-1 bg-gradient-to-r from-emerald-500 to-green-500"></div>
+
+            <div class="px-6 pt-7 pb-5 text-center" style="border-bottom: 1px dashed rgba(255,255,255,0.07);">
               <div
-                class="w-12 h-12 rounded-[16px] flex items-center justify-center mx-auto mb-4"
-                style="background: rgba(34,197,94,0.12); border: 1px solid rgba(34,197,94,0.2);"
+                class="w-14 h-14 rounded-[20px] flex items-center justify-center mx-auto mb-4"
+                style="background: rgba(34,197,94,0.1); border: 1px solid rgba(34,197,94,0.2);"
               >
-                <CheckCircle2 :size="22" class="text-emerald-400" />
+                <CheckCircle2 :size="26" class="text-emerald-400" />
               </div>
-              <p class="font-black text-white text-[15px]">Venda Confirmada!</p>
+              <p class="font-black text-white text-[16px]">Venda Confirmada!</p>
               <p class="text-[11px] text-white/30 font-medium mt-1">{{ fichaAtual.numero }}</p>
             </div>
 
-            <div class="px-5 py-3.5 space-y-2" style="border-bottom: 1px dashed rgba(255,255,255,0.08);">
+            <div class="px-5 py-4 space-y-2" style="border-bottom: 1px dashed rgba(255,255,255,0.07);">
               <div v-for="item in fichaAtual.itens" :key="item.produto_id" class="flex items-center justify-between gap-2">
                 <div class="flex items-center gap-2 min-w-0">
-                  <span class="text-[11px] font-black text-orange-400 shrink-0">{{ item.quantidade }}×</span>
+                  <span
+                    class="text-[10px] font-black px-1.5 py-0.5 rounded-[5px] shrink-0"
+                    style="background: rgba(249,115,22,0.12); color: rgb(251,146,60);"
+                  >{{ item.quantidade }}×</span>
                   <span class="text-[12px] text-white/70 truncate">{{ item.nome_produto }}</span>
                 </div>
                 <span class="text-[12px] font-black text-white shrink-0 tabular-nums">R$ {{ fmt(item.preco_unit * item.quantidade) }}</span>
               </div>
             </div>
 
-            <div class="px-5 py-3 space-y-1.5">
+            <div class="px-5 py-3.5 space-y-1.5">
               <div class="flex justify-between">
-                <span class="text-[12px] text-white/30 font-medium">Total</span>
+                <span class="text-[12px] text-white/30 font-medium">Total pago</span>
                 <span class="text-[14px] font-black text-white tabular-nums">R$ {{ fmt(fichaAtual.totalLiquido) }}</span>
               </div>
               <div v-if="fichaAtual.troco > 0" class="flex justify-between">
                 <span class="text-[12px] font-bold text-emerald-400">Troco</span>
-                <span class="text-[13px] font-black text-emerald-400 tabular-nums">R$ {{ fmt(fichaAtual.troco) }}</span>
+                <span class="text-[14px] font-black text-emerald-400 tabular-nums">R$ {{ fmt(fichaAtual.troco) }}</span>
               </div>
             </div>
 
             <div class="px-5 pb-6 pt-1">
               <button
                 @click="fichaAtual = null"
-                class="w-full h-[48px] rounded-[14px] text-white text-[13px] font-black active:scale-[0.98] transition-all"
-                style="background: #f97316; box-shadow: 0 4px 16px rgba(249,115,22,0.3);"
+                class="w-full h-[50px] rounded-[16px] text-white text-[14px] font-black active:scale-[0.98] transition-all"
+                style="background: #f97316; box-shadow: 0 4px 18px rgba(249,115,22,0.32);"
               >
                 Nova Venda
               </button>
@@ -487,6 +511,10 @@ const podePagar        = computed(() => {
   return true
 })
 
+function qtdNoCarrinho(produtoId: number): number {
+  return carrinho.value.find(i => i.produto_id === produtoId)?.quantidade ?? 0
+}
+
 function adicionarAoCarrinho(p: any) {
   if (p.gerenciar_estoque && p.estoque_atual <= 0) {
     toastStore.warning(`${p.nome} está sem estoque`)
@@ -514,6 +542,13 @@ function decrementar(idx: number) {
   if (prod?.gerenciar_estoque) prod.estoque_atual++
   if (item.quantidade <= 1) carrinho.value.splice(idx, 1)
   else item.quantidade--
+}
+
+function removerTudo(idx: number) {
+  const item = carrinho.value[idx]
+  const prod = todosProdutos.value.find(p => p.id === item.produto_id)
+  if (prod?.gerenciar_estoque) prod.estoque_atual += item.quantidade
+  carrinho.value.splice(idx, 1)
 }
 
 function limparCarrinho() {
@@ -561,7 +596,6 @@ async function carregarMetodos() {
 }
 
 onMounted(async () => {
-  // Guard: só perfis com modo_venda 'direta' ou 'ambos' acessam esta página
   const modo = authStore.usuario?.cargo === 'administrador'
     ? 'ambos'
     : (authStore.usuario?.permissoes?.modo_venda as string) || 'ambos'
@@ -577,28 +611,29 @@ onMounted(async () => {
 
 <style scoped>
 .sheet-enter-active,
-.sheet-leave-active { transition: opacity 0.2s; }
+.sheet-leave-active { transition: opacity 0.22s; }
 .sheet-enter-active .absolute.bottom-0,
 .sheet-leave-active .absolute.bottom-0 {
-  transition: transform 0.28s cubic-bezier(0.32, 0.72, 0, 1);
+  transition: transform 0.3s cubic-bezier(0.32, 0.72, 0, 1);
 }
 .sheet-enter-from,
 .sheet-leave-to { opacity: 0; }
 .sheet-enter-from .absolute.bottom-0,
 .sheet-leave-to .absolute.bottom-0 { transform: translateY(100%); }
 
-.fade-enter-active, .fade-leave-active { transition: opacity 0.2s; }
-.fade-enter-from, .fade-leave-to { opacity: 0; }
+.pop-enter-active { transition: opacity 0.18s, transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1); }
+.pop-leave-active { transition: opacity 0.15s, transform 0.15s ease-in; }
+.pop-enter-from   { opacity: 0; transform: scale(0.88); }
+.pop-leave-to     { opacity: 0; transform: scale(0.92); }
 
-/* FAB aparecer/sumir */
-.fab-enter-active { transition: transform 0.28s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.18s ease; }
+/* FAB pill aparecer/sumir */
+.fab-enter-active { transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.2s ease; }
 .fab-leave-active { transition: transform 0.18s ease-in, opacity 0.18s ease; }
-.fab-enter-from, .fab-leave-to { transform: scale(0); opacity: 0; }
+.fab-enter-from, .fab-leave-to { transform: scale(0.4) translateY(10px); opacity: 0; }
 
-/* Pop do badge quando o contador muda */
 @keyframes badge-pop {
   0%   { transform: scale(1); }
-  45%  { transform: scale(1.45); }
+  45%  { transform: scale(1.5); }
   100% { transform: scale(1); }
 }
 .badge-pop { animation: badge-pop 0.28s cubic-bezier(0.34, 1.56, 0.64, 1); }

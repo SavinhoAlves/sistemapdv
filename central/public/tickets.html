@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Tickets – Painel Central</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Inter',sans-serif;background:#09090b;color:#fff;display:flex;min-height:100vh;overflow-x:hidden}
+#sidebar{width:220px;min-width:220px;background:#0f0f11;border-right:1px solid rgba(255,255,255,.05);display:flex;flex-direction:column;position:fixed;top:0;left:0;bottom:0;z-index:100}
+#main{margin-left:220px;flex:1;padding:28px 36px 40px;min-height:100vh;max-width:calc(100vw - 220px)}
+.page-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:24px}
+.page-title{font-size:24px;font-weight:900;letter-spacing:-.5px}
+.filter-tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:20px}
+.filter-tab{padding:7px 16px;border-radius:9px;font-size:12px;font-weight:700;border:1px solid rgba(255,255,255,.08);background:none;color:rgba(255,255,255,.35);cursor:pointer;font-family:inherit;transition:all .12s;white-space:nowrap}
+.filter-tab.active,.filter-tab:hover{background:rgba(249,115,22,.09);border-color:rgba(249,115,22,.3);color:#f97316}
+.card{background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.07);border-radius:14px;overflow:hidden}
+.stats-row{display:flex;gap:12px;margin-bottom:20px;flex-wrap:wrap}
+.stat-pill{background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.07);border-radius:10px;padding:10px 18px;display:flex;align-items:center;gap:10px}
+.stat-pill-val{font-size:20px;font-weight:900}
+.stat-pill-label{font-size:11px;color:rgba(255,255,255,.3);font-weight:600}
+table{width:100%;border-collapse:collapse}
+th{text-align:left;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:rgba(255,255,255,.25);padding:11px 20px;border-bottom:1px solid rgba(255,255,255,.05);white-space:nowrap}
+td{padding:13px 20px;border-bottom:1px solid rgba(255,255,255,.04);font-size:13px;vertical-align:middle}
+tr:last-child td{border-bottom:none}
+tr.row{transition:background .1s}
+tr.row:hover td{background:rgba(255,255,255,.02)}
+.empty{padding:60px 20px;text-align:center;font-size:13px;color:rgba(255,255,255,.2)}
+.action-btn{background:none;border:none;cursor:pointer;padding:5px 8px;border-radius:7px;color:rgba(255,255,255,.3);transition:all .1s;font-family:inherit;font-size:12px;font-weight:700;white-space:nowrap}
+.action-btn:hover{background:rgba(255,255,255,.07);color:rgba(255,255,255,.7)}
+.action-btn.danger:hover{background:rgba(239,68,68,.1);color:#f87171}
+.action-btn.success-btn:hover{background:rgba(34,197,94,.1);color:#4ade80}
+/* Modals */
+.modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:1000;align-items:center;justify-content:center;padding:16px}
+.modal-box{background:#18181b;border:1px solid rgba(255,255,255,.09);border-radius:18px;width:min(480px,100%);max-height:92vh;overflow-y:auto;padding:28px}
+.modal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:22px}
+.modal-title{font-size:17px;font-weight:900;letter-spacing:-.3px}
+.modal-close{background:none;border:none;cursor:pointer;color:rgba(255,255,255,.3);font-size:18px;font-weight:700;padding:2px 6px;transition:color .1s}
+.modal-close:hover{color:#fff}
+.field{margin-bottom:16px}
+.field label{display:block;font-size:11px;font-weight:700;color:rgba(255,255,255,.4);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px}
+.field input,.field textarea,.field select{width:100%;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.09);border-radius:10px;padding:10px 12px;font-size:13px;font-weight:500;color:#fff;outline:none;font-family:inherit;transition:border .15s}
+.field input::placeholder,.field textarea::placeholder{color:rgba(255,255,255,.2)}
+.field input:focus,.field textarea:focus,.field select:focus{border-color:rgba(249,115,22,.5);background:rgba(255,255,255,.07)}
+.field select{appearance:none;cursor:pointer;color-scheme:dark}
+.field textarea{resize:vertical;min-height:80px}
+.field-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.modal-footer{display:flex;gap:10px;margin-top:24px;justify-content:flex-end}
+.btn-cancel{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.08);color:rgba(255,255,255,.6);border-radius:10px;padding:9px 18px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;transition:all .12s}
+.btn-cancel:hover{background:rgba(255,255,255,.1)}
+.btn-save{background:#f97316;border:none;color:#fff;border-radius:10px;padding:9px 20px;font-size:13px;font-weight:800;cursor:pointer;font-family:inherit;transition:background .15s}
+.btn-save:hover{background:#ea580c}
+</style>
+</head>
+<body>
+<div id="sidebar"></div>
+<main id="main">
+  <div class="page-header">
+    <h1 class="page-title">Tickets</h1>
+  </div>
+
+  <div class="stats-row" id="stats-row"></div>
+
+  <div class="filter-tabs" id="filter-tabs">
+    <button class="filter-tab active" data-s="" onclick="setFiltro('')">Todos</button>
+    <button class="filter-tab" data-s="aberto" onclick="setFiltro('aberto')">Abertos</button>
+    <button class="filter-tab" data-s="em_andamento" onclick="setFiltro('em_andamento')">Em andamento</button>
+    <button class="filter-tab" data-s="resolvido" onclick="setFiltro('resolvido')">Resolvidos</button>
+    <button class="filter-tab" data-s="fechado" onclick="setFiltro('fechado')">Fechados</button>
+  </div>
+
+  <div class="card">
+    <table>
+      <thead>
+        <tr>
+          <th>Prioridade</th>
+          <th>Tipo</th>
+          <th>Título</th>
+          <th>Cliente</th>
+          <th>Status</th>
+          <th>Criado</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody id="tbody"></tbody>
+    </table>
+  </div>
+</main>
+
+<!-- Editar ticket -->
+<div class="modal" id="modal-editar">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h2 class="modal-title">Editar Ticket</h2>
+      <button class="modal-close" onclick="fecharModal('modal-editar')">✕</button>
+    </div>
+    <div class="field-row">
+      <div class="field"><label>Tipo</label>
+        <select id="e-tipo">
+          <option value="sync">Sync</option>
+          <option value="instalacao">Instalação</option>
+          <option value="bug">Bug</option>
+          <option value="cobranca">Cobrança</option>
+          <option value="outro">Outro</option>
+        </select>
+      </div>
+      <div class="field"><label>Prioridade</label>
+        <select id="e-prioridade">
+          <option value="baixa">Baixa</option>
+          <option value="media">Média</option>
+          <option value="alta">Alta</option>
+          <option value="urgente">Urgente</option>
+        </select>
+      </div>
+    </div>
+    <div class="field"><label>Título *</label><input id="e-titulo"></div>
+    <div class="field"><label>Descrição</label><textarea id="e-descricao"></textarea></div>
+    <div class="field"><label>Status</label>
+      <select id="e-status">
+        <option value="aberto">Aberto</option>
+        <option value="em_andamento">Em andamento</option>
+        <option value="resolvido">Resolvido</option>
+        <option value="fechado">Fechado</option>
+      </select>
+    </div>
+    <div class="field"><label>Resolução</label><textarea id="e-resolucao"></textarea></div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="fecharModal('modal-editar')">Cancelar</button>
+      <button class="btn-save" id="btn-salvar">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<script src="/shared.js"></script>
+<script>
+let todos     = []
+let filtroStatus = ''
+let editId    = null
+
+document.addEventListener('DOMContentLoaded', () => {
+  initSidebar('tickets')
+  carregar()
+  setInterval(carregar, 30000)
+  document.getElementById('btn-salvar').addEventListener('click', salvar)
+})
+
+async function carregar() {
+  const [rt, rc] = await Promise.all([
+    fetch('/api/tickets', { headers }),
+    fetch('/api/clientes', { headers })
+  ])
+  if (rt.status === 401) { localStorage.removeItem('central_token'); location.href='/login.html'; return }
+  todos = await rt.json()
+  const clientes = await rc.json()
+  setSidebarOnline(clientes.filter(c=>c.online).length)
+  renderStats()
+  renderTabela()
+}
+
+function renderStats() {
+  const counts = {
+    aberto:       todos.filter(t=>t.status==='aberto').length,
+    em_andamento: todos.filter(t=>t.status==='em_andamento').length,
+    urgente:      todos.filter(t=>t.prioridade==='urgente'&&t.status!=='resolvido'&&t.status!=='fechado').length,
+    resolvido:    todos.filter(t=>t.status==='resolvido').length,
+  }
+  document.getElementById('stats-row').innerHTML = [
+    ['Abertos',      counts.aberto,       '#60a5fa'],
+    ['Em andamento', counts.em_andamento,  '#fbbf24'],
+    ['Urgentes',     counts.urgente,       '#f87171'],
+    ['Resolvidos',   counts.resolvido,     '#4ade80'],
+  ].map(([l,v,c]) => `<div class="stat-pill">
+    <span class="stat-pill-val" style="color:${c}">${v}</span>
+    <span class="stat-pill-label">${l}</span>
+  </div>`).join('')
+}
+
+function setFiltro(s) {
+  filtroStatus = s
+  document.querySelectorAll('.filter-tab').forEach(b => b.classList.toggle('active', b.dataset.s === s))
+  renderTabela()
+}
+
+function renderTabela() {
+  const lista = filtroStatus ? todos.filter(t => t.status === filtroStatus) : todos
+  const ord = {urgente:0,alta:1,media:2,baixa:3}
+  const sorted = [...lista].sort((a,b) => (ord[a.prioridade]||9)-(ord[b.prioridade]||9))
+
+  const tbody = document.getElementById('tbody')
+  if (!sorted.length) {
+    tbody.innerHTML = `<tr><td colspan="7" class="empty">Nenhum ticket encontrado.</td></tr>`
+    return
+  }
+
+  tbody.innerHTML = sorted.map(t => `
+    <tr class="row">
+      <td>${badgePrioridade(t.prioridade)}</td>
+      <td style="font-size:12px;color:rgba(255,255,255,.4);font-weight:600;">${labelTipo(t.tipo)}</td>
+      <td>
+        <div style="font-weight:600;color:rgba(255,255,255,.85);max-width:280px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(t.titulo)}</div>
+        ${t.descricao?`<div style="font-size:11px;color:rgba(255,255,255,.3);margin-top:2px;max-width:280px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(t.descricao)}</div>`:''}
+      </td>
+      <td>
+        <a href="/cliente.html?id=${t.cliente_id}&tab=tickets" style="font-size:13px;font-weight:600;color:rgba(255,255,255,.6);text-decoration:none;" onmouseover="this.style.color='#f97316'" onmouseout="this.style.color='rgba(255,255,255,.6)'">
+          ${escapeHtml(t.nome_fantasia||'Cliente #'+t.cliente_id)}
+        </a>
+      </td>
+      <td>${badgeTicketStatus(t.status)}</td>
+      <td style="font-size:12px;color:rgba(255,255,255,.35);white-space:nowrap;">${tempoAtras(t.created_at)}</td>
+      <td style="text-align:right;white-space:nowrap;">
+        <button class="action-btn" onclick="abrirEditar(${t.id})" title="Editar">Editar</button>
+        ${t.status !== 'resolvido' && t.status !== 'fechado'
+          ? `<button class="action-btn success-btn" onclick="resolver(${t.id})" title="Resolver">Resolver</button>` : ''}
+        <button class="action-btn danger" onclick="excluir(${t.id})" title="Excluir">Excluir</button>
+      </td>
+    </tr>`
+  ).join('')
+}
+
+function abrirEditar(id) {
+  const t = todos.find(t => t.id === id)
+  if (!t) return
+  editId = id
+  document.getElementById('e-tipo').value       = t.tipo||'outro'
+  document.getElementById('e-prioridade').value = t.prioridade||'media'
+  document.getElementById('e-titulo').value     = t.titulo||''
+  document.getElementById('e-descricao').value  = t.descricao||''
+  document.getElementById('e-status').value     = t.status||'aberto'
+  document.getElementById('e-resolucao').value  = t.resolucao||''
+  document.getElementById('modal-editar').style.display='flex'
+}
+
+async function salvar() {
+  const titulo = document.getElementById('e-titulo').value.trim()
+  if (!titulo) { toast('Título é obrigatório','error'); return }
+  const btn = document.getElementById('btn-salvar')
+  btn.disabled=true; btn.textContent='Salvando...'
+  try {
+    const res = await fetch(`/api/tickets/${editId}`, {
+      method:'PATCH', headers,
+      body: JSON.stringify({
+        tipo:       document.getElementById('e-tipo').value,
+        prioridade: document.getElementById('e-prioridade').value,
+        titulo,
+        descricao:  document.getElementById('e-descricao').value.trim()||null,
+        status:     document.getElementById('e-status').value,
+        resolucao:  document.getElementById('e-resolucao').value.trim()||null,
+      })
+    })
+    if (!res.ok) { const d=await res.json(); toast(d.error||'Erro','error'); return }
+    fecharModal('modal-editar')
+    toast('Ticket atualizado','success')
+    await carregar()
+  } finally { btn.disabled=false; btn.textContent='Salvar' }
+}
+
+async function resolver(id) {
+  const res = await fetch(`/api/tickets/${id}`, {
+    method:'PATCH', headers, body: JSON.stringify({ status:'resolvido' })
+  })
+  if (res.ok) { toast('Ticket marcado como resolvido','success'); await carregar() }
+}
+
+async function excluir(id) {
+  if (!confirm('Excluir este ticket permanentemente?')) return
+  const res = await fetch(`/api/tickets/${id}`, { method:'DELETE', headers })
+  if (res.ok) { toast('Ticket removido','success'); await carregar() }
+  else { const d=await res.json(); toast(d.error||'Erro','error') }
+}
+
+function fecharModal(id) { document.getElementById(id).style.display='none' }
+</script>
+</body>
+</html>

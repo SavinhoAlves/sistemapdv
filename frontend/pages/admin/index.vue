@@ -471,6 +471,48 @@
       </Transition>
     </Teleport>
 
+    <!-- MODAL ATRIBUIR PERFIS POR CARGO -->
+    <Teleport to="body">
+      <Transition name="fade">
+        <div v-if="modalAtribuir" class="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
+          <div class="bg-white dark:bg-neutral-900 border border-gray-200 dark:border-white/[0.08] rounded-3xl shadow-2xl w-full max-w-sm p-6">
+            <div class="flex items-center justify-between mb-5">
+              <div class="flex items-center gap-3">
+                <div class="w-9 h-9 rounded-xl bg-orange-500/10 dark:bg-orange-500/10 flex items-center justify-center shrink-0">
+                  <Users :size="16" class="text-orange-500" />
+                </div>
+                <h3 class="font-black text-gray-900 dark:text-white text-base">Atribuir por Cargo</h3>
+              </div>
+              <button @click="modalAtribuir = false"
+                class="w-8 h-8 rounded-xl hover:bg-gray-100 dark:hover:bg-white/[0.06] flex items-center justify-center text-gray-400 transition-all shrink-0">
+                <X :size="15" />
+              </button>
+            </div>
+
+            <p class="text-sm text-gray-600 dark:text-white/60 leading-relaxed mb-1.5">
+              O perfil padrão será atribuído automaticamente a todos os funcionários
+              <span class="font-black text-gray-900 dark:text-white">sem perfil</span>, de acordo com o cargo.
+            </p>
+            <p class="text-xs text-gray-400 dark:text-white/30 mb-6">
+              Administradores são ignorados nesta operação.
+            </p>
+
+            <div class="flex gap-3">
+              <button @click="modalAtribuir = false"
+                class="flex-1 h-11 rounded-2xl border border-gray-200 dark:border-white/10 text-gray-500 dark:text-white/60 text-sm font-black hover:bg-gray-50 dark:hover:bg-white/5 transition-all">
+                Cancelar
+              </button>
+              <button @click="confirmarAtribuir" :disabled="atribuindo"
+                class="flex-1 h-11 rounded-2xl bg-orange-500 hover:bg-orange-400 disabled:opacity-50 active:scale-95 text-white text-sm font-black transition-all flex items-center justify-center gap-2">
+                <Loader2 v-if="atribuindo" :size="14" class="animate-spin" />
+                {{ atribuindo ? 'Atribuindo...' : 'Confirmar' }}
+              </button>
+            </div>
+          </div>
+        </div>
+      </Transition>
+    </Teleport>
+
     <!-- MODAL QR MOBILE -->
     <Teleport to="body">
       <Transition name="fade">
@@ -581,7 +623,7 @@ const loadingFunc  = ref(false)
 const modalFunc    = ref(false)
 const salvandoFunc = ref(false)
 const erroFunc     = ref('')
-const funcForm     = reactive({ id: null as number | null, nome: '', cargo: '', email: '', senha: '', cartao_rfid: '', perfil_id: null as number | null })
+const funcForm     = reactive({ id: null as string | null, nome: '', cargo: '', email: '', senha: '', cartao_rfid: '', perfil_id: null as string | null })
 
 function corCargo(cargo: string) {
   if (cargo === 'administrador') return 'bg-purple-500/15 text-purple-400'
@@ -593,7 +635,7 @@ function corCargo(cargo: string) {
 
 async function carregarFuncionarios() {
   loadingFunc.value = true
-  try { funcionarios.value = await api.get<any[]>('/users') } finally { loadingFunc.value = false }
+  try { funcionarios.value = await api.get<any[]>('/usuarios') } finally { loadingFunc.value = false }
 }
 
 function abrirModalFunc(f: any) {
@@ -613,8 +655,8 @@ async function salvarFunc() {
     const payload = { nome: funcForm.nome, email: funcForm.email || null, cargo: funcForm.cargo,
       cartao_rfid: funcForm.cartao_rfid || null, perfil_id: funcForm.perfil_id || null,
       ...(funcForm.senha ? { senha: funcForm.senha } : {}) }
-    if (funcForm.id) await api.put(`/users/${funcForm.id}`, payload)
-    else await api.post('/users', payload)
+    if (funcForm.id) await api.put(`/usuarios/${funcForm.id}`, payload)
+    else await api.post('/usuarios', payload)
     toastStore.success(funcForm.id ? 'Funcionário atualizado!' : 'Funcionário criado!')
     modalFunc.value = false
     await carregarFuncionarios()
@@ -623,14 +665,14 @@ async function salvarFunc() {
 
 async function toggleAtivo(f: any) {
   f.ativo = !f.ativo
-  try { await api.patch(`/users/${f.id}/ativo`, { ativo: f.ativo }) }
+  try { await api.patch(`/usuarios/${f.id}/ativo`, { ativo: f.ativo }) }
   catch { f.ativo = !f.ativo; toastStore.error('Erro ao alterar status') }
 }
 
 async function excluirFunc(f: any) {
   if (!confirm(`Excluir o funcionário "${f.nome}"? Esta ação não pode ser desfeita.`)) return
   try {
-    await api.delete(`/users/${f.id}`)
+    await api.delete(`/usuarios/${f.id}`)
     toastStore.success('Funcionário excluído!')
     await carregarFuncionarios()
   } catch (e: any) { toastStore.error(e?.message || 'Erro ao excluir funcionário') }
@@ -649,7 +691,7 @@ function todasPermissoesFalse() {
 }
 
 const perfilForm = reactive({
-  id: null as number | null,
+  id: null as string | null,
   nome: '',
   descricao: '',
   modo_venda: 'ambos' as 'mesas' | 'direta' | 'ambos',
@@ -713,9 +755,14 @@ async function seedPerfis(force = false) {
   finally { seedando.value = false }
 }
 
-const atribuindo = ref(false)
-async function autoAtribuirPerfis() {
-  if (!confirm('Atribuir automaticamente o perfil padrão a todos os funcionários sem perfil, de acordo com o cargo?\n\nAdministradores são ignorados.')) return
+const atribuindo   = ref(false)
+const modalAtribuir = ref(false)
+
+function autoAtribuirPerfis() {
+  modalAtribuir.value = true
+}
+
+async function confirmarAtribuir() {
   atribuindo.value = true
   try {
     const res = await api.post<any>('/perfis/auto-atribuir')
@@ -723,6 +770,7 @@ async function autoAtribuirPerfis() {
       ? ` (perfis não encontrados: ${res.perfisFaltando.join(', ')})`
       : ''
     toastStore.success('Perfis atribuídos!', `${res.atualizados} funcionário(s) atualizado(s)${aviso}`)
+    modalAtribuir.value = false
     await carregarFuncionarios()
   } catch (e: any) {
     toastStore.error(e?.message || 'Erro ao atribuir perfis')
@@ -736,7 +784,7 @@ const categorias   = ref<any[]>([])
 const modalCat     = ref(false)
 const salvandoCat  = ref(false)
 const erroCat      = ref('')
-const catForm      = reactive({ id: null as number | null, nome: '' })
+const catForm      = reactive({ id: null as string | null, nome: '' })
 
 async function carregarCategorias() {
   try { categorias.value = await api.get<any[]>('/categorias') } catch {}
@@ -843,7 +891,7 @@ async function gerarQrMobile(f: any) {
   gerandoQr.value       = true
   modalQr.value         = true
   try {
-    const res = await api.post<any>(`/users/${f.id}/mobile-token`)
+    const res = await api.post<any>(`/usuarios/${f.id}/mobile-token`)
     qrToken.value     = res.token
     qrExpiresAt.value = res.expiresAt
 

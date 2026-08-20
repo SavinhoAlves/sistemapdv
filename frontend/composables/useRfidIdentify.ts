@@ -3,7 +3,7 @@ import { useConfigStore } from '~/stores/configuracoes'
 import { useRuntimeConfig } from '#imports'
 
 export interface UsuarioRfid {
-  id: number
+  id: string
   nome: string
   cargo: string
   permissoes: Record<string, boolean> | null
@@ -42,9 +42,10 @@ export function useRfidIdentify() {
   async function onRfidSuccess(codigo: string) {
     erroModal.value = ''
     try {
+      const slug = (config.public as any).tenantSlug as string
       const resp = await $fetch<{ usuario: UsuarioRfid }>(
         `${config.public.apiUrl}/api/auth/rfid-identify`,
-        { method: 'POST', body: { rfid: codigo } }
+        { method: 'POST', body: { rfid: codigo, slug } }
       )
       modalAberto.value = false
       _resolve?.(resp.usuario)

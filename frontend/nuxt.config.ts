@@ -9,8 +9,9 @@ export default defineNuxtConfig({
 
   runtimeConfig: {
     public: {
-      apiUrl:          process.env.NUXT_PUBLIC_API_URL          || 'http://localhost:3001',
-      socketUrl:       process.env.NUXT_PUBLIC_SOCKET_URL       || 'http://localhost:3001',
+      apiUrl:      process.env.NUXT_PUBLIC_API_URL      || 'http://localhost:3002',
+      socketUrl:   process.env.NUXT_PUBLIC_SOCKET_URL   || 'http://localhost:3002',
+      tenantSlug:  process.env.NUXT_PUBLIC_TENANT_SLUG  || 'tarantela',
     }
   },
 

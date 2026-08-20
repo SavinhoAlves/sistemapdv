@@ -33,9 +33,11 @@ app.use('/api', limiterGeral)
 app.use('/api/auth', limiterAuth)
 app.use(express.static(path.join(__dirname, 'public')))
 
-app.use('/api/auth', require('./src/routes/auth.routes'))
-app.use('/api/sync', require('./src/routes/sync.routes'))
-app.use('/api/clientes', require('./src/routes/clientes.routes'))
+app.use('/api/auth',      require('./src/routes/auth.routes'))
+app.use('/api/sync',      require('./src/routes/sync.routes'))
+app.use('/api/clientes',  require('./src/routes/clientes.routes'))
+app.use('/api/contratos', require('./src/routes/contratos.routes'))
+app.use('/api/tickets',   require('./src/routes/tickets.routes'))
 
 const PORT = process.env.PORT || 4000
 

@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Clientes – Painel Central</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Inter',sans-serif;background:#09090b;color:#fff;display:flex;min-height:100vh;overflow-x:hidden}
+#sidebar{width:220px;min-width:220px;background:#0f0f11;border-right:1px solid rgba(255,255,255,.05);display:flex;flex-direction:column;position:fixed;top:0;left:0;bottom:0;z-index:100}
+#main{margin-left:220px;flex:1;padding:28px 36px 40px;min-height:100vh;max-width:calc(100vw - 220px)}
+.page-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:24px}
+.page-title{font-size:24px;font-weight:900;letter-spacing:-.5px}
+.btn-primary{display:inline-flex;align-items:center;gap:6px;background:#f97316;color:#fff;border:none;border-radius:10px;padding:9px 16px;font-size:13px;font-weight:800;cursor:pointer;font-family:inherit;transition:background .15s;white-space:nowrap}
+.btn-primary:hover{background:#ea580c}
+.toolbar{display:flex;align-items:center;gap:12px;margin-bottom:20px;flex-wrap:wrap}
+.search-wrap{position:relative;flex:1;min-width:200px;max-width:320px}
+.search-wrap svg{position:absolute;left:11px;top:50%;transform:translateY(-50%);pointer-events:none;color:rgba(255,255,255,.25)}
+.search-wrap input{width:100%;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:8px 12px 8px 34px;font-size:13px;color:#fff;outline:none;font-family:inherit}
+.search-wrap input::placeholder{color:rgba(255,255,255,.25)}
+.search-wrap input:focus{border-color:rgba(249,115,22,.4);background:rgba(255,255,255,.06)}
+.filter-tabs{display:flex;gap:6px;flex-wrap:wrap}
+.filter-tab{padding:6px 14px;border-radius:8px;font-size:12px;font-weight:700;border:1px solid rgba(255,255,255,.08);background:none;color:rgba(255,255,255,.35);cursor:pointer;font-family:inherit;transition:all .12s}
+.filter-tab.active,.filter-tab:hover{background:rgba(249,115,22,.09);border-color:rgba(249,115,22,.3);color:#f97316}
+.card{background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.07);border-radius:14px;overflow:hidden}
+table{width:100%;border-collapse:collapse}
+th{text-align:left;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:rgba(255,255,255,.25);padding:11px 20px;border-bottom:1px solid rgba(255,255,255,.05);white-space:nowrap}
+td{padding:14px 20px;border-bottom:1px solid rgba(255,255,255,.04);font-size:13px;vertical-align:middle}
+tr:last-child td{border-bottom:none}
+tr.row{cursor:pointer;transition:background .1s}
+tr.row:hover td{background:rgba(255,255,255,.025)}
+.dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;display:inline-block}
+.dot-green{background:#22c55e;box-shadow:0 0 6px rgba(34,197,94,.6)}
+.dot-gray{background:rgba(255,255,255,.18)}
+.empty{padding:60px 20px;text-align:center;font-size:13px;color:rgba(255,255,255,.2)}
+.action-btn{background:none;border:none;cursor:pointer;padding:4px 6px;border-radius:6px;color:rgba(255,255,255,.3);transition:all .1s;font-family:inherit;font-size:12px;font-weight:700}
+.action-btn:hover{background:rgba(255,255,255,.07);color:rgba(255,255,255,.7)}
+.action-btn.danger:hover{background:rgba(239,68,68,.1);color:#f87171}
+/* Modals */
+.modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:1000;align-items:center;justify-content:center;padding:16px}
+.modal-box{background:#18181b;border:1px solid rgba(255,255,255,.09);border-radius:18px;width:min(480px,100%);max-height:90vh;overflow-y:auto;padding:28px}
+.modal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:22px}
+.modal-title{font-size:17px;font-weight:900;letter-spacing:-.3px}
+.modal-close{background:none;border:none;cursor:pointer;color:rgba(255,255,255,.3);font-size:18px;font-weight:700;line-height:1;transition:color .1s;padding:2px 6px}
+.modal-close:hover{color:#fff}
+.field{margin-bottom:16px}
+.field label{display:block;font-size:11px;font-weight:700;color:rgba(255,255,255,.4);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px}
+.field input,.field textarea,.field select{width:100%;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.09);border-radius:10px;padding:10px 12px;font-size:13px;font-weight:500;color:#fff;outline:none;font-family:inherit;transition:border .15s}
+.field input::placeholder,.field textarea::placeholder{color:rgba(255,255,255,.2)}
+.field input:focus,.field textarea:focus,.field select:focus{border-color:rgba(249,115,22,.5);background:rgba(255,255,255,.07)}
+.field select{appearance:none;cursor:pointer;color-scheme:dark}
+.field textarea{resize:vertical;min-height:80px}
+.field-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.modal-footer{display:flex;gap:10px;margin-top:24px;justify-content:flex-end}
+.btn-cancel{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.08);color:rgba(255,255,255,.6);border-radius:10px;padding:9px 18px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;transition:all .12s}
+.btn-cancel:hover{background:rgba(255,255,255,.1)}
+.btn-save{background:#f97316;border:none;color:#fff;border-radius:10px;padding:9px 20px;font-size:13px;font-weight:800;cursor:pointer;font-family:inherit;transition:background .15s}
+.btn-save:hover{background:#ea580c}
+.token-box{background:rgba(249,115,22,.07);border:1px solid rgba(249,115,22,.2);border-radius:10px;padding:12px 14px;font-family:monospace;font-size:12px;word-break:break-all;color:rgba(255,255,255,.7);line-height:1.5;margin:12px 0}
+.copy-btn{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.08);color:rgba(255,255,255,.6);border-radius:8px;padding:6px 12px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;transition:all .12s}
+.copy-btn:hover{background:rgba(255,255,255,.12)}
+</style>
+</head>
+<body>
+<div id="sidebar"></div>
+<main id="main">
+  <div class="page-header">
+    <div>
+      <h1 class="page-title">Clientes</h1>
+    </div>
+    <button class="btn-primary" onclick="abrirModalNovo()">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      Novo cliente
+    </button>
+  </div>
+
+  <div class="toolbar">
+    <div class="search-wrap">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+      <input type="search" id="busca" placeholder="Buscar por nome, CNPJ ou responsável..." oninput="filtrar()">
+    </div>
+    <div class="filter-tabs" id="filter-tabs">
+      <button class="filter-tab active" data-status="todos" onclick="setFiltro('todos')">Todos</button>
+      <button class="filter-tab" data-status="ativo" onclick="setFiltro('ativo')">Ativos</button>
+      <button class="filter-tab" data-status="suspenso" onclick="setFiltro('suspenso')">Suspensos</button>
+      <button class="filter-tab" data-status="cancelado" onclick="setFiltro('cancelado')">Cancelados</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <table>
+      <thead>
+        <tr>
+          <th>Cliente</th>
+          <th>CNPJ / CPF</th>
+          <th>Status</th>
+          <th>Licença</th>
+          <th>Último sync</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody id="tbody"></tbody>
+    </table>
+  </div>
+</main>
+
+<!-- Modal: Novo cliente -->
+<div class="modal" id="modal-novo">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h2 class="modal-title">Novo Cliente</h2>
+      <button class="modal-close" onclick="fecharModal('modal-novo')">✕</button>
+    </div>
+    <div class="field"><label>Nome / Razão Social *</label><input id="n-nome" placeholder="Ex: Restaurante do Chef"></div>
+    <div class="field-row">
+      <div class="field"><label>Responsável</label><input id="n-responsavel" placeholder="Nome do responsável"></div>
+      <div class="field"><label>CNPJ / CPF</label><input id="n-cnpj" placeholder="00.000.000/0001-00"></div>
+    </div>
+    <div class="field-row">
+      <div class="field"><label>Telefone</label><input id="n-telefone" placeholder="(11) 99999-9999"></div>
+      <div class="field"><label>E-mail</label><input id="n-contato" placeholder="contato@email.com"></div>
+    </div>
+    <div class="field"><label>Endereço</label><input id="n-endereco" placeholder="Rua, número, cidade"></div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="fecharModal('modal-novo')">Cancelar</button>
+      <button class="btn-save" id="btn-criar">Criar cliente</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Token de sync gerado -->
+<div class="modal" id="modal-token">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h2 class="modal-title">Token de sincronização</h2>
+      <button class="modal-close" onclick="fecharModal('modal-token')">✕</button>
+    </div>
+    <p style="font-size:13px;color:rgba(255,255,255,.55);line-height:1.6;margin-bottom:16px;">Guarde este token com segurança. Ele só é exibido uma vez e não pode ser recuperado depois.</p>
+    <div class="token-box" id="token-box-valor"></div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+      <button class="copy-btn" onclick="copiar(document.getElementById('token-box-valor').textContent,'Token copiado!')">Copiar token</button>
+      <button class="btn-primary" id="btn-ir-cliente" onclick="">Ver ficha do cliente →</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Confirmar exclusão -->
+<div class="modal" id="modal-excluir">
+  <div class="modal-box" style="width:min(360px,100%)">
+    <div class="modal-header">
+      <h2 class="modal-title" style="color:#f87171;">Excluir cliente?</h2>
+      <button class="modal-close" onclick="fecharModal('modal-excluir')">✕</button>
+    </div>
+    <p style="font-size:13px;color:rgba(255,255,255,.55);line-height:1.6;">Todos os contratos, tickets e histórico de sincronização serão removidos permanentemente.</p>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="fecharModal('modal-excluir')">Cancelar</button>
+      <button id="btn-confirmar-excluir" style="background:#ef4444;border:none;color:#fff;border-radius:10px;padding:9px 20px;font-size:13px;font-weight:800;cursor:pointer;font-family:inherit;">Excluir</button>
+    </div>
+  </div>
+</div>
+
+<script src="/shared.js"></script>
+<script>
+let todosClientes = []
+let filtroStatus  = 'todos'
+
+document.addEventListener('DOMContentLoaded', () => {
+  initSidebar('clientes')
+  carregar()
+  setInterval(carregar, 30000)
+
+  document.getElementById('btn-criar').addEventListener('click', criarCliente)
+})
+
+async function carregar() {
+  const res = await fetch('/api/clientes', { headers })
+  if (res.status === 401) { localStorage.removeItem('central_token'); location.href='/login.html'; return }
+  todosClientes = await res.json()
+  const online = todosClientes.filter(c => c.online).length
+  setSidebarOnline(online)
+  filtrar()
+}
+
+function setFiltro(s) {
+  filtroStatus = s
+  document.querySelectorAll('.filter-tab').forEach(b => {
+    b.classList.toggle('active', b.dataset.status === s)
+  })
+  filtrar()
+}
+
+function filtrar() {
+  const q = document.getElementById('busca').value.toLowerCase()
+  let lista = todosClientes
+
+  if (filtroStatus !== 'todos') lista = lista.filter(c => (c.status||'ativo') === filtroStatus)
+  if (q) lista = lista.filter(c =>
+    (c.nome_fantasia||'').toLowerCase().includes(q) ||
+    (c.cnpj||'').toLowerCase().includes(q) ||
+    (c.responsavel||'').toLowerCase().includes(q) ||
+    (c.contato||'').toLowerCase().includes(q)
+  )
+
+  renderTabela(lista)
+}
+
+function renderTabela(lista) {
+  const tbody = document.getElementById('tbody')
+  if (!lista.length) {
+    tbody.innerHTML = `<tr><td colspan="6" class="empty">Nenhum cliente encontrado.</td></tr>`
+    return
+  }
+
+  tbody.innerHTML = lista.map(c => {
+    const cor = avatarColor(c.nome_fantasia||'')
+    const initials = (c.nome_fantasia||'?').slice(0,2).toUpperCase()
+    return `<tr class="row" onclick="location.href='/cliente.html?id=${c.id}'">
+      <td>
+        <div style="display:flex;align-items:center;gap:11px;">
+          <span style="width:34px;height:34px;border-radius:9px;background:${cor};display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;color:#fff;flex-shrink:0;">${initials}</span>
+          <div>
+            <div style="font-weight:700;color:rgba(255,255,255,.9);">${escapeHtml(c.nome_fantasia)}</div>
+            ${c.responsavel?`<div style="font-size:11px;color:rgba(255,255,255,.3);margin-top:2px;">${escapeHtml(c.responsavel)}</div>`:''}
+          </div>
+        </div>
+      </td>
+      <td style="color:rgba(255,255,255,.4);font-size:12px;">${escapeHtml(c.cnpj||'—')}</td>
+      <td>${badgeStatus(c.status||'ativo')}</td>
+      <td>${badgeLicenca(c.licenca_expira_em)}</td>
+      <td>
+        <div style="display:flex;align-items:center;gap:6px;">
+          <span class="dot ${c.online?'dot-green':'dot-gray'}"></span>
+          <span style="font-size:12px;color:rgba(255,255,255,.4);">${tempoAtras(c.ultimo_sync_em)}</span>
+        </div>
+      </td>
+      <td onclick="event.stopPropagation()" style="text-align:right;white-space:nowrap;">
+        <button class="action-btn" onclick="location.href='/cliente.html?id=${c.id}'" title="Abrir ficha">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+        </button>
+        <button class="action-btn danger" onclick="confirmarExcluir('${c.id}','${escapeHtml(c.nome_fantasia)}')" title="Excluir">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+        </button>
+      </td>
+    </tr>`
+  }).join('')
+}
+
+function abrirModalNovo() {
+  ['n-nome','n-responsavel','n-cnpj','n-telefone','n-contato','n-endereco'].forEach(id => {
+    document.getElementById(id).value = ''
+  })
+  document.getElementById('modal-novo').style.display = 'flex'
+  setTimeout(() => document.getElementById('n-nome').focus(), 80)
+}
+
+async function criarCliente() {
+  const nome = document.getElementById('n-nome').value.trim()
+  if (!nome) { toast('Informe o nome do cliente','error'); return }
+
+  const btn = document.getElementById('btn-criar')
+  btn.disabled = true; btn.textContent = 'Criando...'
+
+  try {
+    const res = await fetch('/api/clientes', {
+      method: 'POST', headers,
+      body: JSON.stringify({
+        nome_fantasia: nome,
+        responsavel:   document.getElementById('n-responsavel').value.trim()||null,
+        cnpj:          document.getElementById('n-cnpj').value.trim()||null,
+        telefone:      document.getElementById('n-telefone').value.trim()||null,
+        contato:       document.getElementById('n-contato').value.trim()||null,
+        endereco:      document.getElementById('n-endereco').value.trim()||null,
+      })
+    })
+    const data = await res.json()
+    if (!res.ok) { toast(data.error||'Erro ao criar cliente','error'); return }
+
+    fecharModal('modal-novo')
+    toast('Cliente criado com sucesso!','success')
+
+    document.getElementById('token-box-valor').textContent = data.syncToken
+    document.getElementById('btn-ir-cliente').onclick = () => {
+      fecharModal('modal-token')
+      location.href = `/cliente.html?id=${data.id}`
+    }
+    document.getElementById('modal-token').style.display = 'flex'
+    await carregar()
+  } catch(e) {
+    toast('Erro de conexão','error')
+  } finally {
+    btn.disabled = false; btn.textContent = 'Criar cliente'
+  }
+}
+
+let excluirId = null
+function confirmarExcluir(id, nome) {
+  excluirId = id
+  document.getElementById('modal-excluir').style.display = 'flex'
+  document.getElementById('btn-confirmar-excluir').onclick = async () => {
+    const res = await fetch(`/api/clientes/${id}`, { method:'DELETE', headers })
+    if (res.ok) {
+      fecharModal('modal-excluir')
+      toast('Cliente excluído','success')
+      await carregar()
+    } else {
+      const d = await res.json()
+      toast(d.error||'Erro ao excluir','error')
+    }
+  }
+}
+
+function fecharModal(id) { document.getElementById(id).style.display = 'none' }
+function copiar(txt, msg) {
+  navigator.clipboard.writeText(txt).then(() => toast(msg||'Copiado!','success'))
+}
+</script>
+</body>
+</html>

@@ -4,7 +4,7 @@ import { useApi } from '~/services/api'
 import { useConfigStore } from '~/stores/configuracoes'
 
 export interface Impressora {
-  id: number
+  id: string
   nome: string
   destino: 'caixa' | 'cozinha' | 'bar'
   tipo: 'navegador' | 'rede' | 'windows'
@@ -12,7 +12,7 @@ export interface Impressora {
   porta: number
   largura: number
   copias: number
-  ativo: number
+  ativo: boolean
 }
 
 export const useImpressorasStore = defineStore('impressoras', () => {

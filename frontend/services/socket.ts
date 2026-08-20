@@ -1,6 +1,7 @@
 // services/socket.ts
 import { io, Socket } from 'socket.io-client'
 import { useAuthStore } from '~/stores/auth'
+import { useRuntimeConfig } from '#imports'
 
 let socket: Socket | null = null
 
@@ -21,6 +22,7 @@ function registrarReconexaoAoVoltar() {
 
 export function useSocket() {
   const authStore = useAuthStore()
+  const config    = useRuntimeConfig()
 
   function connect(mode?: string) {
     registrarReconexaoAoVoltar()
@@ -42,11 +44,12 @@ export function useSocket() {
 
     if (mode) opts.query = { mode }
 
-    // Mesmo protocolo da página (https quando o certificado local mkcert
-    // está configurado) — wss:// exige origem https
+    // Usa a porta do socketUrl configurado (preserva hostname da LAN)
+    const configuredUrl = config.public.socketUrl as string
+    const socketPort = (() => { try { return new URL(configuredUrl).port || '3002' } catch { return '3002' } })()
     const socketUrl = process.client
-      ? `${window.location.protocol}//${window.location.hostname}:3001`
-      : 'http://localhost:3001'
+      ? `${window.location.protocol}//${window.location.hostname}:${socketPort}`
+      : configuredUrl
 
     socket = io(socketUrl, opts)
 

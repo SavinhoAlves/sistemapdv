@@ -1,7 +1,6 @@
-const jwt = require('jsonwebtoken')
-const { query } = require('../database/connection')
+const jwt     = require('jsonwebtoken')
+const { prisma } = require('../lib/prisma')
 
-// Único papel neste sistema: o admin/suporte (Savio). Sem conceito de cargo.
 async function authenticate(req, res, next) {
   try {
     const header = req.headers.authorization
@@ -9,11 +8,14 @@ async function authenticate(req, res, next) {
       return res.status(401).json({ error: 'Token não fornecido' })
     }
 
-    const token = header.split(' ')[1]
+    const token   = header.split(' ')[1]
     const decoded = jwt.verify(token, process.env.JWT_SECRET)
 
-    const [admin] = await query('SELECT id, email FROM admins WHERE id = ?', [decoded.id])
-    if (!admin) {
+    const admin = await prisma.platformUser.findUnique({
+      where: { id: decoded.id },
+      select: { id: true, email: true, nome: true, ativo: true },
+    })
+    if (!admin || !admin.ativo) {
       return res.status(401).json({ error: 'Administrador não encontrado' })
     }
 

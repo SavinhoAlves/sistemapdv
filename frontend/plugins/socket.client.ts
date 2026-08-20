@@ -16,8 +16,15 @@ export default defineNuxtPlugin(() => {
 
   if (authStore.token) socket.connect()
 
-  watch(() => authStore.token, (token) => {
-    if (token) socket.connect()
-    else socket.disconnect()
+  watch(() => authStore.token, (token, tokenAnterior) => {
+    if (!token) {
+      socket.disconnect()
+    } else if (tokenAnterior && token !== tokenAnterior) {
+      // Token trocou (ex: login RFID) — reconecta com as novas credenciais
+      socket.disconnect()
+      socket.connect()
+    } else {
+      socket.connect()
+    }
   })
 })

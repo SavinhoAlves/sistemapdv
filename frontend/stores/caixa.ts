@@ -27,7 +27,7 @@ export const useCaixaStore = defineStore('caixa', {
       }
     },
 
-    async abrir(usuarioId: number) {
+    async abrir(usuarioId: string) {
       try {
         this.loading = true
         const api = useApi()
@@ -41,7 +41,7 @@ export const useCaixaStore = defineStore('caixa', {
       }
     },
 
-    async fechar(caixaId: number) {
+    async fechar(caixaId: string) {
       try {
         this.loading = true
         const api = useApi()

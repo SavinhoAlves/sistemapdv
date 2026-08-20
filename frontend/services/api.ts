@@ -59,10 +59,14 @@ export function useApi() {
     delete: <T>(endpoint: string)                  => request<T>(endpoint, { method: 'DELETE' }),
 
     auth: {
-      login: (email: string, senha: string) =>
-        request('/auth/login', { method: 'POST', body: JSON.stringify({ email, senha }) }),
-      rfid: (rfid: string) =>
-        request('/auth/rfid', { method: 'POST', body: JSON.stringify({ rfid }) }),
+      login: (email: string, senha: string) => {
+        const slug = (config.public as any).tenantSlug as string
+        return request('/auth/login', { method: 'POST', body: JSON.stringify({ email, senha, slug }) })
+      },
+      rfid: (rfid: string) => {
+        const slug = (config.public as any).tenantSlug as string
+        return request('/auth/rfid', { method: 'POST', body: JSON.stringify({ cartaoRfid: rfid, slug }) })
+      },
       me: () => request('/auth/me')
     },
 
@@ -75,16 +79,16 @@ export function useApi() {
 
     mesas: {
       listar:    <T>()              => request<T[]>('/mesas'),
-      buscar:    <T>(id: number)    => request<T>(`/mesas/${id}`),
+      buscar:    <T>(id: string)    => request<T>(`/mesas/${id}`),
       abrirMesa: <T>(dados: any)    => request<T>('/mesas/abrir',        { method: 'POST',  body: JSON.stringify(dados) }),
-      fechar:    <T>(id: number)    => request<T>(`/mesas/${id}/fechar`, { method: 'PATCH' })
+      fechar:    <T>(id: string)    => request<T>(`/mesas/${id}/fechar`, { method: 'PATCH' })
     },
 
     perfis: {
-      listar:  <T>()                    => request<T[]>('/perfis'),
-      criar:   <T>(dados: any)          => request<T>('/perfis',      { method: 'POST',   body: JSON.stringify(dados) }),
-      atualizar: <T>(id: number, dados: any) => request<T>(`/perfis/${id}`, { method: 'PUT', body: JSON.stringify(dados) }),
-      excluir: <T>(id: number)          => request<T>(`/perfis/${id}`, { method: 'DELETE' })
+      listar:    <T>()                    => request<T[]>('/perfis'),
+      criar:     <T>(dados: any)          => request<T>('/perfis',           { method: 'POST',   body: JSON.stringify(dados) }),
+      atualizar: <T>(id: string, dados: any) => request<T>(`/perfis/${id}`, { method: 'PUT',    body: JSON.stringify(dados) }),
+      excluir:   <T>(id: string)          => request<T>(`/perfis/${id}`,     { method: 'DELETE' })
     }
   }
 }

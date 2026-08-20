@@ -1,130 +1,158 @@
-const express = require('express')
-const router = express.Router()
-const crypto = require('crypto')
-const { query } = require('../database/connection')
+const express    = require('express')
+const router     = express.Router()
+const crypto     = require('crypto')
+const { prisma } = require('../lib/prisma')
 const { authenticate } = require('../middlewares/auth.middleware')
-
-const JANELA_ONLINE_MIN = 25
-
-function hashToken(tokenBruto) {
-  return crypto.createHash('sha256').update(tokenBruto).digest('hex')
-}
-
-function semAcentos(texto) {
-  return String(texto).normalize('NFD').replace(/[̀-ͯ]/g, '')
-}
-
-function gerarChaveAtivacao(nomeCliente, expiraEm, syncToken) {
-  const payload = JSON.stringify({
-    c:          semAcentos(nomeCliente),
-    expira_em:  expiraEm.toISOString(),
-    s:          process.env.LICENSE_SECRET,
-    sync_token: syncToken,
-    sync_url:   process.env.CENTRAL_URL || ''
-  })
-  return Buffer.from(payload, 'utf8').toString('base64')
-}
 
 router.use(authenticate)
 
-// GET /api/clientes
+// ── GET /api/clientes ─────────────────────────────────────────────────────────
 router.get('/', async (req, res) => {
   try {
-    const clientes = await query(`
-      SELECT id, nome_fantasia, contato, instalacao_uuid, venda_mobile_permitida,
-             status, caixa_aberto, caixa_aberto_desde, faturamento_hoje,
-             mesas_abertas, pedidos_hoje, ticket_medio, ultimo_sync_em,
-             licenca_expira_em, chave_ativacao, licenca_pendente,
-             pdv_licenca_status, pdv_licenca_expira, pdv_host_fingerprint,
-             pdv_sync_bloqueado, pdv_sync_suspenso, pdv_sync_venda_mobile, pdv_sync_erro,
-             created_at
-      FROM clientes
-      ORDER BY nome_fantasia ASC
-    `)
-    const agora = Date.now()
-    const comOnline = clientes.map(c => ({
-      ...c,
-      venda_mobile_permitida: Boolean(c.venda_mobile_permitida),
-      caixa_aberto: Boolean(c.caixa_aberto),
-      online: c.ultimo_sync_em
-        ? (agora - new Date(c.ultimo_sync_em).getTime()) < JANELA_ONLINE_MIN * 60 * 1000
-        : false
-    }))
-    return res.json(comOnline)
+    const tenants = await prisma.tenant.findMany({
+      orderBy: { nome: 'asc' },
+      include: {
+        licencas: { orderBy: { createdAt: 'desc' }, take: 1 },
+        caixas:   { where: { status: 'aberto' }, take: 1 },
+        _count:   { select: { mesas: { where: { status: { in: ['aberta', 'ocupada'] } } } } },
+      },
+    })
+
+    // Compute today's totals per tenant
+    const hoje = new Date()
+    hoje.setHours(0, 0, 0, 0)
+
+    const pagamentosHoje = await prisma.pagamento.groupBy({
+      by: ['tenantId'],
+      where: { status: 'confirmado', createdAt: { gte: hoje } },
+      _sum: { valor: true },
+      _count: { id: true },
+    })
+    const porTenant = Object.fromEntries(pagamentosHoje.map(p => [p.tenantId, p]))
+
+    const resultado = tenants.map(t => {
+      const licenca = t.licencas[0] ?? null
+      const caixaAberto = t.caixas.length > 0
+      const stats = porTenant[t.id]
+      const faturamento = stats ? Number(stats._sum.valor ?? 0) : 0
+      const pagamentosQtd = stats ? stats._count.id : 0
+      const mesasAbertas = t._count.mesas
+
+      return {
+        id:                   t.id,
+        nome_fantasia:        t.nome,
+        slug:                 t.slug,
+        contato:              t.contato,
+        cnpj:                 t.cnpj,
+        responsavel:          t.responsavel,
+        telefone:             t.telefone,
+        endereco:             t.endereco,
+        observacoes:          t.observacoes,
+        venda_mobile_permitida: t.vendaMobilePermitida,
+        status:               t.status,
+        caixa_aberto:         caixaAberto,
+        faturamento_hoje:     faturamento,
+        mesas_abertas:        mesasAbertas,
+        pedidos_hoje:         pagamentosQtd,
+        ticket_medio:         pagamentosQtd > 0 ? faturamento / pagamentosQtd : 0,
+        licenca_expira_em:    licenca?.dataVencimento ?? null,
+        licenca_status:       licenca?.status ?? 'sem_licenca',
+        created_at:           t.createdAt,
+        online:               caixaAberto,
+      }
+    })
+
+    return res.json(resultado)
   } catch (error) {
     console.error('Erro ao listar clientes:', error)
     return res.status(500).json({ error: 'Erro ao listar clientes' })
   }
 })
 
-// POST /api/clientes — cria cliente + gera token (retornado uma única vez).
-// Se vier "dias", já gera a licença junto (mesmo passo), em vez de exigir
-// um segundo clique em "Gerar licença" depois.
+// ── POST /api/clientes — cria tenant ─────────────────────────────────────────
 router.post('/', async (req, res) => {
   try {
-    const { nome_fantasia, contato, dias } = req.body
-    if (!nome_fantasia || !nome_fantasia.trim()) {
+    const { nome_fantasia, contato, cnpj, responsavel, telefone, endereco, dias } = req.body
+    if (!nome_fantasia?.trim()) {
       return res.status(400).json({ error: 'Informe o nome do cliente' })
     }
 
-    const tokenBruto = crypto.randomBytes(32).toString('hex')
-    const tokenHash = hashToken(tokenBruto)
+    const slug = nome_fantasia.trim()
+      .toLowerCase()
+      .normalize('NFD').replace(/[̀-ͯ]/g, '')
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-|-$/g, '')
 
-    const resultado = await query(
-      `INSERT INTO clientes (nome_fantasia, contato, sync_token_hash) VALUES (?, ?, ?)`,
-      [nome_fantasia.trim(), contato?.trim() || null, tokenHash]
-    )
+    const tenant = await prisma.tenant.create({
+      data: {
+        nome:       nome_fantasia.trim(),
+        slug:       slug + '-' + crypto.randomBytes(3).toString('hex'),
+        contato:    contato?.trim()     || null,
+        cnpj:       cnpj?.trim()        || null,
+        responsavel: responsavel?.trim() || null,
+        telefone:   telefone?.trim()    || null,
+        endereco:   endereco?.trim()    || null,
+      },
+    })
 
-    const resposta = { success: true, id: resultado.insertId, syncToken: tokenBruto }
+    const resposta = { success: true, id: tenant.id, slug: tenant.slug }
 
-    const diasNum = Number(dias)
-    if (diasNum > 0) {
-      if (!process.env.RESTAURANT_LICENSE_SECRET) {
-        return res.status(500).json({ error: 'Cliente criado, mas RESTAURANT_LICENSE_SECRET não configurado no .env da central — gere a licença separadamente' })
-      }
-
-      const chave = gerarChaveAtivacao(nome_fantasia.trim(), diasNum)
+    if (Number(dias) > 0) {
       const expira = new Date()
-      expira.setDate(expira.getDate() + diasNum)
-      const expiraMySQL = expira.toISOString().slice(0, 19).replace('T', ' ')
-
-      await query('UPDATE clientes SET licenca_expira_em = ? WHERE id = ?', [expiraMySQL, resultado.insertId])
-
-      resposta.chave = chave
-      resposta.diasLicenca = diasNum
+      expira.setDate(expira.getDate() + Number(dias))
+      await prisma.licenca.create({
+        data: {
+          tenantId:      tenant.id,
+          status:        'ativado',
+          dataAtivacao:  new Date(),
+          dataVencimento: expira,
+        },
+      })
+      resposta.diasLicenca = Number(dias)
       resposta.expira = expira.toISOString()
     }
 
-    return res.json(resposta)
+    return res.status(201).json(resposta)
   } catch (error) {
     console.error('Erro ao criar cliente:', error)
+    if (error.code === 'P2002') {
+      return res.status(409).json({ error: 'Slug já existe — tente um nome diferente' })
+    }
     return res.status(500).json({ error: 'Erro ao criar cliente' })
   }
 })
 
-// PATCH /api/clientes/:id
+// ── PATCH /api/clientes/:id ───────────────────────────────────────────────────
 const STATUS_VALIDOS = ['ativo', 'suspenso', 'cancelado']
 
 router.patch('/:id', async (req, res) => {
   try {
     const { id } = req.params
-    const { venda_mobile_permitida, nome_fantasia, contato, status } = req.body
+    const {
+      venda_mobile_permitida, nome_fantasia, contato, status,
+      cnpj, responsavel, telefone, endereco, observacoes,
+    } = req.body
 
     if (status !== undefined && !STATUS_VALIDOS.includes(status)) {
       return res.status(400).json({ error: `status deve ser um de: ${STATUS_VALIDOS.join(', ')}` })
     }
 
-    const campos = []
-    const valores = []
-    if (venda_mobile_permitida !== undefined) { campos.push('venda_mobile_permitida = ?'); valores.push(venda_mobile_permitida ? 1 : 0) }
-    if (nome_fantasia !== undefined)          { campos.push('nome_fantasia = ?');          valores.push(nome_fantasia.trim()) }
-    if (contato !== undefined)                { campos.push('contato = ?');                valores.push(contato?.trim() || null) }
-    if (status !== undefined)                 { campos.push('status = ?');                 valores.push(status) }
+    const data = {}
+    if (venda_mobile_permitida !== undefined) data.vendaMobilePermitida = !!venda_mobile_permitida
+    if (nome_fantasia  !== undefined) data.nome        = nome_fantasia.trim()
+    if (contato        !== undefined) data.contato     = contato?.trim()     || null
+    if (status         !== undefined) data.status      = status
+    if (cnpj           !== undefined) data.cnpj        = cnpj?.trim()        || null
+    if (responsavel    !== undefined) data.responsavel = responsavel?.trim()  || null
+    if (telefone       !== undefined) data.telefone    = telefone?.trim()     || null
+    if (endereco       !== undefined) data.endereco    = endereco?.trim()     || null
+    if (observacoes    !== undefined) data.observacoes = observacoes?.trim()  || null
 
-    if (!campos.length) return res.status(400).json({ error: 'Nenhum campo para atualizar' })
+    if (!Object.keys(data).length) {
+      return res.status(400).json({ error: 'Nenhum campo para atualizar' })
+    }
 
-    valores.push(id)
-    await query(`UPDATE clientes SET ${campos.join(', ')} WHERE id = ?`, valores)
+    await prisma.tenant.update({ where: { id }, data })
     return res.json({ success: true })
   } catch (error) {
     console.error('Erro ao atualizar cliente:', error)
@@ -132,14 +160,13 @@ router.patch('/:id', async (req, res) => {
   }
 })
 
-// DELETE /api/clientes/:id
+// ── DELETE /api/clientes/:id ──────────────────────────────────────────────────
 router.delete('/:id', async (req, res) => {
   try {
     const { id } = req.params
-    const [cliente] = await query('SELECT id FROM clientes WHERE id = ?', [id])
-    if (!cliente) return res.status(404).json({ error: 'Cliente não encontrado' })
-
-    await query('DELETE FROM clientes WHERE id = ?', [id])
+    const tenant = await prisma.tenant.findUnique({ where: { id }, select: { id: true } })
+    if (!tenant) return res.status(404).json({ error: 'Cliente não encontrado' })
+    await prisma.tenant.delete({ where: { id } })
     return res.json({ success: true })
   } catch (error) {
     console.error('Erro ao excluir cliente:', error)
@@ -147,108 +174,55 @@ router.delete('/:id', async (req, res) => {
   }
 })
 
-// POST /api/clientes/:id/reset-token — gera novo sync token (retornado uma única vez)
-router.post('/:id/reset-token', async (req, res) => {
-  try {
-    const { id } = req.params
-    const [cliente] = await query('SELECT id FROM clientes WHERE id = ?', [id])
-    if (!cliente) return res.status(404).json({ error: 'Cliente não encontrado' })
-
-    const tokenBruto = crypto.randomBytes(32).toString('hex')
-    const tokenHash = hashToken(tokenBruto)
-    await query('UPDATE clientes SET sync_token_hash = ?, instalacao_uuid = NULL, ultimo_sync_em = NULL WHERE id = ?', [tokenHash, id])
-
-    return res.json({ success: true, syncToken: tokenBruto })
-  } catch (error) {
-    console.error('Erro ao resetar token:', error)
-    return res.status(500).json({ error: 'Erro ao resetar token' })
-  }
-})
-
-// POST /api/clientes/:id/licenca
+// ── POST /api/clientes/:id/licenca — gera/renova licença ─────────────────────
 router.post('/:id/licenca', async (req, res) => {
   try {
-    const { id } = req.params
-    const dias = Number(req.body.dias)
+    const { id }  = req.params
+    const dias    = Number(req.body.dias)
 
-    if (!process.env.LICENSE_SECRET) {
-      return res.status(500).json({ error: 'LICENSE_SECRET não configurado no .env da central' })
+    if (!dias || dias <= 0) {
+      return res.status(400).json({ error: 'Informe a validade em dias' })
     }
-    if (!dias || dias <= 0) return res.status(400).json({ error: 'Informe a validade em dias' })
 
-    const [cliente] = await query('SELECT nome_fantasia FROM clientes WHERE id = ?', [id])
-    if (!cliente) return res.status(404).json({ error: 'Cliente não encontrado' })
+    const tenant = await prisma.tenant.findUnique({ where: { id }, select: { id: true, nome: true } })
+    if (!tenant) return res.status(404).json({ error: 'Cliente não encontrado' })
 
     const expira = new Date()
     expira.setDate(expira.getDate() + dias)
 
-    // Gera novo sync token junto com a licença — embute na chave para auto-configurar o sync no PDV
-    const syncTokenBruto = crypto.randomBytes(32).toString('hex')
-    const syncTokenHash  = hashToken(syncTokenBruto)
-    const chave = gerarChaveAtivacao(cliente.nome_fantasia, expira, syncTokenBruto)
+    const licenca = await prisma.licenca.upsert({
+      where:  { id: (await prisma.licenca.findFirst({ where: { tenantId: id }, orderBy: { createdAt: 'desc' }, select: { id: true } }))?.id ?? '' },
+      create: { tenantId: id, status: 'ativado', dataAtivacao: new Date(), dataVencimento: expira },
+      update: { status: 'ativado', dataVencimento: expira },
+    })
 
-    const expiraMySQL = expira.toISOString().slice(0, 19).replace('T', ' ')
-
-    await query(
-      'UPDATE clientes SET licenca_expira_em = ?, chave_ativacao = ?, sync_token_hash = ?, licenca_pendente = ? WHERE id = ?',
-      [expiraMySQL, chave, syncTokenHash, chave, id]
-    )
-
-    return res.json({ chave, dias, expira: expira.toISOString() })
+    return res.json({ success: true, dias, expira: expira.toISOString(), licencaId: licenca.id })
   } catch (error) {
-    console.error('Erro ao gerar chave de licença:', error)
-    return res.status(500).json({ error: 'Erro ao gerar chave de licença' })
+    console.error('Erro ao gerar licença:', error)
+    return res.status(500).json({ error: 'Erro ao gerar licença' })
   }
 })
 
-// POST /api/clientes/:id/aplicar-chave — cola/importa uma chave gerada externamente
-router.post('/:id/aplicar-chave', async (req, res) => {
+// ── GET /api/clientes/:id/detalhes — detalhes completos ──────────────────────
+router.get('/:id/detalhes', async (req, res) => {
   try {
     const { id } = req.params
-    const { chave } = req.body
-
-    if (!chave || !chave.trim()) {
-      return res.status(400).json({ error: 'Informe a chave de ativação' })
-    }
-
-    if (!process.env.LICENSE_SECRET) {
-      return res.status(500).json({ error: 'LICENSE_SECRET não configurado no .env da central' })
-    }
-
-    let payload
-    try {
-      payload = JSON.parse(Buffer.from(chave.trim(), 'base64').toString('utf8'))
-    } catch {
-      return res.status(400).json({ error: 'Chave inválida — não é um Base64 válido' })
-    }
-
-    if (!payload.c || (!payload.expira_em && !payload.d) || payload.s !== process.env.LICENSE_SECRET) {
-      return res.status(400).json({ error: 'Chave inválida — secret não confere' })
-    }
-
-    let expira
-    if (payload.expira_em) {
-      expira = new Date(payload.expira_em)
-      if (isNaN(expira.getTime())) return res.status(400).json({ error: 'Chave inválida — data de expiração inválida' })
-    } else {
-      const dias = Number(payload.d)
-      if (!dias || dias <= 0) return res.status(400).json({ error: 'Chave inválida — validade ausente' })
-      expira = new Date()
-      expira.setDate(expira.getDate() + dias)
-    }
-
-    const [cliente] = await query('SELECT id FROM clientes WHERE id = ?', [id])
-    if (!cliente) return res.status(404).json({ error: 'Cliente não encontrado' })
-
-    const expiraMySQL = expira.toISOString().slice(0, 19).replace('T', ' ')
-    const dias = Math.ceil((expira - Date.now()) / (1000 * 60 * 60 * 24))
-
-    await query('UPDATE clientes SET licenca_expira_em = ?, chave_ativacao = ? WHERE id = ?', [expiraMySQL, chave.trim(), id])
-
-    return res.json({ success: true, dias, expira: expira.toISOString() })
+    const tenant = await prisma.tenant.findUnique({
+      where: { id },
+      include: {
+        licencas:   { orderBy: { createdAt: 'desc' }, take: 3 },
+        dispositivos: { orderBy: { createdAt: 'desc' } },
+        contratos:  { orderBy: { createdAt: 'desc' } },
+        tickets:    { orderBy: { createdAt: 'desc' }, take: 10 },
+        caixas:     { where: { status: 'aberto' }, take: 1 },
+        _count:     { select: { usuarios: true, mesas: true, produtos: true } },
+      },
+    })
+    if (!tenant) return res.status(404).json({ error: 'Cliente não encontrado' })
+    return res.json(tenant)
   } catch (error) {
-    console.error('Erro ao aplicar chave:', error)
-    return res.status(500).json({ error: 'Erro ao aplicar chave de ativação' })
+    console.error('Erro ao buscar detalhes:', error)
+    return res.status(500).json({ error: 'Erro ao buscar detalhes' })
   }
 })
 

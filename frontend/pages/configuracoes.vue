@@ -661,24 +661,29 @@
               </div>
             </div>
             <div class="p-6">
-              <div class="flex items-center justify-between gap-4">
+              <div class="flex items-center justify-between gap-4" :class="!rfidDisponivel ? 'opacity-50' : ''">
                 <div class="flex items-center gap-3">
                   <div class="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
-                    :class="form.rfid_ativo ? 'bg-violet-500/10' : 'bg-gray-100 dark:bg-white/[0.06]'">
-                    <CreditCard :size="16" :class="form.rfid_ativo ? 'text-violet-500' : 'text-gray-400 dark:text-white/30'" />
+                    :class="rfidDisponivel && form.rfid_ativo ? 'bg-violet-500/10' : 'bg-gray-100 dark:bg-white/[0.06]'">
+                    <CreditCard :size="16" :class="rfidDisponivel && form.rfid_ativo ? 'text-violet-500' : 'text-gray-400 dark:text-white/30'" />
                   </div>
                   <div>
                     <p class="text-sm font-black text-gray-900 dark:text-white">Autenticação por cartão RFID</p>
-                    <p class="text-[11px] text-gray-500 dark:text-white/40 mt-0.5">Exibe a aba de cartão na tela de login e permite entrada por leitora</p>
+                    <p v-if="rfidDisponivel" class="text-[11px] text-gray-500 dark:text-white/40 mt-0.5">Exibe a aba de cartão na tela de login e permite entrada por leitora</p>
+                    <p v-else class="text-[11px] text-amber-500 dark:text-amber-400 mt-0.5">Não disponível no seu plano — entre em contato para habilitar</p>
                   </div>
                 </div>
                 <button
-                  @click="form.rfid_ativo = !form.rfid_ativo"
+                  :disabled="!rfidDisponivel"
+                  @click="rfidDisponivel && (form.rfid_ativo = !form.rfid_ativo)"
                   class="shrink-0 w-12 h-6 rounded-full transition-all relative"
-                  :class="form.rfid_ativo ? 'bg-violet-500' : 'bg-gray-200 dark:bg-white/10'"
+                  :class="[
+                    rfidDisponivel && form.rfid_ativo ? 'bg-violet-500' : 'bg-gray-200 dark:bg-white/10',
+                    !rfidDisponivel ? 'cursor-not-allowed' : 'cursor-pointer'
+                  ]"
                 >
                   <span class="absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all"
-                    :class="form.rfid_ativo ? 'left-[26px]' : 'left-0.5'" />
+                    :class="rfidDisponivel && form.rfid_ativo ? 'left-[26px]' : 'left-0.5'" />
                 </button>
               </div>
             </div>
@@ -776,9 +781,10 @@ const impressorasStore = useImpressorasStore()
 const toastStore       = useToastStore()
 const api              = useApi()
 
-const inputLogoRef = ref<HTMLInputElement | null>(null)
-const salvando     = ref(false)
-const mostrarToken = ref(false)
+const inputLogoRef    = ref<HTMLInputElement | null>(null)
+const salvando        = ref(false)
+const mostrarToken    = ref(false)
+const rfidDisponivel  = ref(false)
 
 // ══ IMPRESSORAS MÚLTIPLAS ══
 const impressoras          = ref<Impressora[]>([])
@@ -912,6 +918,16 @@ const form = reactive({
 })
 
 onMounted(async () => {
+  // Verifica se o super admin liberou RFID para este tenant
+  try {
+    const runtimeConfig = useRuntimeConfig()
+    const slug = (runtimeConfig.public as any).tenantSlug || ''
+    const cfgPublica = await api.get<{ rfid_disponivel: boolean }>(`/sistema/config-publica?slug=${slug}`)
+    rfidDisponivel.value = cfgPublica.rfid_disponivel === true
+  } catch {
+    rfidDisponivel.value = false
+  }
+
   await configStore.carregar()
   form.nome_restaurante         = configStore.nome_restaurante
   form.logo_base64              = configStore.logo_base64

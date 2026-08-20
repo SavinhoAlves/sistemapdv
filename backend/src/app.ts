@@ -19,6 +19,8 @@ import { impressaoRoutes } from './modules/impressao/impressao.routes'
 import { impressorasRoutes } from './modules/impressoras/impressoras.routes'
 import { vendasRoutes } from './modules/vendas/vendas.routes'
 import { integracoesRoutes } from './modules/integracoes/integracoes.routes'
+import { platformAuthRoutes } from './modules/platform/platform-auth.routes'
+import { platformTenantsRoutes } from './modules/platform/platform-tenants.routes'
 
 function snakeToCamel(s: string): string {
   return s.replace(/_([a-z0-9])/g, (_, c) => c.toUpperCase())
@@ -118,6 +120,8 @@ export async function buildApp() {
   await app.register(impressorasRoutes,   { prefix: '/api/impressoras' })
   await app.register(vendasRoutes,        { prefix: '/api/vendas' })
   await app.register(integracoesRoutes,   { prefix: '/api/integracoes' })
+  await app.register(platformAuthRoutes,  { prefix: '/api/platform/auth' })
+  await app.register(platformTenantsRoutes, { prefix: '/api/platform/tenants' })
 
   // Health check
   app.get('/health', { config: { public: true } }, async () => ({ ok: true }))
@@ -129,9 +133,12 @@ export async function buildApp() {
     try {
       const { prisma } = await import('./lib/prisma')
       const tenant = await prisma.tenant.findUnique({ where: { slug } })
-      if (!tenant) return reply.send({ rfid_ativo: true })
+      if (!tenant) return reply.send({ rfid_ativo: false })
       const cfg = await prisma.configuracoes.findFirst({ where: { tenantId: tenant.id } })
-      return reply.send({ rfid_ativo: cfg?.rfidAtivo ?? true })
+      // rfidDisponivel = habilitado pelo super admin (feature paga)
+      // rfidAtivo     = habilitado pelo admin do tenant (configuração local)
+      const rfidAtivo = Boolean(tenant.rfidDisponivel) && Boolean(cfg?.rfidAtivo ?? false)
+      return reply.send({ rfid_ativo: rfidAtivo, rfid_disponivel: tenant.rfidDisponivel })
     } catch {
       return reply.send({ rfid_ativo: true })
     }

@@ -3,6 +3,9 @@ import { useAuthStore } from '../stores/auth'
 export default defineNuxtRouteMiddleware((to) => {
   const auth = useAuthStore()
 
+  // Rotas da plataforma central (super admin) — gerenciam própria autenticação
+  if (to.path.startsWith('/platform')) return
+
   // Página de autenticação mobile (/m ou /m/) — deixa passar sempre,
   // ela cuida da autenticação via token QR por conta própria.
   if (to.path === '/m' || to.path === '/m/') return

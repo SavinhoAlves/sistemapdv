@@ -277,6 +277,7 @@ definePageMeta({ layout: false })
 
 const authStore = useAuthStore()
 const api = useApi()
+const runtimeConfig = useRuntimeConfig()
 
 const rfidAtivo = ref(true)
 const tab      = ref<'rfid' | 'manual'>('rfid')
@@ -355,8 +356,9 @@ async function handleManualLogin() {
       showMsg('success', 'Acesso autorizado!')
       return navigateTo('/')
     }
-  } catch {
-    showMsg('error', 'E-mail ou senha incorretos')
+  } catch (err: any) {
+    const msg = err?.message || err?.data?.error || 'Falha ao conectar com o servidor'
+    showMsg('error', msg === 'Sessão expirada' ? 'E-mail ou senha incorretos' : msg)
   } finally {
     loading.value = false
   }
@@ -371,7 +373,8 @@ onMounted(async () => {
 
   // Verifica se RFID está habilitado (endpoint público, sem auth)
   try {
-    const cfg = await api.get<{ rfid_ativo: boolean }>('/sistema/config-publica')
+    const slug = (runtimeConfig.public as any).tenantSlug || ''
+    const cfg = await api.get<{ rfid_ativo: boolean }>(`/sistema/config-publica?slug=${slug}`)
     rfidAtivo.value = cfg.rfid_ativo !== false
   } catch {
     rfidAtivo.value = true // fallback seguro

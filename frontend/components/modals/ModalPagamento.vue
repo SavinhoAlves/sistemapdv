@@ -427,7 +427,7 @@ async function enviarParaMaquininha() {
     const intent = await mpStore.criarPagamento({
       valor:     cobranca.value,
       tipo:      tipoMp(metodoSelecionado.value.nome),
-      descricao: `Mesa ${props.mesa.nome_mesa || props.mesa.id}`,
+      descricao: `Mesa ${props.mesa.nome_mesa || props.mesa.numero}`,
       referencia: `mesa-${props.mesa.id}-${Date.now()}`
     })
     intentIdAtual.value = intent.id

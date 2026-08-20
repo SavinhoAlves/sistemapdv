@@ -8,7 +8,7 @@ export async function listar(tenantId: string) {
   })
 }
 
-export async function criar(tenantId: string, nome: string, vaiCozinha = true) {
+export async function criar(tenantId: string, nome: string, vaiCozinha = false) {
   return prisma.categoria.create({
     data: { tenantId, nome: nome.trim(), vaiCozinha },
   })

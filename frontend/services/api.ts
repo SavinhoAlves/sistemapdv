@@ -14,7 +14,7 @@ export function useApi() {
     const isAuthRoute = endpoint.includes('/auth/login') || endpoint.includes('/auth/rfid')
 
     const headers: Record<string, string> = {
-      'Content-Type': 'application/json',
+      ...(options.body !== undefined ? { 'Content-Type': 'application/json' } : {}),
       ...((options.headers as Record<string, string>) || {})
     }
 

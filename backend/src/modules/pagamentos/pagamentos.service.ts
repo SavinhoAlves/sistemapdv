@@ -50,6 +50,8 @@ export async function registrarPagamento(
     })
     if (!caixa) throw Object.assign(new Error('Nenhum caixa aberto'), { status: 400 })
 
+    const metodo = await tx.metodoPagamento.findFirst({ where: { id: metodoId, tenantId } })
+
     // 2. Busca pedido aberto da mesa
     const pedido = await tx.pedido.findFirst({
       where: {
@@ -59,6 +61,7 @@ export async function registrarPagamento(
       },
       include: {
         pagamentos: { where: { status: 'confirmado' } },
+        mesa: { select: { numero: true, nomeMesa: true } },
       },
     })
     if (!pedido) throw Object.assign(new Error('Nenhum pedido aberto nessa mesa'), { status: 404 })
@@ -103,7 +106,7 @@ export async function registrarPagamento(
         caixaId: caixa.id,
         tipo: 'pagamento',
         valor: valorAplicado,
-        descricao: `Pagamento mesa ${mesaId} - Pedido ${pedido.id}`,
+        descricao: `Pagamento ${pedido.mesa?.nomeMesa || `Mesa ${pedido.mesa?.numero}`} · ${metodo?.nome || 'Pagamento'}`,
         usuarioId,
       },
     })

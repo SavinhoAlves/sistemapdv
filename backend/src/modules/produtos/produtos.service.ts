@@ -11,6 +11,7 @@ export async function listar(tenantId: string) {
     preco: Number(p.preco),
     estoqueAtual: Number(p.estoqueAtual),
     estoqueMinimo: Number(p.estoqueMinimo),
+    categoria: p.categoria?.nome ?? null,
   }))
 }
 

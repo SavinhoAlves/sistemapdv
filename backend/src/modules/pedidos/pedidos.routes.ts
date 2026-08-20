@@ -67,8 +67,7 @@ export async function pedidosRoutes(app: FastifyInstance) {
   app.get('/mesa/:mesaId', { preHandler: [requireTenant] }, async (request, reply) => {
     const { mesaId } = request.params as any
     const pedido = await Service.pedidoAtualDaMesa(request.tenantId!, mesaId)
-    if (!pedido) return reply.status(404).send({ error: 'Nenhum pedido aberto nessa mesa' })
-    return pedido
+    return reply.send(pedido ?? null)
   })
 
   // PATCH /api/pedidos/:id/taxa-servico
@@ -87,8 +86,8 @@ export async function pedidosRoutes(app: FastifyInstance) {
     }
 
     try {
-      await Service.aplicarTaxaServico(tenantId, id, aplicar, taxaPct)
-      return { success: true }
+      const pedido = await Service.aplicarTaxaServico(tenantId, id, aplicar, taxaPct)
+      return { success: true, taxaPct: Number(pedido.taxaPct) }
     } catch (err: any) {
       if (err.code === 'P2025') return reply.status(404).send({ error: 'Pedido não encontrado' })
       throw err

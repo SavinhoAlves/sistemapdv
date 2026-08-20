@@ -267,7 +267,7 @@
               <Landmark :size="20" class="text-green-400" />
             </div>
             <h2 class="text-base font-black text-gray-900 dark:text-white">Caixa fechado</h2>
-            <p class="text-[11px] text-gray-500 dark:text-white/40 mt-0.5">Resumo do caixa #{{ resumoFechamento.caixa.id }}</p>
+            <p class="text-[11px] text-gray-500 dark:text-white/40 mt-0.5">Aberto em {{ resumoFechamento.caixa.data_abertura ? new Date(resumoFechamento.caixa.data_abertura).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : '—' }}</p>
           </div>
 
           <!-- CONFERÊNCIA -->
@@ -583,7 +583,7 @@ const imprimirFechamento = async () => {
     ${logoHtml}
     <div class="centro titulo">${configStore.nome_restaurante}</div>
     <div class="centro bold">FECHAMENTO DE CAIXA</div>
-    <div class="centro">Caixa #${resumo.caixa.id}</div>
+    <div class="centro">Sessão de ${fmtData(resumo.caixa.data_abertura)}</div>
     <div class="sep"></div>
     ${linha('Abertura', fmtData(resumo.caixa.data_abertura))}
     ${linha('Fechamento', fmtData(resumo.caixa.fechado_em))}

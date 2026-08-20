@@ -88,9 +88,12 @@ export async function produtosDaMesa(tenantId: string, mesaId: string) {
   })
 
   return itens.map((item) => ({
-    ...item,
+    id:           item.id,
+    pedidoId:     item.pedidoId,
+    produtoId:    item.produtoId,
+    nome:         item.produto.nome,
+    quantidade:   item.quantidade,
     precoUnitario: Number(item.precoUnitario),
-    precoTotal: Number(item.precoTotal),
-    produto: { ...item.produto, preco: Number(item.produto.preco) },
+    total:        Number(item.precoTotal),
   }))
 }

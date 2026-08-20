@@ -123,7 +123,7 @@
               <div class="relative p-4 pt-5 flex flex-col items-center min-h-[11rem] justify-center gap-1.5">
                 <span class="text-[9px] font-black uppercase tracking-[0.14em] transition-colors"
                   :class="mesaSelecionada?.id === mesa.id ? 'text-white/60' : 'text-orange-400/70'">
-                  {{ mesa.nome_mesa || `Mesa ${mesa.id}` }}
+                  {{ mesa.nome_mesa || `Mesa ${mesa.numero}` }}
                 </span>
 
                 <div class="w-14 h-14 rounded-2xl flex items-center justify-center font-black text-xl my-1 transition-all duration-200"
@@ -138,9 +138,9 @@
                   {{ mesa.cliente || '—' }}
                 </p>
 
-                <p v-if="mesa.garcom" class="text-[10px] text-center"
+                <p v-if="mesa.garcom?.nome" class="text-[10px] text-center"
                   :class="mesaSelecionada?.id === mesa.id ? 'text-white/50' : 'text-gray-400 dark:text-white/30'">
-                  {{ mesa.garcom }}
+                  {{ mesa.garcom.nome }}
                 </p>
               </div>
             </button>
@@ -178,7 +178,7 @@
                   </div>
                   <span class="font-black text-sm truncate"
                     :class="mesaSelecionada?.id === mesa.id ? 'text-orange-300' : 'text-gray-900 dark:text-white/90'">
-                    {{ mesa.nome_mesa || `Mesa ${mesa.id}` }}
+                    {{ mesa.nome_mesa || `Mesa ${mesa.numero}` }}
                   </span>
                 </div>
 
@@ -192,7 +192,7 @@
 
                 <!-- Garçom -->
                 <span class="text-sm truncate text-gray-400 dark:text-white/40">
-                  {{ mesa.garcom || '—' }}
+                  {{ mesa.garcom?.nome || '—' }}
                 </span>
 
                 <!-- Ação -->
@@ -271,12 +271,12 @@ import ModalRfidAuth from '~/components/modals/ModalRfidAuth.vue'
 definePageMeta({ layout: false })
 
 interface Mesa {
-  id: number
-  numero?: number
+  id: string
+  numero: number
   nome_mesa?: string
   cliente?: string
-  garcom?: string
-  garcom_id?: number
+  garcom?: { id: string; nome: string } | null
+  garcom_id?: string | null
   status: string
 }
 

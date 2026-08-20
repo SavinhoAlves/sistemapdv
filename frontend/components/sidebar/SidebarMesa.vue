@@ -14,7 +14,7 @@
           <div class="flex items-start justify-between gap-3">
             <div class="min-w-0">
               <p class="text-[10px] font-black uppercase tracking-widest text-orange-500 mb-1">
-                {{ mesa?.nome_mesa || `Mesa ${mesa?.id}` }}
+                {{ mesa?.nome_mesa || `Mesa ${mesa?.numero}` }}
               </p>
               <h2 class="text-xl font-black text-gray-900 dark:text-white truncate">
                 {{ mesa?.cliente || 'Sem cliente' }}
@@ -562,9 +562,9 @@ async function confirmarAbater() {
   if (!pedidoId.value || valorAbaterNum.value <= 0 || salvandoAbater.value) return
   salvandoAbater.value = true
   try {
-    const res = await api.patch<{ abatimento: Abatimento }>(`/pedidos/${pedidoId.value}/abater`, { valor: valorAbaterNum.value })
-    abatimentos.value.push(res.abatimento)
-    toastStore.success(`R$ ${Number(res.abatimento.valor).toFixed(2)} abatido do pedido`)
+    await api.patch(`/pedidos/${pedidoId.value}/abater`, { valor: valorAbaterNum.value })
+    abatimentos.value.push({ id: Date.now(), valor: valorAbaterNum.value, motivo: 'Abatimento' })
+    toastStore.success(`R$ ${valorAbaterNum.value.toFixed(2)} abatido do pedido`)
     fecharModalAbater()
   } catch (err: any) {
     toastStore.error(err?.message || 'Erro ao abater valor')
@@ -604,12 +604,9 @@ async function confirmarDesconto() {
     ? `Desconto ${valorDescontoNum.value}%`
     : 'Desconto'
   try {
-    const res = await api.patch<{ abatimento: Abatimento & { motivo: string } }>(`/pedidos/${pedidoId.value}/abater`, {
-      valor: valorDescontoCalc.value,
-      motivo
-    })
-    abatimentos.value.push(res.abatimento)
-    toastStore.success(`${motivo} de R$ ${Number(res.abatimento.valor).toFixed(2)} aplicado`)
+    await api.patch(`/pedidos/${pedidoId.value}/abater`, { valor: valorDescontoCalc.value, motivo })
+    abatimentos.value.push({ id: Date.now(), valor: valorDescontoCalc.value, motivo })
+    toastStore.success(`${motivo} de R$ ${valorDescontoCalc.value.toFixed(2)} aplicado`)
     fecharModalDesconto()
   } catch (err: any) {
     toastStore.error(err?.message || 'Erro ao aplicar desconto')
@@ -716,7 +713,7 @@ async function imprimir() {
     : ''
 
   const html = `<!DOCTYPE html><html><head><meta charset="utf-8">
-  <title>Conta - Mesa ${mesa?.nome_mesa || mesa?.id}</title>
+  <title>Conta - Mesa ${mesa?.nome_mesa || mesa?.numero}</title>
   <style>
     body { font-family: monospace; font-size: 13px; padding: 16px; max-width: 320px; margin: 0 auto }
     .cabecalho { text-align: center; margin-bottom: 12px }
@@ -928,7 +925,7 @@ async function handleReimprimir() {
     try {
       await api.post('/impressao/ficha', {
         itens:   [{ nome: produto.nome, quantidade: produto.quantidade }],
-        info:    `${dataStr} · ${mesa?.nome_mesa || `Mesa ${mesa?.id}`}`,
+        info:    `${dataStr} · ${mesa?.nome_mesa || `Mesa ${mesa?.numero}`}`,
         codigo:  ref,
         destino: 'cozinha'
       })
@@ -956,7 +953,7 @@ async function handleReimprimir() {
         <div class="ticket">
           ${logoHtml}
           <div class="restaurante">${nomeRest}</div>
-          <div class="info">${dataStr} · ${mesa?.nome_mesa || `Mesa ${mesa?.id}`}</div>
+          <div class="info">${dataStr} · ${mesa?.nome_mesa || `Mesa ${mesa?.numero}`}</div>
           <div class="sep"></div>
           <div class="produto">${produto.nome}</div>
           <div class="sep"></div>

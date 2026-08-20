@@ -791,12 +791,11 @@ async function carregarCategorias() {
 }
 
 async function alternarCozinha(cat: any) {
+  const novoValor = !cat.vai_cozinha
   try {
-    const res = await api.patch<{ vai_cozinha: number }>(`/categorias/${cat.id}/cozinha`, {
-      vai_cozinha: !cat.vai_cozinha
-    })
-    cat.vai_cozinha = res.vai_cozinha
-    toastStore.success(cat.vai_cozinha
+    await api.patch(`/categorias/${cat.id}/cozinha`, { vai_cozinha: novoValor })
+    cat.vai_cozinha = novoValor
+    toastStore.success(novoValor
       ? `Itens de "${cat.nome}" agora aparecem na cozinha`
       : `Itens de "${cat.nome}" não vão mais para a cozinha`)
   } catch (e: any) {

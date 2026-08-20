@@ -71,9 +71,9 @@
               </div>
               <span class="text-[10px] font-semibold text-white/20 tabular-nums">{{ formatarTempo(mesa.data_abertura) }}</span>
             </div>
-            <p class="text-[16px] font-black text-white leading-tight line-clamp-2">{{ mesa.nome_mesa }}</p>
-            <p class="text-[11px] font-medium mt-1.5 truncate" :class="mesa.garcom ? 'text-white/30' : 'text-white/10'">
-              {{ mesa.garcom || '—' }}
+            <p class="text-[16px] font-black text-white leading-tight line-clamp-2">{{ mesa.nome_mesa || `Mesa ${mesa.numero}` }}</p>
+            <p class="text-[11px] font-medium mt-1.5 truncate" :class="mesa.garcom?.nome ? 'text-white/30' : 'text-white/10'">
+              {{ mesa.garcom?.nome || '—' }}
             </p>
           </button>
         </div>
@@ -102,7 +102,7 @@
           </button>
           <div class="min-w-0">
             <p class="text-[10px] font-bold uppercase tracking-[0.14em] text-orange-500/70">Mesa aberta</p>
-            <h1 class="text-[20px] font-black text-white leading-tight truncate">{{ mesaSelecionada.nome_mesa }}</h1>
+            <h1 class="text-[20px] font-black text-white leading-tight truncate">{{ mesaSelecionada.nome_mesa || `Mesa ${mesaSelecionada.numero}` }}</h1>
           </div>
         </div>
       </div>
@@ -211,7 +211,7 @@
             <div class="px-5 pb-3 flex items-start justify-between shrink-0">
               <div>
                 <p class="text-[10px] font-bold uppercase tracking-[0.14em] text-orange-500/70">Pedido atual</p>
-                <h3 class="text-[20px] font-black text-white mt-0.5">{{ mesaSelecionada?.nome_mesa }}</h3>
+                <h3 class="text-[20px] font-black text-white mt-0.5">{{ mesaSelecionada?.nome_mesa || `Mesa ${mesaSelecionada?.numero}` }}</h3>
               </div>
               <button
                 @click="carrinhoAberto = false"
@@ -617,7 +617,7 @@ function imprimirComanda() {
   const total = totalMesa.value
 
   const html = `<!DOCTYPE html><html><head><meta charset="utf-8">
-  <title>Comanda - ${mesa.nome_mesa}</title>
+  <title>Comanda - ${mesa.nome_mesa || `Mesa ${mesa.numero}`}</title>
   <style>
     body { font-family: monospace; font-size: 13px; padding: 16px; max-width: 320px; margin: 0 auto }
     .cab { text-align: center; margin-bottom: 12px }
@@ -631,7 +631,7 @@ function imprimirComanda() {
   </style></head><body>
   <div class="cab">${logoHtml}<h1>${nomeRest}</h1>
   <div style="font-size:11px;color:#888;margin-top:1px">COMANDA DA MESA</div></div>
-  <div class="sub">${mesa.nome_mesa} &nbsp;|&nbsp; ${data}</div>
+  <div class="sub">${mesa.nome_mesa || `Mesa ${mesa.numero}`} &nbsp;|&nbsp; ${data}</div>
   <table>
     <thead><tr>
       <th style="text-align:left">Item</th>

@@ -3,7 +3,7 @@ import { buildApp } from './app'
 import { prisma } from './lib/prisma'
 import { initSocket } from './sockets/socket'
 
-const PORT = parseInt(process.env.FASTIFY_PORT ?? process.env.PORT ?? '3002', 10)
+const PORT = parseInt(process.env.PORT ?? '3002', 10)
 const HOST = process.env.HOST ?? '0.0.0.0'
 
 async function start() {

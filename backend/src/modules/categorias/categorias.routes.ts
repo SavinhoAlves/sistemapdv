@@ -37,9 +37,10 @@ export async function categoriasRoutes(app: FastifyInstance) {
 
   app.patch('/:id/cozinha', { preHandler: [requireTenant, requirePermissao('gerenciarProdutos')] }, async (request, reply) => {
     const { id } = request.params as any
-    const { vai_cozinha } = request.body as any
-    await Service.atualizarCozinha(request.tenantId!, id, Boolean(vai_cozinha))
-    return { success: true }
+    const body = request.body as any
+    const vaiCozinha = body.vaiCozinha ?? body.vai_cozinha
+    await Service.atualizarCozinha(request.tenantId!, id, Boolean(vaiCozinha))
+    return { success: true, vaiCozinha: Boolean(vaiCozinha) }
   })
 
   app.delete('/:id', { preHandler: [requireTenant, requirePermissao('gerenciarProdutos')] }, async (request, reply) => {

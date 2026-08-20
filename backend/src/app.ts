@@ -24,15 +24,32 @@ function snakeToCamel(s: string): string {
   return s.replace(/_([a-z0-9])/g, (_, c) => c.toUpperCase())
 }
 
-function normalizeBodyKeys(obj: Record<string, unknown>): Record<string, unknown> {
-  const out: Record<string, unknown> = {}
-  for (const [k, v] of Object.entries(obj)) {
-    const key = snakeToCamel(k)
-    out[key] = v !== null && typeof v === 'object' && !Array.isArray(v)
-      ? normalizeBodyKeys(v as Record<string, unknown>)
-      : v
+function camelToSnake(s: string): string {
+  return s.replace(/[A-Z]/g, (c) => '_' + c.toLowerCase())
+}
+
+function normalizeBodyKeys(val: unknown): unknown {
+  if (Array.isArray(val)) return val.map(normalizeBodyKeys)
+  if (val !== null && typeof val === 'object') {
+    const out: Record<string, unknown> = {}
+    for (const [k, v] of Object.entries(val as Record<string, unknown>)) {
+      out[snakeToCamel(k)] = normalizeBodyKeys(v)
+    }
+    return out
   }
-  return out
+  return val
+}
+
+function normalizeResponseKeys(val: unknown): unknown {
+  if (Array.isArray(val)) return val.map(normalizeResponseKeys)
+  if (val !== null && typeof val === 'object' && !(val instanceof Date)) {
+    const out: Record<string, unknown> = {}
+    for (const [k, v] of Object.entries(val as Record<string, unknown>)) {
+      out[camelToSnake(k)] = normalizeResponseKeys(v)
+    }
+    return out
+  }
+  return val
 }
 
 export async function buildApp() {
@@ -65,8 +82,20 @@ export async function buildApp() {
 
   // ── Body normalizer: aceita snake_case do frontend legado ─────────────────
   app.addHook('preHandler', async (request) => {
-    if (request.body && typeof request.body === 'object' && !Array.isArray(request.body)) {
-      request.body = normalizeBodyKeys(request.body as Record<string, unknown>)
+    if (request.body && typeof request.body === 'object') {
+      request.body = normalizeBodyKeys(request.body)
+    }
+  })
+
+  // ── Response normalizer: converte camelCase → snake_case para o frontend ──
+  app.addHook('onSend', async (_request, reply, payload) => {
+    const ct = reply.getHeader('content-type') as string | undefined
+    if (typeof payload !== 'string' || !ct?.includes('application/json')) return payload
+    try {
+      const parsed = JSON.parse(payload)
+      return JSON.stringify(normalizeResponseKeys(parsed))
+    } catch {
+      return payload
     }
   })
 

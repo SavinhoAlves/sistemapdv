@@ -339,25 +339,55 @@ export async function pedidosCozinha(tenantId: string) {
       createdAt: { gte: dozeHorasAtras },
     },
     include: {
-      produto: { select: { id: true, nome: true } },
+      produto: {
+        select: {
+          nome: true,
+          categoria: { select: { nome: true } },
+        },
+      },
       pedido: {
         select: {
           id: true,
           mesaId: true,
-          mesa: { select: { numero: true, nomeMesa: true } },
+          mesa: { select: { numero: true, nomeMesa: true, cliente: true } },
         },
       },
     },
     orderBy: { createdAt: 'asc' },
   })
 
-  return itens.map((item) => ({
-    ...item,
-    precoUnitario: Number(item.precoUnitario),
-    precoTotal: Number(item.precoTotal),
-    produto: item.produto,
-    pedido: item.pedido,
-  }))
+  // Agrupa por mesa — estrutura esperada pelo frontend
+  const byMesa = new Map<string, {
+    mesaId: string
+    mesaNome: string
+    cliente: string | null
+    itens: object[]
+  }>()
+
+  for (const item of itens) {
+    const mesa   = item.pedido?.mesa
+    const mesaId = item.pedido?.mesaId ?? 'sem-mesa'
+    const mesaNome = mesa?.nomeMesa || `Mesa ${mesa?.numero ?? '?'}`
+    const cliente  = mesa?.cliente ?? null
+
+    if (!byMesa.has(mesaId)) {
+      byMesa.set(mesaId, { mesaId, mesaNome, cliente, itens: [] })
+    }
+
+    byMesa.get(mesaId)!.itens.push({
+      id:         item.id,
+      pedidoId:   item.pedidoId,
+      produto:    item.produto.nome,
+      categoria:  item.produto.categoria?.nome ?? null,
+      quantidade: item.quantidade,
+      status:     item.status,
+      observacao: item.observacao,
+      createdAt:  item.createdAt,
+      updatedAt:  item.updatedAt,
+    })
+  }
+
+  return [...byMesa.values()]
 }
 
 export async function atualizarStatusItem(tenantId: string, itemId: string, status: string) {

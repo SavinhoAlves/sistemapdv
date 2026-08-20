@@ -108,16 +108,52 @@ export async function buildApp() {
     }
   })
 
-  // Status-licença — bypass para nova API (licença gerenciada no modelo Licenca)
-  app.get('/api/sistema/status-licenca', { config: { public: true } }, async () => ({
-    ativo: true, expirado: false, semLicenca: false
-  }))
+  // Status-licença — verifica o tenant pelo slug e checa a Licenca no banco
+  app.get('/api/sistema/status-licenca', { config: { public: true } }, async (request, reply) => {
+    const slug = (request.query as any).slug as string | undefined
+    if (!slug) {
+      return reply.send({ ativo: false, semLicenca: true, motivo: 'slug_ausente' })
+    }
+    try {
+      const { prisma } = await import('./lib/prisma')
+
+      const tenant = await prisma.tenant.findUnique({ where: { slug } })
+      if (!tenant) {
+        return reply.send({ ativo: false, semLicenca: true, motivo: 'tenant_nao_encontrado' })
+      }
+      if (tenant.status === 'suspenso' || tenant.status === 'cancelado') {
+        return reply.send({ ativo: false, suspenso: true, motivo: tenant.status })
+      }
+
+      const licenca = await prisma.licenca.findFirst({
+        where: { tenantId: tenant.id },
+        orderBy: { createdAt: 'desc' },
+      })
+      if (!licenca || licenca.status === 'pendente' || licenca.status === 'bloqueado') {
+        return reply.send({ ativo: false, semLicenca: true, motivo: licenca?.status ?? 'sem_licenca' })
+      }
+
+      const expirado = licenca.dataVencimento ? licenca.dataVencimento < new Date() : false
+      if (expirado) {
+        return reply.send({ ativo: false, expirado: true, motivo: 'expirado', venceu_em: licenca.dataVencimento })
+      }
+
+      return reply.send({
+        ativo: true,
+        expirado: false,
+        semLicenca: false,
+        expira_em: licenca.dataVencimento,
+      })
+    } catch {
+      // Em caso de erro no banco, deixa passar para não travar o sistema
+      return reply.send({ ativo: true, expirado: false, semLicenca: false })
+    }
+  })
 
   // Ativação de licença — no SaaS a licença é gerenciada pela plataforma central
   app.post('/api/sistema/ativar', { config: { public: true } }, async () => ({
-    success: true,
-    message: 'Licença gerenciada pela plataforma SaaS — sempre ativa',
-    cliente: 'SaaS',
+    success: false,
+    message: 'Licença gerenciada pela plataforma central SaaS — acesse o painel em :4000',
   }))
 
   return app

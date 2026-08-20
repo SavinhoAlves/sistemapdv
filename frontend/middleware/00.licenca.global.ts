@@ -1,4 +1,4 @@
-const ROTAS_LIVRES = ['/ativacao', '/m']
+const ROTAS_LIVRES = ['/ativacao', '/login', '/m']
 const CACHE_TTL = 60 * 1000
 
 export default defineNuxtRouteMiddleware(async (to) => {
@@ -17,8 +17,13 @@ export default defineNuxtRouteMiddleware(async (to) => {
   }
 
   const config = useRuntimeConfig()
+  const slug   = (config.public as any).tenantSlug as string
+
   try {
-    const res = await $fetch<any>(`${config.public.apiUrl}/api/sistema/status-licenca`)
+    const res = await $fetch<any>(
+      `${config.public.apiUrl}/api/sistema/status-licenca`,
+      { query: { slug } }
+    )
     cache.value = { valido: !!(res.ativo && !res.expirado && !res.semLicenca), ts: agora }
     if (!cache.value.valido) return navigateTo('/ativacao')
   } catch {

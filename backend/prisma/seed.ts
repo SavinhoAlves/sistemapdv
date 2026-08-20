@@ -90,8 +90,21 @@ async function main() {
       },
     })
 
+    // Licença — 365 dias a partir de hoje
+    const expiraA = new Date()
+    expiraA.setDate(expiraA.getDate() + 365)
+    await prisma.licenca.create({
+      data: {
+        tenantId:       tenantA.id,
+        status:         'ativado',
+        dataAtivacao:   new Date(),
+        dataVencimento: expiraA,
+      },
+    })
+
     console.log('Tenant A criado: Restaurante Tarantela (slug: tarantela)')
     console.log('   Login: admin@tarantela.com / 123456')
+    console.log(`   Licença válida até: ${expiraA.toLocaleDateString('pt-BR')}`)
   }
 
   // ── Tenant B — Sabor Italiano ─────────────────────────────────────────────
@@ -153,8 +166,20 @@ async function main() {
       },
     })
 
+    const expiraB = new Date()
+    expiraB.setDate(expiraB.getDate() + 365)
+    await prisma.licenca.create({
+      data: {
+        tenantId:       tenantB.id,
+        status:         'ativado',
+        dataAtivacao:   new Date(),
+        dataVencimento: expiraB,
+      },
+    })
+
     console.log('Tenant B criado: Sabor Italiano (slug: sabor-italiano)')
     console.log('   Login: admin@saboritaliano.com / 123456')
+    console.log(`   Licença válida até: ${expiraB.toLocaleDateString('pt-BR')}`)
   }
 
   console.log('Seed concluido!')

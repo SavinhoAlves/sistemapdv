@@ -36,7 +36,7 @@ function Configurar-Ambiente($ip) {
     $protocolo = if ($usaHttps) { "https" } else { "http" }
 
     $frontendEnvPath = "$PSScriptRoot\frontend\.env"
-    $frontendEnv = "NUXT_PUBLIC_API_URL=${protocolo}://${ip}:3001`nNUXT_PUBLIC_SOCKET_URL=${protocolo}://${ip}:3001`nNUXT_PUBLIC_LICENSE_SECRET=nova2020*"
+    $frontendEnv = "NUXT_PUBLIC_API_URL=${protocolo}://${ip}:3002`nNUXT_PUBLIC_SOCKET_URL=${protocolo}://${ip}:3002"
     Set-Content -Path $frontendEnvPath -Value $frontendEnv -Encoding UTF8
 
     $backendEnvPath = "$PSScriptRoot\backend\.env"
@@ -52,7 +52,7 @@ function Configurar-Ambiente($ip) {
 # da porta (nao pela janela do PowerShell), assim nao sobra processo node
 # orfao travando a porta na proxima subida
 function Parar-Servidores {
-    foreach ($porta in 3000, 3001) {
+    foreach ($porta in 3000, 3002, 4000) {
         $conexoes = Get-NetTCPConnection -LocalPort $porta -State Listen -ErrorAction SilentlyContinue
         foreach ($c in $conexoes) {
             Stop-Process -Id $c.OwningProcess -Force -ErrorAction SilentlyContinue
@@ -62,10 +62,13 @@ function Parar-Servidores {
 }
 
 function Iniciar-Servidores {
-    # node server.js direto - o script "npm run dev" do backend aponta pra
-    # um arquivo que nao existe
-    Start-Process powershell -ArgumentList "-NoExit", "-Command", "cd '$PSScriptRoot\backend'; node server.js" -WindowStyle Normal
+    # Backend Fastify com tsx (TypeScript)
+    Start-Process powershell -ArgumentList "-NoExit", "-Command", "cd '$PSScriptRoot\backend'; npx tsx src/server.ts" -WindowStyle Normal
     Start-Sleep -Seconds 2
+
+    # Central admin panel
+    Start-Process powershell -ArgumentList "-NoExit", "-Command", "cd '$PSScriptRoot\central'; node server.js" -WindowStyle Normal
+    Start-Sleep -Seconds 1
 
     # Frontend em modo PRODUCAO: o servidor de dev (Vite) nao serve sub-caminhos
     # (/m, /login, etc.) corretamente para clientes externos como celulares.
@@ -83,15 +86,18 @@ function Iniciar-Servidores {
 
     Start-Process powershell -ArgumentList "-NoExit", "-Command", "${prefixoCA}cd '$PSScriptRoot\frontend'; npm run start" -WindowStyle Normal
     Write-Host "Servidores iniciados!" -ForegroundColor Green
+    Write-Host "  API:     http://${ip}:3002" -ForegroundColor DarkGray
+    Write-Host "  Central: http://${ip}:4000" -ForegroundColor DarkGray
+    Write-Host "  PDV:     http://${ip}:3000" -ForegroundColor DarkGray
     Write-Host ""
 }
 
-#  boot inicial 
+#  boot inicial
 $ipAtual = Detectar-Ip
 Configurar-Ambiente $ipAtual
 Iniciar-Servidores
 
-#  vigia: reinicia sozinho se o IP da rede mudar 
+#  vigia: reinicia sozinho se o IP da rede mudar
 Write-Host "Vigiando o IP da rede (Ctrl+C pra parar de vigiar; os servidores continuam rodando)..." -ForegroundColor DarkGray
 while ($true) {
     Start-Sleep -Seconds 20

@@ -1,6 +1,6 @@
-# 🍽️ RestaurantePDV — Sistema de Comandas Eletrônicas
+# RestaurantePDV — Sistema SaaS Multi-Tenant
 
-Sistema profissional de PDV (Ponto de Venda) para restaurantes e bares, com operação **100% em rede local (LAN)**, sem dependência de internet.
+Sistema profissional de PDV (Ponto de Venda) para restaurantes e bares, arquitetado como plataforma SaaS multi-tenant com operação em rede local (LAN) ou remota.
 
 ---
 

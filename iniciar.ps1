@@ -35,8 +35,14 @@ function Configurar-Ambiente($ip) {
 
     $protocolo = if ($usaHttps) { "https" } else { "http" }
 
+    # Le o slug atual se ja existir no .env, para nao perder ao trocar de IP
     $frontendEnvPath = "$PSScriptRoot\frontend\.env"
-    $frontendEnv = "NUXT_PUBLIC_API_URL=${protocolo}://${ip}:3002`nNUXT_PUBLIC_SOCKET_URL=${protocolo}://${ip}:3002"
+    $slugAtual = 'tarantela'
+    if (Test-Path $frontendEnvPath) {
+        $linhaSlug = Get-Content $frontendEnvPath | Where-Object { $_ -match '^NUXT_PUBLIC_TENANT_SLUG=' }
+        if ($linhaSlug) { $slugAtual = ($linhaSlug -split '=', 2)[1] }
+    }
+    $frontendEnv = "NUXT_PUBLIC_API_URL=${protocolo}://${ip}:3002`nNUXT_PUBLIC_SOCKET_URL=${protocolo}://${ip}:3002`nNUXT_PUBLIC_TENANT_SLUG=${slugAtual}"
     Set-Content -Path $frontendEnvPath -Value $frontendEnv -Encoding UTF8
 
     $backendEnvPath = "$PSScriptRoot\backend\.env"

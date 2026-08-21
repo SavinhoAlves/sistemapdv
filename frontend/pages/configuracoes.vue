@@ -978,6 +978,14 @@ function onLogoChange(e: Event) {
 }
 
 async function testarImpressora() {
+  if (form.impressora_tipo === 'rede' && !form.impressora_host.trim()) {
+    toastStore.error('Falta configuração', 'Informe o IP da impressora de rede antes de testar.')
+    return
+  }
+  if (form.impressora_tipo === 'windows' && !form.impressora_host.trim()) {
+    toastStore.error('Falta configuração', 'Informe o nome da impressora Windows antes de testar.')
+    return
+  }
   testandoImpressora.value = true
   try {
     await api.post('/impressao/teste')

@@ -329,9 +329,9 @@ async function loginRfid(cartao_rfid: string) {
   try {
     const res: any = await api.auth.rfid(cartao_rfid)
     const raw = res.usuario
-    if (res.accessToken && raw) {
-      const user = { id: raw.id, nome: raw.nome, cargo: raw.cargo, perfil_id: raw.perfilId ?? null, permissoes: raw.permissoes ?? null }
-      authStore.setAuth(res.accessToken, user, res.refreshToken)
+    if (res.access_token && raw) {
+      const user = { id: raw.id, nome: raw.nome, cargo: raw.cargo, perfil_id: raw.perfil_id ?? null, permissoes: raw.permissoes ?? null }
+      authStore.setAuth(res.access_token, user, res.refresh_token)
       showMsg('success', `Bem-vindo, ${raw.nome}!`)
       return navigateTo('/')
     }
@@ -350,9 +350,9 @@ async function handleManualLogin() {
   try {
     const res: any = await api.auth.login(form.email, form.senha)
     const raw = res.usuario
-    if (res.accessToken && raw) {
-      const user = { id: raw.id, nome: raw.nome, cargo: raw.cargo, perfil_id: raw.perfilId ?? null, permissoes: raw.permissoes ?? null }
-      authStore.setAuth(res.accessToken, user, res.refreshToken)
+    if (res.access_token && raw) {
+      const user = { id: raw.id, nome: raw.nome, cargo: raw.cargo, perfil_id: raw.perfil_id ?? null, permissoes: raw.permissoes ?? null }
+      authStore.setAuth(res.access_token, user, res.refresh_token)
       showMsg('success', 'Acesso autorizado!')
       return navigateTo('/')
     }

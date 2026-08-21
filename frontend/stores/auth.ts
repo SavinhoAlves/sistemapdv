@@ -75,15 +75,15 @@ export const useAuthStore = defineStore('auth', {
           { method: 'POST', body: { cartaoRfid: rfid.trim(), slug } }
         )
 
-        if (resposta?.usuario && resposta?.accessToken) {
+        if (resposta?.usuario && resposta?.access_token) {
           const usuario: Usuario = {
             id:         resposta.usuario.id,
             nome:       resposta.usuario.nome,
             cargo:      resposta.usuario.cargo,
-            perfil_id:  resposta.usuario.perfilId ?? null,
+            perfil_id:  resposta.usuario.perfil_id ?? null,
             permissoes: resposta.usuario.permissoes ?? null,
           }
-          this.setAuth(resposta.accessToken, usuario, resposta.refreshToken)
+          this.setAuth(resposta.access_token, usuario, resposta.refresh_token)
           return true
         }
         return false
@@ -123,7 +123,7 @@ export const useAuthStore = defineStore('auth', {
             id:         resp.auth.sub,
             nome:       resp.auth.nome,
             cargo:      resp.auth.cargo,
-            perfil_id:  resp.auth.perfilId ?? null,
+            perfil_id:  resp.auth.perfil_id ?? null,
             permissoes: resp.auth.permissoes ?? null,
           } as Usuario
           localStorage.setItem('auth_user', JSON.stringify(this.usuario))

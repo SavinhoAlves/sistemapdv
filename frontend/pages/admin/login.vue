@@ -222,15 +222,16 @@ async function handleLogin() {
   hideMsg()
   try {
     const res: any = await api.auth.login(form.email, form.senha)
-    const user = res.funcionario || res.usuario
-    if (!user || !res.token) throw new Error('Resposta inválida')
+    const raw = res.usuario
+    if (!raw || !res.access_token) throw new Error('Resposta inválida')
 
-    if (user.cargo !== 'administrador') {
+    if (raw.cargo !== 'administrador') {
       showMsg('error', 'Acesso restrito ao administrador')
       return
     }
 
-    authStore.setAuth(res.token, user)
+    const user = { id: raw.id, nome: raw.nome, cargo: raw.cargo, perfil_id: raw.perfil_id ?? null, permissoes: raw.permissoes ?? null }
+    authStore.setAuth(res.access_token, user, res.refresh_token)
     showMsg('success', `Bem-vindo, ${user.nome}!`)
     setTimeout(() => navigateTo('/admin'), 800)
   } catch (e: any) {

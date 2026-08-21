@@ -501,8 +501,10 @@ onMounted(() => {
 
   timerToken = setInterval(async () => {
     try {
-      const resp = await api.get<any>('/auth/renovar')
-      if (resp?.token) authStore.setAuth(resp.token, resp.usuario || authStore.usuario!)
+      const rt = authStore.refreshToken
+      if (!rt) return
+      const resp = await api.post<any>('/auth/refresh', { refreshToken: rt })
+      if (resp?.access_token) authStore.setAuth(resp.access_token, authStore.usuario!, resp.refresh_token)
     } catch {}
   }, 45 * 60 * 1000)
 

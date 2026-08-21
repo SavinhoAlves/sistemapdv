@@ -1,6 +1,8 @@
 import type { FastifyInstance } from 'fastify'
 import { loginSchema, loginRfidSchema, loginPinSchema, refreshSchema } from './auth.schema'
 import * as AuthService from './auth.service'
+import { verifyAccessToken } from '../../lib/jwt'
+import { prisma } from '../../lib/prisma'
 
 export async function authRoutes(app: FastifyInstance) {
   // POST /api/auth/login
@@ -73,6 +75,51 @@ export async function authRoutes(app: FastifyInstance) {
   // GET /api/auth/me
   app.get('/me', async (request, reply) => {
     return reply.send({ auth: request.auth })
+  })
+
+  // GET /api/auth/mobile-status — verifica se vendas mobile estão habilitadas no tenant
+  app.get('/mobile-status', { config: { public: true } }, async (request, reply) => {
+    const slug = (request.query as any).slug as string | undefined
+    if (!slug) return reply.send({ ativo: true })
+    try {
+      const tenant = await prisma.tenant.findUnique({ where: { slug } })
+      return reply.send({ ativo: tenant ? tenant.vendaMobilePermitida : false })
+    } catch {
+      return reply.send({ ativo: true })
+    }
+  })
+
+  // POST /api/auth/mobile — valida token mobile (gerado via /usuarios/:id/mobile-token)
+  app.post('/mobile', { config: { public: true } }, async (request, reply) => {
+    const { token } = request.body as any
+    if (!token) return reply.status(400).send({ error: 'Token obrigatório' })
+    try {
+      const payload = verifyAccessToken(token)
+      if (payload.type !== 'tenant') return reply.status(401).send({ error: 'Token inválido' })
+
+      const tenant = await prisma.tenant.findUnique({ where: { id: payload.tenantId } })
+      if (!tenant || !tenant.vendaMobilePermitida) {
+        return reply.status(403).send({ error: 'Acesso mobile não permitido para este restaurante' })
+      }
+
+      const caixaAberto = await prisma.caixa.findFirst({
+        where: { tenantId: payload.tenantId, status: 'aberto' },
+      })
+      if (!caixaAberto) return reply.status(403).send({ error: 'Caixa fechado' })
+
+      return reply.send({
+        token,
+        usuario: {
+          id:         payload.sub,
+          nome:       payload.nome,
+          cargo:      payload.cargo,
+          perfilId:   payload.perfilId,
+          permissoes: payload.permissoes ?? {},
+        },
+      })
+    } catch {
+      return reply.status(401).send({ error: 'Token inválido ou expirado' })
+    }
   })
 
   // POST /api/auth/rfid-identify — identifica usuário mid-session via RFID (sem refresh token)

@@ -4,21 +4,15 @@
     <!-- ══ TOPBAR ══ -->
     <header class="sticky top-0 z-30 border-b border-white/[0.05]" style="background: rgba(10,10,15,0.85); backdrop-filter: blur(20px);">
       <div class="max-w-5xl mx-auto px-6 h-14 flex items-center justify-between gap-4">
-        <div class="flex items-center gap-3">
-          <NuxtLink to="/platform"
-            class="h-8 px-3 rounded-xl bg-white/[0.05] hover:bg-white/[0.09] border border-white/[0.07] text-white/40 hover:text-white text-xs font-black transition-all flex items-center gap-1.5">
-            <ArrowLeft :size="12" /> Voltar
-          </NuxtLink>
-          <div class="w-px h-4 bg-white/10"></div>
-          <div class="flex items-center gap-2.5">
-            <div class="relative">
-              <div class="absolute inset-0 rounded-xl bg-violet-600 blur-md opacity-50"></div>
-              <div class="relative w-7 h-7 rounded-xl bg-gradient-to-br from-violet-500 to-violet-700 flex items-center justify-center shadow-lg">
-                <Globe :size="13" class="text-white" />
-              </div>
+        <div class="flex items-center gap-2.5">
+          <div class="relative">
+            <div class="absolute inset-0 rounded-xl bg-violet-600 blur-md opacity-50"></div>
+            <div class="relative w-7 h-7 rounded-xl bg-gradient-to-br from-violet-500 to-violet-700 flex items-center justify-center shadow-lg">
+              <Globe :size="13" class="text-white" />
             </div>
-            <span class="text-white font-black text-sm tracking-tight hidden sm:inline">Plataforma</span>
           </div>
+          <span class="text-white font-black text-sm tracking-tight hidden sm:inline">Plataforma</span>
+          <span class="text-white/25 text-[10px] font-bold uppercase tracking-widest hidden sm:inline">PDV · Super Admin</span>
         </div>
         <div class="flex items-center gap-2">
           <div class="hidden sm:flex items-center gap-2 rounded-xl px-3 py-1.5 border border-white/[0.06] bg-white/[0.03]">
@@ -55,7 +49,13 @@
     </div>
 
     <!-- ══ CONTEÚDO ══ -->
-    <main v-else-if="tenant" class="max-w-5xl mx-auto px-6 py-7 space-y-6">
+    <main v-else-if="tenant" class="max-w-5xl mx-auto px-6 py-5 space-y-5">
+
+      <!-- ── VOLTAR ── -->
+      <NuxtLink to="/platform"
+        class="inline-flex items-center gap-1.5 h-8 px-3 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.07] text-white/40 hover:text-white/80 text-xs font-black transition-all">
+        <ArrowLeft :size="12" /> Voltar ao painel
+      </NuxtLink>
 
       <!-- ── HERO DO TENANT ── -->
       <div class="relative overflow-hidden rounded-2xl border border-white/[0.06] bg-white/[0.015]">
@@ -143,11 +143,14 @@
         </section>
 
         <!-- LICENÇA -->
-        <section class="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-5">
+        <section class="rounded-2xl border bg-white/[0.02] p-5"
+          :class="licencaAtual?.status === 'pendente' ? 'border-amber-500/20' : licencaAtual?.status === 'bloqueado' ? 'border-red-500/20' : 'border-white/[0.06]'">
           <div class="flex items-center justify-between mb-4">
             <div class="flex items-center gap-2">
-              <div class="w-7 h-7 rounded-lg bg-sky-500/10 flex items-center justify-center">
-                <KeyRound :size="13" class="text-sky-400" />
+              <div class="w-7 h-7 rounded-lg flex items-center justify-center"
+                :class="licencaAtual?.status === 'pendente' ? 'bg-amber-500/10' : licencaAtual?.status === 'bloqueado' ? 'bg-red-500/10' : 'bg-sky-500/10'">
+                <KeyRound :size="13"
+                  :class="licencaAtual?.status === 'pendente' ? 'text-amber-400' : licencaAtual?.status === 'bloqueado' ? 'text-red-400' : 'text-sky-400'" />
               </div>
               <h2 class="text-xs font-black text-white uppercase tracking-widest">Licença</h2>
             </div>
@@ -166,11 +169,20 @@
               <div class="w-8 h-8 rounded-xl flex items-center justify-center shrink-0" :class="licencaIconBlock">
                 <KeyRound :size="14" :class="licencaIconColor" />
               </div>
-              <div>
+              <div class="flex-1">
                 <p class="text-sm font-black" :class="licencaIconColor">{{ licencaStatusLabel }}</p>
                 <p class="text-[11px] text-white/35 leading-tight">{{ licencaLabel }}</p>
               </div>
             </div>
+
+            <!-- Botão de ativação rápida -->
+            <button v-if="licencaAtual.status !== 'ativado'" @click="ativarLicenca" :disabled="ativandoLicenca"
+              class="w-full h-10 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20 text-emerald-400 text-sm font-black transition-all flex items-center justify-center gap-2 disabled:opacity-40">
+              <Loader2 v-if="ativandoLicenca" :size="13" class="animate-spin" />
+              <CheckCircle2 v-else :size="13" />
+              {{ ativandoLicenca ? 'Ativando...' : 'Ativar licença (1 ano)' }}
+            </button>
+
             <dl class="space-y-2.5">
               <div class="flex gap-3">
                 <dt class="text-[11px] text-white/25 font-bold w-24 shrink-0 pt-0.5">Ativação</dt>
@@ -472,11 +484,12 @@ const route        = useRoute()
 const platformAuth = usePlatformAuthStore()
 const runtimeConfig = useRuntimeConfig()
 
-const tenant     = ref<Tenant | null>(null)
-const loading    = ref(false)
-const erro       = ref('')
-const togglingRfid = ref(false)
-const toastMsg   = reactive({ text: '', type: 'success' as 'success' | 'error' })
+const tenant         = ref<Tenant | null>(null)
+const loading        = ref(false)
+const erro           = ref('')
+const togglingRfid   = ref(false)
+const ativandoLicenca = ref(false)
+const toastMsg       = reactive({ text: '', type: 'success' as 'success' | 'error' })
 
 const modalAberto = ref(false)
 const modalModo   = ref<'dados' | 'licenca'>('dados')
@@ -612,6 +625,27 @@ async function salvar() {
     fecharModal(); await carregar()
   } catch (e: any) { erroModal.value = e?.message || 'Erro ao salvar' }
   finally { salvando.value = false }
+}
+
+async function ativarLicenca() {
+  if (!tenant.value || ativandoLicenca.value) return
+  ativandoLicenca.value = true
+  try {
+    const hoje = new Date()
+    const vencimento = new Date(hoje)
+    vencimento.setFullYear(vencimento.getFullYear() + 1)
+    await platformFetch(`/platform/tenants/${tenant.value.id}/licenca`, {
+      method: 'PUT',
+      body: JSON.stringify({
+        status: 'ativado',
+        dataAtivacao: hoje.toISOString().substring(0, 10),
+        dataVencimento: vencimento.toISOString().substring(0, 10),
+      }),
+    })
+    showToast('success', 'Licença ativada por 1 ano!')
+    await carregar()
+  } catch (e: any) { showToast('error', e?.message || 'Erro ao ativar') }
+  finally { ativandoLicenca.value = false }
 }
 
 async function toggleRfid() {

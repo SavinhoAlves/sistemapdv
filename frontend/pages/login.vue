@@ -252,9 +252,14 @@
         </Transition>
 
         <!-- Rodapé -->
-        <p class="text-center text-gray-400 dark:text-white/20 text-[11px] mt-6">
-          Versão 1.0 · Restaurante PDV
-        </p>
+        <div class="mt-6 flex flex-col items-center gap-2">
+          <NuxtLink to="/platform/login"
+            class="flex items-center gap-1.5 text-[10px] text-gray-300 dark:text-white/15 hover:text-orange-400 dark:hover:text-orange-400 transition-colors font-medium">
+            <LayoutGrid :size="10" />
+            Central de Gestão
+          </NuxtLink>
+          <p class="text-gray-400 dark:text-white/20 text-[11px]">Versão 1.0 · Restaurante PDV</p>
+        </div>
 
       </div>
     </div>

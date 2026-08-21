@@ -414,7 +414,7 @@
             <div class="px-5 py-3.5 space-y-1.5">
               <div class="flex justify-between">
                 <span class="text-[12px] text-white/30 font-medium">Total pago</span>
-                <span class="text-[14px] font-black text-white tabular-nums">R$ {{ fmt(fichaAtual.totalLiquido) }}</span>
+                <span class="text-[14px] font-black text-white tabular-nums">R$ {{ fmt(fichaAtual.total_liquido) }}</span>
               </div>
               <div v-if="fichaAtual.troco > 0" class="flex justify-between">
                 <span class="text-[12px] font-bold text-emerald-400">Troco</span>

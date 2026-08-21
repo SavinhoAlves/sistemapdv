@@ -258,7 +258,7 @@
               {{ configStore.nome_restaurante }}
             </p>
             <p class="text-[10px] text-gray-400 dark:text-white/40 mt-1">
-              {{ fichaAtual.numero }} · {{ fmtFichaDateTime(fichaAtual.createdAt) }}
+              {{ fichaAtual.numero }} · {{ fmtFichaDateTime(fichaAtual.created_at) }}
             </p>
             <p class="text-[10px] text-gray-400 dark:text-neutral-400">Operador: {{ fichaAtual.operador }}</p>
           </div>
@@ -286,11 +286,11 @@
               <span>Desconto</span><span>− R$ {{ fmt(fichaAtual.desconto) }}</span>
             </div>
             <div class="flex justify-between text-sm font-black text-gray-900 dark:text-white">
-              <span>TOTAL</span><span>R$ {{ fmt(fichaAtual.totalLiquido) }}</span>
+              <span>TOTAL</span><span>R$ {{ fmt(fichaAtual.total_liquido) }}</span>
             </div>
             <div class="flex justify-between text-[11px] text-gray-500 dark:text-white/40 pt-0.5">
               <span>{{ fichaAtual.metodo }}</span>
-              <span>Pago R$ {{ fmt(fichaAtual.valorPago) }}</span>
+              <span>Pago R$ {{ fmt(fichaAtual.valor_pago) }}</span>
             </div>
             <div v-if="fichaAtual.troco > 0" class="flex justify-between text-[11px] font-black text-green-400">
               <span>Troco</span><span>R$ {{ fmt(fichaAtual.troco) }}</span>
@@ -473,7 +473,7 @@ async function imprimirFicha() {
     try {
       await api.post('/impressao/ficha', {
         itens:   ficha.itens.map((i: any) => ({ nome: i.nome_produto, quantidade: i.quantidade })),
-        info:    `${fmtFichaDateTime(ficha.createdAt)} · ${ficha.operador || '—'}`,
+        info:    `${fmtFichaDateTime(ficha.created_at)} · ${ficha.operador || '—'}`,
         codigo:  ficha.numero,
         destino: 'caixa'
       })
@@ -486,7 +486,7 @@ async function imprimirFicha() {
   const nomeRest   = configStore.nome_restaurante || 'Restaurante PDV'
   const logo       = configStore.logo_base64
   const mensagem   = configStore.mensagem_ficha || 'Obrigado pela preferência!'
-  const dataStr    = fmtFichaDateTime(ficha.createdAt)
+  const dataStr    = fmtFichaDateTime(ficha.created_at)
   const logoAltura = ({ pequena: '24px', media: '40px', grande: '96px' } as Record<string, string>)[configStore.logo_tamanho] ?? '40px'
   const logoHtml   = logo
     ? `<img src="${logo}" style="height:${logoAltura};object-fit:contain;margin-bottom:6px;" />`

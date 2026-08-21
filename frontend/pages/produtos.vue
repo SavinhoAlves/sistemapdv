@@ -164,6 +164,10 @@
             <b :class="baixoEstoque(p) ? 'text-orange-500' : 'text-gray-600 dark:text-white/80'">{{ p.estoque_atual }}</b>
             <span v-if="p.estoque_minimo > 0" class="text-gray-300 dark:text-white/20"> / mín. {{ p.estoque_minimo }}</span>
           </button>
+          <div v-if="baixoEstoque(p)" class="mt-1.5 flex items-center gap-1 text-[10px] font-black text-orange-500 uppercase tracking-wide">
+            <TriangleAlert :size="10" />
+            Estoque baixo
+          </div>
 
           <!-- RODAPÉ -->
           <div class="mt-4 flex items-center justify-between pt-3 border-t border-gray-100 dark:border-white/[0.06]">
@@ -229,7 +233,10 @@
                   >
                     {{ p.estoque_atual }}<span v-if="p.estoque_minimo > 0" class="text-gray-300 dark:text-white/20 font-medium"> / {{ p.estoque_minimo }}</span>
                   </button>
-                  <span v-else class="text-gray-300 dark:text-white/20">—</span>
+                  <div v-if="baixoEstoque(p)" class="mt-0.5 flex items-center justify-center gap-1 text-[9px] font-black text-orange-500 uppercase tracking-wide">
+                    <TriangleAlert :size="9" /> baixo
+                  </div>
+                  <span v-else-if="!controlaEstoque(p)" class="text-gray-300 dark:text-white/20">—</span>
                 </td>
                 <td class="px-4 py-3 text-center">
                   <span

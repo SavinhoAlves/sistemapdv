@@ -148,8 +148,8 @@
 
       </div>
 
-      <!-- Escape para o painel de gestão (só aparece se houver token de plataforma) -->
-      <NuxtLink v-if="temTokenPlataforma" to="/platform"
+      <!-- Escape para o painel de gestão -->
+      <NuxtLink :to="temTokenPlataforma ? '/platform' : '/platform/login'"
         class="flex items-center justify-center gap-2 mt-4 text-xs text-gray-400 dark:text-white/25 hover:text-orange-400 transition-colors">
         <LayoutDashboard :size="12" />
         Acessar Central de Gestão

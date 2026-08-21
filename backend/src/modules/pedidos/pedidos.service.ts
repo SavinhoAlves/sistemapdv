@@ -85,25 +85,7 @@ export async function adicionarItem(tenantId: string, input: AdicionarItemInput)
       })
     }
 
-    // 4. Gerencia estoque
-    if (produto.gerenciarEstoque) {
-      await tx.produto.update({
-        where: { id: produtoId, tenantId },
-        data: { estoqueAtual: { decrement: quantidade } },
-      })
-      await tx.movimentacaoEstoque.create({
-        data: {
-          tenantId,
-          produtoId,
-          tipo: 'saida',
-          quantidade,
-          motivo: `Venda - Pedido ${pedido.id}`,
-          usuarioId,
-        },
-      })
-    }
-
-    // 5. Recalcula total do pedido
+    // 4. Recalcula total do pedido
     const totaisItens = await tx.pedidoItem.aggregate({
       where: { tenantId, pedidoId: pedido.id, status: { not: 'cancelado' } },
       _sum: { precoTotal: true },
@@ -144,24 +126,6 @@ export async function decrementarItem(tenantId: string, itemId: string, usuarioI
     if (item.quantidade <= 1) {
       // Deleta item
       await tx.pedidoItem.delete({ where: { id: itemId } })
-
-      // Restaura estoque
-      if (produto?.gerenciarEstoque) {
-        await tx.produto.update({
-          where: { id: item.produtoId, tenantId },
-          data: { estoqueAtual: { increment: 1 } },
-        })
-        await tx.movimentacaoEstoque.create({
-          data: {
-            tenantId,
-            produtoId: item.produtoId,
-            tipo: 'entrada',
-            quantidade: 1,
-            motivo: 'Cancelamento de item de pedido',
-            usuarioId,
-          },
-        })
-      }
     } else {
       await tx.pedidoItem.update({
         where: { id: itemId },
@@ -170,23 +134,6 @@ export async function decrementarItem(tenantId: string, itemId: string, usuarioI
           precoTotal: { decrement: Number(item.precoUnitario) },
         },
       })
-
-      if (produto?.gerenciarEstoque) {
-        await tx.produto.update({
-          where: { id: item.produtoId, tenantId },
-          data: { estoqueAtual: { increment: 1 } },
-        })
-        await tx.movimentacaoEstoque.create({
-          data: {
-            tenantId,
-            produtoId: item.produtoId,
-            tipo: 'entrada',
-            quantidade: 1,
-            motivo: 'Decremento de item de pedido',
-            usuarioId,
-          },
-        })
-      }
     }
 
     // Recalcula total do pedido
@@ -212,24 +159,6 @@ export async function excluirItem(tenantId: string, itemId: string, usuarioId: s
     const produto = await tx.produto.findFirst({ where: { id: item.produtoId, tenantId } })
 
     await tx.pedidoItem.delete({ where: { id: itemId } })
-
-    // Restaura estoque total do item
-    if (produto?.gerenciarEstoque) {
-      await tx.produto.update({
-        where: { id: item.produtoId, tenantId },
-        data: { estoqueAtual: { increment: item.quantidade } },
-      })
-      await tx.movimentacaoEstoque.create({
-        data: {
-          tenantId,
-          produtoId: item.produtoId,
-          tipo: 'entrada',
-          quantidade: item.quantidade,
-          motivo: 'Remoção de item de pedido',
-          usuarioId,
-        },
-      })
-    }
 
     // Recalcula total
     const totaisItens = await tx.pedidoItem.aggregate({
@@ -337,12 +266,13 @@ export async function pedidosCozinha(tenantId: string) {
       tenantId,
       status: { in: ['pendente', 'preparando', 'pronto'] },
       createdAt: { gte: dozeHorasAtras },
+      produto: { categoria: { vaiCozinha: true } },
     },
     include: {
       produto: {
         select: {
           nome: true,
-          categoria: { select: { nome: true } },
+          categoria: { select: { nome: true, vaiCozinha: true } },
         },
       },
       pedido: {

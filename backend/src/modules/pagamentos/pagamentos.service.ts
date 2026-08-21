@@ -114,8 +114,32 @@ export async function registrarPagamento(
     const novoRestante = restante - valorAplicado
     const quitado = novoRestante <= 0
 
-    // 8. Se quitado, fecha pedido e mesa
+    // 8. Se quitado, fecha pedido, mesa e desconta estoque
     if (quitado) {
+      // Desconta estoque de todos os itens do pedido
+      const itensPedido = await tx.pedidoItem.findMany({
+        where: { tenantId, pedidoId: pedido.id, status: { not: 'cancelado' } },
+        include: { produto: { select: { id: true, gerenciarEstoque: true, estoqueAtual: true } } },
+      })
+      for (const item of itensPedido) {
+        if (item.produto?.gerenciarEstoque) {
+          await tx.produto.update({
+            where: { id: item.produto.id, tenantId },
+            data: { estoqueAtual: { decrement: item.quantidade } },
+          })
+          await tx.movimentacaoEstoque.create({
+            data: {
+              tenantId,
+              produtoId: item.produto.id,
+              tipo: 'saida',
+              quantidade: item.quantidade,
+              motivo: `Venda - Mesa ${pedido.mesa?.nomeMesa || pedido.mesa?.numero} - Pedido ${pedido.id.slice(-8)}`,
+              usuarioId,
+            },
+          })
+        }
+      }
+
       await tx.pedido.update({
         where: { id: pedido.id, tenantId },
         data: { status: 'fechado' },

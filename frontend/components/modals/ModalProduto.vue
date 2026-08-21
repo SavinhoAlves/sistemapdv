@@ -239,6 +239,9 @@ function fechar() {
 }
 
 function salvar() {
+  if (!form.nome?.trim()) return toastStore.error('Nome obrigatório', 'Informe o nome do produto')
+  if (!form.categoria_id) return toastStore.error('Categoria obrigatória', 'Selecione uma categoria para o produto')
+  if (!form.preco || Number(form.preco) <= 0) return toastStore.error('Preço inválido', 'Informe um preço maior que zero')
   emit('salvar', { ...form })
   fechar()
 }

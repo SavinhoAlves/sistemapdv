@@ -164,10 +164,10 @@ export async function platformTenantsRoutes(app: FastifyInstance) {
     return reply.send(tenant)
   })
 
-  // POST / — criar tenant (+ licença pendente automática)
+  // POST / — criar tenant (+ licença pendente automática + contrato opcional)
   app.post('/', { preHandler: requirePlatform }, async (request, reply) => {
     const body = request.body as any
-    const { nome, slug, cnpj, responsavel, contato, telefone, endereco, observacoes, vendaMobilePermitida, rfidDisponivel } = body
+    const { nome, slug, cnpj, responsavel, contato, telefone, endereco, observacoes, vendaMobilePermitida, rfidDisponivel, contrato } = body
 
     if (!nome?.trim()) return reply.status(400).send({ error: 'Nome é obrigatório' })
 
@@ -190,6 +190,18 @@ export async function platformTenantsRoutes(app: FastifyInstance) {
           },
         })
         await tx.licenca.create({ data: { tenantId: t.id, status: 'pendente' } })
+        if (contrato?.plano?.trim()) {
+          await tx.contrato.create({
+            data: {
+              tenantId:  t.id,
+              plano:     contrato.plano.trim(),
+              valor:     contrato.valor != null ? contrato.valor : null,
+              ciclo:     contrato.ciclo || 'mensal',
+              dataInicio: contrato.dataInicio ? new Date(contrato.dataInicio) : new Date(),
+              status:    contrato.status || 'ativo',
+            },
+          })
+        }
         return t
       })
       return reply.status(201).send(tenant)
@@ -277,6 +289,38 @@ export async function platformTenantsRoutes(app: FastifyInstance) {
       if (err.code === 'P2025') return reply.status(404).send({ error: 'Tenant não encontrado' })
       throw err
     }
+  })
+
+  // PUT /:id/contrato — criar ou atualizar contrato
+  app.put('/:id/contrato', { preHandler: requirePlatform }, async (request, reply) => {
+    const { id } = request.params as { id: string }
+    const body = request.body as any
+    const { plano, valor, ciclo, dataInicio, dataFim, status } = body
+
+    if (!plano?.trim()) return reply.status(400).send({ error: 'Plano é obrigatório' })
+
+    const tenant = await prisma.tenant.findUnique({ where: { id } })
+    if (!tenant) return reply.status(404).send({ error: 'Tenant não encontrado' })
+
+    const existing = await prisma.contrato.findFirst({
+      where: { tenantId: id },
+      orderBy: { createdAt: 'desc' },
+    })
+
+    const data = {
+      plano:     plano.trim(),
+      valor:     valor != null ? valor : null,
+      ciclo:     (ciclo || 'mensal') as any,
+      dataInicio: dataInicio ? new Date(dataInicio) : null,
+      dataFim:   dataFim ? new Date(dataFim) : null,
+      status:    (status || 'ativo') as any,
+    }
+
+    const contrato = existing
+      ? await prisma.contrato.update({ where: { id: existing.id }, data })
+      : await prisma.contrato.create({ data: { tenantId: id, ...data } })
+
+    return reply.send(contrato)
   })
 
   // PUT /:id/licenca — criar ou atualizar licença

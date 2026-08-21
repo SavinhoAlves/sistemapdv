@@ -455,6 +455,69 @@
               </div>
             </div>
 
+            <!-- ABA CONTRATO -->
+            <div v-else-if="abaAtiva === 'contrato'" class="p-5 space-y-4">
+              <!-- Plano -->
+              <div>
+                <label class="label-field">Plano *</label>
+                <div class="flex gap-1.5 mb-2 flex-wrap">
+                  <button v-for="p in planosPredef" :key="p" @click="contratoForm.plano = p"
+                    class="text-xs font-bold px-2.5 py-1 rounded-lg border transition-all"
+                    :class="contratoForm.plano === p ? 'bg-violet-600 border-violet-500 text-white' : 'bg-white/[0.03] border-white/[0.07] text-white/35 hover:text-white/70 hover:bg-white/[0.06]'">
+                    {{ p }}
+                  </button>
+                </div>
+                <input v-model="contratoForm.plano" type="text" placeholder="Ou escreva o nome do plano..." class="input-field" />
+              </div>
+
+              <!-- Valor + Status -->
+              <div class="grid grid-cols-2 gap-3">
+                <div>
+                  <label class="label-field">Valor (R$)</label>
+                  <input v-model="contratoForm.valor" type="number" min="0" step="0.01" placeholder="0,00" class="input-field" />
+                </div>
+                <div>
+                  <label class="label-field">Status</label>
+                  <div class="flex gap-1.5 mt-0.5">
+                    <button @click="contratoForm.status = 'trial'"
+                      class="flex-1 h-10 rounded-xl text-xs font-black border transition-all"
+                      :class="contratoForm.status === 'trial' ? 'bg-sky-500/15 border-sky-500/30 text-sky-400' : 'bg-white/[0.03] border-white/[0.07] text-white/30 hover:bg-white/[0.05]'">
+                      Trial
+                    </button>
+                    <button @click="contratoForm.status = 'ativo'"
+                      class="flex-1 h-10 rounded-xl text-xs font-black border transition-all"
+                      :class="contratoForm.status === 'ativo' ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-400' : 'bg-white/[0.03] border-white/[0.07] text-white/30 hover:bg-white/[0.05]'">
+                      Ativo
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Ciclo -->
+              <div>
+                <label class="label-field">Ciclo de cobrança</label>
+                <div class="grid grid-cols-4 gap-1.5">
+                  <button v-for="c in ciclos" :key="c.value" @click="contratoForm.ciclo = c.value as any"
+                    class="h-9 rounded-xl text-xs font-black border transition-all"
+                    :class="contratoForm.ciclo === c.value ? 'bg-violet-600 border-violet-500 text-white' : 'bg-white/[0.03] border-white/[0.07] text-white/30 hover:bg-white/[0.05] hover:text-white/60'">
+                    {{ c.label }}
+                  </button>
+                </div>
+              </div>
+
+              <!-- Data de início -->
+              <div>
+                <label class="label-field">Início do contrato</label>
+                <input v-model="contratoForm.dataInicio" type="date" class="input-field" />
+              </div>
+
+              <!-- Aviso para novo restaurante -->
+              <div v-if="!form.id" class="flex items-start gap-2 p-3 rounded-xl bg-violet-500/[0.06] border border-violet-500/10">
+                <Info :size="12" class="text-violet-400 mt-0.5 shrink-0" />
+                <p class="text-[11px] text-violet-300/60 leading-relaxed">O contrato será criado junto com o restaurante. Se deixar o plano em branco, pode ser adicionado depois.</p>
+              </div>
+            </div>
+
             <div v-if="erroModal" class="mx-5 mb-1 text-xs text-red-400 font-bold">{{ erroModal }}</div>
 
             <div class="flex gap-2 p-5 pt-3 border-t border-white/[0.06]">
@@ -493,14 +556,14 @@ import { ref, computed, reactive, onMounted } from 'vue'
 import {
   Globe, LogOut, Search, Plus, Building2, CreditCard, Smartphone,
   Loader2, AlertCircle, CheckCircle2, Pencil, X, Store, FileText, ChevronRight,
-  ToggleRight, ToggleLeft, Clock, TrendingUp, Zap,
+  ToggleRight, ToggleLeft, Clock, TrendingUp, Zap, Banknote, Info,
 } from 'lucide-vue-next'
 import { usePlatformAuthStore } from '~/stores/platformAuth'
 
 definePageMeta({ layout: false })
 
 interface Licenca  { id: string; status: string; dataAtivacao: string | null; dataVencimento: string | null; createdAt: string }
-interface Contrato { id: string; plano: string; valor: string | null; ciclo: string; status: string }
+interface Contrato { id: string; plano: string; valor: string | null; ciclo: string; status: string; data_inicio?: string | null }
 interface Tenant {
   id: string; nome: string; slug: string; cnpj: string | null; contato: string | null
   responsavel: string | null; telefone: string | null; endereco: string | null; observacoes: string | null
@@ -525,15 +588,17 @@ const busca      = ref('')
 const togglingId = ref<string | null>(null)
 const toast      = reactive({ text: '', type: 'success' as 'success' | 'error' })
 
-const modalAberto  = ref(false)
-const abaAtiva     = ref<'dados' | 'licenca'>('dados')
-const salvando     = ref(false)
-const erroModal    = ref('')
-const licencaAtual = ref<Licenca | null>(null)
+const modalAberto         = ref(false)
+const abaAtiva            = ref<'dados' | 'licenca' | 'contrato'>('dados')
+const salvando            = ref(false)
+const erroModal           = ref('')
+const licencaAtual        = ref<Licenca | null>(null)
+const contratoAtualTenant = ref<Contrato | null>(null)
 
 const abas = [
-  { id: 'dados',   label: 'Dados',   icon: Building2 },
-  { id: 'licenca', label: 'Licença', icon: FileText   },
+  { id: 'dados',    label: 'Dados',    icon: Building2 },
+  { id: 'licenca',  label: 'Licença',  icon: FileText  },
+  { id: 'contrato', label: 'Contrato', icon: Banknote  },
 ]
 const licencaStatuses = [
   { value: 'ativado',   label: 'Ativada',   activeClass: 'bg-emerald-500/15 border-emerald-500/30 text-emerald-400' },
@@ -544,8 +609,16 @@ const features = [
   { key: 'vendaMobilePermitida', label: 'Venda Mobile', desc: 'Acesso via QR Code e dispositivo móvel', on: 'bg-sky-500' },
   { key: 'rfidDisponivel', label: 'RFID', desc: 'Autenticação por cartão (feature paga)', on: 'bg-violet-500' },
 ]
+const planosPredef = ['Básico', 'Profissional', 'Enterprise']
+const ciclos = [
+  { value: 'mensal', label: 'Mensal' },
+  { value: 'trimestral', label: 'Trim.' },
+  { value: 'semestral', label: 'Semes.' },
+  { value: 'anual', label: 'Anual' },
+]
 const form = reactive({ id: null as string | null, nome: '', slug: '', cnpj: '', responsavel: '', contato: '', telefone: '', endereco: '', observacoes: '', vendaMobilePermitida: true, rfidDisponivel: false })
-const licencaForm = reactive({ status: 'pendente', dataAtivacao: '', dataVencimento: '' })
+const licencaForm   = reactive({ status: 'pendente', dataAtivacao: '', dataVencimento: '' })
+const contratoForm  = reactive({ plano: '', valor: '', ciclo: 'mensal' as 'mensal' | 'trimestral' | 'semestral' | 'anual', dataInicio: '', status: 'ativo' as 'trial' | 'ativo' })
 
 const baseUrl  = computed(() => (runtimeConfig.public as any).apiUrl as string)
 const maxMrr   = computed(() => Math.max(...(dashboard.value?.financeiro?.por_plano?.map(p => p.mrr) ?? [0]), 0))
@@ -633,16 +706,25 @@ async function carregar() {
   finally { loading.value = false }
 }
 
+function resetContratoForm() {
+  contratoForm.plano = ''; contratoForm.valor = ''; contratoForm.ciclo = 'mensal'
+  contratoForm.dataInicio = new Date().toISOString().substring(0, 10); contratoForm.status = 'ativo'
+}
+
 function abrirModal(tenant: Tenant | null) {
-  erroModal.value = ''; abaAtiva.value = 'dados'; licencaAtual.value = null
+  erroModal.value = ''; abaAtiva.value = 'dados'; licencaAtual.value = null; contratoAtualTenant.value = null
   if (tenant) {
     Object.assign(form, { id: tenant.id, nome: tenant.nome, slug: tenant.slug, cnpj: tenant.cnpj || '', responsavel: tenant.responsavel || '', contato: tenant.contato || '', telefone: tenant.telefone || '', endereco: tenant.endereco || '', observacoes: tenant.observacoes || '', vendaMobilePermitida: tenant.venda_mobile_permitida, rfidDisponivel: tenant.rfid_disponivel })
     const lic = tenant.licencas?.[0]
     if (lic) { licencaAtual.value = lic; licencaForm.status = lic.status; licencaForm.dataAtivacao = lic.dataAtivacao?.substring(0, 10) || ''; licencaForm.dataVencimento = lic.dataVencimento?.substring(0, 10) || '' }
     else { licencaForm.status = 'pendente'; licencaForm.dataAtivacao = ''; licencaForm.dataVencimento = '' }
+    const con = tenant.contratos?.[0]
+    if (con) { contratoAtualTenant.value = con; contratoForm.plano = con.plano; contratoForm.valor = con.valor || ''; contratoForm.ciclo = (con.ciclo as any) || 'mensal'; contratoForm.dataInicio = con.data_inicio?.substring(0, 10) || ''; contratoForm.status = (con.status as any) || 'ativo' }
+    else resetContratoForm()
   } else {
     Object.assign(form, { id: null, nome: '', slug: '', cnpj: '', responsavel: '', contato: '', telefone: '', endereco: '', observacoes: '', vendaMobilePermitida: true, rfidDisponivel: false })
     licencaForm.status = 'pendente'; licencaForm.dataAtivacao = ''; licencaForm.dataVencimento = ''
+    resetContratoForm()
   }
   modalAberto.value = true
 }
@@ -654,16 +736,32 @@ async function salvar() {
   if (!form.slug.trim()) { erroModal.value = 'Slug é obrigatório'; return }
   salvando.value = true
   try {
-    const payload = { nome: form.nome, slug: form.slug, cnpj: form.cnpj || null, responsavel: form.responsavel || null, contato: form.contato || null, telefone: form.telefone || null, endereco: form.endereco || null, observacoes: form.observacoes || null, vendaMobilePermitida: form.vendaMobilePermitida, rfidDisponivel: form.rfidDisponivel }
-    let tenantId = form.id
-    if (abaAtiva.value === 'dados' || !form.id) {
-      if (form.id) { await platformFetch(`/platform/tenants/${form.id}`, { method: 'PUT', body: JSON.stringify(payload) }) }
-      else { const c = await platformFetch<any>('/platform/tenants', { method: 'POST', body: JSON.stringify(payload) }); tenantId = c.id; form.id = c.id }
+    let msg = ''
+    if (!form.id) {
+      // CRIAÇÃO — tudo de uma vez
+      const payload: any = { nome: form.nome, slug: form.slug, cnpj: form.cnpj || null, responsavel: form.responsavel || null, contato: form.contato || null, telefone: form.telefone || null, endereco: form.endereco || null, observacoes: form.observacoes || null, vendaMobilePermitida: form.vendaMobilePermitida, rfidDisponivel: form.rfidDisponivel }
+      if (contratoForm.plano.trim()) {
+        payload.contrato = { plano: contratoForm.plano.trim(), valor: contratoForm.valor ? parseFloat(contratoForm.valor) : null, ciclo: contratoForm.ciclo, dataInicio: contratoForm.dataInicio || null, status: contratoForm.status }
+      }
+      const c = await platformFetch<any>('/platform/tenants', { method: 'POST', body: JSON.stringify(payload) })
+      form.id = c.id
+      msg = contratoForm.plano.trim() ? 'Restaurante e contrato criados!' : 'Restaurante criado!'
+    } else {
+      // EDIÇÃO — aba por aba
+      const tid = form.id
+      if (abaAtiva.value === 'dados') {
+        await platformFetch(`/platform/tenants/${tid}`, { method: 'PUT', body: JSON.stringify({ nome: form.nome, slug: form.slug, cnpj: form.cnpj || null, responsavel: form.responsavel || null, contato: form.contato || null, telefone: form.telefone || null, endereco: form.endereco || null, observacoes: form.observacoes || null, vendaMobilePermitida: form.vendaMobilePermitida, rfidDisponivel: form.rfidDisponivel }) })
+        msg = 'Dados atualizados!'
+      } else if (abaAtiva.value === 'licenca') {
+        await platformFetch(`/platform/tenants/${tid}/licenca`, { method: 'PUT', body: JSON.stringify({ status: licencaForm.status, dataAtivacao: licencaForm.dataAtivacao || null, dataVencimento: licencaForm.dataVencimento || null }) })
+        msg = 'Licença atualizada!'
+      } else if (abaAtiva.value === 'contrato') {
+        if (!contratoForm.plano.trim()) { erroModal.value = 'Informe o nome do plano'; salvando.value = false; return }
+        await platformFetch(`/platform/tenants/${tid}/contrato`, { method: 'PUT', body: JSON.stringify({ plano: contratoForm.plano.trim(), valor: contratoForm.valor ? parseFloat(contratoForm.valor) : null, ciclo: contratoForm.ciclo, dataInicio: contratoForm.dataInicio || null, status: contratoForm.status }) })
+        msg = 'Contrato atualizado!'
+      }
     }
-    if (abaAtiva.value === 'licenca' && tenantId) {
-      await platformFetch(`/platform/tenants/${tenantId}/licenca`, { method: 'PUT', body: JSON.stringify({ status: licencaForm.status, dataAtivacao: licencaForm.dataAtivacao || null, dataVencimento: licencaForm.dataVencimento || null }) })
-    }
-    showToast('success', abaAtiva.value === 'licenca' ? 'Licença atualizada!' : form.id ? 'Salvo!' : 'Restaurante criado!')
+    showToast('success', msg)
     fecharModal(); await carregar()
   } catch (e: any) { erroModal.value = e?.message || 'Erro ao salvar' }
   finally { salvando.value = false }

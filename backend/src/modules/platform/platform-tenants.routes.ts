@@ -291,6 +291,27 @@ export async function platformTenantsRoutes(app: FastifyInstance) {
     }
   })
 
+  // PATCH /:id/mobile — habilitar/desabilitar Venda Mobile
+  app.patch('/:id/mobile', { preHandler: requirePlatform }, async (request, reply) => {
+    const { id } = request.params as { id: string }
+    const { permitida } = request.body as { permitida: boolean }
+
+    if (typeof permitida !== 'boolean') {
+      return reply.status(400).send({ error: '"permitida" deve ser boolean' })
+    }
+    try {
+      const tenant = await prisma.tenant.update({
+        where: { id },
+        data: { vendaMobilePermitida: permitida },
+        select: { id: true, nome: true, slug: true, vendaMobilePermitida: true },
+      })
+      return reply.send(tenant)
+    } catch (err: any) {
+      if (err.code === 'P2025') return reply.status(404).send({ error: 'Tenant não encontrado' })
+      throw err
+    }
+  })
+
   // PUT /:id/contrato — criar ou atualizar contrato
   app.put('/:id/contrato', { preHandler: requirePlatform }, async (request, reply) => {
     const { id } = request.params as { id: string }

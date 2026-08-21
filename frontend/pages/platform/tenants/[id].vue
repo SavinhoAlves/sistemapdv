@@ -175,13 +175,23 @@
               </div>
             </div>
 
-            <!-- Botão de ativação rápida -->
-            <button v-if="licencaAtual.status !== 'ativado'" @click="ativarLicenca" :disabled="ativandoLicenca"
-              class="w-full h-10 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20 text-emerald-400 text-sm font-black transition-all flex items-center justify-center gap-2 disabled:opacity-40">
-              <Loader2 v-if="ativandoLicenca" :size="13" class="animate-spin" />
-              <CheckCircle2 v-else :size="13" />
-              {{ ativandoLicenca ? 'Ativando...' : 'Ativar licença (1 ano)' }}
-            </button>
+            <!-- Botões de período rápido -->
+            <div class="space-y-2">
+              <p class="text-[10px] font-black uppercase tracking-widest text-white/20">
+                {{ licencaAtual.status === 'ativado' && diasRestantes !== null && diasRestantes > 0 ? 'Estender licença' : 'Ativar licença' }}
+              </p>
+              <div class="grid grid-cols-4 gap-1.5">
+                <button v-for="periodo in periodos" :key="periodo.label"
+                  @click="ativarPeriodo(periodo.dias)" :disabled="ativandoLicenca"
+                  class="h-9 rounded-xl border text-xs font-black transition-all disabled:opacity-40 flex items-center justify-center"
+                  :class="licencaAtual.status === 'ativado' && diasRestantes !== null && diasRestantes > 0
+                    ? 'bg-sky-500/10 border-sky-500/20 text-sky-400 hover:bg-sky-500/20'
+                    : 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400 hover:bg-emerald-500/20'">
+                  <Loader2 v-if="ativandoLicenca" :size="11" class="animate-spin" />
+                  <template v-else>{{ periodo.label }}</template>
+                </button>
+              </div>
+            </div>
 
             <dl class="space-y-2.5">
               <div class="flex gap-3">
@@ -204,56 +214,62 @@
         <!-- CONTRATO -->
         <section class="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-5">
           <div class="flex items-center justify-between mb-4">
-            <div class="flex items-center gap-2">
+            <div class="flex items-center gap-2.5">
               <div class="w-7 h-7 rounded-lg bg-indigo-500/10 flex items-center justify-center">
                 <FileText :size="13" class="text-indigo-400" />
               </div>
               <h2 class="text-xs font-black text-white uppercase tracking-widest">Contrato</h2>
+              <!-- Status badge -->
+              <span class="text-[10px] font-black px-2 py-0.5 rounded-full" :class="contratoAtual?.status === 'ativo' ? 'bg-emerald-500/15 text-emerald-400' : 'bg-white/[0.05] text-white/25'">
+                {{ contratoAtual?.status === 'ativo' ? 'Assinado' : 'Não Assinado' }}
+              </span>
             </div>
-            <button @click="gerarContratoPDF"
-              class="text-[11px] text-white/25 hover:text-emerald-400 transition-colors font-bold flex items-center gap-1">
-              <FileDown :size="10" /> Gerar PDF
+            <button @click="abrirModalContrato" class="text-[11px] text-white/25 hover:text-violet-400 transition-colors font-bold flex items-center gap-1">
+              <Pencil :size="10" /> Editar
             </button>
           </div>
 
-          <div v-if="!contratoAtual" class="flex flex-col items-center justify-center py-8 gap-2">
+          <div v-if="!contratoAtual" class="flex flex-col items-center justify-center py-6 gap-2">
             <FileText :size="20" class="text-white/10" />
             <p class="text-white/20 text-sm">Nenhum contrato registrado</p>
+            <button @click="abrirModalContrato"
+              class="mt-1 h-9 px-4 rounded-xl bg-indigo-500/10 border border-indigo-500/15 text-indigo-400 text-xs font-black hover:bg-indigo-500/20 transition-all">
+              + Criar contrato
+            </button>
           </div>
-          <div v-else class="space-y-2.5">
+          <div v-else class="space-y-3">
             <!-- Destaque do plano + valor -->
-            <div class="flex items-center justify-between p-3 rounded-xl bg-indigo-500/[0.06] border border-indigo-500/10 mb-3">
+            <div class="flex items-center justify-between p-3 rounded-xl bg-indigo-500/[0.06] border border-indigo-500/10">
               <div>
                 <p class="text-[10px] font-black uppercase tracking-widest text-indigo-400/60">Plano</p>
                 <p class="text-base font-black text-indigo-300">{{ contratoAtual.plano }}</p>
               </div>
               <div class="text-right">
-                <p class="text-[10px] font-black uppercase tracking-widest text-indigo-400/60">Valor</p>
+                <p class="text-[10px] font-black uppercase tracking-widest text-indigo-400/60">Valor / {{ contratoAtual.ciclo }}</p>
                 <p class="text-base font-black text-emerald-400">{{ contratoAtual.valor ? formatCurrency(contratoAtual.valor) : '—' }}</p>
               </div>
             </div>
-            <dl class="space-y-2.5">
+            <dl class="space-y-2">
               <div class="flex gap-3">
-                <dt class="text-[11px] text-white/25 font-bold w-24 shrink-0 pt-0.5">Ciclo</dt>
-                <dd class="text-sm text-white/75 capitalize">{{ contratoAtual.ciclo }}</dd>
-              </div>
-              <div class="flex gap-3">
-                <dt class="text-[11px] text-white/25 font-bold w-24 shrink-0 pt-0.5">Status</dt>
-                <dd>
-                  <span class="text-[11px] font-black px-2 py-0.5 rounded-lg" :class="contratoStatusBadge(contratoAtual.status)">
-                    {{ contratoAtual.status }}
-                  </span>
-                </dd>
-              </div>
-              <div class="flex gap-3">
-                <dt class="text-[11px] text-white/25 font-bold w-24 shrink-0 pt-0.5">Início</dt>
-                <dd class="text-sm text-white/75">{{ formatDate(contratoAtual.data_inicio) }}</dd>
-              </div>
-              <div class="flex gap-3">
-                <dt class="text-[11px] text-white/25 font-bold w-24 shrink-0 pt-0.5">Fim</dt>
-                <dd class="text-sm text-white/75">{{ formatDate(contratoAtual.data_fim) }}</dd>
+                <dt class="text-[11px] text-white/25 font-bold w-24 shrink-0 pt-0.5">Vigência</dt>
+                <dd class="text-sm text-white/75">{{ formatDate(contratoAtual.data_inicio) }} → {{ contratoAtual.data_fim ? formatDate(contratoAtual.data_fim) : 'Indeterminado' }}</dd>
               </div>
             </dl>
+            <!-- Botões de ação -->
+            <div class="flex gap-2 pt-1">
+              <button @click="visualizarContrato"
+                class="flex-1 h-9 rounded-xl bg-white/[0.04] hover:bg-white/[0.07] border border-white/[0.08] text-white/60 hover:text-white text-xs font-black transition-all flex items-center justify-center gap-1.5">
+                <Eye :size="12" /> Visualizar
+              </button>
+              <button @click="imprimirContrato"
+                class="flex-1 h-9 rounded-xl bg-white/[0.04] hover:bg-white/[0.07] border border-white/[0.08] text-white/60 hover:text-white text-xs font-black transition-all flex items-center justify-center gap-1.5">
+                <Printer :size="12" /> Imprimir
+              </button>
+              <button @click="compartilharContrato"
+                class="flex-1 h-9 rounded-xl bg-white/[0.04] hover:bg-white/[0.07] border border-white/[0.08] text-white/60 hover:text-white text-xs font-black transition-all flex items-center justify-center gap-1.5">
+                <Share2 :size="12" /> Compartilhar
+              </button>
+            </div>
           </div>
         </section>
 
@@ -289,7 +305,7 @@
             </div>
 
             <!-- Mobile -->
-            <div class="flex items-center justify-between p-3.5 rounded-xl border"
+            <div class="flex items-center justify-between p-3.5 rounded-xl border transition-all"
               :class="tenant.venda_mobile_permitida ? 'bg-sky-500/[0.06] border-sky-500/15' : 'bg-white/[0.02] border-white/[0.05]'">
               <div class="flex items-center gap-3">
                 <div class="w-9 h-9 rounded-xl flex items-center justify-center" :class="tenant.venda_mobile_permitida ? 'bg-sky-500/15' : 'bg-white/[0.05]'">
@@ -300,9 +316,13 @@
                   <p class="text-[11px] text-white/30">Acesso via QR Code</p>
                 </div>
               </div>
-              <span class="text-[11px] font-black px-2.5 py-1 rounded-lg" :class="tenant.venda_mobile_permitida ? 'bg-sky-500/10 text-sky-400' : 'bg-white/[0.06] text-white/20'">
-                {{ tenant.venda_mobile_permitida ? 'Ativo' : 'Inativo' }}
-              </span>
+              <button @click="toggleMobile" :disabled="togglingMobile"
+                class="w-10 h-5 rounded-full transition-all relative shrink-0"
+                :class="tenant.venda_mobile_permitida ? 'bg-sky-500' : 'bg-white/[0.10]'">
+                <span class="absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-all"
+                  :class="tenant.venda_mobile_permitida ? 'left-[22px]' : 'left-0.5'" />
+                <Loader2 v-if="togglingMobile" :size="10" class="animate-spin absolute inset-0 m-auto text-white/60 pointer-events-none" />
+              </button>
             </div>
 
             <!-- Metadados -->
@@ -326,11 +346,11 @@
             <div class="flex items-center justify-between px-5 py-4 border-b border-white/[0.07]">
               <div class="flex items-center gap-3">
                 <div class="w-8 h-8 rounded-xl flex items-center justify-center shrink-0"
-                  :class="modalModo === 'licenca' ? 'bg-sky-500/10' : 'bg-violet-500/10'">
-                  <component :is="modalModo === 'licenca' ? KeyRound : Building2" :size="14"
-                    :class="modalModo === 'licenca' ? 'text-sky-400' : 'text-violet-400'" />
+                  :class="modalModo === 'licenca' ? 'bg-sky-500/10' : modalModo === 'contrato' ? 'bg-indigo-500/10' : 'bg-violet-500/10'">
+                  <component :is="modalModo === 'licenca' ? KeyRound : modalModo === 'contrato' ? FileText : Building2" :size="14"
+                    :class="modalModo === 'licenca' ? 'text-sky-400' : modalModo === 'contrato' ? 'text-indigo-400' : 'text-violet-400'" />
                 </div>
-                <h2 class="text-sm font-black text-white">{{ modalModo === 'licenca' ? 'Editar licença' : 'Editar dados' }}</h2>
+                <h2 class="text-sm font-black text-white">{{ modalModo === 'licenca' ? 'Editar licença' : modalModo === 'contrato' ? 'Editar contrato' : 'Editar dados' }}</h2>
               </div>
               <button @click="fecharModal"
                 class="w-7 h-7 rounded-xl bg-white/[0.05] hover:bg-red-500/15 hover:text-red-400 text-white/30 flex items-center justify-center transition-all">
@@ -403,6 +423,47 @@
               </div>
             </div>
 
+            <!-- MODO CONTRATO -->
+            <div v-else-if="modalModo === 'contrato'" class="p-5 space-y-4">
+              <div class="grid grid-cols-2 gap-3">
+                <div class="col-span-2">
+                  <label class="label-field">Plano *</label>
+                  <input v-model="contratoForm.plano" type="text" placeholder="Ex: Básico, Profissional..." class="input-field" />
+                </div>
+                <div>
+                  <label class="label-field">Valor (R$)</label>
+                  <input v-model="contratoForm.valor" type="number" min="0" step="0.01" placeholder="0,00" class="input-field" />
+                </div>
+                <div>
+                  <label class="label-field">Ciclo</label>
+                  <select v-model="contratoForm.ciclo" class="input-field">
+                    <option value="mensal">Mensal</option>
+                    <option value="trimestral">Trimestral</option>
+                    <option value="semestral">Semestral</option>
+                    <option value="anual">Anual</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="label-field">Data início</label>
+                  <input v-model="contratoForm.dataInicio" type="date" class="input-field" />
+                </div>
+                <div>
+                  <label class="label-field">Data fim</label>
+                  <input v-model="contratoForm.dataFim" type="date" class="input-field" />
+                </div>
+                <div class="col-span-2">
+                  <label class="label-field mb-2">Status</label>
+                  <div class="flex gap-2">
+                    <button v-for="s in contratoStatuses" :key="s.value" @click="contratoForm.status = s.value"
+                      class="flex-1 h-9 rounded-xl text-xs font-black border transition-all"
+                      :class="contratoForm.status === s.value ? s.activeClass : 'bg-white/[0.03] border-white/[0.07] text-white/30 hover:bg-white/[0.05]'">
+                      {{ s.label }}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
             <!-- MODO LICENÇA -->
             <div v-else-if="modalModo === 'licenca'" class="p-5 space-y-4">
               <div>
@@ -465,7 +526,7 @@ import { ref, computed, reactive, onMounted } from 'vue'
 import {
   Globe, LogOut, ArrowLeft, Building2, CreditCard, Smartphone,
   Loader2, AlertCircle, CheckCircle2, Pencil, X, FileText, KeyRound,
-  Zap, ToggleRight, ToggleLeft, FileDown,
+  Zap, ToggleRight, ToggleLeft, Eye, Printer, Share2,
 } from 'lucide-vue-next'
 import { usePlatformAuthStore } from '~/stores/platformAuth'
 
@@ -487,12 +548,13 @@ const runtimeConfig = useRuntimeConfig()
 const tenant         = ref<Tenant | null>(null)
 const loading        = ref(false)
 const erro           = ref('')
-const togglingRfid   = ref(false)
+const togglingRfid    = ref(false)
+const togglingMobile  = ref(false)
 const ativandoLicenca = ref(false)
 const toastMsg       = reactive({ text: '', type: 'success' as 'success' | 'error' })
 
 const modalAberto = ref(false)
-const modalModo   = ref<'dados' | 'licenca'>('dados')
+const modalModo   = ref<'dados' | 'licenca' | 'contrato'>('dados')
 const salvando    = ref(false)
 const erroModal   = ref('')
 
@@ -502,6 +564,19 @@ const licencaStatuses = [
   { value: 'ativado',   label: 'Ativada',   activeClass: 'bg-emerald-500/15 border-emerald-500/30 text-emerald-400' },
   { value: 'pendente',  label: 'Pendente',  activeClass: 'bg-amber-500/15  border-amber-500/30  text-amber-400'  },
   { value: 'bloqueado', label: 'Bloqueada', activeClass: 'bg-red-500/15    border-red-500/30    text-red-400'    },
+]
+const contratoForm = reactive({ plano: '', valor: '', ciclo: 'mensal', dataInicio: '', dataFim: '', status: 'ativo' })
+const contratoStatuses = [
+  { value: 'ativo',     label: 'Ativo',     activeClass: 'bg-emerald-500/15 border-emerald-500/30 text-emerald-400' },
+  { value: 'trial',     label: 'Trial',     activeClass: 'bg-sky-500/15     border-sky-500/30     text-sky-400'     },
+  { value: 'suspenso',  label: 'Suspenso',  activeClass: 'bg-amber-500/15  border-amber-500/30  text-amber-400'  },
+  { value: 'cancelado', label: 'Cancelado', activeClass: 'bg-red-500/15    border-red-500/30    text-red-400'    },
+]
+const periodos = [
+  { label: '30d',   dias: 30   },
+  { label: '90d',   dias: 90   },
+  { label: '6 meses', dias: 180 },
+  { label: '1 ano', dias: 365  },
 ]
 
 const baseUrl       = computed(() => (runtimeConfig.public as any).apiUrl as string)
@@ -594,6 +669,19 @@ function abrirModalDados() {
   modalModo.value = 'dados'; erroModal.value = ''; modalAberto.value = true
 }
 
+function abrirModalContrato() {
+  const c = contratoAtual.value
+  Object.assign(contratoForm, {
+    plano:      c?.plano || '',
+    valor:      c?.valor || '',
+    ciclo:      c?.ciclo || 'mensal',
+    dataInicio: c?.data_inicio?.substring(0, 10) || new Date().toISOString().substring(0, 10),
+    dataFim:    c?.data_fim?.substring(0, 10) || '',
+    status:     c?.status || 'ativo',
+  })
+  modalModo.value = 'contrato'; erroModal.value = ''; modalAberto.value = true
+}
+
 function abrirModalLicenca() {
   const lic = licencaAtual.value
   licencaForm.status        = lic?.status || 'pendente'
@@ -615,25 +703,35 @@ async function salvar() {
         body: JSON.stringify({ nome: form.nome, slug: form.slug, cnpj: form.cnpj || null, responsavel: form.responsavel || null, contato: form.contato || null, telefone: form.telefone || null, endereco: form.endereco || null, observacoes: form.observacoes || null, vendaMobilePermitida: form.vendaMobilePermitida, rfidDisponivel: form.rfidDisponivel }),
       })
       showToast('success', 'Dados atualizados!')
-    } else {
+    } else if (modalModo.value === 'licenca') {
       await platformFetch(`/platform/tenants/${tenant.value!.id}/licenca`, {
         method: 'PUT',
         body: JSON.stringify({ status: licencaForm.status, dataAtivacao: licencaForm.dataAtivacao || null, dataVencimento: licencaForm.dataVencimento || null }),
       })
       showToast('success', 'Licença atualizada!')
+    } else if (modalModo.value === 'contrato') {
+      if (!contratoForm.plano.trim()) { erroModal.value = 'Plano é obrigatório'; salvando.value = false; return }
+      await platformFetch(`/platform/tenants/${tenant.value!.id}/contrato`, {
+        method: 'PUT',
+        body: JSON.stringify({ plano: contratoForm.plano, valor: contratoForm.valor || null, ciclo: contratoForm.ciclo, dataInicio: contratoForm.dataInicio || null, dataFim: contratoForm.dataFim || null, status: contratoForm.status }),
+      })
+      showToast('success', 'Contrato atualizado!')
     }
     fecharModal(); await carregar()
   } catch (e: any) { erroModal.value = e?.message || 'Erro ao salvar' }
   finally { salvando.value = false }
 }
 
-async function ativarLicenca() {
+async function ativarPeriodo(dias: number) {
   if (!tenant.value || ativandoLicenca.value) return
   ativandoLicenca.value = true
   try {
     const hoje = new Date()
-    const vencimento = new Date(hoje)
-    vencimento.setFullYear(vencimento.getFullYear() + 1)
+    const lic = licencaAtual.value
+    const base = lic?.status === 'ativado' && lic.data_vencimento && new Date(lic.data_vencimento) > hoje
+      ? new Date(lic.data_vencimento)
+      : hoje
+    const vencimento = new Date(base.getTime() + dias * 86400000)
     await platformFetch(`/platform/tenants/${tenant.value.id}/licenca`, {
       method: 'PUT',
       body: JSON.stringify({
@@ -642,10 +740,22 @@ async function ativarLicenca() {
         dataVencimento: vencimento.toISOString().substring(0, 10),
       }),
     })
-    showToast('success', 'Licença ativada por 1 ano!')
+    showToast('success', `Licença ${base > hoje ? 'estendida' : 'ativada'} por ${dias} dia(s)!`)
     await carregar()
   } catch (e: any) { showToast('error', e?.message || 'Erro ao ativar') }
   finally { ativandoLicenca.value = false }
+}
+
+async function toggleMobile() {
+  if (!tenant.value || togglingMobile.value) return
+  togglingMobile.value = true
+  const novo = !tenant.value.venda_mobile_permitida
+  try {
+    await platformFetch(`/platform/tenants/${tenant.value.id}/mobile`, { method: 'PATCH', body: JSON.stringify({ permitida: novo }) })
+    tenant.value.venda_mobile_permitida = novo
+    showToast('success', novo ? 'Venda Mobile habilitada' : 'Venda Mobile desabilitada')
+  } catch (e: any) { showToast('error', e?.message || 'Erro') }
+  finally { togglingMobile.value = false }
 }
 
 async function toggleRfid() {
@@ -700,8 +810,30 @@ const CONTRATADA = {
   foroUF:             'GO',
 }
 
-function gerarContratoPDF() {
+function visualizarContrato() { gerarContratoPDF() }
+
+function imprimirContrato() {
+  const win = gerarContratoPDF()
+  if (win) setTimeout(() => { try { win.print() } catch {} }, 800)
+}
+
+async function compartilharContrato() {
   if (!tenant.value) return
+  const t = tenant.value
+  const c = contratoAtual.value
+  const texto = `Contrato PDV — ${t.nome}\nPlano: ${c?.plano || '—'}\nValor: ${c?.valor ? formatCurrency(c.valor) : '—'}/${c?.ciclo || '—'}\nVigência: ${formatDate(c?.data_inicio)} → ${c?.data_fim ? formatDate(c.data_fim) : 'Indeterminado'}\nContato: ${t.contato || '—'}`
+  try {
+    if (navigator.share) {
+      await navigator.share({ title: `Contrato — ${t.nome}`, text: texto })
+    } else {
+      await navigator.clipboard.writeText(texto)
+      showToast('success', 'Resumo copiado para a área de transferência')
+    }
+  } catch {}
+}
+
+function gerarContratoPDF(): Window | null {
+  if (!tenant.value) return null
   const t = tenant.value
   const c = contratoAtual.value
 
@@ -975,10 +1107,10 @@ function gerarContratoPDF() {
 </html>`
 
   const janela = window.open('', '_blank')
-  if (!janela) { showToast('error', 'Permita popups para gerar o contrato'); return }
+  if (!janela) { showToast('error', 'Permita popups para gerar o contrato'); return null }
   janela.document.write(html)
   janela.document.close()
-  janela.onload = () => janela.print()
+  return janela
 }
 
 onMounted(() => {

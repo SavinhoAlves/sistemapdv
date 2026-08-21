@@ -55,10 +55,10 @@
         </div>
 
         <div class="flex items-center gap-2">
-          <button @click="somAtivo = !somAtivo"
+          <button @click="toggleSom"
             class="h-10 w-10 rounded-xl bg-gray-100 dark:bg-white/[0.06] hover:bg-gray-200 dark:hover:bg-white/10 flex items-center justify-center transition-all"
             :class="somAtivo ? 'text-gray-900 dark:text-white' : 'text-gray-400 dark:text-white/30'"
-            :title="somAtivo ? 'Som ligado' : 'Som desligado'">
+            :title="somAtivo ? 'Som ligado (clique para desligar)' : 'Som desligado (clique para ligar e testar)'">
             <Volume2 v-if="somAtivo" :size="16" />
             <VolumeX v-else :size="16" />
           </button>
@@ -67,6 +67,12 @@
             <RefreshCw :size="14" :class="carregando ? 'animate-spin' : ''" />
             Atualizar
           </button>
+          <NuxtLink to="/cozinha/painel-cozinha"
+            class="h-10 px-4 rounded-xl bg-gray-100 dark:bg-white/[0.06] hover:bg-gray-200 dark:hover:bg-white/10 text-gray-700 dark:text-white text-xs font-black transition-all flex items-center gap-2"
+            title="Abrir painel para exibição na cozinha/balcão">
+            <Monitor :size="14" />
+            Painel
+          </NuxtLink>
           <button @click="alternarQuiosque"
             class="h-10 px-4 rounded-xl text-xs font-black transition-all flex items-center gap-2"
             :class="quiosque
@@ -233,7 +239,7 @@
 import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue'
 import {
   RefreshCw, ChefHat, Maximize2, Minimize2, Volume2, VolumeX,
-  Undo2, WifiOff, X
+  Undo2, WifiOff, X, Monitor
 } from 'lucide-vue-next'
 import Navbar from '~/layouts/Navbar.vue'
 import Sidebar from '~/components/Sidebar.vue'
@@ -357,6 +363,10 @@ function mesaAtrasada(mesa: Mesa) {
 
 const somAtivo = ref(lsGet('kds_som') !== 'off')
 watch(somAtivo, v => lsSet('kds_som', v ? 'on' : 'off'))
+function toggleSom() {
+  somAtivo.value = !somAtivo.value
+  if (somAtivo.value) tocarSom('novo')
+}
 
 let audioCtx: AudioContext | null = null
 function tocarSom(tipo: 'novo' | 'cancelado') {

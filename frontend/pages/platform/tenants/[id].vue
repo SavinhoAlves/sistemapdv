@@ -90,10 +90,6 @@
 
           <!-- Ações do cabeçalho -->
           <div class="flex flex-wrap gap-2 shrink-0">
-            <button @click="gerarContratoPDF"
-              class="h-9 px-4 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20 text-emerald-400 text-xs font-black transition-all flex items-center gap-2">
-              <FileDown :size="13" /> Contrato PDF
-            </button>
             <button @click="abrirModalDados"
               class="h-9 px-4 rounded-xl bg-white/[0.06] hover:bg-white/[0.09] border border-white/[0.09] text-white text-xs font-black transition-all flex items-center gap-2">
               <Pencil :size="13" /> Editar dados
@@ -185,11 +181,17 @@
 
         <!-- CONTRATO -->
         <section class="bg-white/[0.03] border border-white/[0.07] rounded-2xl p-5">
-          <div class="flex items-center gap-2 mb-4">
-            <div class="w-7 h-7 rounded-lg bg-indigo-500/10 flex items-center justify-center">
-              <FileText :size="13" class="text-indigo-400" />
+          <div class="flex items-center justify-between mb-4">
+            <div class="flex items-center gap-2">
+              <div class="w-7 h-7 rounded-lg bg-indigo-500/10 flex items-center justify-center">
+                <FileText :size="13" class="text-indigo-400" />
+              </div>
+              <h2 class="text-sm font-black text-white uppercase tracking-wide">Contrato</h2>
             </div>
-            <h2 class="text-sm font-black text-white uppercase tracking-wide">Contrato</h2>
+            <button @click="gerarContratoPDF"
+              class="text-[11px] text-white/30 hover:text-emerald-400 transition-colors font-bold flex items-center gap-1">
+              <FileDown :size="11" /> Gerar PDF
+            </button>
           </div>
 
           <div v-if="!contratoAtual" class="text-center py-6 text-white/25 text-sm">

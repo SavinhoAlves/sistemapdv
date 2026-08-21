@@ -32,120 +32,252 @@
     </header>
 
     <!-- ══ CONTEÚDO ══ -->
-    <main class="max-w-6xl mx-auto px-6 py-8">
+    <main class="max-w-6xl mx-auto px-6 py-8 space-y-8">
 
-      <!-- Título + ações -->
-      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
-        <div>
-          <h1 class="text-2xl font-black text-white tracking-tight">Restaurantes</h1>
-          <p class="text-white/40 text-sm mt-0.5">{{ tenants.length }} tenant(s) cadastrado(s)</p>
-        </div>
-        <div class="flex items-center gap-3">
-          <div class="relative">
-            <Search :size="14" class="absolute left-3 top-1/2 -translate-y-1/2 text-white/25 pointer-events-none" />
-            <input v-model="busca" type="text" placeholder="Buscar..."
-              class="h-9 pl-9 pr-4 bg-white/[0.05] border border-white/[0.08] rounded-xl text-white text-sm placeholder:text-white/25 focus:outline-none focus:border-violet-500/50 transition-all w-48" />
-          </div>
-          <button @click="abrirModal(null)"
-            class="h-9 px-4 rounded-xl bg-violet-600 hover:bg-violet-500 active:scale-95 text-white text-xs font-black transition-all flex items-center gap-2 shadow-lg shadow-violet-500/20">
-            <Plus :size="13" /> Novo Restaurante
-          </button>
-        </div>
+      <!-- ── ALERTAS ── -->
+      <div v-if="dashboard?.alertas?.length" class="space-y-2">
+        <p class="text-[10px] font-black uppercase tracking-widest text-white/30 mb-3">Atenção necessária</p>
+        <NuxtLink v-for="a in dashboard.alertas" :key="a.tenant_id"
+          :to="`/platform/tenants/${a.tenant_id}`"
+          class="flex items-center gap-3 px-4 py-3 rounded-xl border transition-all hover:opacity-80"
+          :class="alertaStyle(a.tipo).container">
+          <component :is="alertaStyle(a.tipo).icon" :size="14" :class="alertaStyle(a.tipo).icon_color" />
+          <p class="text-sm font-bold flex-1" :class="alertaStyle(a.tipo).text">
+            <span class="font-black">{{ a.nome }}</span>
+            {{ alertaDescricao(a) }}
+          </p>
+          <ChevronRight :size="13" :class="alertaStyle(a.tipo).icon_color" class="opacity-50" />
+        </NuxtLink>
       </div>
 
-      <!-- Stats -->
-      <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-8">
-        <div v-for="stat in stats" :key="stat.label" class="bg-white/[0.03] border border-white/[0.07] rounded-2xl p-4">
-          <div class="flex items-center gap-2 mb-2">
-            <div class="w-6 h-6 rounded-lg flex items-center justify-center" :class="stat.iconBg">
-              <component :is="stat.icon" :size="12" :class="stat.iconColor" />
+      <!-- ── STATS + FINANCEIRO ── -->
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+        <!-- Stats -->
+        <div class="lg:col-span-2 grid grid-cols-2 sm:grid-cols-3 gap-3">
+          <div class="bg-white/[0.03] border border-white/[0.07] rounded-2xl p-4">
+            <div class="flex items-center gap-2 mb-3">
+              <div class="w-6 h-6 rounded-lg bg-white/[0.06] flex items-center justify-center">
+                <Store :size="12" class="text-white/40" />
+              </div>
+              <p class="text-[10px] font-black uppercase tracking-widest text-white/30">Total</p>
             </div>
-            <p class="text-white/40 text-[10px] font-black uppercase tracking-widest">{{ stat.label }}</p>
+            <p class="text-3xl font-black text-white">{{ dashboard?.totais?.tenants ?? tenants.length }}</p>
+            <p class="text-[11px] text-white/25 mt-1">{{ dashboard?.totais?.ativos ?? 0 }} ativos · {{ dashboard?.totais?.suspensos ?? 0 }} suspensos</p>
           </div>
-          <p class="text-2xl font-black text-white">{{ stat.value }}</p>
-        </div>
-      </div>
 
-      <!-- Loading -->
-      <div v-if="loading" class="flex items-center justify-center py-20">
-        <Loader2 :size="28" class="animate-spin text-violet-500" />
-      </div>
-
-      <!-- Erro -->
-      <div v-else-if="erro" class="text-center py-16">
-        <div class="w-14 h-14 rounded-2xl bg-red-500/10 flex items-center justify-center mx-auto mb-4">
-          <AlertCircle :size="24" class="text-red-400" />
-        </div>
-        <p class="text-white/60 font-bold mb-1">{{ erro }}</p>
-        <button @click="carregar" class="text-violet-400 text-sm font-bold hover:text-violet-300 transition-colors">Tentar novamente</button>
-      </div>
-
-      <!-- Lista -->
-      <div v-else class="space-y-3">
-        <div v-if="!tenantsFiltrados.length" class="text-center py-16 text-white/30 text-sm font-bold">
-          Nenhum restaurante encontrado
-        </div>
-
-        <div v-for="tenant in tenantsFiltrados" :key="tenant.id"
-          class="bg-white/[0.03] border border-white/[0.07] rounded-2xl overflow-hidden transition-all hover:border-violet-500/20 group">
-          <div class="flex flex-col sm:flex-row sm:items-center">
-
-            <!-- Área clicável → página de detalhes -->
-            <NuxtLink :to="`/platform/tenants/${tenant.id}`"
-              class="flex items-start gap-4 p-5 flex-1 min-w-0 transition-all hover:bg-violet-500/[0.04] cursor-pointer">
-              <div class="w-10 h-10 rounded-xl bg-white/[0.05] border border-white/[0.07] flex items-center justify-center shrink-0 group-hover:border-violet-500/20 transition-colors">
-                <Building2 :size="18" class="text-white/40 group-hover:text-violet-400 transition-colors" />
+          <div class="bg-white/[0.03] border border-white/[0.07] rounded-2xl p-4">
+            <div class="flex items-center gap-2 mb-3">
+              <div class="w-6 h-6 rounded-lg bg-sky-500/10 flex items-center justify-center">
+                <KeyRound :size="12" class="text-sky-400" />
               </div>
-              <div class="min-w-0 flex-1">
-                <div class="flex items-center gap-2 flex-wrap mb-1">
-                  <p class="text-white font-black truncate">{{ tenant.nome }}</p>
-                  <span class="text-[10px] font-black px-2 py-0.5 rounded-full shrink-0" :class="statusBadge(tenant.status)">
-                    {{ tenant.status }}
-                  </span>
-                  <span v-if="tenant.licencas?.[0]"
-                    class="text-[10px] font-black px-2 py-0.5 rounded-full shrink-0"
-                    :class="licencaBadge(tenant.licencas[0].status)">
-                    {{ licencaLabel(tenant.licencas[0]) }}
-                  </span>
-                  <span v-if="tenant.contratos?.[0]"
-                    class="text-[10px] font-black px-2 py-0.5 rounded-full bg-indigo-500/10 text-indigo-400 shrink-0">
-                    {{ tenant.contratos[0].plano }}
-                  </span>
+              <p class="text-[10px] font-black uppercase tracking-widest text-white/30">Licenças</p>
+            </div>
+            <p class="text-3xl font-black text-white">{{ dashboard?.licencas?.ativas ?? 0 }}</p>
+            <div class="flex items-center gap-2 mt-1 flex-wrap">
+              <span v-if="(dashboard?.licencas?.pendentes ?? 0) > 0" class="text-[10px] font-black text-amber-400">{{ dashboard?.licencas?.pendentes }} pendente(s)</span>
+              <span v-if="(dashboard?.licencas?.bloqueadas ?? 0) > 0" class="text-[10px] font-black text-red-400">{{ dashboard?.licencas?.bloqueadas }} bloqueada(s)</span>
+              <span v-if="!(dashboard?.licencas?.pendentes) && !(dashboard?.licencas?.bloqueadas)" class="text-[11px] text-white/25">ativas</span>
+            </div>
+          </div>
+
+          <div class="bg-white/[0.03] border border-white/[0.07] rounded-2xl p-4"
+            :class="(dashboard?.licencas?.vencidas ?? 0) > 0 ? 'border-red-500/20' : (dashboard?.licencas?.vencendo ?? 0) > 0 ? 'border-amber-500/20' : ''">
+            <div class="flex items-center gap-2 mb-3">
+              <div class="w-6 h-6 rounded-lg flex items-center justify-center"
+                :class="(dashboard?.licencas?.vencidas ?? 0) > 0 ? 'bg-red-500/10' : (dashboard?.licencas?.vencendo ?? 0) > 0 ? 'bg-amber-500/10' : 'bg-emerald-500/10'">
+                <Clock :size="12"
+                  :class="(dashboard?.licencas?.vencidas ?? 0) > 0 ? 'text-red-400' : (dashboard?.licencas?.vencendo ?? 0) > 0 ? 'text-amber-400' : 'text-emerald-400'" />
+              </div>
+              <p class="text-[10px] font-black uppercase tracking-widest text-white/30">Vencimentos</p>
+            </div>
+            <p class="text-3xl font-black"
+              :class="(dashboard?.licencas?.vencidas ?? 0) > 0 ? 'text-red-400' : (dashboard?.licencas?.vencendo ?? 0) > 0 ? 'text-amber-400' : 'text-white'">
+              {{ (dashboard?.licencas?.vencidas ?? 0) + (dashboard?.licencas?.vencendo ?? 0) }}
+            </p>
+            <p class="text-[11px] mt-1"
+              :class="(dashboard?.licencas?.vencidas ?? 0) > 0 ? 'text-red-400/70' : 'text-white/25'">
+              {{ (dashboard?.licencas?.vencidas ?? 0) > 0 ? `${dashboard?.licencas?.vencidas} vencida(s)` : 'nos próximos 30 dias' }}
+            </p>
+          </div>
+
+          <!-- RFID + Mobile linha extra -->
+          <div class="bg-white/[0.03] border border-white/[0.07] rounded-2xl p-4">
+            <div class="flex items-center gap-2 mb-3">
+              <div class="w-6 h-6 rounded-lg bg-violet-500/10 flex items-center justify-center">
+                <CreditCard :size="12" class="text-violet-400" />
+              </div>
+              <p class="text-[10px] font-black uppercase tracking-widest text-white/30">RFID on</p>
+            </div>
+            <p class="text-3xl font-black text-white">{{ tenants.filter(t => t.rfid_disponivel).length }}</p>
+            <p class="text-[11px] text-white/25 mt-1">tenants habilitados</p>
+          </div>
+
+          <div class="bg-white/[0.03] border border-white/[0.07] rounded-2xl p-4">
+            <div class="flex items-center gap-2 mb-3">
+              <div class="w-6 h-6 rounded-lg bg-sky-500/10 flex items-center justify-center">
+                <Smartphone :size="12" class="text-sky-400" />
+              </div>
+              <p class="text-[10px] font-black uppercase tracking-widest text-white/30">Mobile</p>
+            </div>
+            <p class="text-3xl font-black text-white">{{ tenants.filter(t => t.venda_mobile_permitida).length }}</p>
+            <p class="text-[11px] text-white/25 mt-1">tenants com mobile</p>
+          </div>
+
+          <div class="bg-white/[0.03] border border-white/[0.07] rounded-2xl p-4">
+            <div class="flex items-center gap-2 mb-3">
+              <div class="w-6 h-6 rounded-lg bg-amber-500/10 flex items-center justify-center">
+                <AlertCircle :size="12" class="text-amber-400" />
+              </div>
+              <p class="text-[10px] font-black uppercase tracking-widest text-white/30">Suspensos</p>
+            </div>
+            <p class="text-3xl font-black" :class="(dashboard?.totais?.suspensos ?? 0) > 0 ? 'text-amber-400' : 'text-white'">
+              {{ dashboard?.totais?.suspensos ?? 0 }}
+            </p>
+            <p class="text-[11px] text-white/25 mt-1">tenants suspensos</p>
+          </div>
+        </div>
+
+        <!-- Receita -->
+        <div class="bg-white/[0.03] border border-white/[0.07] rounded-2xl p-5 flex flex-col">
+          <div class="flex items-center gap-2 mb-4">
+            <div class="w-7 h-7 rounded-lg bg-emerald-500/10 flex items-center justify-center">
+              <TrendingUp :size="13" class="text-emerald-400" />
+            </div>
+            <h2 class="text-sm font-black text-white uppercase tracking-wide">Receita</h2>
+          </div>
+
+          <div class="mb-4">
+            <p class="text-[10px] font-black uppercase tracking-widest text-white/30 mb-1">MRR</p>
+            <p class="text-2xl font-black text-emerald-400">{{ formatCurrency(dashboard?.financeiro?.mrr ?? 0) }}</p>
+            <p class="text-[11px] text-white/25 mt-0.5">ARR: {{ formatCurrency(dashboard?.financeiro?.arr ?? 0) }}</p>
+          </div>
+
+          <div v-if="dashboard?.financeiro?.por_plano?.length" class="space-y-2 flex-1">
+            <p class="text-[10px] font-black uppercase tracking-widest text-white/30 mb-2">Por plano</p>
+            <div v-for="p in dashboard.financeiro.por_plano" :key="p.plano"
+              class="flex items-center gap-2">
+              <div class="flex-1 min-w-0">
+                <div class="flex justify-between items-center mb-0.5">
+                  <span class="text-[11px] font-bold text-white/70 truncate">{{ p.plano }}</span>
+                  <span class="text-[11px] font-black text-white/50 shrink-0 ml-2">{{ p.count }}x</span>
                 </div>
-                <p class="text-white/30 text-xs font-mono">{{ tenant.slug }}</p>
-                <div class="flex items-center gap-3 mt-1 flex-wrap">
-                  <span v-if="tenant.responsavel" class="text-white/25 text-[11px]">{{ tenant.responsavel }}</span>
-                  <span v-if="tenant.telefone" class="text-white/25 text-[11px]">{{ tenant.telefone }}</span>
-                  <span v-if="tenant.cnpj" class="text-white/20 text-[11px] font-mono">{{ tenant.cnpj }}</span>
+                <div class="h-1 rounded-full bg-white/[0.05] overflow-hidden">
+                  <div class="h-full rounded-full bg-emerald-500/60 transition-all"
+                    :style="{ width: maxMrr > 0 ? `${(p.mrr / maxMrr) * 100}%` : '0%' }" />
                 </div>
               </div>
-              <ChevronRight :size="16" class="text-white/10 group-hover:text-violet-400/60 transition-colors shrink-0 self-center" />
-            </NuxtLink>
+              <span class="text-[11px] font-black text-emerald-400 shrink-0 w-20 text-right">{{ formatCurrency(p.mrr) }}<span class="text-white/30 font-normal">/mês</span></span>
+            </div>
+          </div>
 
-            <!-- Ações rápidas -->
-            <div class="flex items-center gap-2 px-4 pb-4 sm:pb-0 sm:pr-4 pl-[72px] sm:pl-0 shrink-0">
-              <button @click="toggleRfid(tenant)" :disabled="togglingId === tenant.id"
-                class="w-8 h-8 rounded-xl flex items-center justify-center border transition-all"
-                :class="tenant.rfid_disponivel ? 'bg-violet-500/15 border-violet-500/30 hover:bg-violet-500/25' : 'bg-white/[0.03] border-white/[0.06] hover:bg-white/[0.06]'"
-                :title="tenant.rfid_disponivel ? 'Desabilitar RFID' : 'Habilitar RFID'">
-                <Loader2 v-if="togglingId === tenant.id" :size="13" class="animate-spin text-violet-400" />
-                <CreditCard v-else :size="13" :class="tenant.rfid_disponivel ? 'text-violet-400' : 'text-white/20'" />
-              </button>
+          <div v-else class="flex-1 flex items-center justify-center">
+            <p class="text-white/20 text-xs">Nenhum contrato ativo</p>
+          </div>
+        </div>
+      </div>
 
-              <button @click="toggleStatus(tenant)"
-                class="w-8 h-8 rounded-xl flex items-center justify-center border transition-all group/st"
-                :class="tenant.status === 'ativo'
-                  ? 'bg-emerald-500/10 border-emerald-500/20 hover:bg-red-500/10 hover:border-red-500/20'
-                  : 'bg-amber-500/10 border-amber-500/20 hover:bg-emerald-500/10 hover:border-emerald-500/20'"
-                :title="tenant.status === 'ativo' ? 'Suspender' : 'Reativar'">
-                <ToggleRight v-if="tenant.status === 'ativo'" :size="13" class="text-emerald-400 group-hover/st:text-red-400 transition-colors" />
-                <ToggleLeft  v-else :size="13" class="text-amber-400 group-hover/st:text-emerald-400 transition-colors" />
-              </button>
+      <!-- ── LISTA DE TENANTS ── -->
+      <div>
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-5">
+          <div>
+            <h2 class="text-lg font-black text-white tracking-tight">Restaurantes</h2>
+            <p class="text-white/40 text-xs mt-0.5">{{ tenants.length }} cadastrado(s)</p>
+          </div>
+          <div class="flex items-center gap-3">
+            <div class="relative">
+              <Search :size="14" class="absolute left-3 top-1/2 -translate-y-1/2 text-white/25 pointer-events-none" />
+              <input v-model="busca" type="text" placeholder="Buscar..."
+                class="h-9 pl-9 pr-4 bg-white/[0.05] border border-white/[0.08] rounded-xl text-white text-sm placeholder:text-white/25 focus:outline-none focus:border-violet-500/50 transition-all w-48" />
+            </div>
+            <button @click="abrirModal(null)"
+              class="h-9 px-4 rounded-xl bg-violet-600 hover:bg-violet-500 active:scale-95 text-white text-xs font-black transition-all flex items-center gap-2 shadow-lg shadow-violet-500/20">
+              <Plus :size="13" /> Novo
+            </button>
+          </div>
+        </div>
 
-              <button @click="abrirModal(tenant)"
-                class="h-8 px-3 rounded-xl text-[11px] font-black text-white/40 hover:text-white hover:bg-white/[0.08] border border-white/[0.06] hover:border-white/10 transition-all flex items-center gap-1.5">
-                <Pencil :size="12" /> Editar
-              </button>
+        <!-- Loading -->
+        <div v-if="loading" class="flex items-center justify-center py-16">
+          <Loader2 :size="28" class="animate-spin text-violet-500" />
+        </div>
+
+        <!-- Erro -->
+        <div v-else-if="erro" class="text-center py-12">
+          <div class="w-14 h-14 rounded-2xl bg-red-500/10 flex items-center justify-center mx-auto mb-4">
+            <AlertCircle :size="24" class="text-red-400" />
+          </div>
+          <p class="text-white/60 font-bold mb-1">{{ erro }}</p>
+          <button @click="carregar" class="text-violet-400 text-sm font-bold hover:text-violet-300 transition-colors">Tentar novamente</button>
+        </div>
+
+        <!-- Lista -->
+        <div v-else class="space-y-3">
+          <div v-if="!tenantsFiltrados.length" class="text-center py-12 text-white/30 text-sm font-bold">
+            Nenhum restaurante encontrado
+          </div>
+
+          <div v-for="tenant in tenantsFiltrados" :key="tenant.id"
+            class="bg-white/[0.03] border border-white/[0.07] rounded-2xl overflow-hidden transition-all hover:border-violet-500/20 group">
+            <div class="flex flex-col sm:flex-row sm:items-center">
+
+              <!-- Área clicável → página de detalhes -->
+              <NuxtLink :to="`/platform/tenants/${tenant.id}`"
+                class="flex items-start gap-4 p-5 flex-1 min-w-0 transition-all hover:bg-violet-500/[0.04] cursor-pointer">
+                <div class="w-10 h-10 rounded-xl bg-white/[0.05] border border-white/[0.07] flex items-center justify-center shrink-0 group-hover:border-violet-500/20 transition-colors">
+                  <Building2 :size="18" class="text-white/40 group-hover:text-violet-400 transition-colors" />
+                </div>
+                <div class="min-w-0 flex-1">
+                  <div class="flex items-center gap-2 flex-wrap mb-1">
+                    <p class="text-white font-black truncate">{{ tenant.nome }}</p>
+                    <span class="text-[10px] font-black px-2 py-0.5 rounded-full shrink-0" :class="statusBadge(tenant.status)">
+                      {{ tenant.status }}
+                    </span>
+                    <span v-if="tenant.licencas?.[0]"
+                      class="text-[10px] font-black px-2 py-0.5 rounded-full shrink-0"
+                      :class="licencaBadge(tenant.licencas[0].status)">
+                      {{ licencaLabel(tenant.licencas[0]) }}
+                    </span>
+                    <span v-if="tenant.contratos?.[0]"
+                      class="text-[10px] font-black px-2 py-0.5 rounded-full bg-indigo-500/10 text-indigo-400 shrink-0">
+                      {{ tenant.contratos[0].plano }}
+                    </span>
+                  </div>
+                  <p class="text-white/30 text-xs font-mono">{{ tenant.slug }}</p>
+                  <div class="flex items-center gap-3 mt-1 flex-wrap">
+                    <span v-if="tenant.responsavel" class="text-white/25 text-[11px]">{{ tenant.responsavel }}</span>
+                    <span v-if="tenant.telefone" class="text-white/25 text-[11px]">{{ tenant.telefone }}</span>
+                    <span v-if="tenant.cnpj" class="text-white/20 text-[11px] font-mono">{{ tenant.cnpj }}</span>
+                  </div>
+                </div>
+                <ChevronRight :size="16" class="text-white/10 group-hover:text-violet-400/60 transition-colors shrink-0 self-center" />
+              </NuxtLink>
+
+              <!-- Ações rápidas -->
+              <div class="flex items-center gap-2 px-4 pb-4 sm:pb-0 sm:pr-4 pl-[72px] sm:pl-0 shrink-0">
+                <button @click="toggleRfid(tenant)" :disabled="togglingId === tenant.id"
+                  class="w-8 h-8 rounded-xl flex items-center justify-center border transition-all"
+                  :class="tenant.rfid_disponivel ? 'bg-violet-500/15 border-violet-500/30 hover:bg-violet-500/25' : 'bg-white/[0.03] border-white/[0.06] hover:bg-white/[0.06]'"
+                  :title="tenant.rfid_disponivel ? 'Desabilitar RFID' : 'Habilitar RFID'">
+                  <Loader2 v-if="togglingId === tenant.id" :size="13" class="animate-spin text-violet-400" />
+                  <CreditCard v-else :size="13" :class="tenant.rfid_disponivel ? 'text-violet-400' : 'text-white/20'" />
+                </button>
+
+                <button @click="toggleStatus(tenant)"
+                  class="w-8 h-8 rounded-xl flex items-center justify-center border transition-all group/st"
+                  :class="tenant.status === 'ativo'
+                    ? 'bg-emerald-500/10 border-emerald-500/20 hover:bg-red-500/10 hover:border-red-500/20'
+                    : 'bg-amber-500/10 border-amber-500/20 hover:bg-emerald-500/10 hover:border-emerald-500/20'"
+                  :title="tenant.status === 'ativo' ? 'Suspender' : 'Reativar'">
+                  <ToggleRight v-if="tenant.status === 'ativo'" :size="13" class="text-emerald-400 group-hover/st:text-red-400 transition-colors" />
+                  <ToggleLeft  v-else :size="13" class="text-amber-400 group-hover/st:text-emerald-400 transition-colors" />
+                </button>
+
+                <button @click="abrirModal(tenant)"
+                  class="h-8 px-3 rounded-xl text-[11px] font-black text-white/40 hover:text-white hover:bg-white/[0.08] border border-white/[0.06] hover:border-white/10 transition-all flex items-center gap-1.5">
+                  <Pencil :size="12" /> Editar
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -309,15 +441,15 @@
 <script setup lang="ts">
 import { ref, computed, reactive, onMounted } from 'vue'
 import {
-  Globe, Shield, LogOut, Search, Plus, Building2, CreditCard,
-  Loader2, AlertCircle, CheckCircle2, Pencil, X, Store,
-  ToggleRight, ToggleLeft, FileText, ChevronRight,
+  Globe, Shield, LogOut, Search, Plus, Building2, CreditCard, Smartphone,
+  Loader2, AlertCircle, CheckCircle2, Pencil, X, Store, FileText, ChevronRight,
+  ToggleRight, ToggleLeft, KeyRound, Clock, TrendingUp,
 } from 'lucide-vue-next'
 import { usePlatformAuthStore } from '~/stores/platformAuth'
 
 definePageMeta({ layout: false })
 
-interface Licenca { id: string; status: string; dataAtivacao: string | null; dataVencimento: string | null; createdAt: string }
+interface Licenca  { id: string; status: string; dataAtivacao: string | null; dataVencimento: string | null; createdAt: string }
 interface Contrato { id: string; plano: string; valor: string | null; ciclo: string; status: string; dataInicio: string | null; dataFim: string | null }
 interface Tenant {
   id: string; nome: string; slug: string; cnpj: string | null; contato: string | null
@@ -325,11 +457,18 @@ interface Tenant {
   status: string; rfid_disponivel: boolean; venda_mobile_permitida: boolean; created_at: string
   licencas: Licenca[]; contratos: Contrato[]
 }
+interface Dashboard {
+  totais:     { tenants: number; ativos: number; suspensos: number }
+  licencas:   { ativas: number; pendentes: number; bloqueadas: number; vencendo: number; vencidas: number }
+  financeiro: { mrr: number; arr: number; por_plano: { plano: string; count: number; mrr: number }[] }
+  alertas:    { tenant_id: string; nome: string; tipo: string; dias?: number }[]
+}
 
 const platformAuth  = usePlatformAuthStore()
 const runtimeConfig = useRuntimeConfig()
 
 const tenants    = ref<Tenant[]>([])
+const dashboard  = ref<Dashboard | null>(null)
 const loading    = ref(false)
 const erro       = ref('')
 const busca      = ref('')
@@ -355,34 +494,43 @@ const form = reactive({ id: null as string | null, nome: '', slug: '', cnpj: '',
 const licencaForm = reactive({ status: 'pendente', dataAtivacao: '', dataVencimento: '' })
 
 const baseUrl = computed(() => (runtimeConfig.public as any).apiUrl as string)
+const maxMrr  = computed(() => Math.max(...(dashboard.value?.financeiro?.por_plano?.map(p => p.mrr) ?? [0]), 0))
 
 const tenantsFiltrados = computed(() => {
   const q = busca.value.toLowerCase().trim()
   if (!q) return tenants.value
   return tenants.value.filter(t => t.nome.toLowerCase().includes(q) || t.slug.toLowerCase().includes(q) || (t.responsavel || '').toLowerCase().includes(q))
 })
-const stats = computed(() => [
-  { label: 'Total',     value: tenants.value.length,                                     icon: Store,        iconBg: 'bg-white/[0.06]',   iconColor: 'text-white/40'    },
-  { label: 'Ativos',    value: tenants.value.filter(t => t.status === 'ativo').length,   icon: CheckCircle2, iconBg: 'bg-emerald-500/10', iconColor: 'text-emerald-400' },
-  { label: 'RFID on',   value: tenants.value.filter(t => t.rfid_disponivel).length,      icon: CreditCard,   iconBg: 'bg-violet-500/10',  iconColor: 'text-violet-400'  },
-  { label: 'Suspensos', value: tenants.value.filter(t => t.status === 'suspenso').length, icon: AlertCircle,  iconBg: 'bg-amber-500/10',   iconColor: 'text-amber-400'   },
-])
 
 function statusBadge(s: string) { return s === 'ativo' ? 'bg-emerald-500/15 text-emerald-400' : s === 'suspenso' ? 'bg-amber-500/15 text-amber-400' : 'bg-red-500/15 text-red-400' }
 function licencaBadge(s: string) { return s === 'ativado' ? 'bg-sky-500/15 text-sky-400' : s === 'pendente' ? 'bg-yellow-500/15 text-yellow-400' : 'bg-red-500/15 text-red-400' }
 function licencaLabel(lic: Licenca) {
   if (lic.status === 'ativado' && lic.dataVencimento) {
     const d = Math.ceil((new Date(lic.dataVencimento).getTime() - Date.now()) / 86400000)
-    if (d < 0) return 'Expirada'
-    if (d <= 7) return `Vence em ${d}d`
+    if (d < 0)   return 'Expirada'
+    if (d <= 7)  return `Vence em ${d}d`
     return `Lic. até ${formatDate(lic.dataVencimento)}`
   }
   return lic.status === 'ativado' ? 'Licenciado' : lic.status === 'pendente' ? 'Pendente' : 'Bloqueado'
 }
 function formatDate(d: string | null | undefined) { if (!d) return '—'; return new Date(d).toLocaleDateString('pt-BR') }
+function formatCurrency(v: number) { return v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) }
 function slugify(s: string) { return s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') }
 function autoSlug() { if (!form.id) form.slug = slugify(form.nome) }
 function showToast(type: 'success' | 'error', text: string) { toast.type = type; toast.text = text; setTimeout(() => { toast.text = '' }, 3000) }
+
+function alertaStyle(tipo: string) {
+  if (tipo === 'licenca_vencida')  return { container: 'bg-red-500/[0.07] border-red-500/20', icon: AlertCircle, icon_color: 'text-red-400', text: 'text-red-300' }
+  if (tipo === 'licenca_critica')  return { container: 'bg-red-500/[0.05] border-red-500/15', icon: Clock, icon_color: 'text-red-400', text: 'text-red-300/80' }
+  if (tipo === 'licenca_vencendo') return { container: 'bg-amber-500/[0.07] border-amber-500/20', icon: Clock, icon_color: 'text-amber-400', text: 'text-amber-300' }
+  return { container: 'bg-orange-500/[0.07] border-orange-500/20', icon: AlertCircle, icon_color: 'text-orange-400', text: 'text-orange-300' }
+}
+function alertaDescricao(a: { tipo: string; dias?: number }) {
+  if (a.tipo === 'licenca_vencida')  return '— licença vencida'
+  if (a.tipo === 'licenca_critica')  return `— licença vence em ${a.dias} dia(s)`
+  if (a.tipo === 'licenca_vencendo') return `— licença vence em ${a.dias} dias`
+  return '— licença bloqueada (inadimplente)'
+}
 
 async function platformFetch<T>(path: string, options: RequestInit = {}): Promise<T> {
   const resp = await fetch(`${baseUrl.value}/api${path}`, {
@@ -396,8 +544,14 @@ async function platformFetch<T>(path: string, options: RequestInit = {}): Promis
 
 async function carregar() {
   loading.value = true; erro.value = ''
-  try { tenants.value = await platformFetch<Tenant[]>('/platform/tenants') }
-  catch (e: any) { erro.value = e?.message || 'Erro ao carregar' }
+  try {
+    const [t, d] = await Promise.all([
+      platformFetch<Tenant[]>('/platform/tenants'),
+      platformFetch<Dashboard>('/platform/tenants/dashboard'),
+    ])
+    tenants.value   = t
+    dashboard.value = d
+  } catch (e: any) { erro.value = e?.message || 'Erro ao carregar' }
   finally { loading.value = false }
 }
 
@@ -456,6 +610,7 @@ async function toggleStatus(tenant: Tenant) {
     await platformFetch(`/platform/tenants/${tenant.id}/status`, { method: 'PATCH', body: JSON.stringify({ status: novoStatus }) })
     tenant.status = novoStatus
     showToast('success', novoStatus === 'suspenso' ? `${tenant.nome} suspenso` : `${tenant.nome} reativado`)
+    await carregar()
   } catch (e: any) { showToast('error', e?.message || 'Erro ao alterar status') }
 }
 

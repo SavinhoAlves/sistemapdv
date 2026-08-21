@@ -11,7 +11,94 @@ function slugify(s: string) {
     .replace(/(^-|-$)/g, '')
 }
 
+const FATOR_MRR: Record<string, number> = {
+  mensal:      1,
+  trimestral:  1 / 3,
+  semestral:   1 / 6,
+  anual:       1 / 12,
+}
+
 export async function platformTenantsRoutes(app: FastifyInstance) {
+  // GET /dashboard — métricas consolidadas para o painel
+  app.get('/dashboard', { preHandler: requirePlatform }, async (_request, reply) => {
+    const tenants = await prisma.tenant.findMany({
+      where: { status: { not: 'cancelado' } },
+      select: {
+        id: true, nome: true, slug: true, status: true,
+        licencas:  { orderBy: { createdAt: 'desc' }, take: 1,
+          select: { status: true, dataVencimento: true } },
+        contratos: { orderBy: { createdAt: 'desc' }, take: 1,
+          select: { plano: true, valor: true, ciclo: true, status: true } },
+      },
+    })
+
+    const agora   = new Date()
+    const em30d   = new Date(agora.getTime() + 30 * 86_400_000)
+    const em7d    = new Date(agora.getTime() +  7 * 86_400_000)
+
+    let mrr = 0
+    const porPlano: Record<string, { count: number; mrr: number }> = {}
+    const alertas: { tenantId: string; nome: string; tipo: string; dias?: number }[] = []
+
+    let licAtivas = 0, licPendentes = 0, licBloqueadas = 0, licVencendo30 = 0, licVencidas = 0
+
+    for (const t of tenants) {
+      const lic = t.licencas[0]
+      const con = t.contratos[0]
+
+      if (lic) {
+        if (lic.status === 'ativado') {
+          licAtivas++
+          if (lic.dataVencimento) {
+            const venc = new Date(lic.dataVencimento)
+            if (venc < agora) {
+              licVencidas++
+              alertas.push({ tenantId: t.id, nome: t.nome, tipo: 'licenca_vencida' })
+            } else if (venc <= em30d) {
+              licVencendo30++
+              const dias = Math.ceil((venc.getTime() - agora.getTime()) / 86_400_000)
+              alertas.push({ tenantId: t.id, nome: t.nome, tipo: dias <= 7 ? 'licenca_critica' : 'licenca_vencendo', dias })
+            }
+          }
+        } else if (lic.status === 'pendente') {
+          licPendentes++
+        } else if (lic.status === 'bloqueado') {
+          licBloqueadas++
+          alertas.push({ tenantId: t.id, nome: t.nome, tipo: 'inadimplente' })
+        }
+      }
+
+      if (con?.status === 'ativo' && con.valor) {
+        const mrrTenant = Number(con.valor) * (FATOR_MRR[con.ciclo] ?? 1)
+        mrr += mrrTenant
+        if (!porPlano[con.plano]) porPlano[con.plano] = { count: 0, mrr: 0 }
+        porPlano[con.plano].count++
+        porPlano[con.plano].mrr += mrrTenant
+      }
+    }
+
+    // Ordena alertas: vencidas > críticas (≤7d) > vencendo > inadimplentes
+    const prioridade: Record<string, number> = { licenca_vencida: 0, licenca_critica: 1, licenca_vencendo: 2, inadimplente: 3 }
+    alertas.sort((a, b) => (prioridade[a.tipo] ?? 9) - (prioridade[b.tipo] ?? 9))
+
+    return reply.send({
+      totais: {
+        tenants:   tenants.length,
+        ativos:    tenants.filter(t => t.status === 'ativo').length,
+        suspensos: tenants.filter(t => t.status === 'suspenso').length,
+      },
+      licencas: { ativas: licAtivas, pendentes: licPendentes, bloqueadas: licBloqueadas, vencendo: licVencendo30, vencidas: licVencidas },
+      financeiro: {
+        mrr,
+        arr: mrr * 12,
+        porPlano: Object.entries(porPlano)
+          .map(([plano, d]) => ({ plano, count: d.count, mrr: d.mrr }))
+          .sort((a, b) => b.mrr - a.mrr),
+      },
+      alertas,
+    })
+  })
+
   // GET / — lista todos com licença mais recente
   app.get('/', { preHandler: requirePlatform }, async (_request, reply) => {
     const tenants = await prisma.tenant.findMany({

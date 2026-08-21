@@ -1,34 +1,35 @@
 <template>
-  <div class="min-h-screen bg-neutral-950">
+  <div class="min-h-screen bg-[#0a0a0f]">
 
     <!-- ══ TOPBAR ══ -->
-    <header class="sticky top-0 z-30 border-b border-white/[0.06] bg-neutral-950/80 backdrop-blur-xl">
-      <div class="max-w-5xl mx-auto px-6 h-16 flex items-center justify-between gap-4">
+    <header class="sticky top-0 z-30 border-b border-white/[0.05]" style="background: rgba(10,10,15,0.85); backdrop-filter: blur(20px);">
+      <div class="max-w-5xl mx-auto px-6 h-14 flex items-center justify-between gap-4">
         <div class="flex items-center gap-3">
           <NuxtLink to="/platform"
-            class="w-8 h-8 rounded-xl bg-white/[0.06] hover:bg-white/10 flex items-center justify-center text-white/40 hover:text-white transition-all">
-            <ArrowLeft :size="14" />
+            class="h-8 px-3 rounded-xl bg-white/[0.05] hover:bg-white/[0.09] border border-white/[0.07] text-white/40 hover:text-white text-xs font-black transition-all flex items-center gap-1.5">
+            <ArrowLeft :size="12" /> Voltar
           </NuxtLink>
-          <div class="flex items-center gap-3">
-            <div class="w-8 h-8 rounded-xl bg-violet-600 flex items-center justify-center shadow-md shadow-violet-500/30 shrink-0">
-              <Globe :size="14" class="text-white" />
+          <div class="w-px h-4 bg-white/10"></div>
+          <div class="flex items-center gap-2.5">
+            <div class="relative">
+              <div class="absolute inset-0 rounded-xl bg-violet-600 blur-md opacity-50"></div>
+              <div class="relative w-7 h-7 rounded-xl bg-gradient-to-br from-violet-500 to-violet-700 flex items-center justify-center shadow-lg">
+                <Globe :size="13" class="text-white" />
+              </div>
             </div>
-            <div>
-              <p class="text-white font-black text-sm leading-none tracking-tight">Plataforma Central</p>
-              <p class="text-white/30 text-[10px] font-bold uppercase tracking-widest">PDV · Super Admin</p>
-            </div>
+            <span class="text-white font-black text-sm tracking-tight hidden sm:inline">Plataforma</span>
           </div>
         </div>
-        <div class="flex items-center gap-3">
-          <div class="hidden sm:flex items-center gap-2 bg-white/[0.04] border border-white/[0.07] rounded-xl px-3 py-1.5">
-            <div class="w-5 h-5 rounded-lg bg-violet-500/20 flex items-center justify-center">
-              <Shield :size="10" class="text-violet-400" />
+        <div class="flex items-center gap-2">
+          <div class="hidden sm:flex items-center gap-2 rounded-xl px-3 py-1.5 border border-white/[0.06] bg-white/[0.03]">
+            <div class="w-5 h-5 rounded-lg bg-violet-500/20 flex items-center justify-center shrink-0">
+              <span class="text-[9px] font-black text-violet-400">{{ initials }}</span>
             </div>
-            <span class="text-white/70 text-xs font-bold">{{ platformAuth.user?.nome }}</span>
+            <span class="text-white/60 text-xs font-semibold">{{ platformAuth.user?.nome }}</span>
           </div>
           <button @click="handleLogout"
-            class="h-8 px-3 rounded-xl text-xs font-black text-white/40 hover:text-red-400 hover:bg-red-500/10 border border-transparent hover:border-red-500/20 transition-all flex items-center gap-1.5">
-            <LogOut :size="13" /><span class="hidden sm:inline">Sair</span>
+            class="h-8 w-8 rounded-xl text-white/30 hover:text-red-400 hover:bg-red-500/10 flex items-center justify-center transition-all">
+            <LogOut :size="14" />
           </button>
         </div>
       </div>
@@ -36,71 +37,79 @@
 
     <!-- ══ LOADING ══ -->
     <div v-if="loading" class="flex items-center justify-center py-32">
-      <Loader2 :size="32" class="animate-spin text-violet-500" />
+      <div class="flex flex-col items-center gap-3">
+        <Loader2 :size="24" class="animate-spin text-violet-500" />
+        <p class="text-white/30 text-xs font-bold">Carregando...</p>
+      </div>
     </div>
 
     <!-- ══ ERRO ══ -->
-    <div v-else-if="erro" class="max-w-5xl mx-auto px-6 py-20 text-center">
-      <div class="w-16 h-16 rounded-2xl bg-red-500/10 flex items-center justify-center mx-auto mb-5">
-        <AlertCircle :size="28" class="text-red-400" />
+    <div v-else-if="erro" class="max-w-5xl mx-auto px-6 py-24 text-center">
+      <div class="w-14 h-14 rounded-2xl bg-red-500/10 border border-red-500/15 flex items-center justify-center mx-auto mb-4">
+        <AlertCircle :size="22" class="text-red-400" />
       </div>
-      <p class="text-white font-black text-lg mb-2">{{ erro }}</p>
+      <p class="text-white font-black text-base mb-3">{{ erro }}</p>
       <NuxtLink to="/platform" class="text-violet-400 text-sm font-bold hover:text-violet-300 transition-colors inline-flex items-center gap-1.5">
-        <ArrowLeft :size="14" /> Voltar para a lista
+        <ArrowLeft :size="13" /> Voltar para a lista
       </NuxtLink>
     </div>
 
     <!-- ══ CONTEÚDO ══ -->
-    <main v-else-if="tenant" class="max-w-5xl mx-auto px-6 py-8 space-y-6">
+    <main v-else-if="tenant" class="max-w-5xl mx-auto px-6 py-7 space-y-6">
 
-      <!-- ── CABEÇALHO DO TENANT ── -->
-      <div class="bg-white/[0.03] border border-white/[0.07] rounded-3xl p-6">
-        <div class="flex flex-col sm:flex-row sm:items-start gap-5">
-          <div class="w-16 h-16 rounded-2xl bg-white/[0.05] border border-white/[0.08] flex items-center justify-center shrink-0">
-            <Building2 :size="28" class="text-violet-400" />
+      <!-- ── HERO DO TENANT ── -->
+      <div class="relative overflow-hidden rounded-2xl border border-white/[0.06] bg-white/[0.015]">
+        <!-- Gradiente sutil -->
+        <div class="absolute inset-0 pointer-events-none">
+          <div class="absolute -top-24 -left-24 w-72 h-72 rounded-full blur-3xl" :style="avatarGlow"></div>
+        </div>
+        <div class="relative p-6 flex flex-col sm:flex-row sm:items-center gap-5">
+          <!-- Avatar inicial grande -->
+          <div class="w-16 h-16 rounded-2xl flex items-center justify-center shrink-0 text-2xl font-black select-none"
+            :class="avatarColor(tenant.nome)">
+            {{ tenant.nome[0].toUpperCase() }}
           </div>
           <div class="flex-1 min-w-0">
             <div class="flex flex-wrap items-center gap-2 mb-1">
               <h1 class="text-2xl font-black text-white tracking-tight">{{ tenant.nome }}</h1>
-              <span class="text-xs font-black px-2.5 py-1 rounded-full" :class="statusBadge(tenant.status)">
+              <span class="text-[11px] font-black px-2.5 py-1 rounded-full" :class="statusBadge(tenant.status)">
                 {{ tenant.status }}
               </span>
             </div>
-            <p class="text-white/30 text-sm font-mono mb-3">{{ tenant.slug }}</p>
-            <div class="flex flex-wrap items-center gap-2">
+            <p class="text-white/30 text-xs font-mono mb-3">{{ tenant.slug }}</p>
+            <div class="flex flex-wrap gap-1.5">
               <span v-if="licencaAtual"
-                class="inline-flex items-center gap-1.5 text-xs font-black px-3 py-1 rounded-full"
+                class="inline-flex items-center gap-1 text-[11px] font-black px-2 py-1 rounded-lg"
                 :class="licencaBadge(licencaAtual.status)">
-                <KeyRound :size="11" /> {{ licencaLabel }}
+                <KeyRound :size="10" /> {{ licencaLabel }}
               </span>
               <span v-if="contratoAtual"
-                class="inline-flex items-center gap-1.5 text-xs font-black px-3 py-1 rounded-full bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
-                <FileText :size="11" /> {{ contratoAtual.plano }}
+                class="inline-flex items-center gap-1 text-[11px] font-black px-2 py-1 rounded-lg bg-indigo-500/10 text-indigo-400 border border-indigo-500/15">
+                <FileText :size="10" /> {{ contratoAtual.plano }}
               </span>
               <span v-if="tenant.rfid_disponivel"
-                class="inline-flex items-center gap-1.5 text-xs font-black px-3 py-1 rounded-full bg-violet-500/10 text-violet-400 border border-violet-500/20">
-                <CreditCard :size="11" /> RFID
+                class="inline-flex items-center gap-1 text-[11px] font-black px-2 py-1 rounded-lg bg-violet-500/10 text-violet-400 border border-violet-500/15">
+                <CreditCard :size="10" /> RFID
               </span>
               <span v-if="tenant.venda_mobile_permitida"
-                class="inline-flex items-center gap-1.5 text-xs font-black px-3 py-1 rounded-full bg-sky-500/10 text-sky-400 border border-sky-500/20">
-                <Smartphone :size="11" /> Mobile
+                class="inline-flex items-center gap-1 text-[11px] font-black px-2 py-1 rounded-lg bg-sky-500/10 text-sky-400 border border-sky-500/15">
+                <Smartphone :size="10" /> Mobile
               </span>
             </div>
           </div>
-
-          <!-- Ações do cabeçalho -->
+          <!-- Ações -->
           <div class="flex flex-wrap gap-2 shrink-0">
             <button @click="abrirModalDados"
-              class="h-9 px-4 rounded-xl bg-white/[0.06] hover:bg-white/[0.09] border border-white/[0.09] text-white text-xs font-black transition-all flex items-center gap-2">
-              <Pencil :size="13" /> Editar dados
+              class="h-9 px-4 rounded-xl bg-white/[0.06] hover:bg-white/[0.09] border border-white/[0.09] text-white text-xs font-black transition-all flex items-center gap-1.5">
+              <Pencil :size="12" /> Editar
             </button>
             <button @click="toggleStatus"
-              class="h-9 px-4 rounded-xl border text-xs font-black transition-all flex items-center gap-2"
+              class="h-9 px-4 rounded-xl border text-xs font-black transition-all flex items-center gap-1.5"
               :class="tenant.status === 'ativo'
-                ? 'bg-amber-500/10 border-amber-500/20 text-amber-400 hover:bg-red-500/10 hover:border-red-500/20 hover:text-red-400'
-                : 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400 hover:bg-emerald-500/20'">
-              <ToggleRight v-if="tenant.status === 'ativo'" :size="13" />
-              <ToggleLeft  v-else :size="13" />
+                ? 'bg-red-500/10 border-red-500/15 text-red-400 hover:bg-red-500/20'
+                : 'bg-emerald-500/10 border-emerald-500/15 text-emerald-400 hover:bg-emerald-500/20'">
+              <ToggleRight v-if="tenant.status === 'ativo'" :size="12" />
+              <ToggleLeft  v-else :size="12" />
               {{ tenant.status === 'ativo' ? 'Suspender' : 'Reativar' }}
             </button>
           </div>
@@ -108,25 +117,25 @@
       </div>
 
       <!-- ── GRID DE SEÇÕES ── -->
-      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
 
         <!-- DADOS CADASTRAIS -->
-        <section class="bg-white/[0.03] border border-white/[0.07] rounded-2xl p-5">
+        <section class="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-5">
           <div class="flex items-center justify-between mb-4">
             <div class="flex items-center gap-2">
-              <div class="w-7 h-7 rounded-lg bg-white/[0.06] flex items-center justify-center">
-                <Building2 :size="13" class="text-white/50" />
+              <div class="w-7 h-7 rounded-lg bg-white/[0.05] flex items-center justify-center">
+                <Building2 :size="13" class="text-white/45" />
               </div>
-              <h2 class="text-sm font-black text-white uppercase tracking-wide">Dados cadastrais</h2>
+              <h2 class="text-xs font-black text-white uppercase tracking-widest">Dados cadastrais</h2>
             </div>
-            <button @click="abrirModalDados" class="text-[11px] text-white/30 hover:text-violet-400 transition-colors font-bold flex items-center gap-1">
-              <Pencil :size="11" /> Editar
+            <button @click="abrirModalDados" class="text-[11px] text-white/25 hover:text-violet-400 transition-colors font-bold flex items-center gap-1">
+              <Pencil :size="10" /> Editar
             </button>
           </div>
-          <dl class="space-y-3">
-            <div v-for="campo in dadosCadastrais" :key="campo.label" class="flex gap-2">
-              <dt class="text-[11px] text-white/30 font-bold w-28 shrink-0 pt-0.5">{{ campo.label }}</dt>
-              <dd class="text-sm text-white/80 font-medium break-all" :class="campo.mono ? 'font-mono text-xs' : ''">
+          <dl class="space-y-2.5">
+            <div v-for="campo in dadosCadastrais" :key="campo.label" class="flex gap-3">
+              <dt class="text-[11px] text-white/25 font-bold w-24 shrink-0 pt-0.5">{{ campo.label }}</dt>
+              <dd class="text-sm text-white/75 font-medium break-all leading-tight" :class="campo.mono ? 'font-mono text-xs text-white/60' : ''">
                 {{ campo.valor || '—' }}
               </dd>
             </div>
@@ -134,43 +143,44 @@
         </section>
 
         <!-- LICENÇA -->
-        <section class="bg-white/[0.03] border border-white/[0.07] rounded-2xl p-5">
+        <section class="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-5">
           <div class="flex items-center justify-between mb-4">
             <div class="flex items-center gap-2">
               <div class="w-7 h-7 rounded-lg bg-sky-500/10 flex items-center justify-center">
                 <KeyRound :size="13" class="text-sky-400" />
               </div>
-              <h2 class="text-sm font-black text-white uppercase tracking-wide">Licença</h2>
+              <h2 class="text-xs font-black text-white uppercase tracking-widest">Licença</h2>
             </div>
-            <button v-if="licencaAtual" @click="abrirModalLicenca" class="text-[11px] text-white/30 hover:text-violet-400 transition-colors font-bold flex items-center gap-1">
-              <Pencil :size="11" /> Editar
+            <button v-if="licencaAtual" @click="abrirModalLicenca" class="text-[11px] text-white/25 hover:text-violet-400 transition-colors font-bold flex items-center gap-1">
+              <Pencil :size="10" /> Editar
             </button>
           </div>
 
-          <div v-if="!licencaAtual" class="text-center py-6 text-white/25 text-sm">
-            Nenhuma licença registrada
+          <div v-if="!licencaAtual" class="flex flex-col items-center justify-center py-8 gap-2">
+            <KeyRound :size="20" class="text-white/10" />
+            <p class="text-white/20 text-sm">Nenhuma licença registrada</p>
           </div>
-          <div v-else class="space-y-4">
-            <!-- Status badge grande -->
+          <div v-else class="space-y-3">
+            <!-- Status pill -->
             <div class="flex items-center gap-3 p-3 rounded-xl" :class="licencaBgBlock">
-              <div class="w-8 h-8 rounded-lg flex items-center justify-center" :class="licencaIconBlock">
-                <KeyRound :size="15" :class="licencaIconColor" />
+              <div class="w-8 h-8 rounded-xl flex items-center justify-center shrink-0" :class="licencaIconBlock">
+                <KeyRound :size="14" :class="licencaIconColor" />
               </div>
               <div>
-                <p class="text-sm font-black capitalize" :class="licencaIconColor">{{ licencaStatusLabel }}</p>
-                <p class="text-[11px] text-white/40">{{ licencaLabel }}</p>
+                <p class="text-sm font-black" :class="licencaIconColor">{{ licencaStatusLabel }}</p>
+                <p class="text-[11px] text-white/35 leading-tight">{{ licencaLabel }}</p>
               </div>
             </div>
-            <dl class="space-y-3">
-              <div class="flex gap-2">
-                <dt class="text-[11px] text-white/30 font-bold w-28 shrink-0 pt-0.5">Ativação</dt>
-                <dd class="text-sm text-white/80">{{ formatDate(licencaAtual.data_ativacao) }}</dd>
+            <dl class="space-y-2.5">
+              <div class="flex gap-3">
+                <dt class="text-[11px] text-white/25 font-bold w-24 shrink-0 pt-0.5">Ativação</dt>
+                <dd class="text-sm text-white/75">{{ formatDate(licencaAtual.data_ativacao) }}</dd>
               </div>
-              <div class="flex gap-2">
-                <dt class="text-[11px] text-white/30 font-bold w-28 shrink-0 pt-0.5">Vencimento</dt>
-                <dd class="text-sm" :class="diasRestantes !== null && diasRestantes <= 7 ? 'text-amber-400 font-bold' : 'text-white/80'">
+              <div class="flex gap-3">
+                <dt class="text-[11px] text-white/25 font-bold w-24 shrink-0 pt-0.5">Vencimento</dt>
+                <dd class="text-sm font-bold" :class="diasRestantes !== null && diasRestantes <= 7 ? 'text-amber-400' : 'text-white/75'">
                   {{ formatDate(licencaAtual.data_vencimento) }}
-                  <span v-if="diasRestantes !== null" class="text-[11px] ml-1">
+                  <span v-if="diasRestantes !== null" class="text-[11px] font-normal ml-1 opacity-70">
                     ({{ diasRestantes < 0 ? 'expirada' : `${diasRestantes}d restantes` }})
                   </span>
                 </dd>
@@ -180,72 +190,77 @@
         </section>
 
         <!-- CONTRATO -->
-        <section class="bg-white/[0.03] border border-white/[0.07] rounded-2xl p-5">
+        <section class="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-5">
           <div class="flex items-center justify-between mb-4">
             <div class="flex items-center gap-2">
               <div class="w-7 h-7 rounded-lg bg-indigo-500/10 flex items-center justify-center">
                 <FileText :size="13" class="text-indigo-400" />
               </div>
-              <h2 class="text-sm font-black text-white uppercase tracking-wide">Contrato</h2>
+              <h2 class="text-xs font-black text-white uppercase tracking-widest">Contrato</h2>
             </div>
             <button @click="gerarContratoPDF"
-              class="text-[11px] text-white/30 hover:text-emerald-400 transition-colors font-bold flex items-center gap-1">
-              <FileDown :size="11" /> Gerar PDF
+              class="text-[11px] text-white/25 hover:text-emerald-400 transition-colors font-bold flex items-center gap-1">
+              <FileDown :size="10" /> Gerar PDF
             </button>
           </div>
 
-          <div v-if="!contratoAtual" class="text-center py-6 text-white/25 text-sm">
-            Nenhum contrato registrado
+          <div v-if="!contratoAtual" class="flex flex-col items-center justify-center py-8 gap-2">
+            <FileText :size="20" class="text-white/10" />
+            <p class="text-white/20 text-sm">Nenhum contrato registrado</p>
           </div>
-          <div v-else class="space-y-3">
-            <dl class="space-y-3">
-              <div class="flex gap-2">
-                <dt class="text-[11px] text-white/30 font-bold w-28 shrink-0 pt-0.5">Plano</dt>
-                <dd class="text-sm text-white/80 font-bold">{{ contratoAtual.plano }}</dd>
+          <div v-else class="space-y-2.5">
+            <!-- Destaque do plano + valor -->
+            <div class="flex items-center justify-between p-3 rounded-xl bg-indigo-500/[0.06] border border-indigo-500/10 mb-3">
+              <div>
+                <p class="text-[10px] font-black uppercase tracking-widest text-indigo-400/60">Plano</p>
+                <p class="text-base font-black text-indigo-300">{{ contratoAtual.plano }}</p>
               </div>
-              <div class="flex gap-2">
-                <dt class="text-[11px] text-white/30 font-bold w-28 shrink-0 pt-0.5">Valor</dt>
-                <dd class="text-sm text-white/80">{{ contratoAtual.valor ? formatCurrency(contratoAtual.valor) : '—' }}</dd>
+              <div class="text-right">
+                <p class="text-[10px] font-black uppercase tracking-widest text-indigo-400/60">Valor</p>
+                <p class="text-base font-black text-emerald-400">{{ contratoAtual.valor ? formatCurrency(contratoAtual.valor) : '—' }}</p>
               </div>
-              <div class="flex gap-2">
-                <dt class="text-[11px] text-white/30 font-bold w-28 shrink-0 pt-0.5">Ciclo</dt>
-                <dd class="text-sm text-white/80 capitalize">{{ contratoAtual.ciclo }}</dd>
+            </div>
+            <dl class="space-y-2.5">
+              <div class="flex gap-3">
+                <dt class="text-[11px] text-white/25 font-bold w-24 shrink-0 pt-0.5">Ciclo</dt>
+                <dd class="text-sm text-white/75 capitalize">{{ contratoAtual.ciclo }}</dd>
               </div>
-              <div class="flex gap-2">
-                <dt class="text-[11px] text-white/30 font-bold w-28 shrink-0 pt-0.5">Status</dt>
+              <div class="flex gap-3">
+                <dt class="text-[11px] text-white/25 font-bold w-24 shrink-0 pt-0.5">Status</dt>
                 <dd>
-                  <span class="text-xs font-black px-2 py-0.5 rounded-full" :class="contratoStatusBadge(contratoAtual.status)">
+                  <span class="text-[11px] font-black px-2 py-0.5 rounded-lg" :class="contratoStatusBadge(contratoAtual.status)">
                     {{ contratoAtual.status }}
                   </span>
                 </dd>
               </div>
-              <div class="flex gap-2">
-                <dt class="text-[11px] text-white/30 font-bold w-28 shrink-0 pt-0.5">Início</dt>
-                <dd class="text-sm text-white/80">{{ formatDate(contratoAtual.data_inicio) }}</dd>
+              <div class="flex gap-3">
+                <dt class="text-[11px] text-white/25 font-bold w-24 shrink-0 pt-0.5">Início</dt>
+                <dd class="text-sm text-white/75">{{ formatDate(contratoAtual.data_inicio) }}</dd>
               </div>
-              <div class="flex gap-2">
-                <dt class="text-[11px] text-white/30 font-bold w-28 shrink-0 pt-0.5">Fim</dt>
-                <dd class="text-sm text-white/80">{{ formatDate(contratoAtual.data_fim) }}</dd>
+              <div class="flex gap-3">
+                <dt class="text-[11px] text-white/25 font-bold w-24 shrink-0 pt-0.5">Fim</dt>
+                <dd class="text-sm text-white/75">{{ formatDate(contratoAtual.data_fim) }}</dd>
               </div>
             </dl>
           </div>
         </section>
 
         <!-- FEATURES -->
-        <section class="bg-white/[0.03] border border-white/[0.07] rounded-2xl p-5">
+        <section class="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-5">
           <div class="flex items-center gap-2 mb-4">
             <div class="w-7 h-7 rounded-lg bg-violet-500/10 flex items-center justify-center">
               <Zap :size="13" class="text-violet-400" />
             </div>
-            <h2 class="text-sm font-black text-white uppercase tracking-wide">Features</h2>
+            <h2 class="text-xs font-black text-white uppercase tracking-widest">Features</h2>
           </div>
 
-          <div class="space-y-3">
+          <div class="space-y-2.5">
             <!-- RFID -->
-            <div class="flex items-center justify-between p-3 rounded-xl bg-white/[0.02] border border-white/[0.05]">
+            <div class="flex items-center justify-between p-3.5 rounded-xl border transition-all"
+              :class="tenant.rfid_disponivel ? 'bg-violet-500/[0.06] border-violet-500/15' : 'bg-white/[0.02] border-white/[0.05]'">
               <div class="flex items-center gap-3">
-                <div class="w-8 h-8 rounded-lg flex items-center justify-center" :class="tenant.rfid_disponivel ? 'bg-violet-500/15' : 'bg-white/[0.05]'">
-                  <CreditCard :size="15" :class="tenant.rfid_disponivel ? 'text-violet-400' : 'text-white/25'" />
+                <div class="w-9 h-9 rounded-xl flex items-center justify-center" :class="tenant.rfid_disponivel ? 'bg-violet-500/15' : 'bg-white/[0.05]'">
+                  <CreditCard :size="15" :class="tenant.rfid_disponivel ? 'text-violet-400' : 'text-white/20'" />
                 </div>
                 <div>
                   <p class="text-sm font-bold text-white">RFID</p>
@@ -253,38 +268,35 @@
                 </div>
               </div>
               <button @click="toggleRfid" :disabled="togglingRfid"
-                class="w-11 h-6 rounded-full transition-all relative shrink-0" :class="tenant.rfid_disponivel ? 'bg-violet-500' : 'bg-white/10'">
-                <span class="absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all" :class="tenant.rfid_disponivel ? 'left-5' : 'left-0.5'" />
-                <Loader2 v-if="togglingRfid" :size="10" class="animate-spin absolute inset-0 m-auto text-white/60" />
+                class="w-10 h-5 rounded-full transition-all relative shrink-0"
+                :class="tenant.rfid_disponivel ? 'bg-violet-500' : 'bg-white/[0.10]'">
+                <span class="absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-all"
+                  :class="tenant.rfid_disponivel ? 'left-[22px]' : 'left-0.5'" />
+                <Loader2 v-if="togglingRfid" :size="10" class="animate-spin absolute inset-0 m-auto text-white/60 pointer-events-none" />
               </button>
             </div>
 
-            <!-- Venda Mobile -->
-            <div class="flex items-center justify-between p-3 rounded-xl bg-white/[0.02] border border-white/[0.05]">
+            <!-- Mobile -->
+            <div class="flex items-center justify-between p-3.5 rounded-xl border"
+              :class="tenant.venda_mobile_permitida ? 'bg-sky-500/[0.06] border-sky-500/15' : 'bg-white/[0.02] border-white/[0.05]'">
               <div class="flex items-center gap-3">
-                <div class="w-8 h-8 rounded-lg flex items-center justify-center" :class="tenant.venda_mobile_permitida ? 'bg-sky-500/15' : 'bg-white/[0.05]'">
-                  <Smartphone :size="15" :class="tenant.venda_mobile_permitida ? 'text-sky-400' : 'text-white/25'" />
+                <div class="w-9 h-9 rounded-xl flex items-center justify-center" :class="tenant.venda_mobile_permitida ? 'bg-sky-500/15' : 'bg-white/[0.05]'">
+                  <Smartphone :size="15" :class="tenant.venda_mobile_permitida ? 'text-sky-400' : 'text-white/20'" />
                 </div>
                 <div>
                   <p class="text-sm font-bold text-white">Venda Mobile</p>
                   <p class="text-[11px] text-white/30">Acesso via QR Code</p>
                 </div>
               </div>
-              <span class="text-[11px] font-black px-2.5 py-1 rounded-full" :class="tenant.venda_mobile_permitida ? 'bg-sky-500/10 text-sky-400' : 'bg-white/[0.06] text-white/25'">
+              <span class="text-[11px] font-black px-2.5 py-1 rounded-lg" :class="tenant.venda_mobile_permitida ? 'bg-sky-500/10 text-sky-400' : 'bg-white/[0.06] text-white/20'">
                 {{ tenant.venda_mobile_permitida ? 'Ativo' : 'Inativo' }}
               </span>
             </div>
 
             <!-- Metadados -->
-            <div class="mt-4 pt-4 border-t border-white/[0.05] text-[11px] text-white/25 space-y-1">
-              <div class="flex justify-between">
-                <span>Cadastrado em</span>
-                <span class="font-mono">{{ formatDate(tenant.created_at) }}</span>
-              </div>
-              <div class="flex justify-between">
-                <span>ID</span>
-                <span class="font-mono text-[10px]">{{ tenant.id }}</span>
-              </div>
+            <div class="pt-3 border-t border-white/[0.05] flex items-center justify-between text-[11px] text-white/20">
+              <span>Cadastrado {{ formatDate(tenant.created_at) }}</span>
+              <span class="font-mono text-[10px]">{{ tenant.id.slice(0, 16) }}…</span>
             </div>
           </div>
         </section>
@@ -294,42 +306,47 @@
     <!-- ══ MODAL EDITAR ══ -->
     <Teleport to="body">
       <Transition name="fade">
-        <div v-if="modalAberto" class="fixed inset-0 bg-black/70 z-50 flex items-start justify-center p-4 pt-16 overflow-y-auto"
+        <div v-if="modalAberto"
+          class="fixed inset-0 z-50 flex items-start justify-center p-4 pt-12 overflow-y-auto"
+          style="background: rgba(0,0,0,0.75); backdrop-filter: blur(4px);"
           @click.self="fecharModal">
-          <div class="bg-neutral-900 border border-white/[0.09] rounded-3xl w-full max-w-2xl shadow-2xl">
-            <div class="flex items-center justify-between px-6 py-5 border-b border-white/[0.07]">
+          <div class="bg-[#111118] border border-white/[0.09] rounded-2xl w-full max-w-xl shadow-2xl overflow-hidden">
+            <div class="flex items-center justify-between px-5 py-4 border-b border-white/[0.07]">
               <div class="flex items-center gap-3">
-                <div class="w-9 h-9 rounded-xl flex items-center justify-center shrink-0" :class="modalModo === 'licenca' ? 'bg-sky-500/10' : 'bg-violet-500/10'">
-                  <component :is="modalModo === 'licenca' ? KeyRound : Building2" :size="16" :class="modalModo === 'licenca' ? 'text-sky-400' : 'text-violet-400'" />
+                <div class="w-8 h-8 rounded-xl flex items-center justify-center shrink-0"
+                  :class="modalModo === 'licenca' ? 'bg-sky-500/10' : 'bg-violet-500/10'">
+                  <component :is="modalModo === 'licenca' ? KeyRound : Building2" :size="14"
+                    :class="modalModo === 'licenca' ? 'text-sky-400' : 'text-violet-400'" />
                 </div>
-                <h2 class="text-base font-black text-white">{{ modalModo === 'licenca' ? 'Editar Licença' : 'Editar Dados' }}</h2>
+                <h2 class="text-sm font-black text-white">{{ modalModo === 'licenca' ? 'Editar licença' : 'Editar dados' }}</h2>
               </div>
-              <button @click="fecharModal" class="w-8 h-8 rounded-xl bg-white/[0.06] hover:bg-red-500/15 hover:text-red-400 text-white/40 flex items-center justify-center transition-all">
-                <X :size="15" />
+              <button @click="fecharModal"
+                class="w-7 h-7 rounded-xl bg-white/[0.05] hover:bg-red-500/15 hover:text-red-400 text-white/30 flex items-center justify-center transition-all">
+                <X :size="13" />
               </button>
             </div>
 
             <!-- MODO DADOS -->
-            <div v-if="modalModo === 'dados'" class="p-6 space-y-4">
-              <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div v-if="modalModo === 'dados'" class="p-5 space-y-4">
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div class="sm:col-span-2">
-                  <label class="label-field">Nome do restaurante *</label>
+                  <label class="label-field">Nome *</label>
                   <input v-model="form.nome" type="text" class="input-field" />
                 </div>
                 <div>
-                  <label class="label-field">Slug (URL) *</label>
-                  <input v-model="form.slug" type="text" class="input-field font-mono" />
+                  <label class="label-field">Slug</label>
+                  <input v-model="form.slug" type="text" class="input-field font-mono text-xs" />
                 </div>
                 <div>
                   <label class="label-field">CNPJ</label>
-                  <input v-model="form.cnpj" type="text" class="input-field font-mono" />
+                  <input v-model="form.cnpj" type="text" class="input-field font-mono text-xs" />
                 </div>
                 <div>
                   <label class="label-field">Responsável</label>
                   <input v-model="form.responsavel" type="text" class="input-field" />
                 </div>
                 <div>
-                  <label class="label-field">Contato (e-mail)</label>
+                  <label class="label-field">E-mail</label>
                   <input v-model="form.contato" type="email" class="input-field" />
                 </div>
                 <div>
@@ -345,46 +362,50 @@
                   <textarea v-model="form.observacoes" rows="2" class="input-field resize-none"></textarea>
                 </div>
               </div>
-              <div class="border-t border-white/[0.07] pt-4 space-y-3">
-                <p class="text-[10px] font-black uppercase tracking-widest text-white/30">Features</p>
+              <div class="border-t border-white/[0.06] pt-4 space-y-3">
+                <p class="text-[10px] font-black uppercase tracking-widest text-white/25">Features</p>
                 <div class="flex items-center justify-between">
                   <div>
-                    <p class="text-sm font-bold text-white">Venda Mobile</p>
-                    <p class="text-[11px] text-white/30">Permite acesso via QR Code</p>
+                    <p class="text-sm font-bold text-white/80">Venda Mobile</p>
+                    <p class="text-[11px] text-white/25">Acesso via QR Code</p>
                   </div>
                   <button @click="form.vendaMobilePermitida = !form.vendaMobilePermitida"
-                    class="w-11 h-6 rounded-full transition-all relative shrink-0" :class="form.vendaMobilePermitida ? 'bg-blue-500' : 'bg-white/10'">
-                    <span class="absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all" :class="form.vendaMobilePermitida ? 'left-5' : 'left-0.5'" />
+                    class="w-10 h-5 rounded-full transition-all relative shrink-0"
+                    :class="form.vendaMobilePermitida ? 'bg-sky-500' : 'bg-white/[0.08]'">
+                    <span class="absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-all"
+                      :class="form.vendaMobilePermitida ? 'left-[22px]' : 'left-0.5'" />
                   </button>
                 </div>
                 <div class="flex items-center justify-between">
                   <div>
-                    <p class="text-sm font-bold text-white">RFID Disponível</p>
-                    <p class="text-[11px] text-white/30">Habilita autenticação por cartão</p>
+                    <p class="text-sm font-bold text-white/80">RFID</p>
+                    <p class="text-[11px] text-white/25">Autenticação por cartão</p>
                   </div>
                   <button @click="form.rfidDisponivel = !form.rfidDisponivel"
-                    class="w-11 h-6 rounded-full transition-all relative shrink-0" :class="form.rfidDisponivel ? 'bg-violet-500' : 'bg-white/10'">
-                    <span class="absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all" :class="form.rfidDisponivel ? 'left-5' : 'left-0.5'" />
+                    class="w-10 h-5 rounded-full transition-all relative shrink-0"
+                    :class="form.rfidDisponivel ? 'bg-violet-500' : 'bg-white/[0.08]'">
+                    <span class="absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-all"
+                      :class="form.rfidDisponivel ? 'left-[22px]' : 'left-0.5'" />
                   </button>
                 </div>
               </div>
             </div>
 
             <!-- MODO LICENÇA -->
-            <div v-else-if="modalModo === 'licenca'" class="p-6 space-y-4">
-              <div class="bg-white/[0.03] border border-white/[0.07] rounded-2xl p-4">
-                <p class="text-[10px] font-black uppercase tracking-widest text-white/30 mb-3">Status</p>
+            <div v-else-if="modalModo === 'licenca'" class="p-5 space-y-4">
+              <div>
+                <label class="label-field mb-2">Status</label>
                 <div class="flex gap-2">
                   <button v-for="s in licencaStatuses" :key="s.value" @click="licencaForm.status = s.value"
-                    class="flex-1 h-10 rounded-xl text-xs font-black border transition-all"
-                    :class="licencaForm.status === s.value ? s.activeClass : 'bg-white/[0.03] border-white/[0.07] text-white/40 hover:bg-white/[0.06]'">
+                    class="flex-1 h-9 rounded-xl text-xs font-black border transition-all"
+                    :class="licencaForm.status === s.value ? s.activeClass : 'bg-white/[0.03] border-white/[0.07] text-white/30 hover:bg-white/[0.05]'">
                     {{ s.label }}
                   </button>
                 </div>
               </div>
-              <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div class="grid grid-cols-2 gap-3">
                 <div>
-                  <label class="label-field">Data de ativação</label>
+                  <label class="label-field">Ativação</label>
                   <input v-model="licencaForm.dataAtivacao" type="date" class="input-field" />
                 </div>
                 <div>
@@ -394,17 +415,17 @@
               </div>
             </div>
 
-            <div v-if="erroModal" class="mx-6 mb-2 text-xs text-red-400 font-bold">{{ erroModal }}</div>
+            <div v-if="erroModal" class="mx-5 mb-1 text-xs text-red-400 font-bold">{{ erroModal }}</div>
 
-            <div class="flex gap-3 p-6 pt-2 border-t border-white/[0.07] mt-2">
+            <div class="flex gap-2 p-5 pt-3 border-t border-white/[0.06]">
               <button @click="fecharModal"
-                class="flex-1 h-11 rounded-2xl border border-white/10 text-white/50 text-sm font-black hover:bg-white/[0.05] transition-all">
+                class="flex-1 h-10 rounded-xl border border-white/[0.08] text-white/40 text-sm font-black hover:bg-white/[0.04] transition-all">
                 Cancelar
               </button>
               <button @click="salvar" :disabled="salvando"
-                class="flex-1 h-11 rounded-2xl bg-violet-600 hover:bg-violet-500 disabled:opacity-40 active:scale-95 text-white text-sm font-black transition-all flex items-center justify-center gap-2">
-                <Loader2 v-if="salvando" :size="14" class="animate-spin" />
-                {{ salvando ? 'Salvando...' : 'Salvar alterações' }}
+                class="flex-1 h-10 rounded-xl bg-violet-600 hover:bg-violet-500 disabled:opacity-40 active:scale-[0.98] text-white text-sm font-black transition-all flex items-center justify-center gap-2">
+                <Loader2 v-if="salvando" :size="13" class="animate-spin" />
+                {{ salvando ? 'Salvando...' : 'Salvar' }}
               </button>
             </div>
           </div>
@@ -415,10 +436,12 @@
     <!-- Toast -->
     <Transition name="toast">
       <div v-if="toastMsg.text"
-        class="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 px-5 py-3 rounded-2xl text-sm font-bold shadow-2xl"
-        :class="toastMsg.type === 'success' ? 'bg-emerald-500 text-white' : 'bg-red-500 text-white'">
-        <CheckCircle2 v-if="toastMsg.type === 'success'" :size="15" />
-        <AlertCircle  v-else :size="15" />
+        class="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2.5 px-4 py-2.5 rounded-xl text-sm font-bold shadow-2xl border"
+        :class="toastMsg.type === 'success'
+          ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-300 backdrop-blur-xl'
+          : 'bg-red-500/10 border-red-500/20 text-red-300 backdrop-blur-xl'">
+        <CheckCircle2 v-if="toastMsg.type === 'success'" :size="14" />
+        <AlertCircle  v-else :size="14" />
         {{ toastMsg.text }}
       </div>
     </Transition>
@@ -428,7 +451,7 @@
 <script setup lang="ts">
 import { ref, computed, reactive, onMounted } from 'vue'
 import {
-  Globe, Shield, LogOut, ArrowLeft, Building2, CreditCard, Smartphone,
+  Globe, LogOut, ArrowLeft, Building2, CreditCard, Smartphone,
   Loader2, AlertCircle, CheckCircle2, Pencil, X, FileText, KeyRound,
   Zap, ToggleRight, ToggleLeft, FileDown,
 } from 'lucide-vue-next'
@@ -471,6 +494,26 @@ const licencaStatuses = [
 const baseUrl       = computed(() => (runtimeConfig.public as any).apiUrl as string)
 const licencaAtual  = computed(() => tenant.value?.licencas?.[0] ?? null)
 const contratoAtual = computed(() => tenant.value?.contratos?.[0] ?? null)
+const initials      = computed(() => platformAuth.user?.nome?.split(' ').map(n => n[0]).slice(0, 2).join('') ?? 'SA')
+
+const AVATAR_COLORS = [
+  'bg-violet-500/20 text-violet-300', 'bg-sky-500/20 text-sky-300',
+  'bg-emerald-500/20 text-emerald-300', 'bg-amber-500/20 text-amber-300',
+  'bg-rose-500/20 text-rose-300', 'bg-indigo-500/20 text-indigo-300',
+  'bg-teal-500/20 text-teal-300', 'bg-orange-500/20 text-orange-300',
+]
+const AVATAR_GLOWS = [
+  'rgba(124,58,237,0.07)', 'rgba(14,165,233,0.07)',
+  'rgba(16,185,129,0.07)', 'rgba(245,158,11,0.07)',
+  'rgba(244,63,94,0.07)',  'rgba(99,102,241,0.07)',
+  'rgba(20,184,166,0.07)', 'rgba(249,115,22,0.07)',
+]
+function avatarColor(nome: string) { return AVATAR_COLORS[nome.charCodeAt(0) % AVATAR_COLORS.length] }
+const avatarGlow = computed(() => {
+  if (!tenant.value) return ''
+  const idx = tenant.value.nome.charCodeAt(0) % AVATAR_GLOWS.length
+  return `background: radial-gradient(circle, ${AVATAR_GLOWS[idx]} 0%, transparent 70%)`
+})
 
 const diasRestantes = computed(() => {
   if (!licencaAtual.value?.data_vencimento) return null
@@ -912,11 +955,11 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.label-field { @apply block text-[10px] font-black uppercase tracking-widest text-white/40 mb-1.5; }
-.input-field  { @apply w-full h-11 px-4 bg-white/[0.05] border border-white/[0.09] rounded-xl text-white text-sm placeholder:text-white/20 focus:outline-none focus:border-violet-500/60 focus:ring-2 focus:ring-violet-500/10 transition-all; }
-textarea.input-field { @apply h-auto py-3; }
-.fade-enter-active, .fade-leave-active { transition: opacity .2s; }
+.label-field { @apply block text-[10px] font-black uppercase tracking-widest text-white/30 mb-1.5; }
+.input-field  { @apply w-full h-10 px-3.5 bg-white/[0.04] border border-white/[0.08] rounded-xl text-white text-sm placeholder:text-white/20 focus:outline-none focus:border-violet-500/50 focus:bg-white/[0.06] transition-all; }
+textarea.input-field { @apply h-auto py-2.5; }
+.fade-enter-active, .fade-leave-active { transition: opacity .15s; }
 .fade-enter-from, .fade-leave-to { opacity: 0; }
-.toast-enter-active, .toast-leave-active { transition: all 0.25s ease; }
-.toast-enter-from, .toast-leave-to { opacity: 0; transform: translateX(-50%) translateY(12px); }
+.toast-enter-active, .toast-leave-active { transition: all 0.2s ease; }
+.toast-enter-from, .toast-leave-to { opacity: 0; transform: translateX(-50%) translateY(8px); }
 </style>

@@ -595,7 +595,7 @@ const erroModal           = ref('')
 const licencaAtual        = ref<Licenca | null>(null)
 const contratoAtualTenant = ref<Contrato | null>(null)
 
-const abas = [
+const abas: { id: 'dados' | 'licenca' | 'contrato'; label: string; icon: any }[] = [
   { id: 'dados',    label: 'Dados',    icon: Building2 },
   { id: 'licenca',  label: 'Licença',  icon: FileText  },
   { id: 'contrato', label: 'Contrato', icon: Banknote  },

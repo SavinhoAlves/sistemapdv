@@ -465,7 +465,7 @@ const handleRfidCaixa = async (rfidBuffer: string) => {
   try {
     const resposta = await $fetch<any>(
       `${config.public.apiUrl}/api/auth/rfid`,
-      { method: 'POST', body: { rfid: rfidBuffer.trim() } }
+      { method: 'POST', body: { rfid: rfidBuffer.trim(), slug: (config.public as any).tenantSlug } }
     )
 
     if (!resposta?.usuario) {

@@ -148,20 +148,28 @@
 
       </div>
 
-      <p class="text-center text-gray-400 dark:text-white/25 text-xs mt-6">Versão 1.0 · Restaurante PDV</p>
+      <!-- Escape para o painel de gestão (só aparece se houver token de plataforma) -->
+      <NuxtLink v-if="temTokenPlataforma" to="/platform"
+        class="flex items-center justify-center gap-2 mt-4 text-xs text-gray-400 dark:text-white/25 hover:text-orange-400 transition-colors">
+        <LayoutDashboard :size="12" />
+        Acessar Central de Gestão
+      </NuxtLink>
+
+      <p class="text-center text-gray-400 dark:text-white/25 text-xs mt-4">Versão 1.0 · Restaurante PDV</p>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import { UtensilsCrossed, ShieldCheck, ShieldOff, ShieldAlert, Loader2, RefreshCw } from 'lucide-vue-next'
+import { UtensilsCrossed, ShieldCheck, ShieldOff, ShieldAlert, Loader2, RefreshCw, LayoutDashboard } from 'lucide-vue-next'
 import { useToastStore } from '../stores/toast'
 
 definePageMeta({ layout: false })
 
 const config     = useRuntimeConfig()
 const toast      = useToastStore()
+const temTokenPlataforma = ref(false)
 const carregando   = ref(true)
 const status       = ref<any>(null)
 const chaveInput   = ref('')
@@ -228,6 +236,7 @@ async function ativar() {
 }
 
 onMounted(async () => {
+  temTokenPlataforma.value = !!localStorage.getItem('platform_token')
   await carregarStatus()
   carregando.value = false
 })

@@ -450,7 +450,7 @@
                   </div>
                 </div>
                 <div v-if="licencaAtual" class="text-[10px] text-white/25 pt-1">
-                  Criada em {{ formatDate(licencaAtual.createdAt) }}
+                  Criada em {{ formatDate(licencaAtual.created_at) }}
                 </div>
               </div>
             </div>
@@ -562,7 +562,7 @@ import { usePlatformAuthStore } from '~/stores/platformAuth'
 
 definePageMeta({ layout: false })
 
-interface Licenca  { id: string; status: string; dataAtivacao: string | null; dataVencimento: string | null; createdAt: string }
+interface Licenca  { id: string; status: string; data_ativacao: string | null; data_vencimento: string | null; created_at: string }
 interface Contrato { id: string; plano: string; valor: string | null; ciclo: string; status: string; data_inicio?: string | null }
 interface Tenant {
   id: string; nome: string; slug: string; cnpj: string | null; contato: string | null
@@ -652,11 +652,11 @@ function avatarColor(nome: string) { return AVATAR_COLORS[nome.charCodeAt(0) % A
 function statusDot(s: string) { return s === 'ativo' ? 'bg-emerald-400' : s === 'suspenso' ? 'bg-amber-400' : 'bg-red-400' }
 function licencaBadge(s: string) { return s === 'ativado' ? 'bg-sky-500/10 text-sky-400' : s === 'pendente' ? 'bg-yellow-500/10 text-yellow-400' : 'bg-red-500/10 text-red-400' }
 function licencaLabel(lic: Licenca) {
-  if (lic.status === 'ativado' && lic.dataVencimento) {
-    const d = Math.ceil((new Date(lic.dataVencimento).getTime() - Date.now()) / 86400000)
+  if (lic.status === 'ativado' && lic.data_vencimento) {
+    const d = Math.ceil((new Date(lic.data_vencimento).getTime() - Date.now()) / 86400000)
     if (d < 0)  return 'Expirada'
     if (d <= 7) return `${d}d restantes`
-    return `Até ${formatDate(lic.dataVencimento)}`
+    return `Até ${formatDate(lic.data_vencimento)}`
   }
   return lic.status === 'ativado' ? 'Ativa' : lic.status === 'pendente' ? 'Pendente' : 'Bloqueada'
 }
@@ -716,7 +716,7 @@ function abrirModal(tenant: Tenant | null) {
   if (tenant) {
     Object.assign(form, { id: tenant.id, nome: tenant.nome, slug: tenant.slug, cnpj: tenant.cnpj || '', responsavel: tenant.responsavel || '', contato: tenant.contato || '', telefone: tenant.telefone || '', endereco: tenant.endereco || '', observacoes: tenant.observacoes || '', vendaMobilePermitida: tenant.venda_mobile_permitida, rfidDisponivel: tenant.rfid_disponivel })
     const lic = tenant.licencas?.[0]
-    if (lic) { licencaAtual.value = lic; licencaForm.status = lic.status; licencaForm.dataAtivacao = lic.dataAtivacao?.substring(0, 10) || ''; licencaForm.dataVencimento = lic.dataVencimento?.substring(0, 10) || '' }
+    if (lic) { licencaAtual.value = lic; licencaForm.status = lic.status; licencaForm.dataAtivacao = lic.data_ativacao?.substring(0, 10) || ''; licencaForm.dataVencimento = lic.data_vencimento?.substring(0, 10) || '' }
     else { licencaForm.status = 'pendente'; licencaForm.dataAtivacao = ''; licencaForm.dataVencimento = '' }
     const con = tenant.contratos?.[0]
     if (con) { contratoAtualTenant.value = con; contratoForm.plano = con.plano; contratoForm.valor = con.valor || ''; contratoForm.ciclo = (con.ciclo as any) || 'mensal'; contratoForm.dataInicio = con.data_inicio?.substring(0, 10) || ''; contratoForm.status = (con.status as any) || 'ativo' }

@@ -25,13 +25,19 @@ export function useApi() {
     const response = await fetch(`${baseURL}${endpoint}`, { ...options, headers })
 
     if (response.status === 401) {
+      let errMsg = 'Sessão expirada'
+      try {
+        const body = await response.clone().json()
+        if (body?.error) errMsg = body.error
+      } catch {}
+
       if (!isAuthRoute && !logoutEmAndamento) {
         logoutEmAndamento = true
         authStore.logout()
         router.push('/login')
         setTimeout(() => { logoutEmAndamento = false }, 3000)
       }
-      throw new Error('Sessão expirada')
+      throw new Error(errMsg)
     }
 
     if (response.status === 204) return null as T

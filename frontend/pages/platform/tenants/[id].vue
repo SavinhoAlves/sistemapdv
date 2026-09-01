@@ -12,7 +12,7 @@
             </div>
           </div>
           <span class="text-white font-black text-sm tracking-tight hidden sm:inline">Plataforma</span>
-          <span class="text-white/25 text-[10px] font-bold uppercase tracking-widest hidden sm:inline">PDV · Super Admin</span>
+          <span class="text-white/25 text-[10px] font-bold uppercase tracking-widest hidden sm:inline">PDV · Super Administrador</span>
         </div>
         <div class="flex items-center gap-2">
           <div class="hidden sm:flex items-center gap-2 rounded-xl px-3 py-1.5 border border-white/[0.06] bg-white/[0.03]">
@@ -49,290 +49,308 @@
     </div>
 
     <!-- ══ CONTEÚDO ══ -->
-    <main v-else-if="tenant" class="max-w-5xl mx-auto px-6 py-5 space-y-5">
+    <main v-else-if="tenant" class="max-w-5xl mx-auto px-6 py-6 space-y-4">
 
-      <!-- ── VOLTAR ── -->
-      <NuxtLink to="/platform"
-        class="inline-flex items-center gap-1.5 h-8 px-3 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.07] text-white/40 hover:text-white/80 text-xs font-black transition-all">
-        <ArrowLeft :size="12" /> Voltar ao painel
-      </NuxtLink>
-
-      <!-- ── HERO DO TENANT ── -->
-      <div class="relative overflow-hidden rounded-2xl border border-white/[0.06] bg-white/[0.015]">
-        <!-- Gradiente sutil -->
-        <div class="absolute inset-0 pointer-events-none">
-          <div class="absolute -top-24 -left-24 w-72 h-72 rounded-full blur-3xl" :style="avatarGlow"></div>
-        </div>
-        <div class="relative p-6 flex flex-col sm:flex-row sm:items-center gap-5">
-          <!-- Avatar inicial grande -->
-          <div class="w-16 h-16 rounded-2xl flex items-center justify-center shrink-0 text-2xl font-black select-none"
-            :class="avatarColor(tenant.nome)">
-            {{ tenant.nome[0].toUpperCase() }}
-          </div>
-          <div class="flex-1 min-w-0">
-            <div class="flex flex-wrap items-center gap-2 mb-1">
-              <h1 class="text-2xl font-black text-white tracking-tight">{{ tenant.nome }}</h1>
-              <span class="text-[11px] font-black px-2.5 py-1 rounded-full" :class="statusBadge(tenant.status)">
-                {{ tenant.status }}
-              </span>
-            </div>
-            <p class="text-white/30 text-xs font-mono mb-3">{{ tenant.slug }}</p>
-            <div class="flex flex-wrap gap-1.5">
-              <span v-if="licencaAtual"
-                class="inline-flex items-center gap-1 text-[11px] font-black px-2 py-1 rounded-lg"
-                :class="licencaBadge(licencaAtual.status)">
-                <KeyRound :size="10" /> {{ licencaLabel }}
-              </span>
-              <span v-if="contratoAtual"
-                class="inline-flex items-center gap-1 text-[11px] font-black px-2 py-1 rounded-lg bg-indigo-500/10 text-indigo-400 border border-indigo-500/15">
-                <FileText :size="10" /> {{ contratoAtual.plano }}
-              </span>
-              <span v-if="tenant.rfid_disponivel"
-                class="inline-flex items-center gap-1 text-[11px] font-black px-2 py-1 rounded-lg bg-violet-500/10 text-violet-400 border border-violet-500/15">
-                <CreditCard :size="10" /> RFID
-              </span>
-              <span v-if="tenant.venda_mobile_permitida"
-                class="inline-flex items-center gap-1 text-[11px] font-black px-2 py-1 rounded-lg bg-sky-500/10 text-sky-400 border border-sky-500/15">
-                <Smartphone :size="10" /> Mobile
-              </span>
-            </div>
-          </div>
-          <!-- Ações -->
-          <div class="flex flex-wrap gap-2 shrink-0">
-            <button @click="abrirModalDados"
-              class="h-9 px-4 rounded-xl bg-white/[0.06] hover:bg-white/[0.09] border border-white/[0.09] text-white text-xs font-black transition-all flex items-center gap-1.5">
-              <Pencil :size="12" /> Editar
-            </button>
-            <button @click="toggleStatus"
-              class="h-9 px-4 rounded-xl border text-xs font-black transition-all flex items-center gap-1.5"
-              :class="tenant.status === 'ativo'
-                ? 'bg-red-500/10 border-red-500/15 text-red-400 hover:bg-red-500/20'
-                : 'bg-emerald-500/10 border-emerald-500/15 text-emerald-400 hover:bg-emerald-500/20'">
-              <ToggleRight v-if="tenant.status === 'ativo'" :size="12" />
-              <ToggleLeft  v-else :size="12" />
-              {{ tenant.status === 'ativo' ? 'Suspender' : 'Reativar' }}
-            </button>
-          </div>
-        </div>
+      <!-- ─ BARRA SUPERIOR: voltar + ações ─ -->
+      <div class="flex items-center gap-3">
+        <NuxtLink to="/platform"
+          class="inline-flex items-center gap-1.5 h-8 px-3 rounded-xl bg-white/[0.04] hover:bg-white/[0.07] border border-white/[0.06] text-white/35 hover:text-white/60 text-xs font-black transition-all">
+          <ArrowLeft :size="12" /> Voltar
+        </NuxtLink>
+        <div class="flex-1" />
+        <button @click="abrirModalDados"
+          class="h-8 px-3.5 rounded-xl bg-white/[0.05] hover:bg-white/[0.09] border border-white/[0.07] text-white/55 text-xs font-black transition-all flex items-center gap-1.5">
+          <Pencil :size="11" /> Editar dados
+        </button>
+        <button @click="toggleStatus"
+          class="h-8 px-3.5 rounded-xl border text-xs font-black transition-all flex items-center gap-1.5"
+          :class="tenant.status === 'ativo'
+            ? 'bg-red-500/10 border-red-500/20 text-red-400 hover:bg-red-500/15'
+            : 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400 hover:bg-emerald-500/15'">
+          <ToggleRight v-if="tenant.status === 'ativo'" :size="11" />
+          <ToggleLeft  v-else :size="11" />
+          {{ tenant.status === 'ativo' ? 'Suspender' : 'Reativar' }}
+        </button>
       </div>
 
-      <!-- ── GRID DE SEÇÕES ── -->
-      <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
-
-        <!-- DADOS CADASTRAIS -->
-        <section class="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-5">
-          <div class="flex items-center justify-between mb-4">
-            <div class="flex items-center gap-2">
-              <div class="w-7 h-7 rounded-lg bg-white/[0.05] flex items-center justify-center">
-                <Building2 :size="13" class="text-white/45" />
-              </div>
-              <h2 class="text-xs font-black text-white uppercase tracking-widest">Dados cadastrais</h2>
-            </div>
-            <button @click="abrirModalDados" class="text-[11px] text-white/25 hover:text-violet-400 transition-colors font-bold flex items-center gap-1">
-              <Pencil :size="10" /> Editar
-            </button>
+      <!-- ─ HERO DO TENANT ─ -->
+      <div class="flex items-center gap-4 px-5 py-4 rounded-2xl border border-white/[0.06] bg-white/[0.015]">
+        <div class="w-11 h-11 rounded-xl flex items-center justify-center shrink-0 text-lg font-black select-none"
+          :class="avatarColor(tenant.nome)">
+          {{ tenant.nome[0].toUpperCase() }}
+        </div>
+        <div class="flex-1 min-w-0">
+          <div class="flex items-center gap-2 flex-wrap">
+            <h1 class="text-base font-black text-white tracking-tight">{{ tenant.nome }}</h1>
+            <span class="text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-wide" :class="statusBadge(tenant.status)">
+              {{ tenant.status }}
+            </span>
           </div>
-          <dl class="space-y-2.5">
-            <div v-for="campo in dadosCadastrais" :key="campo.label" class="flex gap-3">
-              <dt class="text-[11px] text-white/25 font-bold w-24 shrink-0 pt-0.5">{{ campo.label }}</dt>
-              <dd class="text-sm text-white/75 font-medium break-all leading-tight" :class="campo.mono ? 'font-mono text-xs text-white/60' : ''">
-                {{ campo.valor || '—' }}
-              </dd>
-            </div>
-          </dl>
-        </section>
+          <p class="text-white/25 text-[10px] font-mono mt-0.5">{{ tenant.slug }}</p>
+        </div>
+        <!-- Feature pills -->
+        <div class="hidden sm:flex items-center gap-1.5 shrink-0">
+          <span class="inline-flex items-center gap-1 text-[10px] font-black px-2.5 py-1 rounded-lg transition-all"
+            :class="tenant.rfid_disponivel ? 'bg-violet-500/10 text-violet-400 border border-violet-500/15' : 'bg-white/[0.03] text-white/15 border border-white/[0.05]'">
+            <CreditCard :size="9" /> RFID
+          </span>
+          <span class="inline-flex items-center gap-1 text-[10px] font-black px-2.5 py-1 rounded-lg transition-all"
+            :class="tenant.venda_mobile_permitida ? 'bg-sky-500/10 text-sky-400 border border-sky-500/15' : 'bg-white/[0.03] text-white/15 border border-white/[0.05]'">
+            <Smartphone :size="9" /> Celular
+          </span>
+          <span v-if="licencaAtual" class="inline-flex items-center gap-1 text-[10px] font-black px-2.5 py-1 rounded-lg border"
+            :class="licencaBadge(licencaAtual.status)">
+            <KeyRound :size="9" /> {{ licencaStatusLabel }}
+          </span>
+        </div>
+        <!-- Cadastro -->
+        <p class="hidden lg:block text-[10px] text-white/15 font-mono shrink-0">{{ formatDate(tenant.created_at) }}</p>
+      </div>
 
-        <!-- LICENÇA -->
-        <section class="rounded-2xl border bg-white/[0.02] p-5"
+      <!-- ─ GRID PRINCIPAL ─ -->
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+
+        <!-- LICENÇA (col 1-2) -->
+        <section class="lg:col-span-2 rounded-2xl border bg-white/[0.015] flex flex-col"
           :class="licencaAtual?.status === 'pendente' ? 'border-amber-500/20' : licencaAtual?.status === 'bloqueado' ? 'border-red-500/20' : 'border-white/[0.06]'">
-          <div class="flex items-center justify-between mb-4">
+
+          <!-- Cabeçalho da seção -->
+          <div class="flex items-center justify-between px-5 pt-5 pb-4 border-b border-white/[0.05]">
             <div class="flex items-center gap-2">
-              <div class="w-7 h-7 rounded-lg flex items-center justify-center"
-                :class="licencaAtual?.status === 'pendente' ? 'bg-amber-500/10' : licencaAtual?.status === 'bloqueado' ? 'bg-red-500/10' : 'bg-sky-500/10'">
-                <KeyRound :size="13"
-                  :class="licencaAtual?.status === 'pendente' ? 'text-amber-400' : licencaAtual?.status === 'bloqueado' ? 'text-red-400' : 'text-sky-400'" />
-              </div>
-              <h2 class="text-xs font-black text-white uppercase tracking-widest">Licença</h2>
+              <KeyRound :size="12" class="text-white/30" />
+              <h2 class="text-[10px] font-black text-white/40 uppercase tracking-widest">Licença</h2>
             </div>
-            <button v-if="licencaAtual" @click="abrirModalLicenca" class="text-[11px] text-white/25 hover:text-violet-400 transition-colors font-bold flex items-center gap-1">
-              <Pencil :size="10" /> Editar
+            <button v-if="licencaAtual" @click="abrirModalLicenca"
+              class="text-[10px] text-white/20 hover:text-violet-400 transition-colors font-bold flex items-center gap-1">
+              <Pencil :size="9" /> Editar datas
             </button>
           </div>
 
-          <div v-if="!licencaAtual" class="flex flex-col items-center justify-center py-8 gap-2">
-            <KeyRound :size="20" class="text-white/10" />
+          <div v-if="!licencaAtual" class="flex-1 flex flex-col items-center justify-center gap-2 py-10">
+            <KeyRound :size="22" class="text-white/10" />
             <p class="text-white/20 text-sm">Nenhuma licença registrada</p>
           </div>
-          <div v-else class="space-y-3">
-            <!-- Status pill -->
-            <div class="flex items-center gap-3 p-3 rounded-xl" :class="licencaBgBlock">
-              <div class="w-8 h-8 rounded-xl flex items-center justify-center shrink-0" :class="licencaIconBlock">
-                <KeyRound :size="14" :class="licencaIconColor" />
+
+          <div v-else class="p-5 flex flex-col gap-4 flex-1">
+
+            <!-- Status + dias restantes -->
+            <div class="flex items-center gap-4 p-4 rounded-xl" :class="licencaBgBlock">
+              <div class="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" :class="licencaIconBlock">
+                <KeyRound :size="17" :class="licencaIconColor" />
               </div>
-              <div class="flex-1">
+              <div class="flex-1 min-w-0">
                 <p class="text-sm font-black" :class="licencaIconColor">{{ licencaStatusLabel }}</p>
-                <p class="text-[11px] text-white/35 leading-tight">{{ licencaLabel }}</p>
+                <p class="text-[11px] text-white/35 mt-0.5 truncate">{{ licencaLabel }}</p>
+              </div>
+              <div v-if="diasRestantes !== null" class="text-right shrink-0">
+                <p class="text-2xl font-black tabular-nums"
+                  :class="diasRestantes < 0 ? 'text-red-400' : diasRestantes <= 7 ? 'text-amber-400' : licencaIconColor">
+                  {{ diasRestantes < 0 ? 0 : diasRestantes }}
+                </p>
+                <p class="text-[9px] font-bold uppercase tracking-widest text-white/20">dias</p>
               </div>
             </div>
 
-            <!-- Botões de período rápido -->
+            <!-- Datas de ativação / vencimento -->
+            <div class="grid grid-cols-2 gap-2">
+              <div class="p-3 rounded-xl bg-white/[0.03] border border-white/[0.04]">
+                <p class="text-[9px] font-black uppercase tracking-widest text-white/20 mb-1">Ativação</p>
+                <p class="text-xs font-bold text-white/60">{{ formatDate(licencaAtual.data_ativacao) }}</p>
+              </div>
+              <div class="p-3 rounded-xl bg-white/[0.03] border border-white/[0.04]">
+                <p class="text-[9px] font-black uppercase tracking-widest text-white/20 mb-1">Vencimento</p>
+                <p class="text-xs font-bold" :class="diasRestantes !== null && diasRestantes <= 7 ? 'text-amber-400' : 'text-white/60'">
+                  {{ formatDate(licencaAtual.data_vencimento) }}
+                </p>
+              </div>
+            </div>
+
+            <!-- Controles de período -->
             <div class="space-y-2">
-              <p class="text-[10px] font-black uppercase tracking-widest text-white/20">
-                {{ licencaAtual.status === 'ativado' && diasRestantes !== null && diasRestantes > 0 ? 'Estender licença' : 'Ativar licença' }}
+              <p class="text-[9px] font-black uppercase tracking-widest text-white/20">
+                {{ licencaAtual.status === 'ativado' && diasRestantes !== null && diasRestantes > 0 ? 'Estender' : 'Ativar' }} licença
               </p>
-              <div class="grid grid-cols-4 gap-1.5">
+              <!-- Presets + Permanente -->
+              <div class="grid grid-cols-5 gap-1.5">
                 <button v-for="periodo in periodos" :key="periodo.label"
                   @click="ativarPeriodo(periodo.dias)" :disabled="ativandoLicenca"
                   class="h-9 rounded-xl border text-xs font-black transition-all disabled:opacity-40 flex items-center justify-center"
                   :class="licencaAtual.status === 'ativado' && diasRestantes !== null && diasRestantes > 0
-                    ? 'bg-sky-500/10 border-sky-500/20 text-sky-400 hover:bg-sky-500/20'
-                    : 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400 hover:bg-emerald-500/20'">
-                  <Loader2 v-if="ativandoLicenca" :size="11" class="animate-spin" />
+                    ? 'bg-sky-500/10 border-sky-500/20 text-sky-400 hover:bg-sky-500/18'
+                    : 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400 hover:bg-emerald-500/18'">
+                  <Loader2 v-if="ativandoLicenca" :size="12" class="animate-spin" />
                   <template v-else>{{ periodo.label }}</template>
+                </button>
+                <button @click="ativarPeriodo(99 * 365)" :disabled="ativandoLicenca"
+                  class="h-9 rounded-xl border text-xs font-black transition-all disabled:opacity-40 flex items-center justify-center bg-violet-500/10 border-violet-500/20 text-violet-400 hover:bg-violet-500/18">
+                  <Loader2 v-if="ativandoLicenca" :size="12" class="animate-spin" />
+                  <template v-else>Ilimitado</template>
+                </button>
+              </div>
+              <!-- Dias personalizados -->
+              <div class="flex gap-2">
+                <input v-model="diasCustomCard" type="number" min="1" placeholder="Número de dias personalizado…"
+                  class="flex-1 h-9 rounded-xl border border-white/[0.07] bg-white/[0.03] text-white/65 text-xs px-3 outline-none placeholder:text-white/15 focus:border-sky-500/35 transition-colors"
+                  @keydown.enter="diasCustomCard && ativarPeriodo(Number(diasCustomCard))" />
+                <button
+                  @click="diasCustomCard && ativarPeriodo(Number(diasCustomCard))"
+                  :disabled="ativandoLicenca || !diasCustomCard"
+                  class="h-9 px-4 rounded-xl border border-sky-500/20 bg-sky-500/10 text-sky-400 text-xs font-black hover:bg-sky-500/18 transition-all disabled:opacity-40 shrink-0">
+                  Aplicar
                 </button>
               </div>
             </div>
 
-            <dl class="space-y-2.5">
-              <div class="flex gap-3">
-                <dt class="text-[11px] text-white/25 font-bold w-24 shrink-0 pt-0.5">Ativação</dt>
-                <dd class="text-sm text-white/75">{{ formatDate(licencaAtual.data_ativacao) }}</dd>
-              </div>
-              <div class="flex gap-3">
-                <dt class="text-[11px] text-white/25 font-bold w-24 shrink-0 pt-0.5">Vencimento</dt>
-                <dd class="text-sm font-bold" :class="diasRestantes !== null && diasRestantes <= 7 ? 'text-amber-400' : 'text-white/75'">
-                  {{ formatDate(licencaAtual.data_vencimento) }}
-                  <span v-if="diasRestantes !== null" class="text-[11px] font-normal ml-1 opacity-70">
-                    ({{ diasRestantes < 0 ? 'expirada' : `${diasRestantes}d restantes` }})
-                  </span>
-                </dd>
-              </div>
-            </dl>
           </div>
         </section>
 
-        <!-- CONTRATO -->
-        <section class="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-5">
-          <div class="flex items-center justify-between mb-4">
-            <div class="flex items-center gap-2.5">
-              <div class="w-7 h-7 rounded-lg bg-indigo-500/10 flex items-center justify-center">
-                <FileText :size="13" class="text-indigo-400" />
-              </div>
-              <h2 class="text-xs font-black text-white uppercase tracking-widest">Contrato</h2>
-              <!-- Status badge -->
-              <span class="text-[10px] font-black px-2 py-0.5 rounded-full" :class="contratoAtual?.status === 'ativo' ? 'bg-emerald-500/15 text-emerald-400' : 'bg-white/[0.05] text-white/25'">
-                {{ contratoAtual?.status === 'ativo' ? 'Assinado' : 'Não Assinado' }}
-              </span>
-            </div>
-            <button @click="abrirModalContrato" class="text-[11px] text-white/25 hover:text-violet-400 transition-colors font-bold flex items-center gap-1">
-              <Pencil :size="10" /> Editar
-            </button>
-          </div>
+        <!-- COLUNA DIREITA: dados + features -->
+        <div class="flex flex-col gap-4">
 
-          <div v-if="!contratoAtual" class="flex flex-col items-center justify-center py-6 gap-2">
-            <FileText :size="20" class="text-white/10" />
-            <p class="text-white/20 text-sm">Nenhum contrato registrado</p>
-            <button @click="abrirModalContrato"
-              class="mt-1 h-9 px-4 rounded-xl bg-indigo-500/10 border border-indigo-500/15 text-indigo-400 text-xs font-black hover:bg-indigo-500/20 transition-all">
-              + Criar contrato
-            </button>
-          </div>
-          <div v-else class="space-y-3">
-            <!-- Destaque do plano + valor -->
-            <div class="flex items-center justify-between p-3 rounded-xl bg-indigo-500/[0.06] border border-indigo-500/10">
-              <div>
-                <p class="text-[10px] font-black uppercase tracking-widest text-indigo-400/60">Plano</p>
-                <p class="text-base font-black text-indigo-300">{{ contratoAtual.plano }}</p>
+          <!-- DADOS CADASTRAIS -->
+          <section class="rounded-2xl border border-white/[0.06] bg-white/[0.015]">
+            <div class="flex items-center justify-between px-5 pt-4 pb-3 border-b border-white/[0.05]">
+              <div class="flex items-center gap-2">
+                <Building2 :size="11" class="text-white/30" />
+                <h2 class="text-[10px] font-black text-white/40 uppercase tracking-widest">Dados</h2>
               </div>
-              <div class="text-right">
-                <p class="text-[10px] font-black uppercase tracking-widest text-indigo-400/60">Valor / {{ contratoAtual.ciclo }}</p>
-                <p class="text-base font-black text-emerald-400">{{ contratoAtual.valor ? formatCurrency(contratoAtual.valor) : '—' }}</p>
+              <button @click="abrirModalDados"
+                class="text-[10px] text-white/20 hover:text-violet-400 transition-colors font-bold flex items-center gap-1">
+                <Pencil :size="9" /> Editar
+              </button>
+            </div>
+            <dl class="p-4 space-y-2.5">
+              <template v-for="campo in dadosCadastrais" :key="campo.label">
+                <div v-if="campo.valor" class="flex gap-2 items-baseline">
+                  <dt class="text-[9px] text-white/20 font-black w-18 shrink-0 uppercase tracking-wide">{{ campo.label }}</dt>
+                  <dd class="text-[11px] text-white/60 font-medium break-all leading-tight min-w-0" :class="campo.mono ? 'font-mono text-white/45' : ''">
+                    {{ campo.valor }}
+                  </dd>
+                </div>
+              </template>
+              <p v-if="dadosCadastrais.every(c => !c.valor)" class="text-[11px] text-white/15 italic">Nenhum dado preenchido</p>
+            </dl>
+          </section>
+
+          <!-- FEATURES -->
+          <section class="rounded-2xl border border-white/[0.06] bg-white/[0.015]">
+            <div class="flex items-center gap-2 px-5 pt-4 pb-3 border-b border-white/[0.05]">
+              <Zap :size="11" class="text-white/30" />
+              <h2 class="text-[10px] font-black text-white/40 uppercase tracking-widest">Features</h2>
+            </div>
+            <div class="p-4 space-y-2">
+              <!-- RFID -->
+              <div class="flex items-center justify-between py-2 px-3 rounded-xl border transition-all"
+                :class="tenant.rfid_disponivel ? 'bg-violet-500/[0.05] border-violet-500/12' : 'bg-white/[0.02] border-white/[0.04]'">
+                <div class="flex items-center gap-2">
+                  <CreditCard :size="13" :class="tenant.rfid_disponivel ? 'text-violet-400' : 'text-white/20'" />
+                  <div>
+                    <p class="text-xs font-bold text-white/75">RFID</p>
+                    <p class="text-[10px] text-white/25">Autenticação por cartão</p>
+                  </div>
+                </div>
+                <button @click="toggleRfid" :disabled="togglingRfid"
+                  class="w-8 h-[18px] rounded-full transition-all relative shrink-0 disabled:opacity-50"
+                  :class="tenant.rfid_disponivel ? 'bg-violet-500' : 'bg-white/[0.10]'">
+                  <span class="absolute top-0.5 w-3.5 h-3.5 rounded-full bg-white shadow transition-all"
+                    :class="tenant.rfid_disponivel ? 'left-[17px]' : 'left-0.5'" />
+                </button>
+              </div>
+              <!-- Mobile -->
+              <div class="flex items-center justify-between py-2 px-3 rounded-xl border transition-all"
+                :class="tenant.venda_mobile_permitida ? 'bg-sky-500/[0.05] border-sky-500/12' : 'bg-white/[0.02] border-white/[0.04]'">
+                <div class="flex items-center gap-2">
+                  <Smartphone :size="13" :class="tenant.venda_mobile_permitida ? 'text-sky-400' : 'text-white/20'" />
+                  <div>
+                    <p class="text-xs font-bold text-white/75">Venda pelo Celular</p>
+                    <p class="text-[10px] text-white/25">Acesso via QR Code</p>
+                  </div>
+                </div>
+                <button @click="toggleMobile" :disabled="togglingMobile"
+                  class="w-8 h-[18px] rounded-full transition-all relative shrink-0 disabled:opacity-50"
+                  :class="tenant.venda_mobile_permitida ? 'bg-sky-500' : 'bg-white/[0.10]'">
+                  <span class="absolute top-0.5 w-3.5 h-3.5 rounded-full bg-white shadow transition-all"
+                    :class="tenant.venda_mobile_permitida ? 'left-[17px]' : 'left-0.5'" />
+                </button>
               </div>
             </div>
-            <dl class="space-y-2">
-              <div class="flex gap-3">
-                <dt class="text-[11px] text-white/25 font-bold w-24 shrink-0 pt-0.5">Vigência</dt>
-                <dd class="text-sm text-white/75">{{ formatDate(contratoAtual.data_inicio) }} → {{ contratoAtual.data_fim ? formatDate(contratoAtual.data_fim) : 'Indeterminado' }}</dd>
+          </section>
+
+        </div>
+      </div>
+
+      <!-- ─ CONTRATO (largura total) ─ -->
+      <section class="rounded-2xl border border-white/[0.06] bg-white/[0.015]">
+        <div class="flex items-center justify-between px-5 pt-4 pb-3 border-b border-white/[0.05]">
+          <div class="flex items-center gap-2.5">
+            <FileText :size="11" class="text-white/30" />
+            <h2 class="text-[10px] font-black text-white/40 uppercase tracking-widest">Contrato</h2>
+            <span v-if="contratoAtual" class="text-[9px] font-black px-2 py-0.5 rounded-full"
+              :class="contratoAtual.status === 'ativo' ? 'bg-emerald-500/15 text-emerald-400' : 'bg-white/[0.05] text-white/20'">
+              {{ contratoAtual.status === 'ativo' ? 'Assinado' : 'Não assinado' }}
+            </span>
+          </div>
+          <button @click="abrirModalContrato"
+            class="text-[10px] text-white/20 hover:text-violet-400 transition-colors font-bold flex items-center gap-1">
+            <Pencil :size="9" /> {{ contratoAtual ? 'Editar' : 'Criar contrato' }}
+          </button>
+        </div>
+
+        <!-- Sem contrato -->
+        <div v-if="!contratoAtual" class="flex items-center gap-4 px-5 py-6">
+          <div class="w-10 h-10 rounded-xl bg-white/[0.04] border border-white/[0.06] flex items-center justify-center shrink-0">
+            <FileText :size="16" class="text-white/15" />
+          </div>
+          <div class="flex-1">
+            <p class="text-sm font-bold text-white/30">Nenhum contrato registrado</p>
+            <p class="text-[11px] text-white/15 mt-0.5">Clique em "Criar contrato" para cadastrar o plano e a validade da licença.</p>
+          </div>
+          <button @click="abrirModalContrato"
+            class="h-9 px-4 rounded-xl bg-indigo-500/10 border border-indigo-500/15 text-indigo-400 text-xs font-black hover:bg-indigo-500/18 transition-all shrink-0">
+            + Criar contrato
+          </button>
+        </div>
+
+        <!-- Com contrato -->
+        <div v-else class="p-5">
+          <div class="flex flex-col sm:flex-row sm:items-start gap-4">
+            <!-- Plano + valor -->
+            <div class="flex items-center gap-4 flex-1 p-4 rounded-xl bg-indigo-500/[0.04] border border-indigo-500/10">
+              <div class="w-10 h-10 rounded-xl bg-indigo-500/10 flex items-center justify-center shrink-0">
+                <FileText :size="16" class="text-indigo-400" />
               </div>
-            </dl>
-            <!-- Botões de ação -->
-            <div class="flex gap-2 pt-1">
+              <div class="flex-1 min-w-0">
+                <p class="text-[9px] font-black uppercase tracking-widest text-indigo-400/50 mb-0.5">Plano · {{ contratoAtual.ciclo }}</p>
+                <p class="text-base font-black text-indigo-300 leading-tight">{{ contratoAtual.plano }}</p>
+                <p class="text-[11px] text-white/30 mt-0.5">
+                  {{ formatDate(contratoAtual.data_inicio) }} → {{ contratoAtual.data_fim ? formatDate(contratoAtual.data_fim) : 'Indeterminado' }}
+                </p>
+              </div>
+              <div class="text-right shrink-0">
+                <p class="text-[9px] font-black uppercase tracking-widest text-emerald-400/50 mb-0.5">Valor</p>
+                <p class="text-xl font-black text-emerald-400">{{ contratoAtual.valor ? formatCurrency(contratoAtual.valor) : '—' }}</p>
+                <p class="text-[9px] text-white/20 mt-0.5">/ {{ contratoAtual.ciclo }}</p>
+              </div>
+            </div>
+            <!-- Ações PDF -->
+            <div class="flex sm:flex-col gap-2 sm:w-32">
               <button @click="visualizarContrato"
-                class="flex-1 h-9 rounded-xl bg-white/[0.04] hover:bg-white/[0.07] border border-white/[0.08] text-white/60 hover:text-white text-xs font-black transition-all flex items-center justify-center gap-1.5">
+                class="flex-1 h-9 rounded-xl bg-white/[0.04] hover:bg-white/[0.07] border border-white/[0.07] text-white/40 hover:text-white/80 text-xs font-black transition-all flex items-center justify-center gap-1.5">
                 <Eye :size="12" /> Visualizar
               </button>
               <button @click="imprimirContrato"
-                class="flex-1 h-9 rounded-xl bg-white/[0.04] hover:bg-white/[0.07] border border-white/[0.08] text-white/60 hover:text-white text-xs font-black transition-all flex items-center justify-center gap-1.5">
+                class="flex-1 h-9 rounded-xl bg-white/[0.04] hover:bg-white/[0.07] border border-white/[0.07] text-white/40 hover:text-white/80 text-xs font-black transition-all flex items-center justify-center gap-1.5">
                 <Printer :size="12" /> Imprimir
               </button>
               <button @click="compartilharContrato"
-                class="flex-1 h-9 rounded-xl bg-white/[0.04] hover:bg-white/[0.07] border border-white/[0.08] text-white/60 hover:text-white text-xs font-black transition-all flex items-center justify-center gap-1.5">
-                <Share2 :size="12" /> Compartilhar
+                class="flex-1 h-9 rounded-xl bg-white/[0.04] hover:bg-white/[0.07] border border-white/[0.07] text-white/40 hover:text-white/80 text-xs font-black transition-all flex items-center justify-center gap-1.5">
+                <Share2 :size="12" /> Enviar
               </button>
             </div>
           </div>
-        </section>
+        </div>
+      </section>
 
-        <!-- FEATURES -->
-        <section class="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-5">
-          <div class="flex items-center gap-2 mb-4">
-            <div class="w-7 h-7 rounded-lg bg-violet-500/10 flex items-center justify-center">
-              <Zap :size="13" class="text-violet-400" />
-            </div>
-            <h2 class="text-xs font-black text-white uppercase tracking-widest">Features</h2>
-          </div>
-
-          <div class="space-y-2.5">
-            <!-- RFID -->
-            <div class="flex items-center justify-between p-3.5 rounded-xl border transition-all"
-              :class="tenant.rfid_disponivel ? 'bg-violet-500/[0.06] border-violet-500/15' : 'bg-white/[0.02] border-white/[0.05]'">
-              <div class="flex items-center gap-3">
-                <div class="w-9 h-9 rounded-xl flex items-center justify-center" :class="tenant.rfid_disponivel ? 'bg-violet-500/15' : 'bg-white/[0.05]'">
-                  <CreditCard :size="15" :class="tenant.rfid_disponivel ? 'text-violet-400' : 'text-white/20'" />
-                </div>
-                <div>
-                  <p class="text-sm font-bold text-white">RFID</p>
-                  <p class="text-[11px] text-white/30">Autenticação por cartão</p>
-                </div>
-              </div>
-              <button @click="toggleRfid" :disabled="togglingRfid"
-                class="w-10 h-5 rounded-full transition-all relative shrink-0"
-                :class="tenant.rfid_disponivel ? 'bg-violet-500' : 'bg-white/[0.10]'">
-                <span class="absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-all"
-                  :class="tenant.rfid_disponivel ? 'left-[22px]' : 'left-0.5'" />
-                <Loader2 v-if="togglingRfid" :size="10" class="animate-spin absolute inset-0 m-auto text-white/60 pointer-events-none" />
-              </button>
-            </div>
-
-            <!-- Mobile -->
-            <div class="flex items-center justify-between p-3.5 rounded-xl border transition-all"
-              :class="tenant.venda_mobile_permitida ? 'bg-sky-500/[0.06] border-sky-500/15' : 'bg-white/[0.02] border-white/[0.05]'">
-              <div class="flex items-center gap-3">
-                <div class="w-9 h-9 rounded-xl flex items-center justify-center" :class="tenant.venda_mobile_permitida ? 'bg-sky-500/15' : 'bg-white/[0.05]'">
-                  <Smartphone :size="15" :class="tenant.venda_mobile_permitida ? 'text-sky-400' : 'text-white/20'" />
-                </div>
-                <div>
-                  <p class="text-sm font-bold text-white">Venda Mobile</p>
-                  <p class="text-[11px] text-white/30">Acesso via QR Code</p>
-                </div>
-              </div>
-              <button @click="toggleMobile" :disabled="togglingMobile"
-                class="w-10 h-5 rounded-full transition-all relative shrink-0"
-                :class="tenant.venda_mobile_permitida ? 'bg-sky-500' : 'bg-white/[0.10]'">
-                <span class="absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-all"
-                  :class="tenant.venda_mobile_permitida ? 'left-[22px]' : 'left-0.5'" />
-                <Loader2 v-if="togglingMobile" :size="10" class="animate-spin absolute inset-0 m-auto text-white/60 pointer-events-none" />
-              </button>
-            </div>
-
-            <!-- Metadados -->
-            <div class="pt-3 border-t border-white/[0.05] flex items-center justify-between text-[11px] text-white/20">
-              <span>Cadastrado {{ formatDate(tenant.created_at) }}</span>
-              <span class="font-mono text-[10px]">{{ tenant.id.slice(0, 16) }}…</span>
-            </div>
-          </div>
-        </section>
-      </div>
     </main>
 
     <!-- ══ MODAL EDITAR ══ -->
@@ -366,7 +384,7 @@
                   <input v-model="form.nome" type="text" class="input-field" />
                 </div>
                 <div>
-                  <label class="label-field">Slug</label>
+                  <label class="label-field">Identificador</label>
                   <input v-model="form.slug" type="text" class="input-field font-mono text-xs" />
                 </div>
                 <div>
@@ -398,7 +416,7 @@
                 <p class="text-[10px] font-black uppercase tracking-widest text-white/25">Features</p>
                 <div class="flex items-center justify-between">
                   <div>
-                    <p class="text-sm font-bold text-white/80">Venda Mobile</p>
+                    <p class="text-sm font-bold text-white/80">Venda pelo Celular</p>
                     <p class="text-[11px] text-white/25">Acesso via QR Code</p>
                   </div>
                   <button @click="form.vendaMobilePermitida = !form.vendaMobilePermitida"
@@ -462,6 +480,51 @@
                   </div>
                 </div>
               </div>
+
+              <!-- VALIDADE DA LICENÇA -->
+              <div class="pt-4 border-t border-white/[0.06] space-y-3">
+                <div class="flex items-center gap-2">
+                  <KeyRound :size="11" class="text-sky-400" />
+                  <p class="text-[10px] font-black uppercase tracking-widest text-white/40">Validade da licença</p>
+                </div>
+                <!-- Atalhos rápidos -->
+                <div class="grid grid-cols-5 gap-2">
+                  <button v-for="p in periodos" :key="p.label" @click="setLicPeriodo(p.dias)"
+                    class="h-9 rounded-xl border text-xs font-black transition-all"
+                    :class="diasCustomModal === String(p.dias) ? 'bg-sky-500/25 border-sky-500/50 text-sky-300' : 'bg-sky-500/10 border-sky-500/20 text-sky-400 hover:bg-sky-500/20'">
+                    {{ p.label }}
+                  </button>
+                  <button @click="setLicPermanente"
+                    class="h-9 rounded-xl border text-xs font-black transition-all"
+                    :class="contratoForm.licVencimento === '2099-12-31' ? 'bg-violet-500/25 border-violet-500/50 text-violet-300' : 'bg-violet-500/10 border-violet-500/20 text-violet-400 hover:bg-violet-500/20'">
+                    Ilimitado
+                  </button>
+                </div>
+                <!-- Dias personalizados -->
+                <div class="flex gap-2">
+                  <input v-model="diasCustomModal" type="number" min="1" placeholder="Qtd. de dias…"
+                    class="input-field flex-1"
+                    @keydown.enter="aplicarDiasCustomModal" />
+                  <button @click="aplicarDiasCustomModal"
+                    class="h-10 px-4 rounded-xl bg-sky-500/15 border border-sky-500/25 text-sky-400 text-xs font-black hover:bg-sky-500/25 transition-all shrink-0">
+                    Aplicar
+                  </button>
+                </div>
+                <!-- Datas manuais -->
+                <div class="grid grid-cols-2 gap-3">
+                  <div>
+                    <label class="label-field">Ativação</label>
+                    <input v-model="contratoForm.licAtivacao" type="date" class="input-field" />
+                  </div>
+                  <div>
+                    <label class="label-field">Vencimento</label>
+                    <input v-model="contratoForm.licVencimento" type="date" class="input-field" />
+                  </div>
+                </div>
+                <p class="text-[10px] text-white/20">
+                  Se o vencimento for preenchido, a licença é ativada automaticamente ao salvar.
+                </p>
+              </div>
             </div>
 
             <!-- MODO LICENÇA -->
@@ -506,6 +569,47 @@
       </Transition>
     </Teleport>
 
+    <!-- ══ CONFIRM DIALOG ══ -->
+    <Teleport to="body">
+      <Transition name="fade">
+        <div v-if="confirmDialog.show"
+          class="fixed inset-0 z-[70] flex items-center justify-center p-4"
+          style="background: rgba(0,0,0,0.72); backdrop-filter: blur(6px);"
+          @click.self="confirmDialog.resolve?.(false); confirmDialog.show = false">
+          <div class="bg-[#111118] border border-white/[0.09] rounded-2xl w-full max-w-xs shadow-2xl">
+            <div class="p-6 flex flex-col items-center text-center gap-4">
+              <div class="w-12 h-12 rounded-2xl flex items-center justify-center border"
+                :class="confirmDialog.type === 'danger'
+                  ? 'bg-red-500/10 border-red-500/20'
+                  : 'bg-emerald-500/10 border-emerald-500/20'">
+                <AlertTriangle v-if="confirmDialog.type === 'danger'" :size="20" class="text-red-400" />
+                <CheckCircle2  v-else :size="20" class="text-emerald-400" />
+              </div>
+              <div>
+                <h3 class="text-sm font-black text-white leading-tight">{{ confirmDialog.title }}</h3>
+                <p class="text-[12px] text-white/35 mt-1.5 leading-relaxed">{{ confirmDialog.message }}</p>
+              </div>
+            </div>
+            <div class="flex gap-2 px-5 pb-5">
+              <button
+                @click="confirmDialog.resolve?.(false); confirmDialog.show = false"
+                class="flex-1 h-10 rounded-xl border border-white/[0.08] text-white/45 text-xs font-black hover:bg-white/[0.05] transition-all">
+                Cancelar
+              </button>
+              <button
+                @click="confirmDialog.resolve?.(true); confirmDialog.show = false"
+                class="flex-1 h-10 rounded-xl text-xs font-black transition-all"
+                :class="confirmDialog.type === 'danger'
+                  ? 'bg-red-500 hover:bg-red-400 text-white'
+                  : 'bg-emerald-500 hover:bg-emerald-400 text-white'">
+                Confirmar
+              </button>
+            </div>
+          </div>
+        </div>
+      </Transition>
+    </Teleport>
+
     <!-- Toast -->
     <Transition name="toast">
       <div v-if="toastMsg.text"
@@ -525,7 +629,7 @@
 import { ref, computed, reactive, onMounted } from 'vue'
 import {
   Globe, LogOut, ArrowLeft, Building2, CreditCard, Smartphone,
-  Loader2, AlertCircle, CheckCircle2, Pencil, X, FileText, KeyRound,
+  Loader2, AlertCircle, AlertTriangle, CheckCircle2, Pencil, X, FileText, KeyRound,
   Zap, ToggleRight, ToggleLeft, Eye, Printer, Share2,
 } from 'lucide-vue-next'
 import { usePlatformAuthStore } from '~/stores/platformAuth'
@@ -551,6 +655,17 @@ const erro           = ref('')
 const togglingRfid    = ref(false)
 const togglingMobile  = ref(false)
 const ativandoLicenca = ref(false)
+const diasCustomCard  = ref('')
+
+const confirmDialog = reactive({
+  show: false, title: '', message: '', type: 'danger' as 'danger' | 'success',
+  resolve: null as ((v: boolean) => void) | null,
+})
+function showConfirm(title: string, message: string, type: 'danger' | 'success' = 'danger'): Promise<boolean> {
+  return new Promise(resolve => {
+    Object.assign(confirmDialog, { title, message, type, resolve, show: true })
+  })
+}
 const toastMsg       = reactive({ text: '', type: 'success' as 'success' | 'error' })
 
 const modalAberto = ref(false)
@@ -565,10 +680,10 @@ const licencaStatuses = [
   { value: 'pendente',  label: 'Pendente',  activeClass: 'bg-amber-500/15  border-amber-500/30  text-amber-400'  },
   { value: 'bloqueado', label: 'Bloqueada', activeClass: 'bg-red-500/15    border-red-500/30    text-red-400'    },
 ]
-const contratoForm = reactive({ plano: '', valor: '', ciclo: 'mensal', dataInicio: '', dataFim: '', status: 'ativo' })
+const contratoForm = reactive({ plano: '', valor: '', ciclo: 'mensal', dataInicio: '', dataFim: '', status: 'ativo', licAtivacao: '', licVencimento: '' })
 const contratoStatuses = [
   { value: 'ativo',     label: 'Ativo',     activeClass: 'bg-emerald-500/15 border-emerald-500/30 text-emerald-400' },
-  { value: 'trial',     label: 'Trial',     activeClass: 'bg-sky-500/15     border-sky-500/30     text-sky-400'     },
+  { value: 'trial',     label: 'Teste',     activeClass: 'bg-sky-500/15     border-sky-500/30     text-sky-400'     },
   { value: 'suspenso',  label: 'Suspenso',  activeClass: 'bg-amber-500/15  border-amber-500/30  text-amber-400'  },
   { value: 'cancelado', label: 'Cancelado', activeClass: 'bg-red-500/15    border-red-500/30    text-red-400'    },
 ]
@@ -670,16 +785,44 @@ function abrirModalDados() {
 }
 
 function abrirModalContrato() {
-  const c = contratoAtual.value
+  const c   = contratoAtual.value
+  const lic = licencaAtual.value
   Object.assign(contratoForm, {
-    plano:      c?.plano || '',
-    valor:      c?.valor || '',
-    ciclo:      c?.ciclo || 'mensal',
-    dataInicio: c?.data_inicio?.substring(0, 10) || new Date().toISOString().substring(0, 10),
-    dataFim:    c?.data_fim?.substring(0, 10) || '',
-    status:     c?.status || 'ativo',
+    plano:         c?.plano || '',
+    valor:         c?.valor || '',
+    ciclo:         c?.ciclo || 'mensal',
+    dataInicio:    c?.data_inicio?.substring(0, 10) || new Date().toISOString().substring(0, 10),
+    dataFim:       c?.data_fim?.substring(0, 10) || '',
+    status:        c?.status || 'ativo',
+    licAtivacao:   lic?.data_ativacao?.substring(0, 10)  || new Date().toISOString().substring(0, 10),
+    licVencimento: lic?.data_vencimento?.substring(0, 10) || '',
   })
   modalModo.value = 'contrato'; erroModal.value = ''; modalAberto.value = true
+}
+
+const diasCustomModal = ref('')
+
+function setLicPeriodo(dias: number) {
+  const hoje = new Date()
+  const venc = new Date(hoje.getTime() + dias * 86400000)
+  contratoForm.licAtivacao   = hoje.toISOString().substring(0, 10)
+  contratoForm.licVencimento = venc.toISOString().substring(0, 10)
+  diasCustomModal.value = String(dias)
+}
+
+function setLicPermanente() {
+  contratoForm.licAtivacao   = new Date().toISOString().substring(0, 10)
+  contratoForm.licVencimento = '2099-12-31'
+  diasCustomModal.value = ''
+}
+
+function aplicarDiasCustomModal() {
+  const d = parseInt(diasCustomModal.value)
+  if (!d || d <= 0) return
+  const hoje = new Date()
+  const venc = new Date(hoje.getTime() + d * 86400000)
+  contratoForm.licAtivacao   = hoje.toISOString().substring(0, 10)
+  contratoForm.licVencimento = venc.toISOString().substring(0, 10)
 }
 
 function abrirModalLicenca() {
@@ -715,7 +858,13 @@ async function salvar() {
         method: 'PUT',
         body: JSON.stringify({ plano: contratoForm.plano, valor: contratoForm.valor || null, ciclo: contratoForm.ciclo, dataInicio: contratoForm.dataInicio || null, dataFim: contratoForm.dataFim || null, status: contratoForm.status }),
       })
-      showToast('success', 'Contrato atualizado!')
+      if (contratoForm.licVencimento) {
+        await platformFetch(`/platform/tenants/${tenant.value!.id}/licenca`, {
+          method: 'PUT',
+          body: JSON.stringify({ status: 'ativado', dataAtivacao: contratoForm.licAtivacao || new Date().toISOString().substring(0, 10), dataVencimento: contratoForm.licVencimento }),
+        })
+      }
+      showToast('success', 'Contrato e licença atualizados!')
     }
     fecharModal(); await carregar()
   } catch (e: any) { erroModal.value = e?.message || 'Erro ao salvar' }
@@ -753,7 +902,7 @@ async function toggleMobile() {
   try {
     await platformFetch(`/platform/tenants/${tenant.value.id}/mobile`, { method: 'PATCH', body: JSON.stringify({ permitida: novo }) })
     tenant.value.venda_mobile_permitida = novo
-    showToast('success', novo ? 'Venda Mobile habilitada' : 'Venda Mobile desabilitada')
+    showToast('success', novo ? 'Venda pelo Celular habilitada' : 'Venda pelo Celular desabilitada')
   } catch (e: any) { showToast('error', e?.message || 'Erro') }
   finally { togglingMobile.value = false }
 }
@@ -773,7 +922,14 @@ async function toggleRfid() {
 async function toggleStatus() {
   if (!tenant.value) return
   const novoStatus = tenant.value.status === 'ativo' ? 'suspenso' : 'ativo'
-  if (!confirm(novoStatus === 'suspenso' ? `Suspender "${tenant.value.nome}"?` : `Reativar "${tenant.value.nome}"?`)) return
+  const ok = await showConfirm(
+    novoStatus === 'suspenso' ? `Suspender "${tenant.value.nome}"?` : `Reativar "${tenant.value.nome}"?`,
+    novoStatus === 'suspenso'
+      ? 'O tenant ficará inacessível até ser reativado manualmente.'
+      : 'O tenant voltará a funcionar normalmente.',
+    novoStatus === 'suspenso' ? 'danger' : 'success'
+  )
+  if (!ok) return
   try {
     await platformFetch(`/platform/tenants/${tenant.value.id}/status`, { method: 'PATCH', body: JSON.stringify({ status: novoStatus }) })
     tenant.value.status = novoStatus
@@ -832,6 +988,16 @@ async function compartilharContrato() {
   } catch {}
 }
 
+function escapeHtml(val: unknown): string {
+  if (val == null) return ''
+  return String(val)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#x27;')
+}
+
 function gerarContratoPDF(): Window | null {
   if (!tenant.value) return null
   const t = tenant.value
@@ -844,6 +1010,18 @@ function gerarContratoPDF(): Window | null {
 
   const plano    = c?.plano || 'Básico'
   const valor    = fmtM(c?.valor)
+
+  // Campos da API sanitizados antes de injetar no HTML
+  const esc = escapeHtml
+  const sNome       = esc(t.nome)
+  const sSlug       = esc(t.slug)
+  const sCnpj       = esc(t.cnpj)
+  const sEndereco   = esc(t.endereco)
+  const sTelefone   = esc(t.telefone)
+  const sContato    = esc(t.contato)
+  const sResponsavel = esc(t.responsavel)
+  const sPlano      = esc(plano)
+  const sObs        = t.observacoes ? esc(t.observacoes).replace(/\n/g, '<br>') : ''
   const ciclo    = c?.ciclo || 'mensal'
   const cicloMap: Record<string, string> = { mensal: 'mensal', trimestral: 'trimestral', semestral: 'semestral', anual: 'anual' }
   const cicloExtMap: Record<string, string> = { mensal: '30 (trinta) dias', trimestral: '3 (três) meses', semestral: '6 (seis) meses', anual: '12 (doze) meses' }
@@ -857,7 +1035,7 @@ function gerarContratoPDF(): Window | null {
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8" />
-  <title>Contrato — ${t.nome}</title>
+  <title>Contrato — ${sNome}</title>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: "Times New Roman", serif; font-size: 12pt; color: #111; background: #fff; line-height: 1.8; }
@@ -899,8 +1077,8 @@ function gerarContratoPDF(): Window | null {
 
   <div class="header">
     <h1>Contrato de Prestação de Serviços de Tecnologia</h1>
-    <p class="subtitle">Modalidade SaaS — Sistema de Ponto de Venda · Plano <strong>${plano}</strong></p>
-    <p class="doc-num">Ref.: ${t.slug.toUpperCase()}-${inicio.getFullYear()}</p>
+    <p class="subtitle">Modalidade SaaS — Sistema de Ponto de Venda · Plano <strong>${sPlano}</strong></p>
+    <p class="doc-num">Ref.: ${sSlug.toUpperCase()}-${inicio.getFullYear()}</p>
   </div>
 
   <div class="parties">
@@ -916,12 +1094,12 @@ function gerarContratoPDF(): Window | null {
     </div>
     <div class="party">
       <span class="party-role">Contratante</span>
-      <p class="party-line"><strong>Razão Social / Nome:</strong> ${t.nome}</p>
-      ${t.cnpj ? `<p class="party-line"><strong>CNPJ / CPF:</strong> ${t.cnpj}</p>` : `<p class="party-line"><strong>CNPJ / CPF:</strong> ___________________________________</p>`}
-      <p class="party-line"><strong>Endereço:</strong> ${t.endereco || '___________________________________________________________'}</p>
-      ${!t.endereco ? `<p class="party-line"><strong>Bairro:</strong> _________________________ <strong>Cidade/UF:</strong> _______________________</p>` : ''}
-      <p class="party-line"><strong>Telefone:</strong> ${t.telefone || '_________________________'} &nbsp; <strong>E-mail:</strong> ${t.contato || '_______________________________'}</p>
-      <p class="party-line"><strong>Representante:</strong> ${t.responsavel || '_________________________________'} &nbsp; <strong>CPF:</strong> _____________________</p>
+      <p class="party-line"><strong>Razão Social / Nome:</strong> ${sNome}</p>
+      ${sCnpj ? `<p class="party-line"><strong>CNPJ / CPF:</strong> ${sCnpj}</p>` : `<p class="party-line"><strong>CNPJ / CPF:</strong> ___________________________________</p>`}
+      <p class="party-line"><strong>Endereço:</strong> ${sEndereco || '___________________________________________________________'}</p>
+      ${!sEndereco ? `<p class="party-line"><strong>Bairro:</strong> _________________________ <strong>Cidade/UF:</strong> _______________________</p>` : ''}
+      <p class="party-line"><strong>Telefone:</strong> ${sTelefone || '_________________________'} &nbsp; <strong>E-mail:</strong> ${sContato || '_______________________________'}</p>
+      <p class="party-line"><strong>Representante:</strong> ${sResponsavel || '_________________________________'} &nbsp; <strong>CPF:</strong> _____________________</p>
     </div>
   </div>
 
@@ -930,7 +1108,7 @@ function gerarContratoPDF(): Window | null {
     <p>O presente instrumento tem por objeto a prestação de serviços de tecnologia pela CONTRATADA
     à CONTRATANTE, consistindo no licenciamento de uso do sistema de Ponto de Venda (PDV)
     <strong>Restaurante PDV</strong>, na modalidade <em>Software as a Service</em> (SaaS), plano
-    <strong>${plano}</strong>, compreendendo:</p>
+    <strong>${sPlano}</strong>, compreendendo:</p>
     <ol>
       <li>Acesso ao sistema via navegador web, com suporte a múltiplos dispositivos;</li>
       <li>Painel administrativo para gestão de produtos, mesas, pedidos e caixa;</li>
@@ -1066,14 +1244,14 @@ function gerarContratoPDF(): Window | null {
     diverso de forma imperativa.</p>
   </div>
 
-  ${t.observacoes ? `<div class="notes-box"><strong>Condições específicas / Observações:</strong><br/>${t.observacoes}</div>` : ''}
+  ${sObs ? `<div class="notes-box"><strong>Condições específicas / Observações:</strong><br>${sObs}</div>` : ''}
 
   <div class="sig-section">
     <p class="sig-city">Goiânia/GO, _______ de __________________ de _______</p>
     <div class="sig-lines">
       <div class="sig-line">
         <div class="line"></div>
-        <p class="sig-name-label">${t.nome}</p>
+        <p class="sig-name-label">${sNome}</p>
         <p class="sig-role-label">CONTRATANTE</p>
       </div>
       <div class="sig-line">
@@ -1099,7 +1277,7 @@ function gerarContratoPDF(): Window | null {
 
   <div class="footer">
     <span>${CONTRATADA.razaoSocial} · CNPJ ${CONTRATADA.cnpj}</span>
-    <span>Documento gerado em ${new Date().toLocaleDateString('pt-BR')} · ${t.nome} · Plano ${plano}</span>
+    <span>Documento gerado em ${new Date().toLocaleDateString('pt-BR')} · ${sNome} · Plano ${sPlano}</span>
   </div>
 
 </div>

@@ -1,9 +1,38 @@
 import jwt from 'jsonwebtoken'
 import crypto from 'crypto'
 
+const INSECURE_DEFAULTS = new Set([
+  'change-me-access', 'change-me-refresh', 'change-me',
+  'troque_acesso_em_producao', 'troque_refresh_em_producao',
+  'troque_este_segredo_em_producao', 'secret', 'jwt_secret',
+])
+
+function validateSecret(name: string, value: string) {
+  if (process.env.NODE_ENV === 'production') {
+    if (INSECURE_DEFAULTS.has(value) || value.length < 32) {
+      console.error(`[SEGURANÇA] ${name} é fraco ou padrão. Defina um segredo forte (≥32 chars) antes de ir para produção.`)
+      process.exit(1)
+    }
+  }
+}
+
 const ACCESS_SECRET  = process.env.JWT_ACCESS_SECRET  || process.env.JWT_SECRET || 'change-me-access'
 const REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || 'change-me-refresh'
-const ACCESS_TTL     = process.env.JWT_EXPIRES_IN || '8h'
+
+// Cap TTL em 8h — converte qualquer valor para segundos e limita
+function parseTtlSeconds(ttl: string): number {
+  const m = ttl.match(/^(\d+)(s|m|h|d)?$/)
+  if (!m) return 8 * 3600
+  const n = parseInt(m[1])
+  const unit = m[2] ?? 's'
+  const secs = unit === 'd' ? n * 86400 : unit === 'h' ? n * 3600 : unit === 'm' ? n * 60 : n
+  return Math.min(secs, 8 * 3600)
+}
+const RAW_TTL    = process.env.JWT_EXPIRES_IN || '8h'
+const ACCESS_TTL = `${parseTtlSeconds(RAW_TTL)}s`
+
+validateSecret('JWT_ACCESS_SECRET', ACCESS_SECRET)
+validateSecret('JWT_REFRESH_SECRET', REFRESH_SECRET)
 
 export interface TenantJwtPayload {
   type: 'tenant'

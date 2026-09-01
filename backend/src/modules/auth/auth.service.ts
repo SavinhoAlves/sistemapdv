@@ -196,6 +196,9 @@ export async function refreshAccessToken(refreshTokenRaw: string) {
   const usuario = await prisma.usuario.findUnique({ where: { id: stored.usuarioId } })
   if (!usuario || !usuario.ativo) throw new Error('Usuário inativo')
 
+  const tenant = await prisma.tenant.findUnique({ where: { id: usuario.tenantId } })
+  if (!tenant || tenant.status !== 'ativo') throw new Error('Restaurante suspenso ou inativo')
+
   const permissoes = await getPermissoes(usuario.cargo, usuario.perfilId, usuario.tenantId)
   const newAccessToken = signAccessToken({
     type: 'tenant',
@@ -224,5 +227,10 @@ export async function logout(refreshTokenRaw: string) {
   await prisma.refreshToken.updateMany({
     where: { tokenHash },
     data: { revokedAt: new Date() },
+  })
+  // Limpa tokens expirados ou revogados há mais de 30 dias
+  const cutoff = new Date(Date.now() - 30 * 86_400_000)
+  await prisma.refreshToken.deleteMany({
+    where: { OR: [{ expiresAt: { lt: new Date() } }, { revokedAt: { lt: cutoff } }] },
   })
 }

@@ -10,10 +10,14 @@ export const loginRfidSchema = z.object({
   cartaoRfid: z.string().optional(),
   rfid:       z.string().optional(),
   slug: z.string().min(1, 'Slug do restaurante obrigatório'),
-}).transform(d => ({
-  cartaoRfid: d.cartaoRfid || d.rfid || '',
-  slug: d.slug,
-}))
+}).transform((d, ctx) => {
+  const cartaoRfid = d.cartaoRfid || d.rfid || ''
+  if (!cartaoRfid) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'RFID obrigatório' })
+    return z.NEVER
+  }
+  return { cartaoRfid, slug: d.slug }
+})
 
 export const loginPinSchema = z.object({
   pin: z.string().min(4, 'PIN deve ter pelo menos 4 dígitos'),

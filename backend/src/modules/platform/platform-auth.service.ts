@@ -14,6 +14,11 @@ export async function platformLogin(email: string, senha: string) {
   const senhaValida = await bcrypt.compare(senha, user.senhaHash)
   if (!senhaValida) throw new Error('Credenciais inválidas')
 
+  await prisma.platformUser.update({
+    where: { id: user.id },
+    data: { ultimoLogin: new Date() },
+  })
+
   const accessToken = signAccessToken({
     type: 'platform',
     sub: user.id,
@@ -77,5 +82,9 @@ export async function platformLogout(refreshTokenRaw: string) {
   await prisma.platformRefreshToken.updateMany({
     where: { tokenHash },
     data: { revokedAt: new Date() },
+  })
+  const cutoff = new Date(Date.now() - 30 * 86_400_000)
+  await prisma.platformRefreshToken.deleteMany({
+    where: { OR: [{ expiresAt: { lt: new Date() } }, { revokedAt: { lt: cutoff } }] },
   })
 }

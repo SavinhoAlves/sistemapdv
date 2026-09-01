@@ -1,5 +1,5 @@
 <template>
-  <div class="min-h-screen bg-[#0a0a0f]">
+  <div class="min-h-dvh bg-[#0a0a0f]">
 
     <!-- ══ TOPBAR ══ -->
     <header class="sticky top-0 z-30 border-b border-white/[0.05]" style="background: rgba(10,10,15,0.85); backdrop-filter: blur(20px);">
@@ -7,8 +7,8 @@
         <div class="flex items-center gap-3">
           <div class="relative">
             <div class="absolute inset-0 rounded-xl bg-violet-600 blur-md opacity-50"></div>
-            <div class="relative w-7 h-7 rounded-xl bg-gradient-to-br from-violet-500 to-violet-700 flex items-center justify-center shadow-lg">
-              <UIcon name="i-lucide-globe" class="text-white w-3.5 h-3.5" />
+            <div class="relative size-7 rounded-xl bg-violet-600 flex items-center justify-center shadow-lg">
+              <UIcon name="i-lucide-globe" class="text-white size-3.5" />
             </div>
           </div>
           <div class="flex items-baseline gap-2">
@@ -55,7 +55,7 @@
         <!-- CABEÇALHO DA PÁGINA -->
         <div class="flex items-center gap-3">
           <div>
-            <h1 class="text-base font-black text-white tracking-tight">Restaurantes</h1>
+            <h1 class="text-base font-black text-white tracking-tight text-balance">Restaurantes</h1>
             <p class="text-[11px] text-white/30 mt-0.5">
               {{ dashboard?.totais?.ativos ?? 0 }} ativos
               <template v-if="(dashboard?.totais?.suspensos ?? 0) > 0">
@@ -97,7 +97,7 @@
             <div class="flex items-center gap-3">
               <UIcon :name="metric.icon" :class="['w-4 h-4 shrink-0', metric.iconClass]" />
               <div class="min-w-0">
-                <p :class="['text-xl font-black leading-none truncate', metric.valueClass]">{{ metric.value }}</p>
+                <p :class="['text-2xl font-black leading-none truncate tabular-nums', metric.valueClass]">{{ metric.value }}</p>
                 <p :class="['text-[10px] font-bold mt-0.5 truncate', metric.subClass]">{{ metric.label }}</p>
               </div>
             </div>
@@ -250,7 +250,7 @@
                   <UIcon name="i-lucide-trending-up" class="text-emerald-400 w-3 h-3" />
                   <span class="text-[10px] font-black text-white/40 uppercase tracking-widest">Receita por plano</span>
                 </div>
-                <span class="text-xs font-black text-emerald-400">
+                <span class="text-xs font-black text-emerald-400 tabular-nums">
                   {{ formatCurrency(dashboard?.financeiro?.mrr ?? 0) }}<span class="text-white/20 text-[10px] font-normal">/mês</span>
                 </span>
               </div>
@@ -262,7 +262,7 @@
                     <span class="text-xs font-bold text-white/70">{{ p.plano }}</span>
                     <UBadge color="gray" variant="soft" size="xs" class="font-black">{{ p.count }}x</UBadge>
                   </div>
-                  <span class="text-xs font-black text-emerald-400">{{ formatCurrency(p.mrr) }}</span>
+                  <span class="text-xs font-black text-emerald-400 tabular-nums">{{ formatCurrency(p.mrr) }}</span>
                 </div>
                 <UProgress
                   :value="maxMrr > 0 ? (p.mrr / maxMrr) * 100 : 0"
@@ -296,8 +296,8 @@
                     class="w-24"
                     :ui="{ background: 'bg-white/[0.05]' }"
                   />
-                  <span class="text-xs font-black text-violet-400 w-6 text-right">{{ tenants.filter(t => t.rfid_disponivel).length }}</span>
-                  <span class="text-[10px] text-white/20">/ {{ tenants.length }}</span>
+                  <span class="text-xs font-black text-violet-400 w-6 text-right tabular-nums">{{ tenants.filter(t => t.rfid_disponivel).length }}</span>
+                  <span class="text-[10px] text-white/20 tabular-nums">/ {{ tenants.length }}</span>
                 </div>
               </div>
               <div class="flex items-center justify-between">
@@ -313,13 +313,13 @@
                     class="w-24"
                     :ui="{ background: 'bg-white/[0.05]' }"
                   />
-                  <span class="text-xs font-black text-sky-400 w-6 text-right">{{ tenants.filter(t => t.venda_mobile_permitida).length }}</span>
-                  <span class="text-[10px] text-white/20">/ {{ tenants.length }}</span>
+                  <span class="text-xs font-black text-sky-400 w-6 text-right tabular-nums">{{ tenants.filter(t => t.venda_mobile_permitida).length }}</span>
+                  <span class="text-[10px] text-white/20 tabular-nums">/ {{ tenants.length }}</span>
                 </div>
               </div>
               <div class="pt-2 border-t border-white/[0.05] flex justify-between text-[10px] text-white/20">
                 <span>Receita anual</span>
-                <span class="font-black text-white/35">{{ formatCurrency(dashboard?.financeiro?.arr ?? 0) }}</span>
+                <span class="font-black text-white/35 tabular-nums">{{ formatCurrency(dashboard?.financeiro?.arr ?? 0) }}</span>
               </div>
             </div>
           </UCard>
@@ -334,11 +334,11 @@
         <template #header>
           <div class="flex items-center justify-between">
             <div class="flex items-center gap-3">
-              <div class="w-8 h-8 rounded-xl bg-violet-500/10 flex items-center justify-center shrink-0">
-                <UIcon name="i-lucide-building-2" class="text-violet-400 w-4 h-4" />
+              <div class="size-8 rounded-xl bg-violet-500/10 flex items-center justify-center shrink-0">
+                <UIcon name="i-lucide-building-2" class="text-violet-400 size-4" />
               </div>
               <div>
-                <h2 class="text-sm font-black text-white">{{ form.id ? 'Editar restaurante' : 'Novo restaurante' }}</h2>
+                <h2 class="text-sm font-black text-white text-balance">{{ form.id ? 'Editar restaurante' : 'Novo restaurante' }}</h2>
                 <p v-if="form.id" class="text-white/25 text-[10px] font-mono">{{ form.slug }}</p>
               </div>
             </div>
@@ -557,17 +557,17 @@
     <UModal v-model="confirmDialog.show" :ui="{ width: 'max-w-xs', background: 'bg-[#111118]', ring: 'ring-1 ring-white/[0.09]', rounded: 'rounded-2xl' }">
       <UCard :ui="{ ring: '', background: 'bg-transparent', body: { padding: 'p-6' }, footer: { padding: 'px-5 pb-5 pt-0' } }">
         <div class="flex flex-col items-center text-center gap-4">
-          <div class="w-12 h-12 rounded-2xl flex items-center justify-center border"
+          <div class="size-12 rounded-2xl flex items-center justify-center border"
             :class="confirmDialog.type === 'danger' ? 'bg-red-500/10 border-red-500/20' : 'bg-emerald-500/10 border-emerald-500/20'">
             <UIcon
               :name="confirmDialog.type === 'danger' ? 'i-lucide-alert-triangle' : 'i-lucide-check-circle-2'"
               :class="confirmDialog.type === 'danger' ? 'text-red-400' : 'text-emerald-400'"
-              class="w-5 h-5"
+              class="size-5"
             />
           </div>
           <div>
-            <h3 class="text-sm font-black text-white leading-tight">{{ confirmDialog.title }}</h3>
-            <p class="text-[12px] text-white/35 mt-1.5 leading-relaxed">{{ confirmDialog.message }}</p>
+            <h3 class="text-sm font-black text-white leading-tight text-balance">{{ confirmDialog.title }}</h3>
+            <p class="text-[12px] text-white/35 mt-1.5 leading-relaxed text-pretty">{{ confirmDialog.message }}</p>
           </div>
         </div>
         <template #footer>

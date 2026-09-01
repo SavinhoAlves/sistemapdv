@@ -1,5 +1,5 @@
 <template>
-  <div class="min-h-screen flex">
+  <div class="min-h-dvh flex">
 
     <!-- ══ PAINEL ESQUERDO ══ -->
     <div class="hidden lg:flex lg:w-[50%] xl:w-[55%] relative overflow-hidden bg-neutral-950 flex-col justify-between p-10 xl:p-14">
@@ -13,8 +13,8 @@
 
       <!-- Topo -->
       <div class="relative z-10 flex items-center gap-3">
-        <div class="w-9 h-9 rounded-xl bg-violet-600 flex items-center justify-center shadow-lg shadow-violet-500/30">
-          <UIcon name="i-lucide-globe" class="text-white w-4 h-4" />
+        <div class="size-9 rounded-xl bg-violet-600 flex items-center justify-center shadow-lg shadow-violet-500/30">
+          <UIcon name="i-lucide-globe" class="text-white size-4" />
         </div>
         <div>
           <span class="text-white font-black tracking-tight block text-sm">Plataforma Central</span>
@@ -29,11 +29,11 @@
           Acesso de Plataforma
         </UBadge>
 
-        <h2 class="text-4xl xl:text-5xl font-black text-white leading-[1.1] tracking-tight">
+        <h2 class="text-4xl xl:text-5xl font-black text-white leading-[1.1] tracking-tight text-balance">
           Gestão de<br>
           <span class="text-violet-400">Restaurantes</span>
         </h2>
-        <p class="text-white/40 text-base leading-relaxed max-w-sm">
+        <p class="text-white/40 text-base leading-relaxed max-w-sm text-pretty">
           Controle centralizado de todos os tenants, features e acessos do sistema PDV.
         </p>
 
@@ -66,17 +66,17 @@
 
         <!-- Logo mobile -->
         <div class="lg:hidden flex flex-col items-center mb-8">
-          <div class="w-12 h-12 rounded-2xl bg-violet-600 flex items-center justify-center shadow-lg shadow-violet-500/30 mb-3">
-            <UIcon name="i-lucide-globe" class="text-white w-5 h-5" />
+          <div class="size-12 rounded-2xl bg-violet-600 flex items-center justify-center shadow-lg shadow-violet-500/30 mb-3">
+            <UIcon name="i-lucide-globe" class="text-white size-5" />
           </div>
-          <h1 class="text-xl font-black text-gray-900 dark:text-white">
+          <h1 class="text-xl font-black text-gray-900 dark:text-white text-balance">
             Plataforma <span class="text-violet-500">Central</span>
           </h1>
         </div>
 
         <div class="mb-7">
-          <h2 class="text-2xl font-black text-gray-900 dark:text-white tracking-tight">Acesso de plataforma</h2>
-          <p class="text-sm text-gray-500 dark:text-white/40 mt-1">Credenciais de super administrador</p>
+          <h2 class="text-2xl font-black text-gray-900 dark:text-white tracking-tight text-balance">Acesso de plataforma</h2>
+          <p class="text-sm text-gray-500 dark:text-white/40 mt-1 text-pretty">Credenciais de super administrador</p>
         </div>
 
         <!-- Alerta -->

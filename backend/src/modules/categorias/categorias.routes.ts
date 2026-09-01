@@ -11,7 +11,7 @@ export async function categoriasRoutes(app: FastifyInstance) {
 
   app.post('/', { preHandler: [requireTenant, requirePermissao('gerenciarProdutos')] }, async (request, reply) => {
     const { nome } = request.body as any
-    if (!nome?.trim()) return reply.status(400).send({ error: 'nome é obrigatório' })
+    if (typeof nome !== 'string' || !nome.trim()) return reply.status(400).send({ error: 'nome é obrigatório' })
     try {
       const cat = await Service.criar(request.tenantId!, nome)
       return reply.status(201).send({ success: true, id: cat.id, nome: cat.nome })
@@ -24,7 +24,7 @@ export async function categoriasRoutes(app: FastifyInstance) {
   app.put('/:id', { preHandler: [requireTenant, requirePermissao('gerenciarProdutos')] }, async (request, reply) => {
     const { id } = request.params as any
     const { nome } = request.body as any
-    if (!nome?.trim()) return reply.status(400).send({ error: 'nome é obrigatório' })
+    if (typeof nome !== 'string' || !nome.trim()) return reply.status(400).send({ error: 'nome é obrigatório' })
     try {
       await Service.atualizar(request.tenantId!, id, nome)
       return { success: true }

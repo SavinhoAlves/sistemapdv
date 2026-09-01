@@ -12,7 +12,7 @@ export async function perfisRoutes(app: FastifyInstance) {
   // POST /api/perfis
   app.post('/', { preHandler: [requireTenant, requirePermissao('gerenciarPerfis')] }, async (request, reply) => {
     const body = request.body as any
-    if (!body.nome?.trim()) return reply.status(400).send({ error: 'nome é obrigatório' })
+    if (typeof body.nome !== 'string' || !body.nome.trim()) return reply.status(400).send({ error: 'nome é obrigatório' })
     try {
       const perfil = await Service.criar(request.tenantId!, {
         nome: body.nome,

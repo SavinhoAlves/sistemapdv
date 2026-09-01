@@ -1,5 +1,5 @@
 import type { FastifyInstance } from 'fastify'
-import { requirePlatform } from '../../middlewares/tenant.middleware'
+import { requirePlatform, invalidateTenantCache } from '../../middlewares/tenant.middleware'
 import { prisma } from '../../lib/prisma'
 
 function slugify(s: string) {
@@ -169,9 +169,10 @@ export async function platformTenantsRoutes(app: FastifyInstance) {
     const body = request.body as any
     const { nome, slug, cnpj, responsavel, contato, telefone, endereco, observacoes, vendaMobilePermitida, rfidDisponivel, contrato } = body
 
-    if (!nome?.trim()) return reply.status(400).send({ error: 'Nome é obrigatório' })
+    if (typeof nome !== 'string' || !nome.trim()) return reply.status(400).send({ error: 'Nome é obrigatório' })
 
-    const finalSlug = (slug?.trim() || slugify(nome)).toLowerCase()
+    const slugInput = typeof slug === 'string' ? slug.trim() : ''
+    const finalSlug = (slugInput || slugify(nome)).toLowerCase()
 
     try {
       const tenant = await prisma.$transaction(async (tx) => {
@@ -179,18 +180,18 @@ export async function platformTenantsRoutes(app: FastifyInstance) {
           data: {
             nome:                 nome.trim(),
             slug:                 finalSlug,
-            cnpj:                 cnpj?.trim() || null,
-            responsavel:          responsavel?.trim() || null,
-            contato:              contato?.trim() || null,
-            telefone:             telefone?.trim() || null,
-            endereco:             endereco?.trim() || null,
-            observacoes:          observacoes?.trim() || null,
+            cnpj:                 typeof cnpj === 'string' ? cnpj.trim() || null : null,
+            responsavel:          typeof responsavel === 'string' ? responsavel.trim() || null : null,
+            contato:              typeof contato === 'string' ? contato.trim() || null : null,
+            telefone:             typeof telefone === 'string' ? telefone.trim() || null : null,
+            endereco:             typeof endereco === 'string' ? endereco.trim() || null : null,
+            observacoes:          typeof observacoes === 'string' ? observacoes.trim() || null : null,
             vendaMobilePermitida: vendaMobilePermitida ?? true,
             rfidDisponivel:       rfidDisponivel ?? false,
           },
         })
         await tx.licenca.create({ data: { tenantId: t.id, status: 'pendente' } })
-        if (contrato?.plano?.trim()) {
+        if (typeof contrato?.plano === 'string' && contrato.plano.trim()) {
           await tx.contrato.create({
             data: {
               tenantId:  t.id,
@@ -220,20 +221,20 @@ export async function platformTenantsRoutes(app: FastifyInstance) {
     const body = request.body as any
     const { nome, slug, cnpj, responsavel, contato, telefone, endereco, observacoes, vendaMobilePermitida, rfidDisponivel } = body
 
-    if (!nome?.trim()) return reply.status(400).send({ error: 'Nome é obrigatório' })
+    if (typeof nome !== 'string' || !nome.trim()) return reply.status(400).send({ error: 'Nome é obrigatório' })
 
     try {
       const tenant = await prisma.tenant.update({
         where: { id },
         data: {
           nome:                 nome.trim(),
-          ...(slug ? { slug: slug.trim().toLowerCase() } : {}),
-          cnpj:                 cnpj?.trim() || null,
-          responsavel:          responsavel?.trim() || null,
-          contato:              contato?.trim() || null,
-          telefone:             telefone?.trim() || null,
-          endereco:             endereco?.trim() || null,
-          observacoes:          observacoes?.trim() || null,
+          ...(typeof slug === 'string' && slug.trim() ? { slug: slug.trim().toLowerCase() } : {}),
+          cnpj:                 typeof cnpj === 'string' ? cnpj.trim() || null : null,
+          responsavel:          typeof responsavel === 'string' ? responsavel.trim() || null : null,
+          contato:              typeof contato === 'string' ? contato.trim() || null : null,
+          telefone:             typeof telefone === 'string' ? telefone.trim() || null : null,
+          endereco:             typeof endereco === 'string' ? endereco.trim() || null : null,
+          observacoes:          typeof observacoes === 'string' ? observacoes.trim() || null : null,
           ...(vendaMobilePermitida !== undefined ? { vendaMobilePermitida } : {}),
           ...(rfidDisponivel !== undefined ? { rfidDisponivel } : {}),
         },
@@ -263,6 +264,8 @@ export async function platformTenantsRoutes(app: FastifyInstance) {
         data: { status: status as any },
         select: { id: true, nome: true, status: true },
       })
+      // Invalida o cache para que a suspensão entre em vigor imediatamente
+      invalidateTenantCache(id)
       return reply.send(tenant)
     } catch (err: any) {
       if (err.code === 'P2025') return reply.status(404).send({ error: 'Tenant não encontrado' })
@@ -318,7 +321,7 @@ export async function platformTenantsRoutes(app: FastifyInstance) {
     const body = request.body as any
     const { plano, valor, ciclo, dataInicio, dataFim, status } = body
 
-    if (!plano?.trim()) return reply.status(400).send({ error: 'Plano é obrigatório' })
+    if (typeof plano !== 'string' || !plano.trim()) return reply.status(400).send({ error: 'Plano é obrigatório' })
 
     const tenant = await prisma.tenant.findUnique({ where: { id } })
     if (!tenant) return reply.status(404).send({ error: 'Tenant não encontrado' })

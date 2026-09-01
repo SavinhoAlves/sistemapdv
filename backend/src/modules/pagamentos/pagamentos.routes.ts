@@ -18,7 +18,7 @@ export async function pagamentosRoutes(app: FastifyInstance) {
   // POST /api/pagamentos/metodos
   app.post('/metodos', { preHandler: [requireTenant, requirePermissao('gerenciarProdutos')] }, async (request, reply) => {
     const { nome } = request.body as any
-    if (!nome?.trim()) return reply.status(400).send({ error: 'nome é obrigatório' })
+    if (typeof nome !== 'string' || !nome.trim()) return reply.status(400).send({ error: 'nome é obrigatório' })
     try {
       const metodo = await Service.criarMetodo(request.tenantId!, nome)
       return reply.status(201).send(metodo)

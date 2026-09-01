@@ -9,6 +9,8 @@
     "start": "node .output/server/index.mjs"
   },
   "dependencies": {
+    "@iconify-json/lucide": "^1.2.128",
+    "@nuxt/ui": "^2.22.3",
     "@pinia/nuxt": "^0.5.4",
     "jsqr": "^1.4.0",
     "lucide-vue-next": "^1.0.0",

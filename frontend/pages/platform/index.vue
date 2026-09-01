@@ -8,7 +8,7 @@
           <div class="relative">
             <div class="absolute inset-0 rounded-xl bg-violet-600 blur-md opacity-50"></div>
             <div class="relative w-7 h-7 rounded-xl bg-gradient-to-br from-violet-500 to-violet-700 flex items-center justify-center shadow-lg">
-              <Globe :size="13" class="text-white" />
+              <UIcon name="i-lucide-globe" class="text-white w-3.5 h-3.5" />
             </div>
           </div>
           <div class="flex items-baseline gap-2">
@@ -19,19 +19,25 @@
 
         <div class="flex items-center gap-2">
           <div class="hidden sm:flex items-center gap-2 rounded-xl px-3 py-1.5 border border-white/[0.06] bg-white/[0.03]">
-            <div class="w-5 h-5 rounded-lg bg-violet-500/20 flex items-center justify-center shrink-0">
-              <span class="text-[9px] font-black text-violet-400">{{ initials }}</span>
-            </div>
+            <UAvatar
+              :alt="platformAuth.user?.nome"
+              size="xs"
+              :ui="{ background: 'bg-violet-500/20', text: 'text-violet-300 text-[9px] font-black' }"
+            />
             <span class="text-white/60 text-xs font-semibold">{{ platformAuth.user?.nome }}</span>
-            <span class="text-[9px] font-black px-1.5 py-0.5 rounded-md bg-violet-500/15 text-violet-400 uppercase tracking-wide">
+            <UBadge color="violet" variant="soft" size="xs" class="font-black">
               {{ platformAuth.user?.role }}
-            </span>
+            </UBadge>
           </div>
-          <button @click="handleLogout"
-            class="h-8 w-8 rounded-xl text-white/30 hover:text-red-400 hover:bg-red-500/10 flex items-center justify-center transition-all"
-            title="Sair">
-            <LogOut :size="14" />
-          </button>
+          <UButton
+            icon="i-lucide-log-out"
+            color="red"
+            variant="ghost"
+            size="xs"
+            square
+            title="Sair"
+            @click="handleLogout"
+          />
         </div>
       </div>
     </header>
@@ -39,14 +45,14 @@
     <!-- ══ CONTEÚDO ══ -->
     <main class="max-w-5xl mx-auto px-6 py-6 space-y-5">
 
-      <!-- ── LOADING ── -->
+      <!-- LOADING -->
       <div v-if="loading" class="flex items-center justify-center py-32">
-        <Loader2 :size="22" class="animate-spin text-violet-500" />
+        <UIcon name="i-lucide-loader-2" class="animate-spin text-violet-500 w-6 h-6" />
       </div>
 
       <template v-else>
 
-        <!-- ── CABEÇALHO DA PÁGINA ── -->
+        <!-- CABEÇALHO DA PÁGINA -->
         <div class="flex items-center gap-3">
           <div>
             <h1 class="text-base font-black text-white tracking-tight">Restaurantes</h1>
@@ -61,103 +67,91 @@
             </p>
           </div>
           <div class="flex-1" />
-          <!-- Busca -->
-          <div class="relative">
-            <Search :size="12" class="absolute left-3 top-1/2 -translate-y-1/2 text-white/20 pointer-events-none" />
-            <input v-model="busca" type="text" placeholder="Buscar…"
-              class="h-9 pl-8 pr-4 bg-white/[0.04] border border-white/[0.07] rounded-xl text-white/80 text-xs placeholder:text-white/15 focus:outline-none focus:border-violet-500/40 transition-all w-40 sm:w-52" />
-          </div>
-          <button @click="abrirModal(null)"
-            class="h-9 px-4 rounded-xl bg-violet-600 hover:bg-violet-500 active:scale-95 text-white text-xs font-black transition-all flex items-center gap-1.5 shadow-lg shadow-violet-500/20 shrink-0">
-            <Plus :size="13" /> Novo
-          </button>
+          <UInput
+            v-model="busca"
+            icon="i-lucide-search"
+            placeholder="Buscar…"
+            size="sm"
+            :ui="{ rounded: 'rounded-xl', base: 'w-40 sm:w-52 bg-white/[0.04] border-white/[0.07] text-white/80 placeholder:text-white/15', icon: { base: 'text-white/20' } }"
+          />
+          <UButton
+            icon="i-lucide-plus"
+            color="violet"
+            size="sm"
+            :ui="{ rounded: 'rounded-xl', font: 'font-black' }"
+            class="shadow-lg shadow-violet-500/20 shrink-0"
+            @click="abrirModal(null)"
+          >
+            Novo
+          </UButton>
         </div>
 
-        <!-- ── MÉTRICAS COMPACTAS ── -->
+        <!-- MÉTRICAS -->
         <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          <div class="rounded-xl border border-white/[0.06] bg-white/[0.02] px-4 py-3 flex items-center gap-3">
-            <Store :size="16" class="text-white/20 shrink-0" />
-            <div class="min-w-0">
-              <p class="text-xl font-black text-white leading-none">{{ dashboard?.totais?.tenants ?? tenants.length }}</p>
-              <p class="text-[10px] text-white/30 font-bold mt-0.5 truncate">Restaurantes</p>
+          <UCard
+            v-for="metric in metrics"
+            :key="metric.label"
+            :class="['transition-all', metric.cardClass]"
+            :ui="{ base: 'overflow-hidden', body: { padding: 'px-4 py-3' }, ring: '', divide: '' }"
+          >
+            <div class="flex items-center gap-3">
+              <UIcon :name="metric.icon" :class="['w-4 h-4 shrink-0', metric.iconClass]" />
+              <div class="min-w-0">
+                <p :class="['text-xl font-black leading-none truncate', metric.valueClass]">{{ metric.value }}</p>
+                <p :class="['text-[10px] font-bold mt-0.5 truncate', metric.subClass]">{{ metric.label }}</p>
+              </div>
             </div>
-          </div>
-          <div class="rounded-xl border border-emerald-500/20 bg-emerald-500/[0.04] px-4 py-3 flex items-center gap-3">
-            <TrendingUp :size="16" class="text-emerald-400 shrink-0" />
-            <div class="min-w-0">
-              <p class="text-xl font-black text-emerald-400 leading-none truncate">{{ formatCurrency(dashboard?.financeiro?.mrr ?? 0) }}</p>
-              <p class="text-[10px] text-emerald-400/50 font-bold mt-0.5">Receita mensal</p>
-            </div>
-          </div>
-          <div class="rounded-xl border bg-white/[0.02] px-4 py-3 flex items-center gap-3"
-            :class="(dashboard?.licencas?.bloqueadas ?? 0) > 0 ? 'border-red-500/20' : 'border-white/[0.06]'">
-            <KeyRound :size="16" class="text-white/20 shrink-0" />
-            <div class="min-w-0">
-              <p class="text-xl font-black text-white leading-none">{{ dashboard?.licencas?.ativas ?? 0 }}</p>
-              <p class="text-[10px] font-bold mt-0.5 truncate"
-                :class="(dashboard?.licencas?.bloqueadas ?? 0) > 0 ? 'text-red-400' : 'text-white/30'">
-                {{ (dashboard?.licencas?.bloqueadas ?? 0) > 0 ? `${dashboard?.licencas?.bloqueadas} bloqueada(s)` : 'Licenças ativas' }}
-              </p>
-            </div>
-          </div>
-          <div class="rounded-xl border bg-white/[0.02] px-4 py-3 flex items-center gap-3" :class="vencClass.card">
-            <Clock :size="16" :class="vencClass.label" class="shrink-0" />
-            <div class="min-w-0">
-              <p class="text-xl font-black leading-none" :class="vencClass.number">
-                {{ (dashboard?.licencas?.vencidas ?? 0) + (dashboard?.licencas?.vencendo ?? 0) }}
-              </p>
-              <p class="text-[10px] font-bold mt-0.5 truncate" :class="vencClass.sub">
-                {{ (dashboard?.licencas?.vencidas ?? 0) > 0 ? 'vencidas' : (dashboard?.licencas?.vencendo ?? 0) > 0 ? 'vencendo em 30d' : 'sem vencimentos' }}
-              </p>
-            </div>
-          </div>
+          </UCard>
         </div>
 
-        <!-- ── ALERTAS (só quando existem) ── -->
+        <!-- ALERTAS -->
         <div v-if="dashboard?.alertas?.length" class="rounded-xl border border-amber-500/15 bg-amber-500/[0.03] overflow-hidden">
           <div class="flex items-center gap-2 px-4 py-2.5 border-b border-amber-500/10">
-            <div class="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse shrink-0"></div>
+            <span class="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse shrink-0"></span>
             <p class="text-[10px] font-black uppercase tracking-widest text-amber-400/70 flex-1">Atenção necessária</p>
-            <span class="text-[9px] font-black px-1.5 py-0.5 rounded-full bg-amber-500/15 text-amber-400">{{ dashboard.alertas.length }}</span>
+            <UBadge color="amber" variant="soft" size="xs" class="font-black">{{ dashboard.alertas.length }}</UBadge>
           </div>
-          <NuxtLink v-for="(a, i) in dashboard.alertas" :key="a.tenant_id"
+          <NuxtLink
+            v-for="(a, i) in dashboard.alertas"
+            :key="a.tenant_id"
             :to="`/platform/tenants/${a.tenant_id}`"
             class="flex items-center gap-3 px-4 py-2.5 hover:bg-white/[0.03] transition-colors group/alert"
-            :class="i < dashboard.alertas.length - 1 ? 'border-b border-amber-500/[0.08]' : ''">
-            <component :is="alertaStyle(a.tipo).icon" :size="12" :class="alertaStyle(a.tipo).icon_color" class="shrink-0" />
+            :class="i < dashboard.alertas.length - 1 ? 'border-b border-amber-500/[0.08]' : ''"
+          >
+            <UIcon :name="alertaStyle(a.tipo).icon" :class="['w-3 h-3 shrink-0', alertaStyle(a.tipo).icon_color]" />
             <span class="text-xs font-bold text-white/80">{{ a.nome }}</span>
             <span class="text-xs font-normal text-white/40 flex-1">{{ alertaDescricao(a) }}</span>
-            <ChevronRight :size="12" class="text-white/15 group-hover/alert:text-white/35 transition-colors shrink-0" />
+            <UIcon name="i-lucide-chevron-right" class="w-3 h-3 text-white/15 group-hover/alert:text-white/35 transition-colors shrink-0" />
           </NuxtLink>
         </div>
 
-        <!-- ── LISTA DE TENANTS ── -->
+        <!-- LISTA DE TENANTS -->
         <div>
-          <!-- Erro -->
           <div v-if="erro" class="text-center py-16 rounded-2xl border border-white/[0.06] bg-white/[0.02]">
-            <AlertCircle :size="22" class="text-red-400 mx-auto mb-3" />
+            <UIcon name="i-lucide-alert-circle" class="text-red-400 w-6 h-6 mx-auto mb-3" />
             <p class="text-white/40 text-sm font-bold mb-2">{{ erro }}</p>
-            <button @click="carregar" class="text-violet-400 text-xs font-bold hover:text-violet-300 transition-colors">Tentar novamente</button>
+            <UButton color="violet" variant="link" size="sm" @click="carregar">Tentar novamente</UButton>
           </div>
 
-          <!-- Vazio -->
           <div v-else-if="!tenantsFiltrados.length" class="text-center py-16 rounded-2xl border border-white/[0.06] bg-white/[0.02]">
-            <Store :size="22" class="text-white/10 mx-auto mb-3" />
+            <UIcon name="i-lucide-store" class="text-white/10 w-6 h-6 mx-auto mb-3" />
             <p class="text-white/20 text-sm">Nenhum restaurante encontrado</p>
           </div>
 
-          <!-- Linhas -->
           <div v-else class="rounded-2xl border border-white/[0.06] overflow-hidden divide-y divide-white/[0.04]">
-            <div v-for="tenant in tenantsFiltrados" :key="tenant.id"
-              class="flex items-center gap-3 px-4 py-3.5 bg-white/[0.01] hover:bg-white/[0.03] transition-colors group">
-
+            <div
+              v-for="tenant in tenantsFiltrados"
+              :key="tenant.id"
+              class="flex items-center gap-3 px-4 py-3.5 bg-white/[0.01] hover:bg-white/[0.03] transition-colors group"
+            >
               <!-- Avatar -->
-              <div class="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 font-black text-sm select-none"
-                :class="avatarColor(tenant.nome)">
-                {{ tenant.nome[0].toUpperCase() }}
-              </div>
+              <UAvatar
+                :alt="tenant.nome"
+                size="sm"
+                :ui="{ background: avatarColor(tenant.nome), text: 'font-black text-sm' }"
+              />
 
-              <!-- Info principal -->
+              <!-- Info -->
               <NuxtLink :to="`/platform/tenants/${tenant.id}`" class="flex-1 min-w-0 cursor-pointer">
                 <div class="flex items-center gap-2 flex-wrap">
                   <span class="text-sm font-bold text-white/90 group-hover:text-violet-300 transition-colors truncate">{{ tenant.nome }}</span>
@@ -165,122 +159,160 @@
                 </div>
                 <div class="flex items-center gap-2 mt-0.5 flex-wrap">
                   <span class="text-white/25 text-[10px] font-mono">{{ tenant.slug }}</span>
-                  <span v-if="tenant.licencas?.[0]"
-                    class="text-[10px] font-black px-1.5 py-0.5 rounded-md"
-                    :class="licencaBadge(tenant.licencas[0].status)">
+                  <UBadge
+                    v-if="tenant.licencas?.[0]"
+                    :color="licencaBadgeColor(tenant.licencas[0].status)"
+                    variant="soft"
+                    size="xs"
+                    class="font-black"
+                  >
                     {{ licencaLabel(tenant.licencas[0]) }}
-                  </span>
-                  <span v-if="tenant.contratos?.[0]"
-                    class="text-[10px] font-black px-1.5 py-0.5 rounded-md bg-indigo-500/10 text-indigo-400">
+                  </UBadge>
+                  <UBadge
+                    v-if="tenant.contratos?.[0]"
+                    color="indigo"
+                    variant="soft"
+                    size="xs"
+                    class="font-black"
+                  >
                     {{ tenant.contratos[0].plano }}
-                  </span>
+                  </UBadge>
                 </div>
               </NuxtLink>
 
               <!-- Feature pills -->
               <div class="hidden sm:flex items-center gap-1 shrink-0">
-                <span class="inline-flex items-center gap-1 text-[10px] font-black px-2 py-1 rounded-lg transition-all"
-                  :class="tenant.rfid_disponivel ? 'bg-violet-500/10 text-violet-400' : 'text-white/10'">
-                  <CreditCard :size="9" /> RFID
-                </span>
-                <span class="inline-flex items-center gap-1 text-[10px] font-black px-2 py-1 rounded-lg transition-all"
-                  :class="tenant.venda_mobile_permitida ? 'bg-sky-500/10 text-sky-400' : 'text-white/10'">
-                  <Smartphone :size="9" /> Celular
-                </span>
+                <UBadge
+                  :color="tenant.rfid_disponivel ? 'violet' : 'gray'"
+                  :variant="tenant.rfid_disponivel ? 'soft' : 'outline'"
+                  size="xs"
+                  class="gap-1 font-black"
+                >
+                  <UIcon name="i-lucide-credit-card" class="w-2.5 h-2.5" /> RFID
+                </UBadge>
+                <UBadge
+                  :color="tenant.venda_mobile_permitida ? 'sky' : 'gray'"
+                  :variant="tenant.venda_mobile_permitida ? 'soft' : 'outline'"
+                  size="xs"
+                  class="gap-1 font-black"
+                >
+                  <UIcon name="i-lucide-smartphone" class="w-2.5 h-2.5" /> Celular
+                </UBadge>
               </div>
 
               <!-- Ações -->
               <div class="flex items-center gap-1.5 shrink-0">
-                <button @click="toggleRfid(tenant)" :disabled="togglingId === tenant.id"
-                  class="h-8 px-2.5 rounded-lg text-[10px] font-black border transition-all flex items-center gap-1"
-                  :class="tenant.rfid_disponivel
-                    ? 'bg-violet-500/10 border-violet-500/20 text-violet-400 hover:bg-violet-500/18'
-                    : 'bg-white/[0.03] border-white/[0.06] text-white/20 hover:bg-white/[0.06]'"
-                  title="Alternar RFID">
-                  <Loader2 v-if="togglingId === tenant.id" :size="10" class="animate-spin" />
-                  <CreditCard v-else :size="10" />
-                </button>
+                <UButton
+                  :icon="togglingId === tenant.id ? 'i-lucide-loader-2' : 'i-lucide-credit-card'"
+                  :color="tenant.rfid_disponivel ? 'violet' : 'gray'"
+                  variant="soft"
+                  size="xs"
+                  square
+                  :loading="togglingId === tenant.id"
+                  :ui="{ rounded: 'rounded-lg', font: 'font-black text-[10px]' }"
+                  title="Alternar RFID"
+                  @click="toggleRfid(tenant)"
+                />
 
-                <button @click="toggleStatus(tenant)"
-                  class="h-8 px-2.5 rounded-lg text-[10px] font-black border transition-all flex items-center gap-1"
-                  :class="tenant.status === 'ativo'
-                    ? 'bg-emerald-500/10 border-emerald-500/15 text-emerald-400 hover:bg-red-500/10 hover:border-red-500/15 hover:text-red-400'
-                    : 'bg-amber-500/10 border-amber-500/15 text-amber-400 hover:bg-emerald-500/10 hover:border-emerald-500/15 hover:text-emerald-400'"
-                  :title="tenant.status === 'ativo' ? 'Suspender' : 'Reativar'">
-                  <ToggleRight v-if="tenant.status === 'ativo'" :size="10" />
-                  <ToggleLeft  v-else :size="10" />
+                <UButton
+                  :icon="tenant.status === 'ativo' ? 'i-lucide-toggle-right' : 'i-lucide-toggle-left'"
+                  :color="tenant.status === 'ativo' ? 'green' : 'amber'"
+                  variant="soft"
+                  size="xs"
+                  :ui="{ rounded: 'rounded-lg', font: 'font-black text-[10px]' }"
+                  :title="tenant.status === 'ativo' ? 'Suspender' : 'Reativar'"
+                  @click="toggleStatus(tenant)"
+                >
                   {{ tenant.status === 'ativo' ? 'Ativo' : 'Suspenso' }}
-                </button>
+                </UButton>
 
-                <NuxtLink :to="`/platform/tenants/${tenant.id}`"
-                  class="h-8 px-2.5 rounded-lg text-[10px] font-black border border-white/[0.06] text-white/30 hover:text-white/70 hover:bg-white/[0.06] hover:border-white/10 transition-all flex items-center gap-1">
-                  <ChevronRight :size="10" /> Abrir
-                </NuxtLink>
+                <UButton
+                  :to="`/platform/tenants/${tenant.id}`"
+                  icon="i-lucide-chevron-right"
+                  color="gray"
+                  variant="ghost"
+                  size="xs"
+                  :ui="{ rounded: 'rounded-lg', font: 'font-black text-[10px]' }"
+                >
+                  Abrir
+                </UButton>
               </div>
             </div>
           </div>
         </div>
 
-        <!-- ── RODAPÉ: RECEITA + FEATURES ── -->
+        <!-- RODAPÉ: RECEITA + FEATURES -->
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
-          <!-- Receita por plano -->
-          <div class="rounded-xl border border-white/[0.06] bg-white/[0.015] p-4">
-            <div class="flex items-center justify-between mb-4">
-              <div class="flex items-center gap-2">
-                <TrendingUp :size="12" class="text-emerald-400" />
-                <span class="text-[10px] font-black text-white/40 uppercase tracking-widest">Receita por plano</span>
+          <UCard :ui="{ ring: '', divide: 'divide-white/[0.05]', background: 'bg-white/[0.015]', body: { padding: 'p-4' }, header: { padding: 'px-4 pt-4 pb-0' } }">
+            <template #header>
+              <div class="flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                  <UIcon name="i-lucide-trending-up" class="text-emerald-400 w-3 h-3" />
+                  <span class="text-[10px] font-black text-white/40 uppercase tracking-widest">Receita por plano</span>
+                </div>
+                <span class="text-xs font-black text-emerald-400">
+                  {{ formatCurrency(dashboard?.financeiro?.mrr ?? 0) }}<span class="text-white/20 text-[10px] font-normal">/mês</span>
+                </span>
               </div>
-              <span class="text-xs font-black text-emerald-400">{{ formatCurrency(dashboard?.financeiro?.mrr ?? 0) }}<span class="text-white/20 text-[10px] font-normal">/mês</span></span>
-            </div>
-            <div v-if="dashboard?.financeiro?.por_plano?.length" class="space-y-3">
+            </template>
+            <div v-if="dashboard?.financeiro?.por_plano?.length" class="space-y-3 mt-4">
               <div v-for="p in dashboard.financeiro.por_plano" :key="p.plano">
                 <div class="flex items-center justify-between mb-1">
                   <div class="flex items-center gap-1.5">
                     <span class="text-xs font-bold text-white/70">{{ p.plano }}</span>
-                    <span class="text-[9px] font-black px-1.5 py-0.5 rounded bg-white/[0.05] text-white/30">{{ p.count }}x</span>
+                    <UBadge color="gray" variant="soft" size="xs" class="font-black">{{ p.count }}x</UBadge>
                   </div>
                   <span class="text-xs font-black text-emerald-400">{{ formatCurrency(p.mrr) }}</span>
                 </div>
-                <div class="h-1 rounded-full bg-white/[0.05]">
-                  <div class="h-full rounded-full bg-emerald-500/70 transition-all duration-700"
-                    :style="{ width: maxMrr > 0 ? `${(p.mrr / maxMrr) * 100}%` : '0%' }" />
-                </div>
+                <UProgress
+                  :value="maxMrr > 0 ? (p.mrr / maxMrr) * 100 : 0"
+                  color="green"
+                  size="xs"
+                  :ui="{ progress: { rounded: 'rounded-full' }, background: 'bg-white/[0.05]' }"
+                />
               </div>
             </div>
-            <p v-else class="text-[11px] text-white/15 text-center py-4">Nenhum contrato ativo</p>
-          </div>
+            <p v-else class="text-[11px] text-white/15 text-center py-4 mt-4">Nenhum contrato ativo</p>
+          </UCard>
 
-          <!-- Features -->
-          <div class="rounded-xl border border-white/[0.06] bg-white/[0.015] p-4">
-            <div class="flex items-center gap-2 mb-4">
-              <Zap :size="12" class="text-white/30" />
-              <span class="text-[10px] font-black text-white/40 uppercase tracking-widest">Recursos habilitados</span>
-            </div>
-            <div class="space-y-2.5">
+          <UCard :ui="{ ring: '', divide: 'divide-white/[0.05]', background: 'bg-white/[0.015]', body: { padding: 'p-4' }, header: { padding: 'px-4 pt-4 pb-0' } }">
+            <template #header>
+              <div class="flex items-center gap-2">
+                <UIcon name="i-lucide-zap" class="text-white/30 w-3 h-3" />
+                <span class="text-[10px] font-black text-white/40 uppercase tracking-widest">Recursos habilitados</span>
+              </div>
+            </template>
+            <div class="space-y-2.5 mt-4">
               <div class="flex items-center justify-between">
                 <div class="flex items-center gap-2">
-                  <CreditCard :size="13" class="text-violet-400" />
+                  <UIcon name="i-lucide-credit-card" class="text-violet-400 w-3.5 h-3.5" />
                   <span class="text-xs font-bold text-white/70">RFID</span>
                 </div>
                 <div class="flex items-center gap-2">
-                  <div class="w-24 h-1 rounded-full bg-white/[0.05]">
-                    <div class="h-full rounded-full bg-violet-500/60"
-                      :style="{ width: tenants.length ? `${(tenants.filter(t => t.rfid_disponivel).length / tenants.length) * 100}%` : '0%' }" />
-                  </div>
+                  <UProgress
+                    :value="tenants.length ? (tenants.filter(t => t.rfid_disponivel).length / tenants.length) * 100 : 0"
+                    color="violet"
+                    size="xs"
+                    class="w-24"
+                    :ui="{ background: 'bg-white/[0.05]' }"
+                  />
                   <span class="text-xs font-black text-violet-400 w-6 text-right">{{ tenants.filter(t => t.rfid_disponivel).length }}</span>
                   <span class="text-[10px] text-white/20">/ {{ tenants.length }}</span>
                 </div>
               </div>
               <div class="flex items-center justify-between">
                 <div class="flex items-center gap-2">
-                  <Smartphone :size="13" class="text-sky-400" />
+                  <UIcon name="i-lucide-smartphone" class="text-sky-400 w-3.5 h-3.5" />
                   <span class="text-xs font-bold text-white/70">Celular</span>
                 </div>
                 <div class="flex items-center gap-2">
-                  <div class="w-24 h-1 rounded-full bg-white/[0.05]">
-                    <div class="h-full rounded-full bg-sky-500/60"
-                      :style="{ width: tenants.length ? `${(tenants.filter(t => t.venda_mobile_permitida).length / tenants.length) * 100}%` : '0%' }" />
-                  </div>
+                  <UProgress
+                    :value="tenants.length ? (tenants.filter(t => t.venda_mobile_permitida).length / tenants.length) * 100 : 0"
+                    color="sky"
+                    size="xs"
+                    class="w-24"
+                    :ui="{ background: 'bg-white/[0.05]' }"
+                  />
                   <span class="text-xs font-black text-sky-400 w-6 text-right">{{ tenants.filter(t => t.venda_mobile_permitida).length }}</span>
                   <span class="text-[10px] text-white/20">/ {{ tenants.length }}</span>
                 </div>
@@ -290,275 +322,280 @@
                 <span class="font-black text-white/35">{{ formatCurrency(dashboard?.financeiro?.arr ?? 0) }}</span>
               </div>
             </div>
-          </div>
+          </UCard>
         </div>
 
       </template>
     </main>
 
     <!-- ══ MODAL CRIAR / EDITAR ══ -->
-    <Teleport to="body">
-      <Transition name="fade">
-        <div v-if="modalAberto"
-          class="fixed inset-0 z-50 flex items-start justify-center p-4 pt-12 overflow-y-auto"
-          style="background: rgba(0,0,0,0.75); backdrop-filter: blur(4px);"
-          @click.self="fecharModal">
-          <div class="bg-[#111118] border border-white/[0.09] rounded-2xl w-full max-w-xl shadow-2xl overflow-hidden">
-            <div class="flex items-center justify-between px-5 py-4 border-b border-white/[0.07]">
-              <div class="flex items-center gap-3">
-                <div class="w-8 h-8 rounded-xl bg-violet-500/10 flex items-center justify-center shrink-0">
-                  <Building2 :size="15" class="text-violet-400" />
-                </div>
-                <div>
-                  <h2 class="text-sm font-black text-white">{{ form.id ? 'Editar restaurante' : 'Novo restaurante' }}</h2>
-                  <p v-if="form.id" class="text-white/25 text-[10px] font-mono">{{ form.slug }}</p>
-                </div>
+    <UModal v-model="modalAberto" :ui="{ container: 'items-start pt-12', width: 'max-w-xl', background: 'bg-[#111118]', ring: 'ring-1 ring-white/[0.09]', rounded: 'rounded-2xl' }">
+      <UCard :ui="{ background: 'bg-transparent', ring: '', divide: 'divide-white/[0.07]', header: { padding: 'px-5 py-4' }, body: { padding: 'p-0' }, footer: { padding: 'px-5 pb-5 pt-3' } }">
+        <template #header>
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-3">
+              <div class="w-8 h-8 rounded-xl bg-violet-500/10 flex items-center justify-center shrink-0">
+                <UIcon name="i-lucide-building-2" class="text-violet-400 w-4 h-4" />
               </div>
-              <button @click="fecharModal"
-                class="w-7 h-7 rounded-lg bg-white/[0.05] hover:bg-red-500/15 hover:text-red-400 text-white/30 flex items-center justify-center transition-all">
-                <X :size="13" />
-              </button>
-            </div>
-
-            <!-- Abas -->
-            <div class="flex gap-1 px-5 pt-4 border-b border-white/[0.05] pb-3">
-              <button v-for="aba in abas" :key="aba.id" @click="abaAtiva = aba.id"
-                class="flex items-center gap-1.5 h-7 px-3 rounded-lg text-[11px] font-black transition-all"
-                :class="abaAtiva === aba.id ? 'bg-violet-600 text-white' : 'text-white/35 hover:text-white/60 hover:bg-white/[0.05]'">
-                <component :is="aba.icon" :size="10" />{{ aba.label }}
-              </button>
-            </div>
-
-            <!-- ABA DADOS -->
-            <div v-if="abaAtiva === 'dados'" class="p-5 space-y-4">
-              <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div class="sm:col-span-2">
-                  <label class="label-field">Nome do restaurante *</label>
-                  <input v-model="form.nome" @input="autoSlug" type="text" placeholder="Ex: Restaurante Tarantela" class="input-field" />
-                </div>
-                <div>
-                  <label class="label-field">Identificador *</label>
-                  <input v-model="form.slug" type="text" placeholder="ex: tarantela" class="input-field font-mono text-xs" />
-                  <p class="text-[10px] text-white/20 mt-1">Usado na URL do sistema</p>
-                </div>
-                <div>
-                  <label class="label-field">CNPJ</label>
-                  <input v-model="form.cnpj" type="text" placeholder="00.000.000/0001-00" class="input-field font-mono text-xs" />
-                </div>
-                <div>
-                  <label class="label-field">Responsável</label>
-                  <input v-model="form.responsavel" type="text" placeholder="Nome do responsável" class="input-field" />
-                </div>
-                <div>
-                  <label class="label-field">E-mail</label>
-                  <input v-model="form.contato" type="email" placeholder="contato@restaurante.com" class="input-field" />
-                </div>
-                <div>
-                  <label class="label-field">Telefone</label>
-                  <input v-model="form.telefone" type="text" placeholder="(62) 9 9999-9999" class="input-field" />
-                </div>
-                <div>
-                  <label class="label-field">Endereço</label>
-                  <input v-model="form.endereco" type="text" placeholder="Rua, número, bairro" class="input-field" />
-                </div>
-                <div class="sm:col-span-2">
-                  <label class="label-field">Observações</label>
-                  <textarea v-model="form.observacoes" rows="2" placeholder="Anotações internas..." class="input-field resize-none"></textarea>
-                </div>
-              </div>
-              <div class="border-t border-white/[0.06] pt-4 space-y-3">
-                <p class="text-[10px] font-black uppercase tracking-widest text-white/25">Features</p>
-                <div v-for="feat in features" :key="feat.key" class="flex items-center justify-between">
-                  <div>
-                    <p class="text-sm font-bold text-white/80">{{ feat.label }}</p>
-                    <p class="text-[11px] text-white/25">{{ feat.desc }}</p>
-                  </div>
-                  <button @click="(form as any)[feat.key] = !(form as any)[feat.key]"
-                    class="w-10 h-5 rounded-full transition-all relative shrink-0"
-                    :class="(form as any)[feat.key] ? feat.on : 'bg-white/[0.08]'">
-                    <span class="absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-all"
-                      :class="(form as any)[feat.key] ? 'left-[22px]' : 'left-0.5'" />
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            <!-- ABA LICENÇA -->
-            <div v-else-if="abaAtiva === 'licenca'" class="p-5">
-              <div v-if="!form.id" class="text-center py-10 text-white/25 text-sm">
-                Salve o restaurante primeiro para gerenciar a licença.
-              </div>
-              <div v-else class="space-y-4">
-                <div>
-                  <label class="label-field mb-2">Status</label>
-                  <div class="flex gap-2">
-                    <button v-for="s in licencaStatuses" :key="s.value" @click="licencaForm.status = s.value"
-                      class="flex-1 h-9 rounded-xl text-xs font-black border transition-all"
-                      :class="licencaForm.status === s.value ? s.activeClass : 'bg-white/[0.03] border-white/[0.07] text-white/30 hover:bg-white/[0.05]'">
-                      {{ s.label }}
-                    </button>
-                  </div>
-                </div>
-                <div class="grid grid-cols-2 gap-3">
-                  <div>
-                    <label class="label-field">Ativação</label>
-                    <input v-model="licencaForm.dataAtivacao" type="date" class="input-field" />
-                  </div>
-                  <div>
-                    <label class="label-field">Vencimento</label>
-                    <input v-model="licencaForm.dataVencimento" type="date" class="input-field" />
-                  </div>
-                </div>
-                <div v-if="licencaAtual" class="text-[10px] text-white/25 pt-1">
-                  Criada em {{ formatDate(licencaAtual.created_at) }}
-                </div>
-              </div>
-            </div>
-
-            <!-- ABA CONTRATO -->
-            <div v-else-if="abaAtiva === 'contrato'" class="p-5 space-y-4">
-              <!-- Plano -->
               <div>
-                <label class="label-field">Plano *</label>
-                <div class="flex gap-1.5 mb-2 flex-wrap">
-                  <button v-for="p in planosPredef" :key="p" @click="contratoForm.plano = p"
-                    class="text-xs font-bold px-2.5 py-1 rounded-lg border transition-all"
-                    :class="contratoForm.plano === p ? 'bg-violet-600 border-violet-500 text-white' : 'bg-white/[0.03] border-white/[0.07] text-white/35 hover:text-white/70 hover:bg-white/[0.06]'">
-                    {{ p }}
-                  </button>
-                </div>
-                <input v-model="contratoForm.plano" type="text" placeholder="Ou escreva o nome do plano..." class="input-field" />
-              </div>
-
-              <!-- Valor + Status -->
-              <div class="grid grid-cols-2 gap-3">
-                <div>
-                  <label class="label-field">Valor (R$)</label>
-                  <input v-model="contratoForm.valor" type="number" min="0" step="0.01" placeholder="0,00" class="input-field" />
-                </div>
-                <div>
-                  <label class="label-field">Status</label>
-                  <div class="flex gap-1.5 mt-0.5">
-                    <button @click="contratoForm.status = 'trial'"
-                      class="flex-1 h-10 rounded-xl text-xs font-black border transition-all"
-                      :class="contratoForm.status === 'trial' ? 'bg-sky-500/15 border-sky-500/30 text-sky-400' : 'bg-white/[0.03] border-white/[0.07] text-white/30 hover:bg-white/[0.05]'">
-                      Teste
-                    </button>
-                    <button @click="contratoForm.status = 'ativo'"
-                      class="flex-1 h-10 rounded-xl text-xs font-black border transition-all"
-                      :class="contratoForm.status === 'ativo' ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-400' : 'bg-white/[0.03] border-white/[0.07] text-white/30 hover:bg-white/[0.05]'">
-                      Ativo
-                    </button>
-                  </div>
-                </div>
-              </div>
-
-              <!-- Ciclo -->
-              <div>
-                <label class="label-field">Ciclo de cobrança</label>
-                <div class="grid grid-cols-4 gap-1.5">
-                  <button v-for="c in ciclos" :key="c.value" @click="contratoForm.ciclo = c.value as any"
-                    class="h-9 rounded-xl text-xs font-black border transition-all"
-                    :class="contratoForm.ciclo === c.value ? 'bg-violet-600 border-violet-500 text-white' : 'bg-white/[0.03] border-white/[0.07] text-white/30 hover:bg-white/[0.05] hover:text-white/60'">
-                    {{ c.label }}
-                  </button>
-                </div>
-              </div>
-
-              <!-- Data de início -->
-              <div>
-                <label class="label-field">Início do contrato</label>
-                <input v-model="contratoForm.dataInicio" type="date" class="input-field" />
-              </div>
-
-              <!-- Aviso para novo restaurante -->
-              <div v-if="!form.id" class="flex items-start gap-2 p-3 rounded-xl bg-violet-500/[0.06] border border-violet-500/10">
-                <Info :size="12" class="text-violet-400 mt-0.5 shrink-0" />
-                <p class="text-[11px] text-violet-300/60 leading-relaxed">O contrato será criado junto com o restaurante. Se deixar o plano em branco, pode ser adicionado depois.</p>
+                <h2 class="text-sm font-black text-white">{{ form.id ? 'Editar restaurante' : 'Novo restaurante' }}</h2>
+                <p v-if="form.id" class="text-white/25 text-[10px] font-mono">{{ form.slug }}</p>
               </div>
             </div>
+            <UButton icon="i-lucide-x" color="red" variant="ghost" size="xs" square @click="fecharModal" />
+          </div>
+        </template>
 
-            <div v-if="erroModal" class="mx-5 mb-1 text-xs text-red-400 font-bold">{{ erroModal }}</div>
+        <!-- Abas -->
+        <div class="flex gap-1 px-5 pt-4 border-b border-white/[0.05] pb-3">
+          <UButton
+            v-for="aba in abas"
+            :key="aba.id"
+            :icon="aba.icon"
+            :color="abaAtiva === aba.id ? 'violet' : 'gray'"
+            :variant="abaAtiva === aba.id ? 'solid' : 'ghost'"
+            size="xs"
+            :ui="{ rounded: 'rounded-lg', font: 'font-black text-[11px]' }"
+            @click="abaAtiva = aba.id"
+          >
+            {{ aba.label }}
+          </UButton>
+        </div>
 
-            <div class="flex gap-2 p-5 pt-3 border-t border-white/[0.06]">
-              <button @click="fecharModal"
-                class="flex-1 h-10 rounded-xl border border-white/[0.08] text-white/40 text-sm font-black hover:bg-white/[0.04] transition-all">
-                Cancelar
-              </button>
-              <button @click="salvar" :disabled="salvando"
-                class="flex-1 h-10 rounded-xl bg-violet-600 hover:bg-violet-500 disabled:opacity-40 active:scale-[0.98] text-white text-sm font-black transition-all flex items-center justify-center gap-2">
-                <Loader2 v-if="salvando" :size="13" class="animate-spin" />
-                {{ salvando ? 'Salvando...' : (form.id ? 'Salvar' : 'Criar restaurante') }}
-              </button>
+        <!-- ABA DADOS -->
+        <div v-if="abaAtiva === 'dados'" class="p-5 space-y-4">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div class="sm:col-span-2">
+              <label class="label-field">Nome do restaurante *</label>
+              <UInput v-model="form.nome" @input="autoSlug" placeholder="Ex: Restaurante Tarantela" size="sm" :ui="{ rounded: 'rounded-xl' }" class="input-dark" />
+            </div>
+            <div>
+              <label class="label-field">Identificador *</label>
+              <UInput v-model="form.slug" placeholder="ex: tarantela" size="sm" :ui="{ rounded: 'rounded-xl', base: 'font-mono text-xs' }" class="input-dark" />
+              <p class="text-[10px] text-white/20 mt-1">Usado na URL do sistema</p>
+            </div>
+            <div>
+              <label class="label-field">CNPJ</label>
+              <UInput v-model="form.cnpj" placeholder="00.000.000/0001-00" size="sm" :ui="{ rounded: 'rounded-xl', base: 'font-mono text-xs' }" class="input-dark" />
+            </div>
+            <div>
+              <label class="label-field">Responsável</label>
+              <UInput v-model="form.responsavel" placeholder="Nome do responsável" size="sm" :ui="{ rounded: 'rounded-xl' }" class="input-dark" />
+            </div>
+            <div>
+              <label class="label-field">E-mail</label>
+              <UInput v-model="form.contato" type="email" placeholder="contato@restaurante.com" size="sm" :ui="{ rounded: 'rounded-xl' }" class="input-dark" />
+            </div>
+            <div>
+              <label class="label-field">Telefone</label>
+              <UInput v-model="form.telefone" placeholder="(62) 9 9999-9999" size="sm" :ui="{ rounded: 'rounded-xl' }" class="input-dark" />
+            </div>
+            <div>
+              <label class="label-field">Endereço</label>
+              <UInput v-model="form.endereco" placeholder="Rua, número, bairro" size="sm" :ui="{ rounded: 'rounded-xl' }" class="input-dark" />
+            </div>
+            <div class="sm:col-span-2">
+              <label class="label-field">Observações</label>
+              <UTextarea v-model="form.observacoes" placeholder="Anotações internas..." :rows="2" size="sm" :ui="{ rounded: 'rounded-xl' }" class="input-dark" />
+            </div>
+          </div>
+          <div class="border-t border-white/[0.06] pt-4 space-y-3">
+            <p class="text-[10px] font-black uppercase tracking-widest text-white/25">Features</p>
+            <div v-for="feat in features" :key="feat.key" class="flex items-center justify-between">
+              <div>
+                <p class="text-sm font-bold text-white/80">{{ feat.label }}</p>
+                <p class="text-[11px] text-white/25">{{ feat.desc }}</p>
+              </div>
+              <UToggle
+                :model-value="(form as any)[feat.key]"
+                :on-icon="feat.onIcon"
+                :color="feat.color as any"
+                @update:model-value="(v: boolean) => (form as any)[feat.key] = v"
+              />
             </div>
           </div>
         </div>
-      </Transition>
-    </Teleport>
+
+        <!-- ABA LICENÇA -->
+        <div v-else-if="abaAtiva === 'licenca'" class="p-5">
+          <div v-if="!form.id" class="text-center py-10 text-white/25 text-sm">
+            Salve o restaurante primeiro para gerenciar a licença.
+          </div>
+          <div v-else class="space-y-4">
+            <div>
+              <label class="label-field mb-2">Status</label>
+              <div class="flex gap-2">
+                <UButton
+                  v-for="s in licencaStatuses"
+                  :key="s.value"
+                  :color="licencaForm.status === s.value ? s.color : 'gray'"
+                  :variant="licencaForm.status === s.value ? 'soft' : 'ghost'"
+                  size="sm"
+                  class="flex-1"
+                  :ui="{ rounded: 'rounded-xl', font: 'font-black text-xs' }"
+                  @click="licencaForm.status = s.value"
+                >
+                  {{ s.label }}
+                </UButton>
+              </div>
+            </div>
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label class="label-field">Ativação</label>
+                <UInput v-model="licencaForm.dataAtivacao" type="date" size="sm" :ui="{ rounded: 'rounded-xl' }" class="input-dark" />
+              </div>
+              <div>
+                <label class="label-field">Vencimento</label>
+                <UInput v-model="licencaForm.dataVencimento" type="date" size="sm" :ui="{ rounded: 'rounded-xl' }" class="input-dark" />
+              </div>
+            </div>
+            <div v-if="licencaAtual" class="text-[10px] text-white/25 pt-1">
+              Criada em {{ formatDate(licencaAtual.created_at) }}
+            </div>
+          </div>
+        </div>
+
+        <!-- ABA CONTRATO -->
+        <div v-else-if="abaAtiva === 'contrato'" class="p-5 space-y-4">
+          <div>
+            <label class="label-field">Plano *</label>
+            <div class="flex gap-1.5 mb-2 flex-wrap">
+              <UButton
+                v-for="p in planosPredef"
+                :key="p"
+                :color="contratoForm.plano === p ? 'violet' : 'gray'"
+                :variant="contratoForm.plano === p ? 'solid' : 'ghost'"
+                size="xs"
+                :ui="{ rounded: 'rounded-lg', font: 'font-bold text-xs' }"
+                @click="contratoForm.plano = p"
+              >
+                {{ p }}
+              </UButton>
+            </div>
+            <UInput v-model="contratoForm.plano" placeholder="Ou escreva o nome do plano..." size="sm" :ui="{ rounded: 'rounded-xl' }" class="input-dark" />
+          </div>
+
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="label-field">Valor (R$)</label>
+              <UInput v-model="contratoForm.valor" type="number" min="0" step="0.01" placeholder="0,00" size="sm" :ui="{ rounded: 'rounded-xl' }" class="input-dark" />
+            </div>
+            <div>
+              <label class="label-field">Status</label>
+              <div class="flex gap-1.5 mt-0.5">
+                <UButton
+                  :color="contratoForm.status === 'trial' ? 'sky' : 'gray'"
+                  :variant="contratoForm.status === 'trial' ? 'soft' : 'ghost'"
+                  size="sm" class="flex-1"
+                  :ui="{ rounded: 'rounded-xl', font: 'font-black text-xs' }"
+                  @click="contratoForm.status = 'trial'"
+                >Teste</UButton>
+                <UButton
+                  :color="contratoForm.status === 'ativo' ? 'green' : 'gray'"
+                  :variant="contratoForm.status === 'ativo' ? 'soft' : 'ghost'"
+                  size="sm" class="flex-1"
+                  :ui="{ rounded: 'rounded-xl', font: 'font-black text-xs' }"
+                  @click="contratoForm.status = 'ativo'"
+                >Ativo</UButton>
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <label class="label-field">Ciclo de cobrança</label>
+            <div class="grid grid-cols-4 gap-1.5">
+              <UButton
+                v-for="c in ciclos"
+                :key="c.value"
+                :color="contratoForm.ciclo === c.value ? 'violet' : 'gray'"
+                :variant="contratoForm.ciclo === c.value ? 'solid' : 'ghost'"
+                size="xs"
+                :ui="{ rounded: 'rounded-xl', font: 'font-black text-xs' }"
+                @click="contratoForm.ciclo = c.value as any"
+              >
+                {{ c.label }}
+              </UButton>
+            </div>
+          </div>
+
+          <div>
+            <label class="label-field">Início do contrato</label>
+            <UInput v-model="contratoForm.dataInicio" type="date" size="sm" :ui="{ rounded: 'rounded-xl' }" class="input-dark" />
+          </div>
+
+          <UAlert
+            v-if="!form.id"
+            icon="i-lucide-info"
+            color="violet"
+            variant="soft"
+            description="O contrato será criado junto com o restaurante. Se deixar o plano em branco, pode ser adicionado depois."
+          />
+        </div>
+
+        <UAlert v-if="erroModal" color="red" :description="erroModal" variant="soft" class="mx-5 mb-1" />
+
+        <template #footer>
+          <div class="flex gap-2">
+            <UButton color="gray" variant="ghost" block :ui="{ rounded: 'rounded-xl', font: 'font-black' }" @click="fecharModal">
+              Cancelar
+            </UButton>
+            <UButton
+              color="violet"
+              block
+              :loading="salvando"
+              :ui="{ rounded: 'rounded-xl', font: 'font-black' }"
+              @click="salvar"
+            >
+              {{ salvando ? 'Salvando...' : (form.id ? 'Salvar' : 'Criar restaurante') }}
+            </UButton>
+          </div>
+        </template>
+      </UCard>
+    </UModal>
 
     <!-- ══ CONFIRM DIALOG ══ -->
-    <Teleport to="body">
-      <Transition name="fade">
-        <div v-if="confirmDialog.show"
-          class="fixed inset-0 z-[70] flex items-center justify-center p-4"
-          style="background: rgba(0,0,0,0.72); backdrop-filter: blur(6px);"
-          @click.self="confirmDialog.resolve?.(false); confirmDialog.show = false">
-          <div class="bg-[#111118] border border-white/[0.09] rounded-2xl w-full max-w-xs shadow-2xl">
-            <div class="p-6 flex flex-col items-center text-center gap-4">
-              <div class="w-12 h-12 rounded-2xl flex items-center justify-center border"
-                :class="confirmDialog.type === 'danger'
-                  ? 'bg-red-500/10 border-red-500/20'
-                  : 'bg-emerald-500/10 border-emerald-500/20'">
-                <AlertTriangle v-if="confirmDialog.type === 'danger'" :size="20" class="text-red-400" />
-                <CheckCircle2  v-else :size="20" class="text-emerald-400" />
-              </div>
-              <div>
-                <h3 class="text-sm font-black text-white leading-tight">{{ confirmDialog.title }}</h3>
-                <p class="text-[12px] text-white/35 mt-1.5 leading-relaxed">{{ confirmDialog.message }}</p>
-              </div>
-            </div>
-            <div class="flex gap-2 px-5 pb-5">
-              <button
-                @click="confirmDialog.resolve?.(false); confirmDialog.show = false"
-                class="flex-1 h-10 rounded-xl border border-white/[0.08] text-white/45 text-xs font-black hover:bg-white/[0.05] transition-all">
-                Cancelar
-              </button>
-              <button
-                @click="confirmDialog.resolve?.(true); confirmDialog.show = false"
-                class="flex-1 h-10 rounded-xl text-xs font-black transition-all"
-                :class="confirmDialog.type === 'danger'
-                  ? 'bg-red-500 hover:bg-red-400 text-white'
-                  : 'bg-emerald-500 hover:bg-emerald-400 text-white'">
-                Confirmar
-              </button>
-            </div>
+    <UModal v-model="confirmDialog.show" :ui="{ width: 'max-w-xs', background: 'bg-[#111118]', ring: 'ring-1 ring-white/[0.09]', rounded: 'rounded-2xl' }">
+      <UCard :ui="{ ring: '', background: 'bg-transparent', body: { padding: 'p-6' }, footer: { padding: 'px-5 pb-5 pt-0' } }">
+        <div class="flex flex-col items-center text-center gap-4">
+          <div class="w-12 h-12 rounded-2xl flex items-center justify-center border"
+            :class="confirmDialog.type === 'danger' ? 'bg-red-500/10 border-red-500/20' : 'bg-emerald-500/10 border-emerald-500/20'">
+            <UIcon
+              :name="confirmDialog.type === 'danger' ? 'i-lucide-alert-triangle' : 'i-lucide-check-circle-2'"
+              :class="confirmDialog.type === 'danger' ? 'text-red-400' : 'text-emerald-400'"
+              class="w-5 h-5"
+            />
+          </div>
+          <div>
+            <h3 class="text-sm font-black text-white leading-tight">{{ confirmDialog.title }}</h3>
+            <p class="text-[12px] text-white/35 mt-1.5 leading-relaxed">{{ confirmDialog.message }}</p>
           </div>
         </div>
-      </Transition>
-    </Teleport>
+        <template #footer>
+          <div class="flex gap-2">
+            <UButton color="gray" variant="ghost" block :ui="{ rounded: 'rounded-xl', font: 'font-black text-xs' }"
+              @click="confirmDialog.resolve?.(false); confirmDialog.show = false">
+              Cancelar
+            </UButton>
+            <UButton
+              :color="confirmDialog.type === 'danger' ? 'red' : 'green'"
+              block
+              :ui="{ rounded: 'rounded-xl', font: 'font-black text-xs' }"
+              @click="confirmDialog.resolve?.(true); confirmDialog.show = false"
+            >
+              Confirmar
+            </UButton>
+          </div>
+        </template>
+      </UCard>
+    </UModal>
 
-    <!-- Toast -->
-    <Transition name="toast">
-      <div v-if="toast.text"
-        class="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2.5 px-4 py-2.5 rounded-xl text-sm font-bold shadow-2xl border"
-        :class="toast.type === 'success'
-          ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-300 backdrop-blur-xl'
-          : 'bg-red-500/10 border-red-500/20 text-red-300 backdrop-blur-xl'">
-        <CheckCircle2 v-if="toast.type === 'success'" :size="14" />
-        <AlertCircle  v-else :size="14" />
-        {{ toast.text }}
-      </div>
-    </Transition>
+    <!-- Toast via Nuxt UI -->
+    <UNotifications />
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, reactive, onMounted } from 'vue'
-import {
-  Globe, LogOut, Search, Plus, Building2, CreditCard, Smartphone, KeyRound,
-  Loader2, AlertCircle, AlertTriangle, CheckCircle2, Pencil, X, Store, FileText, ChevronRight,
-  ToggleRight, ToggleLeft, Clock, TrendingUp, Zap, Banknote, Info,
-} from 'lucide-vue-next'
 import { usePlatformAuthStore } from '~/stores/platformAuth'
 
 definePageMeta({ layout: false })
@@ -580,6 +617,7 @@ interface Dashboard {
 
 const platformAuth  = usePlatformAuthStore()
 const runtimeConfig = useRuntimeConfig()
+const toast         = useToast()
 
 const tenants    = ref<Tenant[]>([])
 const dashboard  = ref<Dashboard | null>(null)
@@ -587,7 +625,6 @@ const loading    = ref(false)
 const erro       = ref('')
 const busca      = ref('')
 const togglingId = ref<string | null>(null)
-const toast      = reactive({ text: '', type: 'success' as 'success' | 'error' })
 
 const confirmDialog = reactive({
   show: false, title: '', message: '', type: 'danger' as 'danger' | 'success',
@@ -606,45 +643,33 @@ const erroModal           = ref('')
 const licencaAtual        = ref<Licenca | null>(null)
 const contratoAtualTenant = ref<Contrato | null>(null)
 
-const abas: { id: 'dados' | 'licenca' | 'contrato'; label: string; icon: any }[] = [
-  { id: 'dados',    label: 'Dados',    icon: Building2 },
-  { id: 'licenca',  label: 'Licença',  icon: FileText  },
-  { id: 'contrato', label: 'Contrato', icon: Banknote  },
+const abas = [
+  { id: 'dados' as const,    label: 'Dados',    icon: 'i-lucide-building-2' },
+  { id: 'licenca' as const,  label: 'Licença',  icon: 'i-lucide-file-text'  },
+  { id: 'contrato' as const, label: 'Contrato', icon: 'i-lucide-banknote'  },
 ]
-const licencaStatuses = [
-  { value: 'ativado',   label: 'Ativada',   activeClass: 'bg-emerald-500/15 border-emerald-500/30 text-emerald-400' },
-  { value: 'pendente',  label: 'Pendente',  activeClass: 'bg-amber-500/15  border-amber-500/30  text-amber-400'  },
-  { value: 'bloqueado', label: 'Bloqueada', activeClass: 'bg-red-500/15    border-red-500/30    text-red-400'    },
+const licencaStatuses: { value: string; label: string; color: 'green' | 'amber' | 'red' }[] = [
+  { value: 'ativado',   label: 'Ativada',   color: 'green' },
+  { value: 'pendente',  label: 'Pendente',  color: 'amber' },
+  { value: 'bloqueado', label: 'Bloqueada', color: 'red'   },
 ]
 const features = [
-  { key: 'vendaMobilePermitida', label: 'Venda pelo Celular', desc: 'Acesso via QR Code e dispositivo móvel', on: 'bg-sky-500' },
-  { key: 'rfidDisponivel', label: 'RFID', desc: 'Autenticação por cartão (feature paga)', on: 'bg-violet-500' },
+  { key: 'vendaMobilePermitida', label: 'Venda pelo Celular', desc: 'Acesso via QR Code e dispositivo móvel', color: 'sky',    onIcon: 'i-lucide-check' },
+  { key: 'rfidDisponivel',       label: 'RFID',               desc: 'Autenticação por cartão (feature paga)',  color: 'violet', onIcon: 'i-lucide-check' },
 ]
 const planosPredef = ['Básico', 'Profissional', 'Enterprise']
 const ciclos = [
-  { value: 'mensal', label: 'Mensal' },
-  { value: 'trimestral', label: 'Trim.' },
-  { value: 'semestral', label: 'Semes.' },
-  { value: 'anual', label: 'Anual' },
+  { value: 'mensal',      label: 'Mensal'  },
+  { value: 'trimestral',  label: 'Trim.'   },
+  { value: 'semestral',   label: 'Semes.'  },
+  { value: 'anual',       label: 'Anual'   },
 ]
 const form = reactive({ id: null as string | null, nome: '', slug: '', cnpj: '', responsavel: '', contato: '', telefone: '', endereco: '', observacoes: '', vendaMobilePermitida: true, rfidDisponivel: false })
-const licencaForm   = reactive({ status: 'pendente', dataAtivacao: '', dataVencimento: '' })
-const contratoForm  = reactive({ plano: '', valor: '', ciclo: 'mensal' as 'mensal' | 'trimestral' | 'semestral' | 'anual', dataInicio: '', status: 'ativo' as 'trial' | 'ativo' })
+const licencaForm  = reactive({ status: 'pendente', dataAtivacao: '', dataVencimento: '' })
+const contratoForm = reactive({ plano: '', valor: '', ciclo: 'mensal' as 'mensal' | 'trimestral' | 'semestral' | 'anual', dataInicio: '', status: 'ativo' as 'trial' | 'ativo' })
 
 const baseUrl  = computed(() => (runtimeConfig.public as any).apiUrl as string)
 const maxMrr   = computed(() => Math.max(...(dashboard.value?.financeiro?.por_plano?.map(p => p.mrr) ?? [0]), 0))
-const initials = computed(() => platformAuth.user?.nome?.split(' ').map(n => n[0]).slice(0, 2).join('') ?? 'SA')
-
-const diaSemana = computed(() => new Date().toLocaleDateString('pt-BR', { weekday: 'long' }).replace(/^\w/, c => c.toUpperCase()))
-const dataHoje  = computed(() => new Date().toLocaleDateString('pt-BR', { day: 'numeric', month: 'long' }))
-
-const vencClass = computed(() => {
-  const vencidas = dashboard.value?.licencas?.vencidas ?? 0
-  const vencendo = dashboard.value?.licencas?.vencendo ?? 0
-  if (vencidas > 0) return { card: 'border-red-500/20 bg-red-500/[0.03]', line: 'bg-gradient-to-r from-transparent via-red-500/30 to-transparent', label: 'text-red-400/60', number: 'text-red-400', sub: 'text-red-400/60' }
-  if (vencendo > 0) return { card: 'border-amber-500/20 bg-amber-500/[0.03]', line: 'bg-gradient-to-r from-transparent via-amber-500/30 to-transparent', label: 'text-amber-400/60', number: 'text-amber-400', sub: 'text-amber-400/60' }
-  return { card: 'border-white/[0.06] bg-white/[0.02]', line: 'bg-gradient-to-r from-transparent via-white/10 to-transparent', label: 'text-white/30', number: 'text-white', sub: 'text-white/25' }
-})
 
 const tenantsFiltrados = computed(() => {
   const q = busca.value.toLowerCase().trim()
@@ -652,16 +677,49 @@ const tenantsFiltrados = computed(() => {
   return tenants.value.filter(t => t.nome.toLowerCase().includes(q) || t.slug.toLowerCase().includes(q) || (t.responsavel || '').toLowerCase().includes(q))
 })
 
-// Avatar com cor baseada na letra inicial
+const metrics = computed(() => {
+  const vencidas = dashboard.value?.licencas?.vencidas ?? 0
+  const vencendo = dashboard.value?.licencas?.vencendo ?? 0
+  const totalVenc = vencidas + vencendo
+  return [
+    {
+      icon: 'i-lucide-store', value: dashboard.value?.totais?.tenants ?? tenants.value.length,
+      label: 'Restaurantes', iconClass: 'text-white/20', valueClass: 'text-white', subClass: 'text-white/30',
+      cardClass: 'border border-white/[0.06] bg-white/[0.02]',
+    },
+    {
+      icon: 'i-lucide-trending-up', value: formatCurrency(dashboard.value?.financeiro?.mrr ?? 0),
+      label: 'Receita mensal', iconClass: 'text-emerald-400', valueClass: 'text-emerald-400', subClass: 'text-emerald-400/50',
+      cardClass: 'border border-emerald-500/20 bg-emerald-500/[0.04]',
+    },
+    {
+      icon: 'i-lucide-key-round',
+      value: dashboard.value?.licencas?.ativas ?? 0,
+      label: (dashboard.value?.licencas?.bloqueadas ?? 0) > 0 ? `${dashboard.value?.licencas?.bloqueadas} bloqueada(s)` : 'Licenças ativas',
+      iconClass: 'text-white/20',
+      valueClass: 'text-white',
+      subClass: (dashboard.value?.licencas?.bloqueadas ?? 0) > 0 ? 'text-red-400' : 'text-white/30',
+      cardClass: (dashboard.value?.licencas?.bloqueadas ?? 0) > 0 ? 'border border-red-500/20 bg-white/[0.02]' : 'border border-white/[0.06] bg-white/[0.02]',
+    },
+    {
+      icon: 'i-lucide-clock', value: totalVenc,
+      label: vencidas > 0 ? 'vencidas' : vencendo > 0 ? 'vencendo em 30d' : 'sem vencimentos',
+      iconClass: vencidas > 0 ? 'text-red-400/60' : vencendo > 0 ? 'text-amber-400/60' : 'text-white/30',
+      valueClass: vencidas > 0 ? 'text-red-400' : vencendo > 0 ? 'text-amber-400' : 'text-white',
+      subClass:   vencidas > 0 ? 'text-red-400/60' : vencendo > 0 ? 'text-amber-400/60' : 'text-white/25',
+      cardClass:  vencidas > 0 ? 'border border-red-500/20 bg-red-500/[0.03]' : vencendo > 0 ? 'border border-amber-500/20 bg-amber-500/[0.03]' : 'border border-white/[0.06] bg-white/[0.02]',
+    },
+  ]
+})
+
 const AVATAR_COLORS = [
   'bg-violet-500/20 text-violet-300', 'bg-sky-500/20 text-sky-300',
   'bg-emerald-500/20 text-emerald-300', 'bg-amber-500/20 text-amber-300',
   'bg-rose-500/20 text-rose-300', 'bg-indigo-500/20 text-indigo-300',
-  'bg-teal-500/20 text-teal-300', 'bg-orange-500/20 text-orange-300',
 ]
 function avatarColor(nome: string) { return AVATAR_COLORS[nome.charCodeAt(0) % AVATAR_COLORS.length] }
 function statusDot(s: string) { return s === 'ativo' ? 'bg-emerald-400' : s === 'suspenso' ? 'bg-amber-400' : 'bg-red-400' }
-function licencaBadge(s: string) { return s === 'ativado' ? 'bg-sky-500/10 text-sky-400' : s === 'pendente' ? 'bg-yellow-500/10 text-yellow-400' : 'bg-red-500/10 text-red-400' }
+function licencaBadgeColor(s: string): 'sky' | 'yellow' | 'red' { return s === 'ativado' ? 'sky' : s === 'pendente' ? 'yellow' : 'red' }
 function licencaLabel(lic: Licenca) {
   if (lic.status === 'ativado' && lic.data_vencimento) {
     const d = Math.ceil((new Date(lic.data_vencimento).getTime() - Date.now()) / 86400000)
@@ -671,16 +729,10 @@ function licencaLabel(lic: Licenca) {
   }
   return lic.status === 'ativado' ? 'Ativa' : lic.status === 'pendente' ? 'Pendente' : 'Bloqueada'
 }
-
-function alertaBarColor(tipo: string) {
-  if (tipo === 'licenca_vencida' || tipo === 'licenca_critica') return 'bg-red-500'
-  if (tipo === 'licenca_vencendo') return 'bg-amber-500'
-  return 'bg-orange-500'
-}
 function alertaStyle(tipo: string) {
-  if (tipo === 'licenca_vencida' || tipo === 'licenca_critica') return { icon: AlertCircle, icon_color: 'text-red-400', text: 'text-white/50' }
-  if (tipo === 'licenca_vencendo') return { icon: Clock, icon_color: 'text-amber-400', text: 'text-white/50' }
-  return { icon: AlertCircle, icon_color: 'text-orange-400', text: 'text-white/50' }
+  if (tipo === 'licenca_vencida' || tipo === 'licenca_critica') return { icon: 'i-lucide-alert-circle', icon_color: 'text-red-400' }
+  if (tipo === 'licenca_vencendo') return { icon: 'i-lucide-clock', icon_color: 'text-amber-400' }
+  return { icon: 'i-lucide-alert-circle', icon_color: 'text-orange-400' }
 }
 function alertaDescricao(a: { tipo: string; dias?: number }) {
   if (a.tipo === 'licenca_vencida')  return '— licença vencida'
@@ -688,16 +740,25 @@ function alertaDescricao(a: { tipo: string; dias?: number }) {
   if (a.tipo === 'licenca_vencendo') return `— vence em ${a.dias} dias`
   return '— inadimplente'
 }
-
 function formatDate(d: string | null | undefined) { if (!d) return '—'; return new Date(d).toLocaleDateString('pt-BR') }
 function formatCurrency(v: number) { return v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) }
 function slugify(s: string) { return s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') }
 function autoSlug() { if (!form.id) form.slug = slugify(form.nome) }
-function showToast(type: 'success' | 'error', text: string) { toast.type = type; toast.text = text; setTimeout(() => { toast.text = '' }, 3000) }
+
+function showToast(type: 'success' | 'error', description: string) {
+  toast.add({
+    title: type === 'success' ? 'Sucesso' : 'Erro',
+    description,
+    color: type === 'success' ? 'green' : 'red',
+    icon: type === 'success' ? 'i-lucide-check-circle-2' : 'i-lucide-alert-circle',
+    timeout: 3000,
+  })
+}
 
 async function platformFetch<T>(path: string, options: RequestInit = {}): Promise<T> {
   const resp = await fetch(`${baseUrl.value}/api${path}`, {
-    ...options, headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${platformAuth.token}`, ...((options.headers as any) || {}) },
+    ...options,
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${platformAuth.token}`, ...((options.headers as any) || {}) },
   })
   if (resp.status === 401) { platformAuth.logout(); navigateTo('/platform/login'); throw new Error('Sessão expirada') }
   const data = await resp.json()
@@ -749,7 +810,6 @@ async function salvar() {
   try {
     let msg = ''
     if (!form.id) {
-      // CRIAÇÃO — tudo de uma vez
       const payload: any = { nome: form.nome, slug: form.slug, cnpj: form.cnpj || null, responsavel: form.responsavel || null, contato: form.contato || null, telefone: form.telefone || null, endereco: form.endereco || null, observacoes: form.observacoes || null, vendaMobilePermitida: form.vendaMobilePermitida, rfidDisponivel: form.rfidDisponivel }
       if (contratoForm.plano.trim()) {
         payload.contrato = { plano: contratoForm.plano.trim(), valor: contratoForm.valor ? parseFloat(contratoForm.valor) : null, ciclo: contratoForm.ciclo, dataInicio: contratoForm.dataInicio || null, status: contratoForm.status }
@@ -758,7 +818,6 @@ async function salvar() {
       form.id = c.id
       msg = contratoForm.plano.trim() ? 'Restaurante e contrato criados!' : 'Restaurante criado!'
     } else {
-      // EDIÇÃO — aba por aba
       const tid = form.id
       if (abaAtiva.value === 'dados') {
         await platformFetch(`/platform/tenants/${tid}`, { method: 'PUT', body: JSON.stringify({ nome: form.nome, slug: form.slug, cnpj: form.cnpj || null, responsavel: form.responsavel || null, contato: form.contato || null, telefone: form.telefone || null, endereco: form.endereco || null, observacoes: form.observacoes || null, vendaMobilePermitida: form.vendaMobilePermitida, rfidDisponivel: form.rfidDisponivel }) })
@@ -793,9 +852,7 @@ async function toggleStatus(tenant: Tenant) {
   const novoStatus = tenant.status === 'ativo' ? 'suspenso' : 'ativo'
   const ok = await showConfirm(
     novoStatus === 'suspenso' ? `Suspender "${tenant.nome}"?` : `Reativar "${tenant.nome}"?`,
-    novoStatus === 'suspenso'
-      ? 'O tenant ficará inacessível até ser reativado manualmente.'
-      : 'O tenant voltará a funcionar normalmente.',
+    novoStatus === 'suspenso' ? 'O tenant ficará inacessível até ser reativado manualmente.' : 'O tenant voltará a funcionar normalmente.',
     novoStatus === 'suspenso' ? 'danger' : 'success'
   )
   if (!ok) return
@@ -822,10 +879,8 @@ onMounted(() => {
 
 <style scoped>
 .label-field { @apply block text-[10px] font-black uppercase tracking-widest text-white/30 mb-1.5; }
-.input-field  { @apply w-full h-10 px-3.5 bg-white/[0.04] border border-white/[0.08] rounded-xl text-white text-sm placeholder:text-white/20 focus:outline-none focus:border-violet-500/50 focus:bg-white/[0.06] transition-all; }
-textarea.input-field { @apply h-auto py-2.5; }
-.fade-enter-active, .fade-leave-active { transition: opacity .15s; }
-.fade-enter-from, .fade-leave-to { opacity: 0; }
-.toast-enter-active, .toast-leave-active { transition: all 0.2s ease; }
-.toast-enter-from, .toast-leave-to { opacity: 0; transform: translateX(-50%) translateY(8px); }
+.input-dark :deep(input),
+.input-dark :deep(textarea) {
+  @apply bg-white/[0.04] border-white/[0.08] text-white placeholder:text-white/20 focus:border-violet-500/50 focus:bg-white/[0.06];
+}
 </style>

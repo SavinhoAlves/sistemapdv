@@ -8,8 +8,17 @@ const jwt = require('jsonwebtoken')
 let io = null
 
 function iniciarSocket(httpServer) {
+  const allowedOrigins = (process.env.CORS_ORIGIN || 'http://localhost:3000')
+    .split(',').map(s => s.trim()).filter(Boolean)
+
   io = new Server(httpServer, {
-    cors: { origin: true, credentials: true }
+    cors: {
+      origin: (origin, cb) => {
+        if (!origin || allowedOrigins.includes(origin)) return cb(null, true)
+        cb(new Error('Origem não permitida'), false)
+      },
+      credentials: true,
+    },
   })
 
   // Mesmo JWT da API — telas não autenticadas não recebem eventos

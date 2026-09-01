@@ -80,6 +80,11 @@
               ✕
             </button>
           </div>
+
+          <div v-if="!novaCategoria && categoriaAtual?.vai_cozinha" class="mt-1.5 flex items-center gap-1 text-[11px] font-black text-orange-400">
+            <ChefHat :size="12" />
+            Vai para a cozinha
+          </div>
         </div>
 
         <!-- PREÇO -->
@@ -174,7 +179,8 @@
 </template>
 
 <script setup>
-import { reactive, ref, watch, onMounted } from 'vue'
+import { reactive, ref, computed, watch, onMounted } from 'vue'
+import { ChefHat } from 'lucide-vue-next'
 import { useApi } from '~/services/api'
 import { useToastStore } from '~/stores/toast'
 
@@ -203,6 +209,8 @@ const categorias        = ref([])
 const novaCategoria     = ref(false)
 const nomeNovaCategoria = ref('')
 const criandoCategoria  = ref(false)
+
+const categoriaAtual = computed(() => categorias.value.find(c => c.id === form.categoria_id))
 
 async function carregarCategorias() {
   try {

@@ -4,8 +4,6 @@ const CACHE_TTL = 60 * 1000
 export default defineNuxtRouteMiddleware(async (to) => {
   if (ROTAS_LIVRES.some(r => to.path.startsWith(r))) return
   if (!process.client) return
-  // Admin de plataforma nunca é bloqueado pela verificação de licença do tenant
-  if (localStorage.getItem('platform_token')) return
 
   const cache = useState<{ valido: boolean | null; ts: number }>(
     'licenca_cache',

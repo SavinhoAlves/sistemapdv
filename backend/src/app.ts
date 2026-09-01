@@ -61,8 +61,18 @@ export async function buildApp() {
   })
 
   // ── Plugins de segurança ───────────────────────────────────────────────────
+  const allowedOrigins = (process.env.CORS_ORIGIN || 'http://localhost:3000')
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean)
+
   await app.register(cors, {
-    origin: true,
+    origin: (origin, cb) => {
+      // Permite requisições sem origin (mobile, Postman em dev, etc.)
+      if (!origin) return cb(null, true)
+      if (allowedOrigins.includes(origin)) return cb(null, true)
+      cb(new Error('Origem não permitida pelo CORS'), false)
+    },
     credentials: true,
   })
 
@@ -70,9 +80,11 @@ export async function buildApp() {
     contentSecurityPolicy: false,
   })
 
+  // Rate limit global
   await app.register(rateLimit, {
     max: 200,
     timeWindow: '1 minute',
+    keyGenerator: (req) => req.ip,
   })
 
   // ── Decorators ─────────────────────────────────────────────────────────────
@@ -102,7 +114,19 @@ export async function buildApp() {
   })
 
   // ── Rotas ──────────────────────────────────────────────────────────────────
-  await app.register(authRoutes, { prefix: '/api/auth' })
+  // Rate limit mais restrito para endpoints de autenticação (anti brute-force)
+  await app.register(async (authApp) => {
+    await authApp.register(rateLimit, {
+      max: 10,
+      timeWindow: '1 minute',
+      keyGenerator: (req) => req.ip,
+      errorResponseBuilder: () => ({
+        error: 'Muitas tentativas. Aguarde 1 minuto antes de tentar novamente.',
+      }),
+    })
+    await authApp.register(authRoutes, { prefix: '/api/auth' })
+    await authApp.register(platformAuthRoutes, { prefix: '/api/platform/auth' })
+  })
 
   // ── Módulos de negócio ─────────────────────────────────────────────────────
   await app.register(categoriasRoutes,    { prefix: '/api/categorias' })
@@ -120,7 +144,6 @@ export async function buildApp() {
   await app.register(impressorasRoutes,   { prefix: '/api/impressoras' })
   await app.register(vendasRoutes,        { prefix: '/api/vendas' })
   await app.register(integracoesRoutes,   { prefix: '/api/integracoes' })
-  await app.register(platformAuthRoutes,  { prefix: '/api/platform/auth' })
   await app.register(platformTenantsRoutes, { prefix: '/api/platform/tenants' })
 
   // Health check
@@ -181,8 +204,8 @@ export async function buildApp() {
         expira_em: licenca.dataVencimento,
       })
     } catch {
-      // Em caso de erro no banco, deixa passar para não travar o sistema
-      return reply.send({ ativo: true, expirado: false, semLicenca: false })
+      // Fail-closed: em caso de erro no banco, bloqueia o acesso
+      return reply.send({ ativo: false, semLicenca: true, motivo: 'erro_interno' })
     }
   })
 

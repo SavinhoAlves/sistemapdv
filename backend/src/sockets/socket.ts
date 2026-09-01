@@ -5,22 +5,47 @@ import { verifyAccessToken } from '../lib/jwt'
 let io: Server | null = null
 
 export function initSocket(app: FastifyInstance): Server {
+  const allowedOrigins = (process.env.CORS_ORIGIN || 'http://localhost:3000')
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean)
+
   io = new Server(app.server, {
-    cors: { origin: '*', methods: ['GET', 'POST'], credentials: true },
+    cors: {
+      origin: (origin, cb) => {
+        if (!origin || allowedOrigins.includes(origin)) return cb(null, true)
+        cb(new Error('Origem não permitida'), false)
+      },
+      methods: ['GET', 'POST'],
+      credentials: true,
+    },
     pingTimeout: 60000,
     pingInterval: 25000,
   })
 
-  io.use((socket, next) => {
+  io.use(async (socket, next) => {
     const token = (socket.handshake.auth.token || socket.handshake.query.token) as string | undefined
 
     if (!token) {
       if (socket.handshake.query.mode === 'cozinha_tv') {
-        ;(socket as any).user = {
-          cargo: 'cozinha',
-          nome: 'TV Cozinha',
-          tenantId: socket.handshake.query.tenantId,
+        const tenantId = socket.handshake.query.tenantId as string | undefined
+        if (!tenantId) return next(new Error('tenantId obrigatório para modo cozinha_tv'))
+
+        // Valida que o tenant existe e está ativo
+        try {
+          const { prisma } = await import('../lib/prisma')
+          const tenant = await prisma.tenant.findUnique({
+            where: { id: tenantId },
+            select: { status: true },
+          })
+          if (!tenant || tenant.status !== 'ativo') {
+            return next(new Error('Tenant inválido ou suspenso'))
+          }
+        } catch {
+          return next(new Error('Erro ao validar tenant'))
         }
+
+        ;(socket as any).user = { cargo: 'cozinha', nome: 'TV Cozinha', tenantId }
         return next()
       }
       return next(new Error('Token não fornecido'))

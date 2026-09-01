@@ -13,7 +13,7 @@
           </div>
           <div class="flex items-baseline gap-2">
             <span class="text-white font-black text-sm tracking-tight">Plataforma</span>
-            <span class="text-white/25 text-[10px] font-bold uppercase tracking-widest hidden sm:inline">PDV · Super Admin</span>
+            <span class="text-white/25 text-[10px] font-bold uppercase tracking-widest hidden sm:inline">PDV · Super Administrador</span>
           </div>
         </div>
 
@@ -36,298 +36,258 @@
       </div>
     </header>
 
-    <!-- ══ HERO ══ -->
-    <div class="relative overflow-hidden border-b border-white/[0.04]">
-      <div class="absolute inset-0 pointer-events-none">
-        <div class="absolute -top-32 -left-32 w-96 h-96 rounded-full bg-violet-600/[0.08] blur-3xl"></div>
-        <div class="absolute -top-16 right-0 w-80 h-80 rounded-full bg-indigo-600/[0.05] blur-3xl"></div>
-      </div>
-      <div class="relative max-w-6xl mx-auto px-6 py-8 flex flex-col sm:flex-row sm:items-end justify-between gap-6">
-        <div>
-          <p class="text-white/30 text-xs font-bold uppercase tracking-widest mb-1">{{ diaSemana }}, {{ dataHoje }}</p>
-          <h1 class="text-2xl font-black text-white tracking-tight">Visão geral</h1>
-          <p class="text-white/35 text-sm mt-1">
-            <span class="text-violet-400 font-bold">{{ dashboard?.totais?.ativos ?? 0 }}</span> restaurantes ativos
-            <span v-if="(dashboard?.alertas?.length ?? 0) > 0">
-              · <span class="text-amber-400 font-bold">{{ dashboard?.alertas?.length }}</span> {{ dashboard!.alertas.length === 1 ? 'alerta' : 'alertas' }}
-            </span>
-          </p>
-        </div>
-        <button @click="abrirModal(null)"
-          class="group h-10 px-5 rounded-xl bg-violet-600 hover:bg-violet-500 active:scale-95 text-white text-sm font-black transition-all flex items-center gap-2 shadow-lg shadow-violet-500/25 self-start sm:self-auto shrink-0">
-          <Plus :size="14" />
-          Novo restaurante
-        </button>
-      </div>
-    </div>
-
     <!-- ══ CONTEÚDO ══ -->
-    <main class="max-w-6xl mx-auto px-6 py-7 space-y-7">
+    <main class="max-w-5xl mx-auto px-6 py-6 space-y-5">
 
       <!-- ── LOADING ── -->
-      <div v-if="loading" class="flex items-center justify-center py-24">
-        <div class="flex flex-col items-center gap-3">
-          <Loader2 :size="24" class="animate-spin text-violet-500" />
-          <p class="text-white/30 text-xs font-bold">Carregando...</p>
-        </div>
+      <div v-if="loading" class="flex items-center justify-center py-32">
+        <Loader2 :size="22" class="animate-spin text-violet-500" />
       </div>
 
       <template v-else>
 
-        <!-- ── ALERTAS ── -->
-        <div v-if="dashboard?.alertas?.length" class="rounded-2xl border border-white/[0.06] bg-white/[0.02] overflow-hidden">
-          <div class="flex items-center gap-2 px-4 py-3 border-b border-white/[0.05]">
-            <div class="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse"></div>
-            <p class="text-[11px] font-black uppercase tracking-widest text-white/40">Atenção necessária</p>
-            <span class="ml-auto text-[10px] font-black px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-400">
-              {{ dashboard.alertas.length }}
-            </span>
+        <!-- ── CABEÇALHO DA PÁGINA ── -->
+        <div class="flex items-center gap-3">
+          <div>
+            <h1 class="text-base font-black text-white tracking-tight">Restaurantes</h1>
+            <p class="text-[11px] text-white/30 mt-0.5">
+              {{ dashboard?.totais?.ativos ?? 0 }} ativos
+              <template v-if="(dashboard?.totais?.suspensos ?? 0) > 0">
+                · <span class="text-amber-400">{{ dashboard?.totais?.suspensos }} suspensos</span>
+              </template>
+              <template v-if="(dashboard?.alertas?.length ?? 0) > 0">
+                · <span class="text-red-400">{{ dashboard?.alertas?.length }} {{ dashboard!.alertas.length === 1 ? 'alerta' : 'alertas' }}</span>
+              </template>
+            </p>
+          </div>
+          <div class="flex-1" />
+          <!-- Busca -->
+          <div class="relative">
+            <Search :size="12" class="absolute left-3 top-1/2 -translate-y-1/2 text-white/20 pointer-events-none" />
+            <input v-model="busca" type="text" placeholder="Buscar…"
+              class="h-9 pl-8 pr-4 bg-white/[0.04] border border-white/[0.07] rounded-xl text-white/80 text-xs placeholder:text-white/15 focus:outline-none focus:border-violet-500/40 transition-all w-40 sm:w-52" />
+          </div>
+          <button @click="abrirModal(null)"
+            class="h-9 px-4 rounded-xl bg-violet-600 hover:bg-violet-500 active:scale-95 text-white text-xs font-black transition-all flex items-center gap-1.5 shadow-lg shadow-violet-500/20 shrink-0">
+            <Plus :size="13" /> Novo
+          </button>
+        </div>
+
+        <!-- ── MÉTRICAS COMPACTAS ── -->
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <div class="rounded-xl border border-white/[0.06] bg-white/[0.02] px-4 py-3 flex items-center gap-3">
+            <Store :size="16" class="text-white/20 shrink-0" />
+            <div class="min-w-0">
+              <p class="text-xl font-black text-white leading-none">{{ dashboard?.totais?.tenants ?? tenants.length }}</p>
+              <p class="text-[10px] text-white/30 font-bold mt-0.5 truncate">Restaurantes</p>
+            </div>
+          </div>
+          <div class="rounded-xl border border-emerald-500/20 bg-emerald-500/[0.04] px-4 py-3 flex items-center gap-3">
+            <TrendingUp :size="16" class="text-emerald-400 shrink-0" />
+            <div class="min-w-0">
+              <p class="text-xl font-black text-emerald-400 leading-none truncate">{{ formatCurrency(dashboard?.financeiro?.mrr ?? 0) }}</p>
+              <p class="text-[10px] text-emerald-400/50 font-bold mt-0.5">Receita mensal</p>
+            </div>
+          </div>
+          <div class="rounded-xl border bg-white/[0.02] px-4 py-3 flex items-center gap-3"
+            :class="(dashboard?.licencas?.bloqueadas ?? 0) > 0 ? 'border-red-500/20' : 'border-white/[0.06]'">
+            <KeyRound :size="16" class="text-white/20 shrink-0" />
+            <div class="min-w-0">
+              <p class="text-xl font-black text-white leading-none">{{ dashboard?.licencas?.ativas ?? 0 }}</p>
+              <p class="text-[10px] font-bold mt-0.5 truncate"
+                :class="(dashboard?.licencas?.bloqueadas ?? 0) > 0 ? 'text-red-400' : 'text-white/30'">
+                {{ (dashboard?.licencas?.bloqueadas ?? 0) > 0 ? `${dashboard?.licencas?.bloqueadas} bloqueada(s)` : 'Licenças ativas' }}
+              </p>
+            </div>
+          </div>
+          <div class="rounded-xl border bg-white/[0.02] px-4 py-3 flex items-center gap-3" :class="vencClass.card">
+            <Clock :size="16" :class="vencClass.label" class="shrink-0" />
+            <div class="min-w-0">
+              <p class="text-xl font-black leading-none" :class="vencClass.number">
+                {{ (dashboard?.licencas?.vencidas ?? 0) + (dashboard?.licencas?.vencendo ?? 0) }}
+              </p>
+              <p class="text-[10px] font-bold mt-0.5 truncate" :class="vencClass.sub">
+                {{ (dashboard?.licencas?.vencidas ?? 0) > 0 ? 'vencidas' : (dashboard?.licencas?.vencendo ?? 0) > 0 ? 'vencendo em 30d' : 'sem vencimentos' }}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── ALERTAS (só quando existem) ── -->
+        <div v-if="dashboard?.alertas?.length" class="rounded-xl border border-amber-500/15 bg-amber-500/[0.03] overflow-hidden">
+          <div class="flex items-center gap-2 px-4 py-2.5 border-b border-amber-500/10">
+            <div class="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse shrink-0"></div>
+            <p class="text-[10px] font-black uppercase tracking-widest text-amber-400/70 flex-1">Atenção necessária</p>
+            <span class="text-[9px] font-black px-1.5 py-0.5 rounded-full bg-amber-500/15 text-amber-400">{{ dashboard.alertas.length }}</span>
           </div>
           <NuxtLink v-for="(a, i) in dashboard.alertas" :key="a.tenant_id"
             :to="`/platform/tenants/${a.tenant_id}`"
-            class="flex items-center gap-4 px-4 py-3 transition-all hover:bg-white/[0.03] group/alert"
-            :class="i < dashboard.alertas.length - 1 ? 'border-b border-white/[0.04]' : ''">
-            <div class="w-1 self-stretch rounded-full shrink-0" :class="alertaBarColor(a.tipo)"></div>
-            <component :is="alertaStyle(a.tipo).icon" :size="13" :class="alertaStyle(a.tipo).icon_color" class="shrink-0" />
-            <div class="flex-1 min-w-0">
-              <span class="text-sm font-bold text-white">{{ a.nome }}</span>
-              <span class="text-sm font-normal" :class="alertaStyle(a.tipo).text"> {{ alertaDescricao(a) }}</span>
-            </div>
-            <ChevronRight :size="13" class="text-white/15 group-hover/alert:text-white/40 transition-colors shrink-0" />
+            class="flex items-center gap-3 px-4 py-2.5 hover:bg-white/[0.03] transition-colors group/alert"
+            :class="i < dashboard.alertas.length - 1 ? 'border-b border-amber-500/[0.08]' : ''">
+            <component :is="alertaStyle(a.tipo).icon" :size="12" :class="alertaStyle(a.tipo).icon_color" class="shrink-0" />
+            <span class="text-xs font-bold text-white/80">{{ a.nome }}</span>
+            <span class="text-xs font-normal text-white/40 flex-1">{{ alertaDescricao(a) }}</span>
+            <ChevronRight :size="12" class="text-white/15 group-hover/alert:text-white/35 transition-colors shrink-0" />
           </NuxtLink>
-        </div>
-
-        <!-- ── MÉTRICAS ── -->
-        <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          <!-- Total -->
-          <div class="relative overflow-hidden rounded-2xl border border-white/[0.06] bg-white/[0.02] p-5">
-            <div class="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent"></div>
-            <p class="text-[10px] font-black uppercase tracking-widest text-white/30 mb-3">Restaurantes</p>
-            <p class="text-4xl font-black text-white leading-none mb-2">{{ dashboard?.totais?.tenants ?? tenants.length }}</p>
-            <div class="flex items-center gap-2">
-              <span class="text-[11px] text-emerald-400 font-bold">{{ dashboard?.totais?.ativos ?? 0 }} ativos</span>
-              <span v-if="(dashboard?.totais?.suspensos ?? 0) > 0" class="text-[11px] text-amber-400 font-bold">· {{ dashboard?.totais?.suspensos }} suspensos</span>
-            </div>
-          </div>
-
-          <!-- MRR — destaque -->
-          <div class="relative overflow-hidden rounded-2xl border border-emerald-500/20 bg-emerald-500/[0.04] p-5">
-            <div class="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-emerald-500/30 to-transparent"></div>
-            <p class="text-[10px] font-black uppercase tracking-widest text-emerald-400/60 mb-3">MRR</p>
-            <p class="text-2xl font-black text-emerald-400 leading-none mb-2 truncate">{{ formatCurrency(dashboard?.financeiro?.mrr ?? 0) }}</p>
-            <p class="text-[11px] text-white/25">ARR {{ formatCurrency(dashboard?.financeiro?.arr ?? 0) }}</p>
-          </div>
-
-          <!-- Licenças -->
-          <div class="relative overflow-hidden rounded-2xl border border-white/[0.06] bg-white/[0.02] p-5"
-            :class="(dashboard?.licencas?.bloqueadas ?? 0) > 0 ? 'border-red-500/15' : ''">
-            <div class="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent"></div>
-            <p class="text-[10px] font-black uppercase tracking-widest text-white/30 mb-3">Licenças ativas</p>
-            <p class="text-4xl font-black text-white leading-none mb-2">{{ dashboard?.licencas?.ativas ?? 0 }}</p>
-            <div class="flex items-center gap-2 flex-wrap">
-              <span v-if="(dashboard?.licencas?.pendentes ?? 0) > 0" class="text-[11px] text-amber-400 font-bold">{{ dashboard?.licencas?.pendentes }} pendente(s)</span>
-              <span v-if="(dashboard?.licencas?.bloqueadas ?? 0) > 0" class="text-[11px] text-red-400 font-bold">{{ dashboard?.licencas?.bloqueadas }} bloqueada(s)</span>
-              <span v-if="!(dashboard?.licencas?.pendentes) && !(dashboard?.licencas?.bloqueadas)" class="text-[11px] text-white/25">tudo ok</span>
-            </div>
-          </div>
-
-          <!-- Vencimentos -->
-          <div class="relative overflow-hidden rounded-2xl border p-5"
-            :class="vencClass.card">
-            <div class="absolute top-0 left-0 right-0 h-px" :class="vencClass.line"></div>
-            <p class="text-[10px] font-black uppercase tracking-widest mb-3" :class="vencClass.label">Vencimentos</p>
-            <p class="text-4xl font-black leading-none mb-2" :class="vencClass.number">
-              {{ (dashboard?.licencas?.vencidas ?? 0) + (dashboard?.licencas?.vencendo ?? 0) }}
-            </p>
-            <p class="text-[11px] font-bold" :class="vencClass.sub">
-              {{ (dashboard?.licencas?.vencidas ?? 0) > 0
-                ? `${dashboard?.licencas?.vencidas} vencida(s)`
-                : (dashboard?.licencas?.vencendo ?? 0) > 0
-                  ? `${dashboard?.licencas?.vencendo} nos próximos 30d`
-                  : 'nenhum nos próximos 30d' }}
-            </p>
-          </div>
-        </div>
-
-        <!-- ── RECEITA POR PLANO + FEATURES ── -->
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
-          <!-- Receita breakdown -->
-          <div class="lg:col-span-2 rounded-2xl border border-white/[0.06] bg-white/[0.02] p-5">
-            <div class="flex items-center justify-between mb-5">
-              <div class="flex items-center gap-2.5">
-                <div class="w-7 h-7 rounded-lg bg-emerald-500/10 flex items-center justify-center">
-                  <TrendingUp :size="13" class="text-emerald-400" />
-                </div>
-                <span class="text-sm font-black text-white">Receita por plano</span>
-              </div>
-              <div class="flex items-center gap-4 text-right">
-                <div>
-                  <p class="text-[9px] font-black uppercase tracking-widest text-white/25">MRR</p>
-                  <p class="text-sm font-black text-emerald-400">{{ formatCurrency(dashboard?.financeiro?.mrr ?? 0) }}</p>
-                </div>
-                <div>
-                  <p class="text-[9px] font-black uppercase tracking-widest text-white/25">ARR</p>
-                  <p class="text-sm font-black text-white/60">{{ formatCurrency(dashboard?.financeiro?.arr ?? 0) }}</p>
-                </div>
-              </div>
-            </div>
-
-            <div v-if="dashboard?.financeiro?.por_plano?.length" class="space-y-3">
-              <div v-for="p in dashboard.financeiro.por_plano" :key="p.plano" class="group/plano">
-                <div class="flex items-center justify-between mb-1.5">
-                  <div class="flex items-center gap-2">
-                    <span class="text-sm font-bold text-white/80">{{ p.plano }}</span>
-                    <span class="text-[10px] font-black px-1.5 py-0.5 rounded-md bg-white/[0.06] text-white/40">{{ p.count }}x</span>
-                  </div>
-                  <span class="text-sm font-black text-emerald-400">{{ formatCurrency(p.mrr) }}<span class="text-white/25 text-[11px] font-normal">/mês</span></span>
-                </div>
-                <div class="h-1.5 rounded-full bg-white/[0.05] overflow-hidden">
-                  <div class="h-full rounded-full bg-gradient-to-r from-emerald-500 to-emerald-400 transition-all duration-700"
-                    :style="{ width: maxMrr > 0 ? `${(p.mrr / maxMrr) * 100}%` : '0%' }" />
-                </div>
-              </div>
-            </div>
-            <div v-else class="flex items-center justify-center py-8">
-              <p class="text-white/20 text-sm">Nenhum contrato ativo</p>
-            </div>
-          </div>
-
-          <!-- Features stats -->
-          <div class="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-5 flex flex-col gap-4">
-            <div class="flex items-center gap-2.5">
-              <div class="w-7 h-7 rounded-lg bg-white/[0.05] flex items-center justify-center">
-                <Zap :size="13" class="text-white/50" />
-              </div>
-              <span class="text-sm font-black text-white">Features</span>
-            </div>
-            <div class="flex-1 space-y-3">
-              <div class="flex items-center justify-between p-3 rounded-xl bg-violet-500/[0.06] border border-violet-500/10">
-                <div class="flex items-center gap-2.5">
-                  <CreditCard :size="14" class="text-violet-400" />
-                  <span class="text-sm font-bold text-white/80">RFID</span>
-                </div>
-                <div class="flex items-center gap-2">
-                  <span class="text-xl font-black text-violet-400">{{ tenants.filter(t => t.rfid_disponivel).length }}</span>
-                  <span class="text-[11px] text-white/25">/ {{ tenants.length }}</span>
-                </div>
-              </div>
-              <div class="flex items-center justify-between p-3 rounded-xl bg-sky-500/[0.06] border border-sky-500/10">
-                <div class="flex items-center gap-2.5">
-                  <Smartphone :size="14" class="text-sky-400" />
-                  <span class="text-sm font-bold text-white/80">Mobile</span>
-                </div>
-                <div class="flex items-center gap-2">
-                  <span class="text-xl font-black text-sky-400">{{ tenants.filter(t => t.venda_mobile_permitida).length }}</span>
-                  <span class="text-[11px] text-white/25">/ {{ tenants.length }}</span>
-                </div>
-              </div>
-            </div>
-          </div>
         </div>
 
         <!-- ── LISTA DE TENANTS ── -->
         <div>
-          <div class="flex items-center justify-between gap-4 mb-4">
-            <div class="flex items-center gap-3">
-              <h2 class="text-sm font-black text-white uppercase tracking-wide">Restaurantes</h2>
-              <span class="text-[10px] font-black px-2 py-0.5 rounded-full bg-white/[0.06] text-white/40">{{ tenantsFiltrados.length }}</span>
-            </div>
-            <div class="relative">
-              <Search :size="13" class="absolute left-3 top-1/2 -translate-y-1/2 text-white/25 pointer-events-none" />
-              <input v-model="busca" type="text" placeholder="Buscar restaurante..."
-                class="h-8 pl-8 pr-4 bg-white/[0.04] border border-white/[0.07] rounded-xl text-white text-xs placeholder:text-white/20 focus:outline-none focus:border-violet-500/40 focus:bg-white/[0.06] transition-all w-44 sm:w-56" />
-            </div>
-          </div>
-
           <!-- Erro -->
-          <div v-if="erro" class="text-center py-12 rounded-2xl border border-white/[0.06] bg-white/[0.02]">
-            <AlertCircle :size="24" class="text-red-400 mx-auto mb-3" />
-            <p class="text-white/50 text-sm font-bold mb-2">{{ erro }}</p>
+          <div v-if="erro" class="text-center py-16 rounded-2xl border border-white/[0.06] bg-white/[0.02]">
+            <AlertCircle :size="22" class="text-red-400 mx-auto mb-3" />
+            <p class="text-white/40 text-sm font-bold mb-2">{{ erro }}</p>
             <button @click="carregar" class="text-violet-400 text-xs font-bold hover:text-violet-300 transition-colors">Tentar novamente</button>
           </div>
 
           <!-- Vazio -->
-          <div v-else-if="!tenantsFiltrados.length" class="text-center py-12 rounded-2xl border border-white/[0.06] bg-white/[0.02]">
-            <Store :size="24" class="text-white/15 mx-auto mb-3" />
-            <p class="text-white/25 text-sm font-bold">Nenhum restaurante encontrado</p>
+          <div v-else-if="!tenantsFiltrados.length" class="text-center py-16 rounded-2xl border border-white/[0.06] bg-white/[0.02]">
+            <Store :size="22" class="text-white/10 mx-auto mb-3" />
+            <p class="text-white/20 text-sm">Nenhum restaurante encontrado</p>
           </div>
 
-          <!-- Lista -->
-          <div v-else class="rounded-2xl border border-white/[0.06] overflow-hidden divide-y divide-white/[0.05]">
+          <!-- Linhas -->
+          <div v-else class="rounded-2xl border border-white/[0.06] overflow-hidden divide-y divide-white/[0.04]">
             <div v-for="tenant in tenantsFiltrados" :key="tenant.id"
-              class="flex flex-col sm:flex-row sm:items-center bg-white/[0.015] hover:bg-white/[0.03] transition-colors group">
+              class="flex items-center gap-3 px-4 py-3.5 bg-white/[0.01] hover:bg-white/[0.03] transition-colors group">
 
-              <!-- Avatar + info clicável -->
-              <NuxtLink :to="`/platform/tenants/${tenant.id}`"
-                class="flex items-center gap-4 px-5 py-4 flex-1 min-w-0 cursor-pointer">
-                <!-- Avatar com inicial -->
-                <div class="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 font-black text-sm select-none"
-                  :class="avatarColor(tenant.nome)">
-                  {{ tenant.nome[0].toUpperCase() }}
+              <!-- Avatar -->
+              <div class="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 font-black text-sm select-none"
+                :class="avatarColor(tenant.nome)">
+                {{ tenant.nome[0].toUpperCase() }}
+              </div>
+
+              <!-- Info principal -->
+              <NuxtLink :to="`/platform/tenants/${tenant.id}`" class="flex-1 min-w-0 cursor-pointer">
+                <div class="flex items-center gap-2 flex-wrap">
+                  <span class="text-sm font-bold text-white/90 group-hover:text-violet-300 transition-colors truncate">{{ tenant.nome }}</span>
+                  <span class="w-1.5 h-1.5 rounded-full shrink-0" :class="statusDot(tenant.status)"></span>
                 </div>
-
-                <div class="min-w-0 flex-1">
-                  <div class="flex items-center gap-2 flex-wrap">
-                    <span class="text-sm font-bold text-white group-hover:text-violet-200 transition-colors truncate">{{ tenant.nome }}</span>
-                    <!-- Dot de status -->
-                    <span class="w-1.5 h-1.5 rounded-full shrink-0" :class="statusDot(tenant.status)"></span>
-                    <span v-if="tenant.licencas?.[0]"
-                      class="text-[10px] font-black px-1.5 py-0.5 rounded-md shrink-0"
-                      :class="licencaBadge(tenant.licencas[0].status)">
-                      {{ licencaLabel(tenant.licencas[0]) }}
-                    </span>
-                    <span v-if="tenant.contratos?.[0]"
-                      class="text-[10px] font-black px-1.5 py-0.5 rounded-md bg-indigo-500/10 text-indigo-400 shrink-0">
-                      {{ tenant.contratos[0].plano }}
-                    </span>
-                  </div>
-                  <div class="flex items-center gap-2 mt-0.5 flex-wrap">
-                    <span class="text-white/25 text-[11px] font-mono">{{ tenant.slug }}</span>
-                    <span v-if="tenant.responsavel" class="text-white/20 text-[11px]">· {{ tenant.responsavel }}</span>
-                  </div>
-                </div>
-
-                <!-- Features inline -->
-                <div class="hidden md:flex items-center gap-1.5 shrink-0 mr-2">
-                  <span v-if="tenant.rfid_disponivel" title="RFID ativo"
-                    class="w-6 h-6 rounded-lg bg-violet-500/10 flex items-center justify-center">
-                    <CreditCard :size="11" class="text-violet-400" />
+                <div class="flex items-center gap-2 mt-0.5 flex-wrap">
+                  <span class="text-white/25 text-[10px] font-mono">{{ tenant.slug }}</span>
+                  <span v-if="tenant.licencas?.[0]"
+                    class="text-[10px] font-black px-1.5 py-0.5 rounded-md"
+                    :class="licencaBadge(tenant.licencas[0].status)">
+                    {{ licencaLabel(tenant.licencas[0]) }}
                   </span>
-                  <span v-if="tenant.venda_mobile_permitida" title="Mobile ativo"
-                    class="w-6 h-6 rounded-lg bg-sky-500/10 flex items-center justify-center">
-                    <Smartphone :size="11" class="text-sky-400" />
+                  <span v-if="tenant.contratos?.[0]"
+                    class="text-[10px] font-black px-1.5 py-0.5 rounded-md bg-indigo-500/10 text-indigo-400">
+                    {{ tenant.contratos[0].plano }}
                   </span>
                 </div>
-
-                <ChevronRight :size="14" class="text-white/[0.08] group-hover:text-white/30 transition-colors shrink-0" />
               </NuxtLink>
 
-              <!-- Ações rápidas -->
-              <div class="flex items-center gap-1.5 px-4 pb-3 sm:pb-0 sm:pr-4 pl-[60px] sm:pl-0 shrink-0">
+              <!-- Feature pills -->
+              <div class="hidden sm:flex items-center gap-1 shrink-0">
+                <span class="inline-flex items-center gap-1 text-[10px] font-black px-2 py-1 rounded-lg transition-all"
+                  :class="tenant.rfid_disponivel ? 'bg-violet-500/10 text-violet-400' : 'text-white/10'">
+                  <CreditCard :size="9" /> RFID
+                </span>
+                <span class="inline-flex items-center gap-1 text-[10px] font-black px-2 py-1 rounded-lg transition-all"
+                  :class="tenant.venda_mobile_permitida ? 'bg-sky-500/10 text-sky-400' : 'text-white/10'">
+                  <Smartphone :size="9" /> Celular
+                </span>
+              </div>
+
+              <!-- Ações -->
+              <div class="flex items-center gap-1.5 shrink-0">
                 <button @click="toggleRfid(tenant)" :disabled="togglingId === tenant.id"
-                  class="w-7 h-7 rounded-lg flex items-center justify-center border transition-all"
+                  class="h-8 px-2.5 rounded-lg text-[10px] font-black border transition-all flex items-center gap-1"
                   :class="tenant.rfid_disponivel
-                    ? 'bg-violet-500/15 border-violet-500/25 hover:bg-violet-500/25'
-                    : 'bg-white/[0.03] border-white/[0.06] hover:bg-white/[0.07]'"
-                  :title="tenant.rfid_disponivel ? 'Desabilitar RFID' : 'Habilitar RFID'">
-                  <Loader2 v-if="togglingId === tenant.id" :size="11" class="animate-spin text-violet-400" />
-                  <CreditCard v-else :size="11" :class="tenant.rfid_disponivel ? 'text-violet-400' : 'text-white/20'" />
+                    ? 'bg-violet-500/10 border-violet-500/20 text-violet-400 hover:bg-violet-500/18'
+                    : 'bg-white/[0.03] border-white/[0.06] text-white/20 hover:bg-white/[0.06]'"
+                  title="Alternar RFID">
+                  <Loader2 v-if="togglingId === tenant.id" :size="10" class="animate-spin" />
+                  <CreditCard v-else :size="10" />
                 </button>
 
                 <button @click="toggleStatus(tenant)"
-                  class="w-7 h-7 rounded-lg flex items-center justify-center border transition-all group/st"
+                  class="h-8 px-2.5 rounded-lg text-[10px] font-black border transition-all flex items-center gap-1"
                   :class="tenant.status === 'ativo'
-                    ? 'bg-emerald-500/10 border-emerald-500/15 hover:bg-red-500/10 hover:border-red-500/15'
-                    : 'bg-amber-500/10 border-amber-500/15 hover:bg-emerald-500/10 hover:border-emerald-500/15'"
+                    ? 'bg-emerald-500/10 border-emerald-500/15 text-emerald-400 hover:bg-red-500/10 hover:border-red-500/15 hover:text-red-400'
+                    : 'bg-amber-500/10 border-amber-500/15 text-amber-400 hover:bg-emerald-500/10 hover:border-emerald-500/15 hover:text-emerald-400'"
                   :title="tenant.status === 'ativo' ? 'Suspender' : 'Reativar'">
-                  <ToggleRight v-if="tenant.status === 'ativo'" :size="11" class="text-emerald-400 group-hover/st:text-red-400 transition-colors" />
-                  <ToggleLeft  v-else :size="11" class="text-amber-400 group-hover/st:text-emerald-400 transition-colors" />
+                  <ToggleRight v-if="tenant.status === 'ativo'" :size="10" />
+                  <ToggleLeft  v-else :size="10" />
+                  {{ tenant.status === 'ativo' ? 'Ativo' : 'Suspenso' }}
                 </button>
 
-                <button @click="abrirModal(tenant)"
-                  class="h-7 px-2.5 rounded-lg text-[11px] font-black text-white/30 hover:text-white/70 hover:bg-white/[0.07] border border-white/[0.05] hover:border-white/10 transition-all flex items-center gap-1">
-                  <Pencil :size="10" /> Editar
-                </button>
+                <NuxtLink :to="`/platform/tenants/${tenant.id}`"
+                  class="h-8 px-2.5 rounded-lg text-[10px] font-black border border-white/[0.06] text-white/30 hover:text-white/70 hover:bg-white/[0.06] hover:border-white/10 transition-all flex items-center gap-1">
+                  <ChevronRight :size="10" /> Abrir
+                </NuxtLink>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── RODAPÉ: RECEITA + FEATURES ── -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+          <!-- Receita por plano -->
+          <div class="rounded-xl border border-white/[0.06] bg-white/[0.015] p-4">
+            <div class="flex items-center justify-between mb-4">
+              <div class="flex items-center gap-2">
+                <TrendingUp :size="12" class="text-emerald-400" />
+                <span class="text-[10px] font-black text-white/40 uppercase tracking-widest">Receita por plano</span>
+              </div>
+              <span class="text-xs font-black text-emerald-400">{{ formatCurrency(dashboard?.financeiro?.mrr ?? 0) }}<span class="text-white/20 text-[10px] font-normal">/mês</span></span>
+            </div>
+            <div v-if="dashboard?.financeiro?.por_plano?.length" class="space-y-3">
+              <div v-for="p in dashboard.financeiro.por_plano" :key="p.plano">
+                <div class="flex items-center justify-between mb-1">
+                  <div class="flex items-center gap-1.5">
+                    <span class="text-xs font-bold text-white/70">{{ p.plano }}</span>
+                    <span class="text-[9px] font-black px-1.5 py-0.5 rounded bg-white/[0.05] text-white/30">{{ p.count }}x</span>
+                  </div>
+                  <span class="text-xs font-black text-emerald-400">{{ formatCurrency(p.mrr) }}</span>
+                </div>
+                <div class="h-1 rounded-full bg-white/[0.05]">
+                  <div class="h-full rounded-full bg-emerald-500/70 transition-all duration-700"
+                    :style="{ width: maxMrr > 0 ? `${(p.mrr / maxMrr) * 100}%` : '0%' }" />
+                </div>
+              </div>
+            </div>
+            <p v-else class="text-[11px] text-white/15 text-center py-4">Nenhum contrato ativo</p>
+          </div>
+
+          <!-- Features -->
+          <div class="rounded-xl border border-white/[0.06] bg-white/[0.015] p-4">
+            <div class="flex items-center gap-2 mb-4">
+              <Zap :size="12" class="text-white/30" />
+              <span class="text-[10px] font-black text-white/40 uppercase tracking-widest">Recursos habilitados</span>
+            </div>
+            <div class="space-y-2.5">
+              <div class="flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                  <CreditCard :size="13" class="text-violet-400" />
+                  <span class="text-xs font-bold text-white/70">RFID</span>
+                </div>
+                <div class="flex items-center gap-2">
+                  <div class="w-24 h-1 rounded-full bg-white/[0.05]">
+                    <div class="h-full rounded-full bg-violet-500/60"
+                      :style="{ width: tenants.length ? `${(tenants.filter(t => t.rfid_disponivel).length / tenants.length) * 100}%` : '0%' }" />
+                  </div>
+                  <span class="text-xs font-black text-violet-400 w-6 text-right">{{ tenants.filter(t => t.rfid_disponivel).length }}</span>
+                  <span class="text-[10px] text-white/20">/ {{ tenants.length }}</span>
+                </div>
+              </div>
+              <div class="flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                  <Smartphone :size="13" class="text-sky-400" />
+                  <span class="text-xs font-bold text-white/70">Celular</span>
+                </div>
+                <div class="flex items-center gap-2">
+                  <div class="w-24 h-1 rounded-full bg-white/[0.05]">
+                    <div class="h-full rounded-full bg-sky-500/60"
+                      :style="{ width: tenants.length ? `${(tenants.filter(t => t.venda_mobile_permitida).length / tenants.length) * 100}%` : '0%' }" />
+                  </div>
+                  <span class="text-xs font-black text-sky-400 w-6 text-right">{{ tenants.filter(t => t.venda_mobile_permitida).length }}</span>
+                  <span class="text-[10px] text-white/20">/ {{ tenants.length }}</span>
+                </div>
+              </div>
+              <div class="pt-2 border-t border-white/[0.05] flex justify-between text-[10px] text-white/20">
+                <span>Receita anual</span>
+                <span class="font-black text-white/35">{{ formatCurrency(dashboard?.financeiro?.arr ?? 0) }}</span>
               </div>
             </div>
           </div>
@@ -377,9 +337,9 @@
                   <input v-model="form.nome" @input="autoSlug" type="text" placeholder="Ex: Restaurante Tarantela" class="input-field" />
                 </div>
                 <div>
-                  <label class="label-field">Slug *</label>
+                  <label class="label-field">Identificador *</label>
                   <input v-model="form.slug" type="text" placeholder="ex: tarantela" class="input-field font-mono text-xs" />
-                  <p class="text-[10px] text-white/20 mt-1">Identificador único da URL</p>
+                  <p class="text-[10px] text-white/20 mt-1">Usado na URL do sistema</p>
                 </div>
                 <div>
                   <label class="label-field">CNPJ</label>
@@ -482,7 +442,7 @@
                     <button @click="contratoForm.status = 'trial'"
                       class="flex-1 h-10 rounded-xl text-xs font-black border transition-all"
                       :class="contratoForm.status === 'trial' ? 'bg-sky-500/15 border-sky-500/30 text-sky-400' : 'bg-white/[0.03] border-white/[0.07] text-white/30 hover:bg-white/[0.05]'">
-                      Trial
+                      Teste
                     </button>
                     <button @click="contratoForm.status = 'ativo'"
                       class="flex-1 h-10 rounded-xl text-xs font-black border transition-all"
@@ -536,6 +496,47 @@
       </Transition>
     </Teleport>
 
+    <!-- ══ CONFIRM DIALOG ══ -->
+    <Teleport to="body">
+      <Transition name="fade">
+        <div v-if="confirmDialog.show"
+          class="fixed inset-0 z-[70] flex items-center justify-center p-4"
+          style="background: rgba(0,0,0,0.72); backdrop-filter: blur(6px);"
+          @click.self="confirmDialog.resolve?.(false); confirmDialog.show = false">
+          <div class="bg-[#111118] border border-white/[0.09] rounded-2xl w-full max-w-xs shadow-2xl">
+            <div class="p-6 flex flex-col items-center text-center gap-4">
+              <div class="w-12 h-12 rounded-2xl flex items-center justify-center border"
+                :class="confirmDialog.type === 'danger'
+                  ? 'bg-red-500/10 border-red-500/20'
+                  : 'bg-emerald-500/10 border-emerald-500/20'">
+                <AlertTriangle v-if="confirmDialog.type === 'danger'" :size="20" class="text-red-400" />
+                <CheckCircle2  v-else :size="20" class="text-emerald-400" />
+              </div>
+              <div>
+                <h3 class="text-sm font-black text-white leading-tight">{{ confirmDialog.title }}</h3>
+                <p class="text-[12px] text-white/35 mt-1.5 leading-relaxed">{{ confirmDialog.message }}</p>
+              </div>
+            </div>
+            <div class="flex gap-2 px-5 pb-5">
+              <button
+                @click="confirmDialog.resolve?.(false); confirmDialog.show = false"
+                class="flex-1 h-10 rounded-xl border border-white/[0.08] text-white/45 text-xs font-black hover:bg-white/[0.05] transition-all">
+                Cancelar
+              </button>
+              <button
+                @click="confirmDialog.resolve?.(true); confirmDialog.show = false"
+                class="flex-1 h-10 rounded-xl text-xs font-black transition-all"
+                :class="confirmDialog.type === 'danger'
+                  ? 'bg-red-500 hover:bg-red-400 text-white'
+                  : 'bg-emerald-500 hover:bg-emerald-400 text-white'">
+                Confirmar
+              </button>
+            </div>
+          </div>
+        </div>
+      </Transition>
+    </Teleport>
+
     <!-- Toast -->
     <Transition name="toast">
       <div v-if="toast.text"
@@ -554,8 +555,8 @@
 <script setup lang="ts">
 import { ref, computed, reactive, onMounted } from 'vue'
 import {
-  Globe, LogOut, Search, Plus, Building2, CreditCard, Smartphone,
-  Loader2, AlertCircle, CheckCircle2, Pencil, X, Store, FileText, ChevronRight,
+  Globe, LogOut, Search, Plus, Building2, CreditCard, Smartphone, KeyRound,
+  Loader2, AlertCircle, AlertTriangle, CheckCircle2, Pencil, X, Store, FileText, ChevronRight,
   ToggleRight, ToggleLeft, Clock, TrendingUp, Zap, Banknote, Info,
 } from 'lucide-vue-next'
 import { usePlatformAuthStore } from '~/stores/platformAuth'
@@ -588,6 +589,16 @@ const busca      = ref('')
 const togglingId = ref<string | null>(null)
 const toast      = reactive({ text: '', type: 'success' as 'success' | 'error' })
 
+const confirmDialog = reactive({
+  show: false, title: '', message: '', type: 'danger' as 'danger' | 'success',
+  resolve: null as ((v: boolean) => void) | null,
+})
+function showConfirm(title: string, message: string, type: 'danger' | 'success' = 'danger'): Promise<boolean> {
+  return new Promise(resolve => {
+    Object.assign(confirmDialog, { title, message, type, resolve, show: true })
+  })
+}
+
 const modalAberto         = ref(false)
 const abaAtiva            = ref<'dados' | 'licenca' | 'contrato'>('dados')
 const salvando            = ref(false)
@@ -606,7 +617,7 @@ const licencaStatuses = [
   { value: 'bloqueado', label: 'Bloqueada', activeClass: 'bg-red-500/15    border-red-500/30    text-red-400'    },
 ]
 const features = [
-  { key: 'vendaMobilePermitida', label: 'Venda Mobile', desc: 'Acesso via QR Code e dispositivo móvel', on: 'bg-sky-500' },
+  { key: 'vendaMobilePermitida', label: 'Venda pelo Celular', desc: 'Acesso via QR Code e dispositivo móvel', on: 'bg-sky-500' },
   { key: 'rfidDisponivel', label: 'RFID', desc: 'Autenticação por cartão (feature paga)', on: 'bg-violet-500' },
 ]
 const planosPredef = ['Básico', 'Profissional', 'Enterprise']
@@ -733,7 +744,7 @@ function fecharModal() { modalAberto.value = false }
 async function salvar() {
   erroModal.value = ''
   if (!form.nome.trim()) { erroModal.value = 'Nome é obrigatório'; return }
-  if (!form.slug.trim()) { erroModal.value = 'Slug é obrigatório'; return }
+  if (!form.slug.trim()) { erroModal.value = 'Identificador é obrigatório'; return }
   salvando.value = true
   try {
     let msg = ''
@@ -780,7 +791,14 @@ async function toggleRfid(tenant: Tenant) {
 
 async function toggleStatus(tenant: Tenant) {
   const novoStatus = tenant.status === 'ativo' ? 'suspenso' : 'ativo'
-  if (!confirm(novoStatus === 'suspenso' ? `Suspender "${tenant.nome}"?` : `Reativar "${tenant.nome}"?`)) return
+  const ok = await showConfirm(
+    novoStatus === 'suspenso' ? `Suspender "${tenant.nome}"?` : `Reativar "${tenant.nome}"?`,
+    novoStatus === 'suspenso'
+      ? 'O tenant ficará inacessível até ser reativado manualmente.'
+      : 'O tenant voltará a funcionar normalmente.',
+    novoStatus === 'suspenso' ? 'danger' : 'success'
+  )
+  if (!ok) return
   try {
     await platformFetch(`/platform/tenants/${tenant.id}/status`, { method: 'PATCH', body: JSON.stringify({ status: novoStatus }) })
     tenant.status = novoStatus

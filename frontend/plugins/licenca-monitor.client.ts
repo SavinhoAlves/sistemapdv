@@ -1,4 +1,4 @@
-const ROTAS_LIVRES = ['/ativacao', '/login', '/m']
+const ROTAS_LIVRES = ['/ativacao', '/login', '/m', '/platform']
 const POLL_MS = 30_000
 
 export default defineNuxtPlugin(() => {

@@ -194,8 +194,9 @@ function fmtData(iso: string) {
 }
 
 async function carregarStatus() {
+  const slug = (config.public as any).tenantSlug as string
   try {
-    status.value = await $fetch<any>(`${config.public.apiUrl}/api/sistema/status-licenca`)
+    status.value = await $fetch<any>(`${config.public.apiUrl}/api/sistema/status-licenca`, { query: { slug } })
   } catch {
     status.value = { ativo: false, expirado: false, semLicenca: true }
   }

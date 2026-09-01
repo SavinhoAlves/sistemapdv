@@ -27,6 +27,16 @@
           />
         </div>
         <button
+          @click="toggleCategoriasPanel"
+          class="h-10 px-4 border font-black text-sm rounded-xl transition-all flex items-center gap-2"
+          :class="showCategorias
+            ? 'border-orange-500 bg-orange-500/10 text-orange-500'
+            : 'border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/[0.06] text-gray-500 dark:text-white/50 hover:border-orange-400/40'"
+        >
+          <Tag :size="15" />
+          Categorias
+        </button>
+        <button
           @click="abrirModal(null)"
           class="h-10 px-5 bg-orange-500 hover:bg-orange-600 active:scale-95 text-white font-black text-sm rounded-xl transition-all flex items-center gap-2"
         >
@@ -94,6 +104,49 @@
         >
           <List :size="14" />
         </button>
+      </div>
+    </div>
+
+    <!-- PAINEL CATEGORIAS -->
+    <div v-if="showCategorias" class="px-6 pb-4">
+      <div class="bg-white dark:bg-white/5 rounded-2xl border border-gray-200 dark:border-white/[0.08] p-4">
+        <div class="flex items-center gap-2 mb-3">
+          <Tag :size="13" class="text-orange-500" />
+          <p class="text-[10px] font-black text-gray-400 dark:text-white/40 uppercase tracking-widest">Categorias · Configurar cozinha</p>
+        </div>
+        <div v-if="loadingCategorias" class="flex gap-2 flex-wrap">
+          <div v-for="n in 5" :key="n" class="h-10 w-36 rounded-xl bg-gray-100 dark:bg-white/5 animate-pulse" />
+        </div>
+        <div v-else-if="!categoriasList.length" class="text-xs text-gray-400 dark:text-white/40">
+          Nenhuma categoria cadastrada.
+        </div>
+        <div v-else class="flex flex-wrap gap-2">
+          <div
+            v-for="cat in categoriasList"
+            :key="cat.id"
+            class="flex items-center gap-2.5 h-10 px-3.5 rounded-xl border transition-colors"
+            :class="cat.vai_cozinha
+              ? 'border-orange-400/50 bg-orange-500/5'
+              : 'border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/[0.04]'"
+          >
+            <span class="text-sm font-bold text-gray-700 dark:text-white/80">{{ cat.nome }}</span>
+            <div class="flex items-center gap-1.5">
+              <ChefHat :size="12" :class="cat.vai_cozinha ? 'text-orange-400' : 'text-gray-300 dark:text-white/20'" />
+              <button
+                @click="toggleCozinha(cat)"
+                :disabled="togglingCozinha === cat.id"
+                class="w-9 h-5 rounded-full relative transition-colors disabled:opacity-50"
+                :class="cat.vai_cozinha ? 'bg-orange-500' : 'bg-gray-300 dark:bg-white/20'"
+                :title="cat.vai_cozinha ? 'Desativar cozinha' : 'Ativar cozinha'"
+              >
+                <div
+                  :class="cat.vai_cozinha ? 'translate-x-4' : 'translate-x-0.5'"
+                  class="w-4 h-4 bg-white rounded-full absolute top-0.5 transition-transform shadow-sm"
+                />
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -291,7 +344,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { storeToRefs } from 'pinia'
-import { Search, Plus, Package, LayoutGrid, List, Boxes, TriangleAlert } from 'lucide-vue-next'
+import { Search, Plus, Package, LayoutGrid, List, Boxes, TriangleAlert, Tag, ChefHat } from 'lucide-vue-next'
 import Navbar from '~/layouts/Navbar.vue'
 import Sidebar from '~/components/Sidebar.vue'
 import ModalProduto from '@/components/modals/ModalProduto.vue'
@@ -319,6 +372,11 @@ const visualizacao = ref<'grade' | 'lista'>('grade')
 const filtroCategoria = ref('')
 const filtroBaixoEstoque = ref(false)
 const filtroInativos = ref(true)
+
+const showCategorias    = ref(false)
+const categoriasList    = ref<any[]>([])
+const loadingCategorias = ref(false)
+const togglingCozinha   = ref<string | null>(null)
 
 function setVisualizacao(v: 'grade' | 'lista') {
   visualizacao.value = v
@@ -378,6 +436,38 @@ async function listarProdutos() {
   }
 }
 
+function toggleCategoriasPanel() {
+  showCategorias.value = !showCategorias.value
+  if (showCategorias.value && !categoriasList.value.length) carregarCategorias()
+}
+
+async function carregarCategorias() {
+  loadingCategorias.value = true
+  try {
+    const data = await api.get<any[]>('/categorias')
+    categoriasList.value = Array.isArray(data) ? data : []
+  } catch {
+    toastStore.error('Erro ao carregar categorias')
+  } finally {
+    loadingCategorias.value = false
+  }
+}
+
+async function toggleCozinha(cat: any) {
+  if (togglingCozinha.value) return
+  togglingCozinha.value = cat.id
+  const novoValor = !cat.vai_cozinha
+  try {
+    await api.patch(`/categorias/${cat.id}/cozinha`, { vaiCozinha: novoValor })
+    cat.vai_cozinha = novoValor
+    toastStore.success(`"${cat.nome}" ${novoValor ? 'vai' : 'não vai mais'} para a cozinha`)
+  } catch {
+    toastStore.error('Erro ao atualizar categoria')
+  } finally {
+    togglingCozinha.value = null
+  }
+}
+
 async function salvarProduto(produto: any) {
   try {
     if (produto.id) {
@@ -407,6 +497,7 @@ onMounted(() => {
 
   loading.value = true
   listarProdutos()
+  carregarCategorias()
   pollingTimer = setInterval(() => { if (!document.hidden) listarProdutos() }, 20000)
   document.addEventListener('visibilitychange', onVisibilityChange)
 })

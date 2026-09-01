@@ -23,7 +23,7 @@
         </div>
         <div>
           <span class="text-white font-black tracking-tight block text-sm">Plataforma Central</span>
-          <span class="text-white/30 text-[10px] font-bold uppercase tracking-widest">Super Admin</span>
+          <span class="text-white/30 text-[10px] font-bold uppercase tracking-widest">Super Administrador</span>
         </div>
       </div>
 

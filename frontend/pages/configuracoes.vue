@@ -712,7 +712,7 @@
                 <Eye :size="14" class="text-green-500" />
               </div>
               <div>
-                <h2 class="text-sm font-black text-gray-900 dark:text-white">Preview da Ficha</h2>
+                <h2 class="text-sm font-black text-gray-900 dark:text-white">Pré-visualização da Ficha</h2>
                 <p class="text-[11px] text-gray-500 dark:text-white/40 mt-0.5">Como ficará a ficha individual de cada produto</p>
               </div>
             </div>

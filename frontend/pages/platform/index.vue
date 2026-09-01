@@ -1,332 +1,303 @@
 <template>
-  <div class="min-h-dvh bg-[#0a0a0f]">
+  <div class="min-h-dvh bg-[#09090e] flex">
 
-    <!-- ══ TOPBAR ══ -->
-    <header class="sticky top-0 z-30 border-b border-white/[0.05]" style="background: rgba(10,10,15,0.85); backdrop-filter: blur(20px);">
-      <div class="max-w-6xl mx-auto px-6 h-14 flex items-center justify-between gap-4">
-        <div class="flex items-center gap-3">
-          <div class="relative">
-            <div class="absolute inset-0 rounded-xl bg-violet-600 blur-md opacity-50"></div>
-            <div class="relative size-7 rounded-xl bg-violet-600 flex items-center justify-center shadow-lg">
-              <UIcon name="i-lucide-globe" class="text-white size-3.5" />
-            </div>
-          </div>
-          <div class="flex items-baseline gap-2">
-            <span class="text-white font-black text-sm tracking-tight">Plataforma</span>
-            <span class="text-white/25 text-[10px] font-bold uppercase tracking-widest hidden sm:inline">PDV · Super Administrador</span>
+    <!-- ══ SIDEBAR (desktop) ══ -->
+    <aside class="hidden lg:flex flex-col w-56 shrink-0 border-r border-white/[0.05] sticky top-0 h-screen">
+      <div class="h-14 px-4 flex items-center gap-2.5 border-b border-white/[0.05] shrink-0">
+        <div class="relative shrink-0">
+          <div class="absolute inset-0 rounded-lg bg-violet-500 blur-sm opacity-70"></div>
+          <div class="relative size-7 rounded-lg bg-violet-600 flex items-center justify-center">
+            <UIcon name="i-lucide-globe" class="text-white size-3.5" />
           </div>
         </div>
-
-        <div class="flex items-center gap-2">
-          <div class="hidden sm:flex items-center gap-2 rounded-xl px-3 py-1.5 border border-white/[0.06] bg-white/[0.03]">
-            <UAvatar
-              :alt="platformAuth.user?.nome"
-              size="xs"
-              :ui="{ background: 'bg-violet-500/20', text: 'text-violet-300 text-[9px] font-black' }"
-            />
-            <span class="text-white/60 text-xs font-semibold">{{ platformAuth.user?.nome }}</span>
-            <UBadge color="violet" variant="soft" size="xs" class="font-black">
-              {{ platformAuth.user?.role }}
-            </UBadge>
-          </div>
-          <UButton
-            icon="i-lucide-log-out"
-            color="red"
-            variant="ghost"
-            size="xs"
-            square
-            title="Sair"
-            @click="handleLogout"
-          />
-        </div>
-      </div>
-    </header>
-
-    <!-- ══ CONTEÚDO ══ -->
-    <main class="max-w-5xl mx-auto px-6 py-6 space-y-5">
-
-      <!-- LOADING -->
-      <div v-if="loading" class="flex items-center justify-center py-32">
-        <UIcon name="i-lucide-loader-2" class="animate-spin text-violet-500 w-6 h-6" />
-      </div>
-
-      <template v-else>
-
-        <!-- CABEÇALHO DA PÁGINA -->
-        <div class="flex items-center gap-3">
-          <div>
-            <h1 class="text-base font-black text-white tracking-tight text-balance">Restaurantes</h1>
-            <p class="text-[11px] text-white/30 mt-0.5">
-              {{ dashboard?.totais?.ativos ?? 0 }} ativos
-              <template v-if="(dashboard?.totais?.suspensos ?? 0) > 0">
-                · <span class="text-amber-400">{{ dashboard?.totais?.suspensos }} suspensos</span>
-              </template>
-              <template v-if="(dashboard?.alertas?.length ?? 0) > 0">
-                · <span class="text-red-400">{{ dashboard?.alertas?.length }} {{ dashboard!.alertas.length === 1 ? 'alerta' : 'alertas' }}</span>
-              </template>
-            </p>
-          </div>
-          <div class="flex-1" />
-          <UInput
-            v-model="busca"
-            icon="i-lucide-search"
-            placeholder="Buscar…"
-            size="sm"
-            :ui="{ rounded: 'rounded-xl', base: 'w-40 sm:w-52 bg-white/[0.04] border-white/[0.07] text-white/80 placeholder:text-white/15', icon: { base: 'text-white/20' } }"
-          />
-          <UButton
-            icon="i-lucide-plus"
-            color="violet"
-            size="sm"
-            :ui="{ rounded: 'rounded-xl', font: 'font-black' }"
-            class="shadow-lg shadow-violet-500/20 shrink-0"
-            @click="abrirModal(null)"
-          >
-            Novo
-          </UButton>
-        </div>
-
-        <!-- MÉTRICAS -->
-        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          <UCard
-            v-for="metric in metrics"
-            :key="metric.label"
-            :class="['transition-all', metric.cardClass]"
-            :ui="{ base: 'overflow-hidden', body: { padding: 'px-4 py-3' }, ring: '', divide: '' }"
-          >
-            <div class="flex items-center gap-3">
-              <UIcon :name="metric.icon" :class="['w-4 h-4 shrink-0', metric.iconClass]" />
-              <div class="min-w-0">
-                <p :class="['text-2xl font-black leading-none truncate tabular-nums', metric.valueClass]">{{ metric.value }}</p>
-                <p :class="['text-[10px] font-bold mt-0.5 truncate', metric.subClass]">{{ metric.label }}</p>
-              </div>
-            </div>
-          </UCard>
-        </div>
-
-        <!-- ALERTAS -->
-        <div v-if="dashboard?.alertas?.length" class="rounded-xl border border-amber-500/15 bg-amber-500/[0.03] overflow-hidden">
-          <div class="flex items-center gap-2 px-4 py-2.5 border-b border-amber-500/10">
-            <span class="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse shrink-0"></span>
-            <p class="text-[10px] font-black uppercase tracking-widest text-amber-400/70 flex-1">Atenção necessária</p>
-            <UBadge color="amber" variant="soft" size="xs" class="font-black">{{ dashboard.alertas.length }}</UBadge>
-          </div>
-          <NuxtLink
-            v-for="(a, i) in dashboard.alertas"
-            :key="a.tenant_id"
-            :to="`/platform/tenants/${a.tenant_id}`"
-            class="flex items-center gap-3 px-4 py-2.5 hover:bg-white/[0.03] transition-colors group/alert"
-            :class="i < dashboard.alertas.length - 1 ? 'border-b border-amber-500/[0.08]' : ''"
-          >
-            <UIcon :name="alertaStyle(a.tipo).icon" :class="['w-3 h-3 shrink-0', alertaStyle(a.tipo).icon_color]" />
-            <span class="text-xs font-bold text-white/80">{{ a.nome }}</span>
-            <span class="text-xs font-normal text-white/40 flex-1">{{ alertaDescricao(a) }}</span>
-            <UIcon name="i-lucide-chevron-right" class="w-3 h-3 text-white/15 group-hover/alert:text-white/35 transition-colors shrink-0" />
-          </NuxtLink>
-        </div>
-
-        <!-- LISTA DE TENANTS -->
         <div>
-          <div v-if="erro" class="text-center py-16 rounded-2xl border border-white/[0.06] bg-white/[0.02]">
-            <UIcon name="i-lucide-alert-circle" class="text-red-400 w-6 h-6 mx-auto mb-3" />
-            <p class="text-white/40 text-sm font-bold mb-2">{{ erro }}</p>
-            <UButton color="violet" variant="link" size="sm" @click="carregar">Tentar novamente</UButton>
-          </div>
+          <p class="text-sm font-black text-white leading-none">Plataforma</p>
+          <p class="text-[9px] font-bold uppercase tracking-widest text-white/25 mt-0.5">PDV Central</p>
+        </div>
+      </div>
 
-          <div v-else-if="!tenantsFiltrados.length" class="text-center py-16 rounded-2xl border border-white/[0.06] bg-white/[0.02]">
-            <UIcon name="i-lucide-store" class="text-white/10 w-6 h-6 mx-auto mb-3" />
-            <p class="text-white/20 text-sm">Nenhum restaurante encontrado</p>
-          </div>
+      <nav class="flex-1 p-2.5">
+        <p class="text-[9px] font-black uppercase tracking-widest text-white/20 px-2.5 py-2 mt-1">Gestão</p>
+        <div class="flex items-center gap-2.5 px-2.5 py-2 rounded-lg bg-violet-600/10 border border-violet-500/[0.12]">
+          <UIcon name="i-lucide-store" class="size-3.5 text-violet-400 shrink-0" />
+          <span class="text-sm font-semibold text-white/90 flex-1 truncate">Restaurantes</span>
+          <UBadge v-if="tenants.length" color="violet" variant="soft" size="xs" class="font-black tabular-nums shrink-0">{{ tenants.length }}</UBadge>
+        </div>
+      </nav>
 
-          <div v-else class="rounded-2xl border border-white/[0.06] overflow-hidden divide-y divide-white/[0.04]">
-            <div
-              v-for="tenant in tenantsFiltrados"
-              :key="tenant.id"
-              class="flex items-center gap-3 px-4 py-3.5 bg-white/[0.01] hover:bg-white/[0.03] transition-colors group"
-            >
-              <!-- Avatar -->
-              <UAvatar
-                :alt="tenant.nome"
+      <div class="p-2.5 border-t border-white/[0.05] shrink-0">
+        <div class="flex items-center gap-2.5 px-2.5 py-2 rounded-lg">
+          <UAvatar :alt="platformAuth.user?.nome" size="xs"
+            :ui="{ background: 'bg-violet-500/20', text: 'text-violet-300 text-[9px] font-black' }"
+            class="shrink-0"
+          />
+          <div class="flex-1 min-w-0">
+            <p class="text-xs font-semibold text-white/75 truncate">{{ platformAuth.user?.nome }}</p>
+            <p class="text-[10px] text-white/30 truncate">Super Administrador</p>
+          </div>
+          <UButton icon="i-lucide-log-out" color="red" variant="ghost" size="xs" square title="Sair"
+            :ui="{ rounded: 'rounded-md' }" @click="handleLogout" />
+        </div>
+      </div>
+    </aside>
+
+    <!-- ══ ÁREA PRINCIPAL ══ -->
+    <div class="flex-1 flex flex-col min-w-0">
+
+      <!-- Topbar mobile -->
+      <header class="lg:hidden sticky top-0 z-30 h-14 flex items-center justify-between px-4 border-b border-white/[0.05] shrink-0"
+        style="background: rgba(9,9,14,0.92); backdrop-filter: blur(16px);">
+        <div class="flex items-center gap-2.5">
+          <div class="size-7 rounded-lg bg-violet-600 flex items-center justify-center">
+            <UIcon name="i-lucide-globe" class="text-white size-3.5" />
+          </div>
+          <span class="text-sm font-black text-white">Plataforma</span>
+        </div>
+        <div class="flex items-center gap-2">
+          <span class="text-xs text-white/35">{{ platformAuth.user?.nome }}</span>
+          <UButton icon="i-lucide-log-out" color="red" variant="ghost" size="xs" square @click="handleLogout" />
+        </div>
+      </header>
+
+      <!-- Conteúdo -->
+      <main class="flex-1 p-6 lg:p-8 space-y-6 w-full max-w-5xl">
+
+        <!-- LOADING -->
+        <div v-if="loading" class="flex items-center justify-center py-40">
+          <div class="flex flex-col items-center gap-3">
+            <UIcon name="i-lucide-loader-2" class="animate-spin text-violet-500 size-6" />
+            <p class="text-[10px] font-black uppercase tracking-widest text-white/25">Carregando</p>
+          </div>
+        </div>
+
+        <template v-else>
+
+          <!-- PAGE HEADER -->
+          <div class="flex items-start justify-between gap-4">
+            <div>
+              <h1 class="text-2xl font-black text-white tracking-tight text-balance">Restaurantes</h1>
+              <p class="text-sm text-white/35 mt-1 text-pretty">
+                <span class="tabular-nums font-medium text-white/50">{{ dashboard?.totais?.ativos ?? 0 }}</span> ativos
+                <template v-if="(dashboard?.totais?.suspensos ?? 0) > 0">
+                  · <span class="text-amber-400/90 font-semibold tabular-nums">{{ dashboard?.totais?.suspensos }} suspensos</span>
+                </template>
+                <template v-if="(dashboard?.alertas?.length ?? 0) > 0">
+                  · <span class="text-red-400/90 font-semibold tabular-nums">{{ dashboard?.alertas?.length }} {{ dashboard!.alertas.length === 1 ? 'alerta' : 'alertas' }}</span>
+                </template>
+              </p>
+            </div>
+            <div class="flex items-center gap-2 shrink-0 pt-0.5">
+              <UInput
+                v-model="busca"
+                icon="i-lucide-search"
+                placeholder="Buscar…"
                 size="sm"
-                :ui="{ background: avatarColor(tenant.nome), text: 'font-black text-sm' }"
+                :ui="{ rounded: 'rounded-xl', base: 'w-36 sm:w-48 bg-white/[0.04] border-white/[0.07] text-white/80 placeholder:text-white/15', icon: { base: 'text-white/25' } }"
               />
+              <UButton icon="i-lucide-plus" color="violet" size="sm"
+                :ui="{ rounded: 'rounded-xl', font: 'font-black' }"
+                class="shadow-lg shadow-violet-500/20"
+                @click="abrirModal(null)"
+              >Novo</UButton>
+            </div>
+          </div>
 
-              <!-- Info -->
-              <NuxtLink :to="`/platform/tenants/${tenant.id}`" class="flex-1 min-w-0 cursor-pointer">
-                <div class="flex items-center gap-2 flex-wrap">
-                  <span class="text-sm font-bold text-white/90 group-hover:text-violet-300 transition-colors truncate">{{ tenant.nome }}</span>
-                  <span class="w-1.5 h-1.5 rounded-full shrink-0" :class="statusDot(tenant.status)"></span>
+          <!-- MÉTRICAS -->
+          <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
+            <div
+              v-for="metric in metrics" :key="metric.label"
+              :class="['rounded-xl border p-4 space-y-2.5 transition-colors', metric.cardClass]"
+            >
+              <div class="flex items-center justify-between gap-2">
+                <span :class="['text-[10px] font-black uppercase tracking-widest leading-none', metric.subClass]">{{ metric.label }}</span>
+                <div :class="['size-6 rounded-md flex items-center justify-center shrink-0', metric.iconBgClass]">
+                  <UIcon :name="metric.icon" :class="['size-3', metric.iconClass]" />
                 </div>
-                <div class="flex items-center gap-2 mt-0.5 flex-wrap">
-                  <span class="text-white/25 text-[10px] font-mono">{{ tenant.slug }}</span>
-                  <UBadge
-                    v-if="tenant.licencas?.[0]"
-                    :color="licencaBadgeColor(tenant.licencas[0].status)"
-                    variant="soft"
-                    size="xs"
-                    class="font-black"
-                  >
+              </div>
+              <p :class="['text-2xl font-black leading-none tabular-nums truncate', metric.valueClass]">{{ metric.value }}</p>
+            </div>
+          </div>
+
+          <!-- ALERTAS -->
+          <div v-if="dashboard?.alertas?.length" class="rounded-xl border border-amber-500/15 bg-amber-500/[0.025] overflow-hidden">
+            <div class="flex items-center gap-2 px-4 py-2.5 border-b border-amber-500/10">
+              <span class="size-1.5 rounded-full bg-amber-400 animate-pulse shrink-0"></span>
+              <p class="text-[10px] font-black uppercase tracking-widest text-amber-400/70 flex-1">Atenção necessária</p>
+              <UBadge color="amber" variant="soft" size="xs" class="font-black tabular-nums">{{ dashboard.alertas.length }}</UBadge>
+            </div>
+            <NuxtLink
+              v-for="(a, i) in dashboard.alertas" :key="a.tenant_id"
+              :to="`/platform/tenants/${a.tenant_id}`"
+              class="flex items-center gap-3 px-4 py-2.5 hover:bg-white/[0.03] transition-colors group/alert"
+              :class="i < dashboard.alertas.length - 1 ? 'border-b border-amber-500/[0.07]' : ''"
+            >
+              <UIcon :name="alertaStyle(a.tipo).icon" :class="['size-3.5 shrink-0', alertaStyle(a.tipo).icon_color]" />
+              <span class="text-xs font-semibold text-white/80">{{ a.nome }}</span>
+              <span class="text-xs text-white/40 flex-1">{{ alertaDescricao(a) }}</span>
+              <UIcon name="i-lucide-chevron-right" class="size-3.5 text-white/15 group-hover/alert:text-white/40 transition-colors shrink-0" />
+            </NuxtLink>
+          </div>
+
+          <!-- TABELA DE TENANTS -->
+          <div class="rounded-xl border border-white/[0.06] overflow-hidden">
+
+            <!-- Cabeçalho das colunas -->
+            <div class="grid grid-cols-[1fr_auto] md:grid-cols-[1fr_136px_112px_104px] items-center px-4 py-2.5 bg-white/[0.025] border-b border-white/[0.05]">
+              <span class="text-[10px] font-black uppercase tracking-widest text-white/20">Restaurante</span>
+              <span class="hidden md:block text-[10px] font-black uppercase tracking-widest text-white/20 text-center">Licença</span>
+              <span class="hidden md:block text-[10px] font-black uppercase tracking-widest text-white/20 text-center">Plano</span>
+              <span class="text-[10px] font-black uppercase tracking-widest text-white/20 text-right">Ações</span>
+            </div>
+
+            <!-- Erro -->
+            <div v-if="erro" class="flex flex-col items-center text-center py-14">
+              <div class="size-11 rounded-2xl bg-red-500/[0.08] border border-red-500/15 flex items-center justify-center mb-4">
+                <UIcon name="i-lucide-alert-circle" class="text-red-400 size-5" />
+              </div>
+              <p class="text-white/40 text-sm font-semibold mb-3">{{ erro }}</p>
+              <UButton color="violet" variant="soft" size="sm" :ui="{ rounded: 'rounded-lg' }" @click="carregar">Tentar novamente</UButton>
+            </div>
+
+            <!-- Vazio -->
+            <div v-else-if="!tenantsFiltrados.length" class="flex flex-col items-center text-center py-14">
+              <div class="size-11 rounded-2xl bg-white/[0.04] border border-white/[0.06] flex items-center justify-center mb-4">
+                <UIcon name="i-lucide-store" class="text-white/20 size-5" />
+              </div>
+              <p class="text-white/30 text-sm">Nenhum restaurante encontrado</p>
+            </div>
+
+            <!-- Linhas -->
+            <div v-else class="divide-y divide-white/[0.04]">
+              <div
+                v-for="tenant in tenantsFiltrados" :key="tenant.id"
+                class="grid grid-cols-[1fr_auto] md:grid-cols-[1fr_136px_112px_104px] items-center px-4 py-3 hover:bg-white/[0.02] transition-colors group"
+              >
+                <!-- Nome -->
+                <NuxtLink :to="`/platform/tenants/${tenant.id}`" class="flex items-center gap-3 min-w-0">
+                  <UAvatar :alt="tenant.nome" size="sm"
+                    :ui="{ background: avatarColor(tenant.nome), text: 'font-black' }"
+                    class="shrink-0"
+                  />
+                  <div class="min-w-0">
+                    <div class="flex items-center gap-1.5">
+                      <span class="text-sm font-semibold text-white/90 group-hover:text-violet-300 transition-colors truncate">{{ tenant.nome }}</span>
+                      <span class="size-1.5 rounded-full shrink-0" :class="statusDot(tenant.status)"></span>
+                    </div>
+                    <div class="flex items-center gap-1.5 mt-0.5">
+                      <span class="text-white/25 text-[10px] font-mono truncate">{{ tenant.slug }}</span>
+                      <UIcon v-if="tenant.rfid_disponivel" name="i-lucide-credit-card" class="size-2.5 text-violet-400/60 shrink-0" title="RFID ativado" />
+                      <UIcon v-if="tenant.venda_mobile_permitida" name="i-lucide-smartphone" class="size-2.5 text-sky-400/60 shrink-0" title="Celular ativado" />
+                    </div>
+                  </div>
+                </NuxtLink>
+
+                <!-- Licença -->
+                <div class="hidden md:flex justify-center">
+                  <UBadge v-if="tenant.licencas?.[0]" :color="licencaBadgeColor(tenant.licencas[0].status)" variant="soft" size="xs" class="font-semibold">
                     {{ licencaLabel(tenant.licencas[0]) }}
                   </UBadge>
-                  <UBadge
-                    v-if="tenant.contratos?.[0]"
-                    color="indigo"
-                    variant="soft"
-                    size="xs"
-                    class="font-black"
-                  >
+                  <span v-else class="text-white/15 text-xs">—</span>
+                </div>
+
+                <!-- Plano -->
+                <div class="hidden md:flex justify-center">
+                  <UBadge v-if="tenant.contratos?.[0]" color="indigo" variant="soft" size="xs" class="font-semibold">
                     {{ tenant.contratos[0].plano }}
                   </UBadge>
+                  <span v-else class="text-white/15 text-xs">—</span>
                 </div>
-              </NuxtLink>
 
-              <!-- Feature pills -->
-              <div class="hidden sm:flex items-center gap-1 shrink-0">
-                <UBadge
-                  :color="tenant.rfid_disponivel ? 'violet' : 'gray'"
-                  :variant="tenant.rfid_disponivel ? 'soft' : 'outline'"
-                  size="xs"
-                  class="gap-1 font-black"
-                >
-                  <UIcon name="i-lucide-credit-card" class="w-2.5 h-2.5" /> RFID
-                </UBadge>
-                <UBadge
-                  :color="tenant.venda_mobile_permitida ? 'sky' : 'gray'"
-                  :variant="tenant.venda_mobile_permitida ? 'soft' : 'outline'"
-                  size="xs"
-                  class="gap-1 font-black"
-                >
-                  <UIcon name="i-lucide-smartphone" class="w-2.5 h-2.5" /> Celular
-                </UBadge>
-              </div>
-
-              <!-- Ações -->
-              <div class="flex items-center gap-1.5 shrink-0">
-                <UButton
-                  :icon="togglingId === tenant.id ? 'i-lucide-loader-2' : 'i-lucide-credit-card'"
-                  :color="tenant.rfid_disponivel ? 'violet' : 'gray'"
-                  variant="soft"
-                  size="xs"
-                  square
-                  :loading="togglingId === tenant.id"
-                  :ui="{ rounded: 'rounded-lg', font: 'font-black text-[10px]' }"
-                  title="Alternar RFID"
-                  @click="toggleRfid(tenant)"
-                />
-
-                <UButton
-                  :icon="tenant.status === 'ativo' ? 'i-lucide-toggle-right' : 'i-lucide-toggle-left'"
-                  :color="tenant.status === 'ativo' ? 'green' : 'amber'"
-                  variant="soft"
-                  size="xs"
-                  :ui="{ rounded: 'rounded-lg', font: 'font-black text-[10px]' }"
-                  :title="tenant.status === 'ativo' ? 'Suspender' : 'Reativar'"
-                  @click="toggleStatus(tenant)"
-                >
-                  {{ tenant.status === 'ativo' ? 'Ativo' : 'Suspenso' }}
-                </UButton>
-
-                <UButton
-                  :to="`/platform/tenants/${tenant.id}`"
-                  icon="i-lucide-chevron-right"
-                  color="gray"
-                  variant="ghost"
-                  size="xs"
-                  :ui="{ rounded: 'rounded-lg', font: 'font-black text-[10px]' }"
-                >
-                  Abrir
-                </UButton>
+                <!-- Ações -->
+                <div class="flex items-center gap-1 justify-end">
+                  <UButton
+                    :icon="togglingId === tenant.id ? 'i-lucide-loader-2' : 'i-lucide-credit-card'"
+                    :color="tenant.rfid_disponivel ? 'violet' : 'gray'"
+                    variant="ghost" size="xs" square
+                    :loading="togglingId === tenant.id"
+                    :ui="{ rounded: 'rounded-lg' }"
+                    :title="tenant.rfid_disponivel ? 'Desativar RFID' : 'Ativar RFID'"
+                    @click="toggleRfid(tenant)"
+                  />
+                  <UButton
+                    :icon="tenant.status === 'ativo' ? 'i-lucide-pause-circle' : 'i-lucide-play-circle'"
+                    :color="tenant.status === 'ativo' ? 'green' : 'amber'"
+                    variant="ghost" size="xs" square
+                    :ui="{ rounded: 'rounded-lg' }"
+                    :title="tenant.status === 'ativo' ? 'Suspender' : 'Reativar'"
+                    @click="toggleStatus(tenant)"
+                  />
+                  <UButton :to="`/platform/tenants/${tenant.id}`" icon="i-lucide-arrow-right" color="gray" variant="ghost" size="xs" square :ui="{ rounded: 'rounded-lg' }" title="Abrir" />
+                </div>
               </div>
             </div>
           </div>
-        </div>
 
-        <!-- RODAPÉ: RECEITA + FEATURES -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
-          <UCard :ui="{ ring: '', divide: 'divide-white/[0.05]', background: 'bg-white/[0.015]', body: { padding: 'p-4' }, header: { padding: 'px-4 pt-4 pb-0' } }">
-            <template #header>
-              <div class="flex items-center justify-between">
+          <!-- RECEITA + FEATURES -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 pb-8">
+
+            <div class="rounded-xl border border-white/[0.06] bg-white/[0.01] p-5">
+              <div class="flex items-center justify-between mb-5">
                 <div class="flex items-center gap-2">
-                  <UIcon name="i-lucide-trending-up" class="text-emerald-400 w-3 h-3" />
-                  <span class="text-[10px] font-black text-white/40 uppercase tracking-widest">Receita por plano</span>
+                  <div class="size-6 rounded-md bg-emerald-500/10 flex items-center justify-center">
+                    <UIcon name="i-lucide-trending-up" class="text-emerald-400 size-3" />
+                  </div>
+                  <span class="text-[10px] font-black uppercase tracking-widest text-white/35">Receita por plano</span>
                 </div>
-                <span class="text-xs font-black text-emerald-400 tabular-nums">
-                  {{ formatCurrency(dashboard?.financeiro?.mrr ?? 0) }}<span class="text-white/20 text-[10px] font-normal">/mês</span>
+                <span class="text-sm font-black text-emerald-400 tabular-nums">
+                  {{ formatCurrency(dashboard?.financeiro?.mrr ?? 0) }}<span class="text-white/20 text-[10px] font-normal ml-0.5">/mês</span>
                 </span>
               </div>
-            </template>
-            <div v-if="dashboard?.financeiro?.por_plano?.length" class="space-y-3 mt-4">
-              <div v-for="p in dashboard.financeiro.por_plano" :key="p.plano">
-                <div class="flex items-center justify-between mb-1">
-                  <div class="flex items-center gap-1.5">
-                    <span class="text-xs font-bold text-white/70">{{ p.plano }}</span>
-                    <UBadge color="gray" variant="soft" size="xs" class="font-black">{{ p.count }}x</UBadge>
+              <div v-if="dashboard?.financeiro?.por_plano?.length" class="space-y-3.5">
+                <div v-for="p in dashboard.financeiro.por_plano" :key="p.plano">
+                  <div class="flex items-center justify-between mb-1.5">
+                    <div class="flex items-center gap-1.5">
+                      <span class="text-xs font-semibold text-white/60">{{ p.plano }}</span>
+                      <UBadge color="gray" variant="soft" size="xs" class="font-black tabular-nums">{{ p.count }}x</UBadge>
+                    </div>
+                    <span class="text-xs font-black text-emerald-400 tabular-nums">{{ formatCurrency(p.mrr) }}</span>
                   </div>
-                  <span class="text-xs font-black text-emerald-400 tabular-nums">{{ formatCurrency(p.mrr) }}</span>
+                  <UProgress :value="maxMrr > 0 ? (p.mrr / maxMrr) * 100 : 0" color="green" size="xs" :ui="{ progress: { rounded: 'rounded-full' }, background: 'bg-white/[0.05]' }" />
                 </div>
-                <UProgress
-                  :value="maxMrr > 0 ? (p.mrr / maxMrr) * 100 : 0"
-                  color="green"
-                  size="xs"
-                  :ui="{ progress: { rounded: 'rounded-full' }, background: 'bg-white/[0.05]' }"
-                />
+              </div>
+              <p v-else class="text-xs text-white/15 text-center py-4">Nenhum contrato ativo</p>
+            </div>
+
+            <div class="rounded-xl border border-white/[0.06] bg-white/[0.01] p-5">
+              <div class="flex items-center gap-2 mb-5">
+                <div class="size-6 rounded-md bg-white/[0.05] flex items-center justify-center">
+                  <UIcon name="i-lucide-zap" class="text-white/35 size-3" />
+                </div>
+                <span class="text-[10px] font-black uppercase tracking-widest text-white/35">Recursos habilitados</span>
+              </div>
+              <div class="space-y-3.5">
+                <div class="flex items-center gap-3">
+                  <div class="flex items-center gap-2 w-20 shrink-0">
+                    <UIcon name="i-lucide-credit-card" class="text-violet-400 size-3.5 shrink-0" />
+                    <span class="text-xs font-semibold text-white/60">RFID</span>
+                  </div>
+                  <UProgress :value="tenants.length ? (tenants.filter(t => t.rfid_disponivel).length / tenants.length) * 100 : 0" color="violet" size="xs" class="flex-1" :ui="{ background: 'bg-white/[0.05]' }" />
+                  <span class="text-xs font-black text-violet-400 tabular-nums shrink-0 w-10 text-right">{{ tenants.filter(t => t.rfid_disponivel).length }}<span class="text-white/20 font-normal">/{{ tenants.length }}</span></span>
+                </div>
+                <div class="flex items-center gap-3">
+                  <div class="flex items-center gap-2 w-20 shrink-0">
+                    <UIcon name="i-lucide-smartphone" class="text-sky-400 size-3.5 shrink-0" />
+                    <span class="text-xs font-semibold text-white/60">Celular</span>
+                  </div>
+                  <UProgress :value="tenants.length ? (tenants.filter(t => t.venda_mobile_permitida).length / tenants.length) * 100 : 0" color="sky" size="xs" class="flex-1" :ui="{ background: 'bg-white/[0.05]' }" />
+                  <span class="text-xs font-black text-sky-400 tabular-nums shrink-0 w-10 text-right">{{ tenants.filter(t => t.venda_mobile_permitida).length }}<span class="text-white/20 font-normal">/{{ tenants.length }}</span></span>
+                </div>
+              </div>
+              <div class="mt-5 pt-4 border-t border-white/[0.05] flex justify-between items-center">
+                <span class="text-xs text-white/25">Receita anual</span>
+                <span class="text-sm font-black text-white/40 tabular-nums">{{ formatCurrency(dashboard?.financeiro?.arr ?? 0) }}</span>
               </div>
             </div>
-            <p v-else class="text-[11px] text-white/15 text-center py-4 mt-4">Nenhum contrato ativo</p>
-          </UCard>
 
-          <UCard :ui="{ ring: '', divide: 'divide-white/[0.05]', background: 'bg-white/[0.015]', body: { padding: 'p-4' }, header: { padding: 'px-4 pt-4 pb-0' } }">
-            <template #header>
-              <div class="flex items-center gap-2">
-                <UIcon name="i-lucide-zap" class="text-white/30 w-3 h-3" />
-                <span class="text-[10px] font-black text-white/40 uppercase tracking-widest">Recursos habilitados</span>
-              </div>
-            </template>
-            <div class="space-y-2.5 mt-4">
-              <div class="flex items-center justify-between">
-                <div class="flex items-center gap-2">
-                  <UIcon name="i-lucide-credit-card" class="text-violet-400 w-3.5 h-3.5" />
-                  <span class="text-xs font-bold text-white/70">RFID</span>
-                </div>
-                <div class="flex items-center gap-2">
-                  <UProgress
-                    :value="tenants.length ? (tenants.filter(t => t.rfid_disponivel).length / tenants.length) * 100 : 0"
-                    color="violet"
-                    size="xs"
-                    class="w-24"
-                    :ui="{ background: 'bg-white/[0.05]' }"
-                  />
-                  <span class="text-xs font-black text-violet-400 w-6 text-right tabular-nums">{{ tenants.filter(t => t.rfid_disponivel).length }}</span>
-                  <span class="text-[10px] text-white/20 tabular-nums">/ {{ tenants.length }}</span>
-                </div>
-              </div>
-              <div class="flex items-center justify-between">
-                <div class="flex items-center gap-2">
-                  <UIcon name="i-lucide-smartphone" class="text-sky-400 w-3.5 h-3.5" />
-                  <span class="text-xs font-bold text-white/70">Celular</span>
-                </div>
-                <div class="flex items-center gap-2">
-                  <UProgress
-                    :value="tenants.length ? (tenants.filter(t => t.venda_mobile_permitida).length / tenants.length) * 100 : 0"
-                    color="sky"
-                    size="xs"
-                    class="w-24"
-                    :ui="{ background: 'bg-white/[0.05]' }"
-                  />
-                  <span class="text-xs font-black text-sky-400 w-6 text-right tabular-nums">{{ tenants.filter(t => t.venda_mobile_permitida).length }}</span>
-                  <span class="text-[10px] text-white/20 tabular-nums">/ {{ tenants.length }}</span>
-                </div>
-              </div>
-              <div class="pt-2 border-t border-white/[0.05] flex justify-between text-[10px] text-white/20">
-                <span>Receita anual</span>
-                <span class="font-black text-white/35 tabular-nums">{{ formatCurrency(dashboard?.financeiro?.arr ?? 0) }}</span>
-              </div>
-            </div>
-          </UCard>
-        </div>
+          </div>
 
-      </template>
-    </main>
+        </template>
+      </main>
+    </div>
 
     <!-- ══ MODAL CRIAR / EDITAR ══ -->
     <UModal v-model="modalAberto" :ui="{ container: 'items-start pt-12', width: 'max-w-xl', background: 'bg-[#111118]', ring: 'ring-1 ring-white/[0.09]', rounded: 'rounded-2xl' }">
@@ -349,17 +320,14 @@
         <!-- Abas -->
         <div class="flex gap-1 px-5 pt-4 border-b border-white/[0.05] pb-3">
           <UButton
-            v-for="aba in abas"
-            :key="aba.id"
+            v-for="aba in abas" :key="aba.id"
             :icon="aba.icon"
             :color="abaAtiva === aba.id ? 'violet' : 'gray'"
             :variant="abaAtiva === aba.id ? 'solid' : 'ghost'"
             size="xs"
             :ui="{ rounded: 'rounded-lg', font: 'font-black text-[11px]' }"
             @click="abaAtiva = aba.id"
-          >
-            {{ aba.label }}
-          </UButton>
+          >{{ aba.label }}</UButton>
         </div>
 
         <!-- ABA DADOS -->
@@ -426,17 +394,13 @@
               <label class="label-field mb-2">Status</label>
               <div class="flex gap-2">
                 <UButton
-                  v-for="s in licencaStatuses"
-                  :key="s.value"
+                  v-for="s in licencaStatuses" :key="s.value"
                   :color="licencaForm.status === s.value ? s.color : 'gray'"
                   :variant="licencaForm.status === s.value ? 'soft' : 'ghost'"
-                  size="sm"
-                  class="flex-1"
+                  size="sm" class="flex-1"
                   :ui="{ rounded: 'rounded-xl', font: 'font-black text-xs' }"
                   @click="licencaForm.status = s.value"
-                >
-                  {{ s.label }}
-                </UButton>
+                >{{ s.label }}</UButton>
               </div>
             </div>
             <div class="grid grid-cols-2 gap-3">
@@ -461,16 +425,13 @@
             <label class="label-field">Plano *</label>
             <div class="flex gap-1.5 mb-2 flex-wrap">
               <UButton
-                v-for="p in planosPredef"
-                :key="p"
+                v-for="p in planosPredef" :key="p"
                 :color="contratoForm.plano === p ? 'violet' : 'gray'"
                 :variant="contratoForm.plano === p ? 'solid' : 'ghost'"
                 size="xs"
                 :ui="{ rounded: 'rounded-lg', font: 'font-bold text-xs' }"
                 @click="contratoForm.plano = p"
-              >
-                {{ p }}
-              </UButton>
+              >{{ p }}</UButton>
             </div>
             <UInput v-model="contratoForm.plano" placeholder="Ou escreva o nome do plano..." size="sm" :ui="{ rounded: 'rounded-xl' }" class="input-dark" />
           </div>
@@ -483,20 +444,8 @@
             <div>
               <label class="label-field">Status</label>
               <div class="flex gap-1.5 mt-0.5">
-                <UButton
-                  :color="contratoForm.status === 'trial' ? 'sky' : 'gray'"
-                  :variant="contratoForm.status === 'trial' ? 'soft' : 'ghost'"
-                  size="sm" class="flex-1"
-                  :ui="{ rounded: 'rounded-xl', font: 'font-black text-xs' }"
-                  @click="contratoForm.status = 'trial'"
-                >Teste</UButton>
-                <UButton
-                  :color="contratoForm.status === 'ativo' ? 'green' : 'gray'"
-                  :variant="contratoForm.status === 'ativo' ? 'soft' : 'ghost'"
-                  size="sm" class="flex-1"
-                  :ui="{ rounded: 'rounded-xl', font: 'font-black text-xs' }"
-                  @click="contratoForm.status = 'ativo'"
-                >Ativo</UButton>
+                <UButton :color="contratoForm.status === 'trial' ? 'sky' : 'gray'" :variant="contratoForm.status === 'trial' ? 'soft' : 'ghost'" size="sm" class="flex-1" :ui="{ rounded: 'rounded-xl', font: 'font-black text-xs' }" @click="contratoForm.status = 'trial'">Teste</UButton>
+                <UButton :color="contratoForm.status === 'ativo' ? 'green' : 'gray'" :variant="contratoForm.status === 'ativo' ? 'soft' : 'ghost'" size="sm" class="flex-1" :ui="{ rounded: 'rounded-xl', font: 'font-black text-xs' }" @click="contratoForm.status = 'ativo'">Ativo</UButton>
               </div>
             </div>
           </div>
@@ -505,16 +454,13 @@
             <label class="label-field">Ciclo de cobrança</label>
             <div class="grid grid-cols-4 gap-1.5">
               <UButton
-                v-for="c in ciclos"
-                :key="c.value"
+                v-for="c in ciclos" :key="c.value"
                 :color="contratoForm.ciclo === c.value ? 'violet' : 'gray'"
                 :variant="contratoForm.ciclo === c.value ? 'solid' : 'ghost'"
                 size="xs"
                 :ui="{ rounded: 'rounded-xl', font: 'font-black text-xs' }"
                 @click="contratoForm.ciclo = c.value as any"
-              >
-                {{ c.label }}
-              </UButton>
+              >{{ c.label }}</UButton>
             </div>
           </div>
 
@@ -536,16 +482,8 @@
 
         <template #footer>
           <div class="flex gap-2">
-            <UButton color="gray" variant="ghost" block :ui="{ rounded: 'rounded-xl', font: 'font-black' }" @click="fecharModal">
-              Cancelar
-            </UButton>
-            <UButton
-              color="violet"
-              block
-              :loading="salvando"
-              :ui="{ rounded: 'rounded-xl', font: 'font-black' }"
-              @click="salvar"
-            >
+            <UButton color="gray" variant="ghost" block :ui="{ rounded: 'rounded-xl', font: 'font-black' }" @click="fecharModal">Cancelar</UButton>
+            <UButton color="violet" block :loading="salvando" :ui="{ rounded: 'rounded-xl', font: 'font-black' }" @click="salvar">
               {{ salvando ? 'Salvando...' : (form.id ? 'Salvar' : 'Criar restaurante') }}
             </UButton>
           </div>
@@ -573,23 +511,17 @@
         <template #footer>
           <div class="flex gap-2">
             <UButton color="gray" variant="ghost" block :ui="{ rounded: 'rounded-xl', font: 'font-black text-xs' }"
-              @click="confirmDialog.resolve?.(false); confirmDialog.show = false">
-              Cancelar
-            </UButton>
+              @click="confirmDialog.resolve?.(false); confirmDialog.show = false">Cancelar</UButton>
             <UButton
               :color="confirmDialog.type === 'danger' ? 'red' : 'green'"
-              block
-              :ui="{ rounded: 'rounded-xl', font: 'font-black text-xs' }"
+              block :ui="{ rounded: 'rounded-xl', font: 'font-black text-xs' }"
               @click="confirmDialog.resolve?.(true); confirmDialog.show = false"
-            >
-              Confirmar
-            </UButton>
+            >Confirmar</UButton>
           </div>
         </template>
       </UCard>
     </UModal>
 
-    <!-- Toast via Nuxt UI -->
     <UNotifications />
   </div>
 </template>
@@ -659,17 +591,17 @@ const features = [
 ]
 const planosPredef = ['Básico', 'Profissional', 'Enterprise']
 const ciclos = [
-  { value: 'mensal',      label: 'Mensal'  },
-  { value: 'trimestral',  label: 'Trim.'   },
-  { value: 'semestral',   label: 'Semes.'  },
-  { value: 'anual',       label: 'Anual'   },
+  { value: 'mensal',     label: 'Mensal'  },
+  { value: 'trimestral', label: 'Trim.'   },
+  { value: 'semestral',  label: 'Semes.'  },
+  { value: 'anual',      label: 'Anual'   },
 ]
 const form = reactive({ id: null as string | null, nome: '', slug: '', cnpj: '', responsavel: '', contato: '', telefone: '', endereco: '', observacoes: '', vendaMobilePermitida: true, rfidDisponivel: false })
 const licencaForm  = reactive({ status: 'pendente', dataAtivacao: '', dataVencimento: '' })
 const contratoForm = reactive({ plano: '', valor: '', ciclo: 'mensal' as 'mensal' | 'trimestral' | 'semestral' | 'anual', dataInicio: '', status: 'ativo' as 'trial' | 'ativo' })
 
-const baseUrl  = computed(() => (runtimeConfig.public as any).apiUrl as string)
-const maxMrr   = computed(() => Math.max(...(dashboard.value?.financeiro?.por_plano?.map(p => p.mrr) ?? [0]), 0))
+const baseUrl = computed(() => (runtimeConfig.public as any).apiUrl as string)
+const maxMrr  = computed(() => Math.max(...(dashboard.value?.financeiro?.por_plano?.map(p => p.mrr) ?? [0]), 0))
 
 const tenantsFiltrados = computed(() => {
   const q = busca.value.toLowerCase().trim()
@@ -678,36 +610,46 @@ const tenantsFiltrados = computed(() => {
 })
 
 const metrics = computed(() => {
-  const vencidas = dashboard.value?.licencas?.vencidas ?? 0
-  const vencendo = dashboard.value?.licencas?.vencendo ?? 0
-  const totalVenc = vencidas + vencendo
+  const vencidas   = dashboard.value?.licencas?.vencidas ?? 0
+  const vencendo   = dashboard.value?.licencas?.vencendo ?? 0
+  const totalVenc  = vencidas + vencendo
+  const bloqueadas = dashboard.value?.licencas?.bloqueadas ?? 0
   return [
     {
-      icon: 'i-lucide-store', value: dashboard.value?.totais?.tenants ?? tenants.value.length,
-      label: 'Restaurantes', iconClass: 'text-white/20', valueClass: 'text-white', subClass: 'text-white/30',
-      cardClass: 'border border-white/[0.06] bg-white/[0.02]',
+      icon: 'i-lucide-store',
+      value: dashboard.value?.totais?.tenants ?? tenants.value.length,
+      label: 'Restaurantes',
+      iconClass: 'text-white/40', iconBgClass: 'bg-white/[0.06]',
+      valueClass: 'text-white', subClass: 'text-white/30',
+      cardClass: 'border-white/[0.06] bg-white/[0.015]',
     },
     {
-      icon: 'i-lucide-trending-up', value: formatCurrency(dashboard.value?.financeiro?.mrr ?? 0),
-      label: 'Receita mensal', iconClass: 'text-emerald-400', valueClass: 'text-emerald-400', subClass: 'text-emerald-400/50',
-      cardClass: 'border border-emerald-500/20 bg-emerald-500/[0.04]',
+      icon: 'i-lucide-trending-up',
+      value: formatCurrency(dashboard.value?.financeiro?.mrr ?? 0),
+      label: 'Receita mensal',
+      iconClass: 'text-emerald-400', iconBgClass: 'bg-emerald-500/10',
+      valueClass: 'text-emerald-400', subClass: 'text-emerald-400/60',
+      cardClass: 'border-emerald-500/20 bg-emerald-500/[0.03]',
     },
     {
       icon: 'i-lucide-key-round',
       value: dashboard.value?.licencas?.ativas ?? 0,
-      label: (dashboard.value?.licencas?.bloqueadas ?? 0) > 0 ? `${dashboard.value?.licencas?.bloqueadas} bloqueada(s)` : 'Licenças ativas',
-      iconClass: 'text-white/20',
+      label: bloqueadas > 0 ? `${bloqueadas} bloqueada(s)` : 'Licenças ativas',
+      iconClass: bloqueadas > 0 ? 'text-red-400' : 'text-white/40',
+      iconBgClass: bloqueadas > 0 ? 'bg-red-500/10' : 'bg-white/[0.06]',
       valueClass: 'text-white',
-      subClass: (dashboard.value?.licencas?.bloqueadas ?? 0) > 0 ? 'text-red-400' : 'text-white/30',
-      cardClass: (dashboard.value?.licencas?.bloqueadas ?? 0) > 0 ? 'border border-red-500/20 bg-white/[0.02]' : 'border border-white/[0.06] bg-white/[0.02]',
+      subClass: bloqueadas > 0 ? 'text-red-400' : 'text-white/30',
+      cardClass: bloqueadas > 0 ? 'border-red-500/20 bg-red-500/[0.02]' : 'border-white/[0.06] bg-white/[0.015]',
     },
     {
-      icon: 'i-lucide-clock', value: totalVenc,
-      label: vencidas > 0 ? 'vencidas' : vencendo > 0 ? 'vencendo em 30d' : 'sem vencimentos',
-      iconClass: vencidas > 0 ? 'text-red-400/60' : vencendo > 0 ? 'text-amber-400/60' : 'text-white/30',
-      valueClass: vencidas > 0 ? 'text-red-400' : vencendo > 0 ? 'text-amber-400' : 'text-white',
-      subClass:   vencidas > 0 ? 'text-red-400/60' : vencendo > 0 ? 'text-amber-400/60' : 'text-white/25',
-      cardClass:  vencidas > 0 ? 'border border-red-500/20 bg-red-500/[0.03]' : vencendo > 0 ? 'border border-amber-500/20 bg-amber-500/[0.03]' : 'border border-white/[0.06] bg-white/[0.02]',
+      icon: 'i-lucide-clock',
+      value: totalVenc,
+      label: vencidas > 0 ? 'licenças vencidas' : vencendo > 0 ? 'vencem em 30d' : 'sem vencimentos',
+      iconClass: vencidas > 0 ? 'text-red-400' : vencendo > 0 ? 'text-amber-400' : 'text-white/30',
+      iconBgClass: vencidas > 0 ? 'bg-red-500/10' : vencendo > 0 ? 'bg-amber-500/10' : 'bg-white/[0.06]',
+      valueClass: vencidas > 0 ? 'text-red-400' : vencendo > 0 ? 'text-amber-400' : 'text-white/50',
+      subClass:   vencidas > 0 ? 'text-red-400/70' : vencendo > 0 ? 'text-amber-400/70' : 'text-white/25',
+      cardClass:  vencidas > 0 ? 'border-red-500/20 bg-red-500/[0.02]' : vencendo > 0 ? 'border-amber-500/20 bg-amber-500/[0.02]' : 'border-white/[0.06] bg-white/[0.015]',
     },
   ]
 })

@@ -93,10 +93,13 @@ model Tenant {
   nome                 String
   slug                 String       @unique
   cnpj                 String?      @unique
+  cpfResponsavel       String?      @map("cpf_responsavel")
   contato              String?
   responsavel          String?
   telefone             String?
   endereco             String?
+  cidade               String?
+  uf                   String?
   observacoes          String?
   vendaMobilePermitida Boolean      @default(true) @map("venda_mobile_permitida")
   rfidDisponivel       Boolean      @default(false) @map("rfid_disponivel")

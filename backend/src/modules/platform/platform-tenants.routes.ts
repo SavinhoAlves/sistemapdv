@@ -167,7 +167,7 @@ export async function platformTenantsRoutes(app: FastifyInstance) {
   // POST / — criar tenant (+ licença pendente automática + contrato opcional)
   app.post('/', { preHandler: requirePlatform }, async (request, reply) => {
     const body = request.body as any
-    const { nome, slug, cnpj, responsavel, contato, telefone, endereco, observacoes, vendaMobilePermitida, rfidDisponivel, contrato } = body
+    const { nome, slug, cnpj, cpfResponsavel, responsavel, contato, telefone, endereco, cidade, uf, observacoes, vendaMobilePermitida, rfidDisponivel, contrato } = body
 
     if (typeof nome !== 'string' || !nome.trim()) return reply.status(400).send({ error: 'Nome é obrigatório' })
 
@@ -181,10 +181,13 @@ export async function platformTenantsRoutes(app: FastifyInstance) {
             nome:                 nome.trim(),
             slug:                 finalSlug,
             cnpj:                 typeof cnpj === 'string' ? cnpj.trim() || null : null,
+            cpfResponsavel:       typeof cpfResponsavel === 'string' ? cpfResponsavel.trim() || null : null,
             responsavel:          typeof responsavel === 'string' ? responsavel.trim() || null : null,
             contato:              typeof contato === 'string' ? contato.trim() || null : null,
             telefone:             typeof telefone === 'string' ? telefone.trim() || null : null,
             endereco:             typeof endereco === 'string' ? endereco.trim() || null : null,
+            cidade:               typeof cidade === 'string' ? cidade.trim() || null : null,
+            uf:                   typeof uf === 'string' ? uf.trim().toUpperCase() || null : null,
             observacoes:          typeof observacoes === 'string' ? observacoes.trim() || null : null,
             vendaMobilePermitida: vendaMobilePermitida ?? true,
             rfidDisponivel:       rfidDisponivel ?? false,
@@ -194,12 +197,13 @@ export async function platformTenantsRoutes(app: FastifyInstance) {
         if (typeof contrato?.plano === 'string' && contrato.plano.trim()) {
           await tx.contrato.create({
             data: {
-              tenantId:  t.id,
-              plano:     contrato.plano.trim(),
-              valor:     contrato.valor != null ? contrato.valor : null,
-              ciclo:     contrato.ciclo || 'mensal',
+              tenantId:   t.id,
+              plano:      contrato.plano.trim(),
+              valor:      contrato.valor != null ? contrato.valor : null,
+              ciclo:      contrato.ciclo || 'mensal',
               dataInicio: contrato.dataInicio ? new Date(contrato.dataInicio) : new Date(),
-              status:    contrato.status || 'ativo',
+              dataFim:    contrato.dataFim ? new Date(contrato.dataFim) : null,
+              status:     contrato.status || 'trial',
             },
           })
         }
@@ -219,7 +223,7 @@ export async function platformTenantsRoutes(app: FastifyInstance) {
   app.put('/:id', { preHandler: requirePlatform }, async (request, reply) => {
     const { id } = request.params as { id: string }
     const body = request.body as any
-    const { nome, slug, cnpj, responsavel, contato, telefone, endereco, observacoes, vendaMobilePermitida, rfidDisponivel } = body
+    const { nome, slug, cnpj, cpfResponsavel, responsavel, contato, telefone, endereco, cidade, uf, observacoes, vendaMobilePermitida, rfidDisponivel } = body
 
     if (typeof nome !== 'string' || !nome.trim()) return reply.status(400).send({ error: 'Nome é obrigatório' })
 
@@ -230,10 +234,13 @@ export async function platformTenantsRoutes(app: FastifyInstance) {
           nome:                 nome.trim(),
           ...(typeof slug === 'string' && slug.trim() ? { slug: slug.trim().toLowerCase() } : {}),
           cnpj:                 typeof cnpj === 'string' ? cnpj.trim() || null : null,
+          cpfResponsavel:       typeof cpfResponsavel === 'string' ? cpfResponsavel.trim() || null : null,
           responsavel:          typeof responsavel === 'string' ? responsavel.trim() || null : null,
           contato:              typeof contato === 'string' ? contato.trim() || null : null,
           telefone:             typeof telefone === 'string' ? telefone.trim() || null : null,
           endereco:             typeof endereco === 'string' ? endereco.trim() || null : null,
+          cidade:               typeof cidade === 'string' ? cidade.trim() || null : null,
+          uf:                   typeof uf === 'string' ? uf.trim().toUpperCase() || null : null,
           observacoes:          typeof observacoes === 'string' ? observacoes.trim() || null : null,
           ...(vendaMobilePermitida !== undefined ? { vendaMobilePermitida } : {}),
           ...(rfidDisponivel !== undefined ? { rfidDisponivel } : {}),

@@ -359,17 +359,17 @@
     </div>
 
     <!-- ══ MODAL CRIAR / EDITAR ══ -->
-    <UModal v-model="modalAberto" :ui="{ container: 'items-start pt-12', width: 'max-w-xl', background: 'bg-[#0e0d18]', ring: 'ring-1 ring-white/[0.09]', rounded: 'rounded-2xl' }">
+    <UModal v-model="modalAberto" :ui="{ container: 'items-start pt-8', width: 'max-w-2xl', background: 'bg-[#0e0d18]', ring: 'ring-1 ring-white/[0.09]', rounded: 'rounded-2xl' }">
       <UCard :ui="{ background: 'bg-transparent', ring: '', divide: 'divide-white/[0.07]', header: { padding: 'px-5 py-4' }, body: { padding: 'p-0' }, footer: { padding: 'px-5 pb-5 pt-3' } }">
         <template #header>
           <div class="flex items-center justify-between">
             <div class="flex items-center gap-3">
               <div class="size-9 rounded-xl bg-gradient-to-br from-violet-600 to-violet-900 flex items-center justify-center shrink-0 shadow-lg shadow-violet-900/40">
-                <UIcon name="i-lucide-building-2" class="text-white size-4" />
+                <UIcon name="i-lucide-file-text" class="text-white size-4" />
               </div>
               <div>
-                <h2 class="text-sm font-bold text-white text-balance">{{ form.id ? 'Editar restaurante' : 'Novo restaurante' }}</h2>
-                <p v-if="form.id" class="text-white/25 text-[10px] font-mono">{{ form.slug }}</p>
+                <h2 class="text-sm font-bold text-white text-balance">{{ form.id ? 'Editar restaurante' : 'Cadastrar novo cliente' }}</h2>
+                <p class="text-white/30 text-[10px]">{{ form.id ? form.slug : 'Preencha os dados para gerar o contrato automaticamente' }}</p>
               </div>
             </div>
             <button @click="fecharModal" class="size-7 rounded-xl flex items-center justify-center text-white/30 hover:text-white hover:bg-white/[0.06] transition-colors">
@@ -378,7 +378,8 @@
           </div>
         </template>
 
-        <div class="flex gap-1 px-5 pt-4 border-b border-white/[0.05] pb-3">
+        <!-- ── TABS (apenas para edição) ── -->
+        <div v-if="form.id" class="flex gap-1 px-5 pt-4 border-b border-white/[0.05] pb-3">
           <UButton
             v-for="aba in abas" :key="aba.id"
             :icon="aba.icon"
@@ -390,7 +391,132 @@
           >{{ aba.label }}</UButton>
         </div>
 
-        <div v-if="abaAtiva === 'dados'" class="p-5 space-y-4">
+        <!-- ════ NOVO CADASTRO — form unificado ════ -->
+        <div v-if="!form.id" class="p-5 space-y-5 max-h-[75vh] overflow-y-auto">
+
+          <!-- Seção: Dados do estabelecimento -->
+          <div class="space-y-3">
+            <p class="text-[10px] font-black uppercase tracking-widest text-violet-400/60 flex items-center gap-1.5">
+              <UIcon name="i-lucide-building-2" class="size-3" /> Dados do estabelecimento
+            </p>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div class="sm:col-span-2">
+                <label class="label-field">Nome do restaurante / comércio *</label>
+                <UInput v-model="form.nome" @input="autoSlug" placeholder="Ex: Restaurante Tarantela" size="sm" :ui="{ rounded: 'rounded-xl' }" class="input-dark" />
+              </div>
+              <div>
+                <label class="label-field">Identificador (slug) *</label>
+                <UInput v-model="form.slug" placeholder="ex: tarantela" size="sm" :ui="{ rounded: 'rounded-xl', base: 'font-mono text-xs' }" class="input-dark" />
+                <p class="text-[10px] text-white/20 mt-1">Usado na URL do sistema</p>
+              </div>
+              <div>
+                <label class="label-field">CNPJ ou CPF</label>
+                <UInput v-model="form.cnpj" placeholder="00.000.000/0001-00 ou 000.000.000-00" size="sm" :ui="{ rounded: 'rounded-xl', base: 'font-mono text-xs' }" class="input-dark" />
+              </div>
+              <div>
+                <label class="label-field">E-mail</label>
+                <UInput v-model="form.contato" type="email" placeholder="contato@restaurante.com" size="sm" :ui="{ rounded: 'rounded-xl' }" class="input-dark" />
+              </div>
+              <div>
+                <label class="label-field">Telefone</label>
+                <UInput v-model="form.telefone" placeholder="(62) 9 9999-9999" size="sm" :ui="{ rounded: 'rounded-xl' }" class="input-dark" />
+              </div>
+            </div>
+          </div>
+
+          <!-- Seção: Representante legal -->
+          <div class="space-y-3">
+            <p class="text-[10px] font-black uppercase tracking-widest text-indigo-400/60 flex items-center gap-1.5">
+              <UIcon name="i-lucide-user" class="size-3" /> Representante legal
+            </p>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label class="label-field">Nome do responsável</label>
+                <UInput v-model="form.responsavel" placeholder="Nome completo" size="sm" :ui="{ rounded: 'rounded-xl' }" class="input-dark" />
+              </div>
+              <div>
+                <label class="label-field">CPF do responsável</label>
+                <UInput v-model="form.cpfResponsavel" placeholder="000.000.000-00" size="sm" :ui="{ rounded: 'rounded-xl', base: 'font-mono text-xs' }" class="input-dark" />
+              </div>
+            </div>
+          </div>
+
+          <!-- Seção: Endereço -->
+          <div class="space-y-3">
+            <p class="text-[10px] font-black uppercase tracking-widest text-sky-400/60 flex items-center gap-1.5">
+              <UIcon name="i-lucide-map-pin" class="size-3" /> Endereço
+            </p>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div class="sm:col-span-2">
+                <label class="label-field">Logradouro (rua, número, bairro)</label>
+                <UInput v-model="form.endereco" placeholder="Rua das Flores, 123, Centro" size="sm" :ui="{ rounded: 'rounded-xl' }" class="input-dark" />
+              </div>
+              <div>
+                <label class="label-field">Cidade</label>
+                <UInput v-model="form.cidade" placeholder="Goiânia" size="sm" :ui="{ rounded: 'rounded-xl' }" class="input-dark" />
+              </div>
+              <div>
+                <label class="label-field">UF</label>
+                <UInput v-model="form.uf" placeholder="GO" maxlength="2" size="sm" :ui="{ rounded: 'rounded-xl', base: 'uppercase font-mono' }" class="input-dark" />
+              </div>
+            </div>
+          </div>
+
+          <!-- Seção: Plano / Contrato -->
+          <div class="space-y-3">
+            <p class="text-[10px] font-black uppercase tracking-widest text-emerald-400/60 flex items-center gap-1.5">
+              <UIcon name="i-lucide-file-text" class="size-3" /> Plano e contrato
+            </p>
+            <div class="p-3 rounded-xl bg-indigo-500/[0.05] border border-indigo-500/10 text-[11px] text-indigo-300/60 leading-relaxed">
+              Um <strong class="text-indigo-300">Contrato de Prestação de Serviços</strong> será gerado automaticamente e ficará disponível para impressão e assinatura.
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label class="label-field">Plano *</label>
+                <div class="flex gap-1.5 mb-2 flex-wrap">
+                  <UButton v-for="p in planosPredef" :key="p"
+                    :color="contratoForm.plano === p ? 'violet' : 'gray'"
+                    :variant="contratoForm.plano === p ? 'solid' : 'ghost'"
+                    size="xs" :ui="{ rounded: 'rounded-xl', font: 'font-semibold text-xs' }"
+                    @click="contratoForm.plano = p">{{ p }}</UButton>
+                </div>
+                <UInput v-model="contratoForm.plano" placeholder="Ou escreva o nome..." size="sm" :ui="{ rounded: 'rounded-xl' }" class="input-dark" />
+              </div>
+              <div>
+                <label class="label-field">Valor mensal (R$)</label>
+                <UInput v-model="contratoForm.valor" type="number" min="0" step="0.01" placeholder="0,00" size="sm" :ui="{ rounded: 'rounded-xl' }" class="input-dark" />
+              </div>
+              <div>
+                <label class="label-field">Ciclo de cobrança</label>
+                <div class="grid grid-cols-4 gap-1.5">
+                  <UButton v-for="c in ciclos" :key="c.value"
+                    :color="contratoForm.ciclo === c.value ? 'violet' : 'gray'"
+                    :variant="contratoForm.ciclo === c.value ? 'solid' : 'ghost'"
+                    size="xs" :ui="{ rounded: 'rounded-xl', font: 'font-semibold text-xs' }"
+                    @click="contratoForm.ciclo = c.value as any">{{ c.label }}</UButton>
+                </div>
+              </div>
+              <div>
+                <label class="label-field">Início do contrato</label>
+                <UInput v-model="contratoForm.dataInicio" type="date" size="sm" :ui="{ rounded: 'rounded-xl' }" class="input-dark" />
+              </div>
+              <div>
+                <label class="label-field">Fim do contrato (opcional)</label>
+                <UInput v-model="contratoForm.dataFim" type="date" size="sm" :ui="{ rounded: 'rounded-xl' }" class="input-dark" />
+              </div>
+              <div>
+                <label class="label-field">Status do contrato</label>
+                <div class="flex gap-1.5 mt-0.5">
+                  <UButton :color="contratoForm.status === 'trial' ? 'amber' : 'gray'" :variant="contratoForm.status === 'trial' ? 'soft' : 'ghost'" size="sm" class="flex-1" :ui="{ rounded: 'rounded-xl', font: 'font-semibold text-xs' }" @click="contratoForm.status = 'trial'">Ag. assinatura</UButton>
+                  <UButton :color="contratoForm.status === 'ativo' ? 'green' : 'gray'" :variant="contratoForm.status === 'ativo' ? 'soft' : 'ghost'" size="sm" class="flex-1" :ui="{ rounded: 'rounded-xl', font: 'font-semibold text-xs' }" @click="contratoForm.status = 'ativo'">Assinado</UButton>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ════ EDIÇÃO — abas ════ -->
+        <div v-else-if="abaAtiva === 'dados'" class="p-5 space-y-4">
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div class="sm:col-span-2">
               <label class="label-field">Nome do restaurante *</label>
@@ -402,12 +528,16 @@
               <p class="text-[10px] text-white/20 mt-1">Usado na URL do sistema</p>
             </div>
             <div>
-              <label class="label-field">CNPJ</label>
+              <label class="label-field">CNPJ ou CPF</label>
               <UInput v-model="form.cnpj" placeholder="00.000.000/0001-00" size="sm" :ui="{ rounded: 'rounded-xl', base: 'font-mono text-xs' }" class="input-dark" />
             </div>
             <div>
-              <label class="label-field">Responsável</label>
+              <label class="label-field">Nome do responsável</label>
               <UInput v-model="form.responsavel" placeholder="Nome do responsável" size="sm" :ui="{ rounded: 'rounded-xl' }" class="input-dark" />
+            </div>
+            <div>
+              <label class="label-field">CPF do responsável</label>
+              <UInput v-model="form.cpfResponsavel" placeholder="000.000.000-00" size="sm" :ui="{ rounded: 'rounded-xl', base: 'font-mono text-xs' }" class="input-dark" />
             </div>
             <div>
               <label class="label-field">E-mail</label>
@@ -418,8 +548,16 @@
               <UInput v-model="form.telefone" placeholder="(62) 9 9999-9999" size="sm" :ui="{ rounded: 'rounded-xl' }" class="input-dark" />
             </div>
             <div>
-              <label class="label-field">Endereço</label>
-              <UInput v-model="form.endereco" placeholder="Rua, número, bairro" size="sm" :ui="{ rounded: 'rounded-xl' }" class="input-dark" />
+              <label class="label-field">Endereço (rua, nº, bairro)</label>
+              <UInput v-model="form.endereco" placeholder="Rua das Flores, 123, Centro" size="sm" :ui="{ rounded: 'rounded-xl' }" class="input-dark" />
+            </div>
+            <div>
+              <label class="label-field">Cidade</label>
+              <UInput v-model="form.cidade" placeholder="Goiânia" size="sm" :ui="{ rounded: 'rounded-xl' }" class="input-dark" />
+            </div>
+            <div>
+              <label class="label-field">UF</label>
+              <UInput v-model="form.uf" placeholder="GO" maxlength="2" size="sm" :ui="{ rounded: 'rounded-xl', base: 'uppercase font-mono' }" class="input-dark" />
             </div>
             <div class="sm:col-span-2">
               <label class="label-field">Observações</label>
@@ -444,8 +582,7 @@
         </div>
 
         <div v-else-if="abaAtiva === 'licenca'" class="p-5">
-          <div v-if="!form.id" class="text-center py-10 text-white/25 text-sm">Salve o restaurante primeiro para gerenciar a licença.</div>
-          <div v-else class="space-y-4">
+          <div class="space-y-4">
             <div>
               <label class="label-field mb-2">Status</label>
               <div class="flex gap-2">
@@ -490,8 +627,8 @@
             <div>
               <label class="label-field">Status</label>
               <div class="flex gap-1.5 mt-0.5">
-                <UButton :color="contratoForm.status === 'trial' ? 'sky' : 'gray'" :variant="contratoForm.status === 'trial' ? 'soft' : 'ghost'" size="sm" class="flex-1" :ui="{ rounded: 'rounded-xl', font: 'font-semibold text-xs' }" @click="contratoForm.status = 'trial'">Teste</UButton>
-                <UButton :color="contratoForm.status === 'ativo' ? 'green' : 'gray'" :variant="contratoForm.status === 'ativo' ? 'soft' : 'ghost'" size="sm" class="flex-1" :ui="{ rounded: 'rounded-xl', font: 'font-semibold text-xs' }" @click="contratoForm.status = 'ativo'">Ativo</UButton>
+                <UButton :color="contratoForm.status === 'trial' ? 'amber' : 'gray'" :variant="contratoForm.status === 'trial' ? 'soft' : 'ghost'" size="sm" class="flex-1" :ui="{ rounded: 'rounded-xl', font: 'font-semibold text-xs' }" @click="contratoForm.status = 'trial'">Ag. assinatura</UButton>
+                <UButton :color="contratoForm.status === 'ativo' ? 'green' : 'gray'" :variant="contratoForm.status === 'ativo' ? 'soft' : 'ghost'" size="sm" class="flex-1" :ui="{ rounded: 'rounded-xl', font: 'font-semibold text-xs' }" @click="contratoForm.status = 'ativo'">Assinado</UButton>
               </div>
             </div>
           </div>
@@ -505,11 +642,16 @@
                 @click="contratoForm.ciclo = c.value as any">{{ c.label }}</UButton>
             </div>
           </div>
-          <div>
-            <label class="label-field">Início do contrato</label>
-            <UInput v-model="contratoForm.dataInicio" type="date" size="sm" :ui="{ rounded: 'rounded-xl' }" class="input-dark" />
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="label-field">Início</label>
+              <UInput v-model="contratoForm.dataInicio" type="date" size="sm" :ui="{ rounded: 'rounded-xl' }" class="input-dark" />
+            </div>
+            <div>
+              <label class="label-field">Fim (opcional)</label>
+              <UInput v-model="contratoForm.dataFim" type="date" size="sm" :ui="{ rounded: 'rounded-xl' }" class="input-dark" />
+            </div>
           </div>
-          <UAlert v-if="!form.id" icon="i-lucide-info" color="violet" variant="soft" description="O contrato será criado junto com o restaurante." />
         </div>
 
         <UAlert v-if="erroModal" color="red" :description="erroModal" variant="soft" class="mx-5 mb-1" />
@@ -518,7 +660,7 @@
           <div class="flex gap-2">
             <UButton color="gray" variant="ghost" block :ui="{ rounded: 'rounded-xl', font: 'font-semibold' }" @click="fecharModal">Cancelar</UButton>
             <UButton color="violet" block :loading="salvando" :ui="{ rounded: 'rounded-xl', font: 'font-semibold' }" @click="salvar">
-              {{ salvando ? 'Salvando...' : (form.id ? 'Salvar alterações' : 'Criar restaurante') }}
+              {{ salvando ? 'Salvando...' : (form.id ? 'Salvar alterações' : 'Cadastrar e gerar contrato') }}
             </UButton>
           </div>
         </template>
@@ -619,9 +761,9 @@ const ciclos = [
   { value: 'mensal', label: 'Mensal' }, { value: 'trimestral', label: 'Trim.' },
   { value: 'semestral', label: 'Semes.' }, { value: 'anual', label: 'Anual' },
 ]
-const form = reactive({ id: null as string | null, nome: '', slug: '', cnpj: '', responsavel: '', contato: '', telefone: '', endereco: '', observacoes: '', vendaMobilePermitida: true, rfidDisponivel: false })
+const form = reactive({ id: null as string | null, nome: '', slug: '', cnpj: '', cpfResponsavel: '', responsavel: '', contato: '', telefone: '', endereco: '', cidade: '', uf: '', observacoes: '', vendaMobilePermitida: true, rfidDisponivel: false })
 const licencaForm  = reactive({ status: 'pendente', dataAtivacao: '', dataVencimento: '' })
-const contratoForm = reactive({ plano: '', valor: '', ciclo: 'mensal' as 'mensal' | 'trimestral' | 'semestral' | 'anual', dataInicio: '', status: 'ativo' as 'trial' | 'ativo' })
+const contratoForm = reactive({ plano: 'Básico', valor: '', ciclo: 'mensal' as 'mensal' | 'trimestral' | 'semestral' | 'anual', dataInicio: new Date().toISOString().substring(0, 10), dataFim: '', status: 'trial' as 'trial' | 'ativo' })
 
 const baseUrl = computed(() => (runtimeConfig.public as any).apiUrl as string)
 const maxMrr  = computed(() => Math.max(...(dashboard.value?.financeiro?.porPlano?.map(p => p.mrr) ?? [0]), 0))
@@ -716,22 +858,22 @@ async function carregar() {
 }
 
 function resetContratoForm() {
-  contratoForm.plano = ''; contratoForm.valor = ''; contratoForm.ciclo = 'mensal'
-  contratoForm.dataInicio = new Date().toISOString().substring(0, 10); contratoForm.status = 'ativo'
+  contratoForm.plano = 'Básico'; contratoForm.valor = ''; contratoForm.ciclo = 'mensal'
+  contratoForm.dataInicio = new Date().toISOString().substring(0, 10); contratoForm.dataFim = ''; contratoForm.status = 'trial'
 }
 
 function abrirModal(tenant: Tenant | null) {
   erroModal.value = ''; abaAtiva.value = 'dados'; licencaAtual.value = null; contratoAtualTenant.value = null
   if (tenant) {
-    Object.assign(form, { id: tenant.id, nome: tenant.nome, slug: tenant.slug, cnpj: tenant.cnpj || '', responsavel: tenant.responsavel || '', contato: tenant.contato || '', telefone: tenant.telefone || '', endereco: tenant.endereco || '', observacoes: tenant.observacoes || '', vendaMobilePermitida: tenant.vendaMobilePermitida, rfidDisponivel: tenant.rfidDisponivel })
+    Object.assign(form, { id: tenant.id, nome: tenant.nome, slug: tenant.slug, cnpj: tenant.cnpj || '', cpfResponsavel: (tenant as any).cpfResponsavel || '', responsavel: tenant.responsavel || '', contato: tenant.contato || '', telefone: tenant.telefone || '', endereco: tenant.endereco || '', cidade: (tenant as any).cidade || '', uf: (tenant as any).uf || '', observacoes: tenant.observacoes || '', vendaMobilePermitida: tenant.vendaMobilePermitida, rfidDisponivel: tenant.rfidDisponivel })
     const lic = tenant.licencas?.[0]
     if (lic) { licencaAtual.value = lic; licencaForm.status = lic.status; licencaForm.dataAtivacao = lic.dataAtivacao?.substring(0, 10) || ''; licencaForm.dataVencimento = lic.dataVencimento?.substring(0, 10) || '' }
     else { licencaForm.status = 'pendente'; licencaForm.dataAtivacao = ''; licencaForm.dataVencimento = '' }
     const con = tenant.contratos?.[0]
-    if (con) { contratoAtualTenant.value = con; contratoForm.plano = con.plano; contratoForm.valor = con.valor || ''; contratoForm.ciclo = (con.ciclo as any) || 'mensal'; contratoForm.dataInicio = con.dataInicio?.substring(0, 10) || ''; contratoForm.status = (con.status as any) || 'ativo' }
+    if (con) { contratoAtualTenant.value = con; contratoForm.plano = con.plano; contratoForm.valor = con.valor || ''; contratoForm.ciclo = (con.ciclo as any) || 'mensal'; contratoForm.dataInicio = con.dataInicio?.substring(0, 10) || ''; contratoForm.dataFim = (con as any).dataFim?.substring(0, 10) || ''; contratoForm.status = (con.status as any) || 'trial' }
     else resetContratoForm()
   } else {
-    Object.assign(form, { id: null, nome: '', slug: '', cnpj: '', responsavel: '', contato: '', telefone: '', endereco: '', observacoes: '', vendaMobilePermitida: true, rfidDisponivel: false })
+    Object.assign(form, { id: null, nome: '', slug: '', cnpj: '', cpfResponsavel: '', responsavel: '', contato: '', telefone: '', endereco: '', cidade: '', uf: '', observacoes: '', vendaMobilePermitida: true, rfidDisponivel: false })
     licencaForm.status = 'pendente'; licencaForm.dataAtivacao = ''; licencaForm.dataVencimento = ''; resetContratoForm()
   }
   modalAberto.value = true
@@ -744,27 +886,37 @@ async function salvar() {
   if (!form.slug.trim()) { erroModal.value = 'Identificador é obrigatório'; return }
   salvando.value = true
   try {
-    let msg = ''
     if (!form.id) {
-      const payload: any = { nome: form.nome, slug: form.slug, cnpj: form.cnpj || null, responsavel: form.responsavel || null, contato: form.contato || null, telefone: form.telefone || null, endereco: form.endereco || null, observacoes: form.observacoes || null, vendaMobilePermitida: form.vendaMobilePermitida, rfidDisponivel: form.rfidDisponivel }
-      if (contratoForm.plano.trim()) payload.contrato = { plano: contratoForm.plano.trim(), valor: contratoForm.valor ? parseFloat(contratoForm.valor) : null, ciclo: contratoForm.ciclo, dataInicio: contratoForm.dataInicio || null, status: contratoForm.status }
-      const c = await platformFetch<any>('/platform/tenants', { method: 'POST', body: JSON.stringify(payload) })
-      form.id = c.id; msg = contratoForm.plano.trim() ? 'Restaurante e contrato criados!' : 'Restaurante criado!'
-    } else {
-      const tid = form.id
-      if (abaAtiva.value === 'dados') {
-        await platformFetch(`/platform/tenants/${tid}`, { method: 'PUT', body: JSON.stringify({ nome: form.nome, slug: form.slug, cnpj: form.cnpj || null, responsavel: form.responsavel || null, contato: form.contato || null, telefone: form.telefone || null, endereco: form.endereco || null, observacoes: form.observacoes || null, vendaMobilePermitida: form.vendaMobilePermitida, rfidDisponivel: form.rfidDisponivel }) })
-        msg = 'Dados atualizados!'
-      } else if (abaAtiva.value === 'licenca') {
-        await platformFetch(`/platform/tenants/${tid}/licenca`, { method: 'PUT', body: JSON.stringify({ status: licencaForm.status, dataAtivacao: licencaForm.dataAtivacao || null, dataVencimento: licencaForm.dataVencimento || null }) })
-        msg = 'Licença atualizada!'
-      } else if (abaAtiva.value === 'contrato') {
-        if (!contratoForm.plano.trim()) { erroModal.value = 'Informe o nome do plano'; salvando.value = false; return }
-        await platformFetch(`/platform/tenants/${tid}/contrato`, { method: 'PUT', body: JSON.stringify({ plano: contratoForm.plano.trim(), valor: contratoForm.valor ? parseFloat(contratoForm.valor) : null, ciclo: contratoForm.ciclo, dataInicio: contratoForm.dataInicio || null, status: contratoForm.status }) })
-        msg = 'Contrato atualizado!'
+      if (!contratoForm.plano.trim()) { erroModal.value = 'Selecione o plano do contrato'; salvando.value = false; return }
+      const payload: any = {
+        nome: form.nome, slug: form.slug,
+        cnpj: form.cnpj || null, cpfResponsavel: form.cpfResponsavel || null,
+        responsavel: form.responsavel || null, contato: form.contato || null,
+        telefone: form.telefone || null, endereco: form.endereco || null,
+        cidade: form.cidade || null, uf: form.uf || null,
+        observacoes: form.observacoes || null,
+        vendaMobilePermitida: form.vendaMobilePermitida, rfidDisponivel: form.rfidDisponivel,
+        contrato: { plano: contratoForm.plano.trim(), valor: contratoForm.valor ? parseFloat(contratoForm.valor) : null, ciclo: contratoForm.ciclo, dataInicio: contratoForm.dataInicio || null, dataFim: contratoForm.dataFim || null, status: contratoForm.status },
       }
+      const created = await platformFetch<any>('/platform/tenants', { method: 'POST', body: JSON.stringify(payload) })
+      fecharModal(); await carregar()
+      showToast('success', 'Cliente cadastrado! Contrato disponível para impressão.')
+      navigateTo(`/platform/tenants/${created.id}`)
+      return
     }
-    showToast('success', msg); fecharModal(); await carregar()
+    const tid = form.id
+    if (abaAtiva.value === 'dados') {
+      await platformFetch(`/platform/tenants/${tid}`, { method: 'PUT', body: JSON.stringify({ nome: form.nome, slug: form.slug, cnpj: form.cnpj || null, cpfResponsavel: form.cpfResponsavel || null, responsavel: form.responsavel || null, contato: form.contato || null, telefone: form.telefone || null, endereco: form.endereco || null, cidade: form.cidade || null, uf: form.uf || null, observacoes: form.observacoes || null, vendaMobilePermitida: form.vendaMobilePermitida, rfidDisponivel: form.rfidDisponivel }) })
+      showToast('success', 'Dados atualizados!')
+    } else if (abaAtiva.value === 'licenca') {
+      await platformFetch(`/platform/tenants/${tid}/licenca`, { method: 'PUT', body: JSON.stringify({ status: licencaForm.status, dataAtivacao: licencaForm.dataAtivacao || null, dataVencimento: licencaForm.dataVencimento || null }) })
+      showToast('success', 'Licença atualizada!')
+    } else if (abaAtiva.value === 'contrato') {
+      if (!contratoForm.plano.trim()) { erroModal.value = 'Informe o nome do plano'; salvando.value = false; return }
+      await platformFetch(`/platform/tenants/${tid}/contrato`, { method: 'PUT', body: JSON.stringify({ plano: contratoForm.plano.trim(), valor: contratoForm.valor ? parseFloat(contratoForm.valor) : null, ciclo: contratoForm.ciclo, dataInicio: contratoForm.dataInicio || null, dataFim: contratoForm.dataFim || null, status: contratoForm.status }) })
+      showToast('success', 'Contrato atualizado!')
+    }
+    fecharModal(); await carregar()
   } catch (e: any) { erroModal.value = e?.message || 'Erro ao salvar' }
   finally { salvando.value = false }
 }

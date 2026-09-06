@@ -323,67 +323,66 @@
             <FileText :size="11" class="text-white/30" />
             <h2 class="text-[10px] font-black text-white/40 uppercase tracking-widest">Contrato</h2>
             <span v-if="contratoAtual" class="text-[9px] font-black px-2 py-0.5 rounded-full"
-              :class="contratoAtual.status === 'ativo' ? 'bg-emerald-500/15 text-emerald-400' : 'bg-white/[0.05] text-white/20'">
-              {{ contratoAtual.status === 'ativo' ? 'Assinado' : 'Não assinado' }}
+              :class="{
+                'bg-emerald-500/15 text-emerald-400': contratoAtual.status === 'ativo',
+                'bg-amber-500/15 text-amber-400':   contratoAtual.status === 'trial',
+                'bg-red-500/15 text-red-400':       contratoAtual.status === 'suspenso' || contratoAtual.status === 'cancelado',
+              }">
+              {{ contratoAtual.status === 'ativo' ? 'Assinado' : contratoAtual.status === 'trial' ? 'Ag. assinatura' : contratoAtual.status === 'cancelado' ? 'Rescindido' : 'Suspenso' }}
             </span>
           </div>
           <button @click="abrirModalContrato"
-            class="text-[10px] text-white/20 hover:text-violet-400 transition-colors font-bold flex items-center gap-1">
-            <Pencil :size="9" /> {{ contratoAtual ? 'Editar' : 'Criar contrato' }}
+            class="text-[10px] text-white/20 hover:text-indigo-400 transition-colors font-bold flex items-center gap-1">
+            <Pencil :size="9" /> {{ contratoAtual ? 'Editar dados' : 'Criar contrato' }}
           </button>
         </div>
 
         <!-- Sem contrato -->
-        <div v-if="!contratoAtual" class="flex items-center gap-4 px-5 py-6">
-          <div class="w-10 h-10 rounded-xl bg-white/[0.04] border border-white/[0.06] flex items-center justify-center shrink-0">
-            <FileText :size="16" class="text-white/15" />
+        <div v-if="!contratoAtual" class="flex items-center gap-5 px-5 py-6">
+          <div class="w-12 h-12 rounded-xl bg-indigo-500/[0.06] border border-indigo-500/10 flex items-center justify-center shrink-0">
+            <FileText :size="20" class="text-indigo-400/40" />
           </div>
           <div class="flex-1">
-            <p class="text-sm font-bold text-white/30">Nenhum contrato registrado</p>
-            <p class="text-[11px] text-white/15 mt-0.5">Clique em "Criar contrato" para cadastrar o plano e a validade da licença.</p>
+            <p class="text-sm font-bold text-white/40">Nenhum contrato gerado</p>
+            <p class="text-[11px] text-white/20 mt-0.5">Gere um contrato de prestação de serviços em PDF, pronto para impressão e assinatura pelas partes.</p>
           </div>
           <button @click="abrirModalContrato"
-            class="h-9 px-4 rounded-xl bg-indigo-500/10 border border-indigo-500/15 text-indigo-400 text-xs font-black hover:bg-indigo-500/18 transition-all shrink-0">
-            + Criar contrato
+            class="h-9 px-4 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 text-xs font-black hover:bg-indigo-500/18 transition-all shrink-0 flex items-center gap-1.5">
+            <FileText :size="12" /> Gerar contrato
           </button>
         </div>
 
         <!-- Com contrato -->
-        <div v-else class="p-5">
-          <div class="flex flex-col sm:flex-row sm:items-start gap-4">
-            <!-- Plano + valor -->
-            <div class="flex items-center gap-4 flex-1 p-4 rounded-xl bg-indigo-500/[0.04] border border-indigo-500/10">
-              <div class="size-10 rounded-xl bg-gradient-to-br from-indigo-600 to-indigo-900 shadow-md shadow-indigo-900/50 flex items-center justify-center shrink-0">
-                <FileText :size="16" class="text-white" />
-              </div>
-              <div class="flex-1 min-w-0">
-                <p class="text-[9px] font-black uppercase tracking-widest text-indigo-400/50 mb-0.5">Plano · {{ contratoAtual.ciclo }}</p>
-                <p class="text-base font-black text-indigo-300 leading-tight">{{ contratoAtual.plano }}</p>
-                <p class="text-[11px] text-white/30 mt-0.5">
-                  {{ formatDate(contratoAtual.dataInicio) }} → {{ contratoAtual.dataFim ? formatDate(contratoAtual.dataFim) : 'Indeterminado' }}
-                </p>
-              </div>
-              <div class="text-right shrink-0">
-                <p class="text-[9px] font-black uppercase tracking-widest text-emerald-400/50 mb-0.5">Valor</p>
-                <p class="text-xl font-black text-emerald-400">{{ contratoAtual.valor ? formatCurrency(contratoAtual.valor) : '—' }}</p>
-                <p class="text-[9px] text-white/20 mt-0.5">/ {{ contratoAtual.ciclo }}</p>
-              </div>
+        <div v-else class="p-5 space-y-4">
+
+          <!-- Documento card -->
+          <div class="flex items-center gap-4 p-4 rounded-xl bg-indigo-500/[0.04] border border-indigo-500/10">
+            <div class="size-10 rounded-xl bg-gradient-to-br from-indigo-600 to-indigo-900 shadow-md shadow-indigo-900/50 flex items-center justify-center shrink-0">
+              <FileText :size="16" class="text-white" />
             </div>
-            <!-- Ações PDF -->
-            <div class="flex sm:flex-col gap-2 sm:w-32">
-              <button @click="visualizarContrato"
-                class="flex-1 h-9 rounded-xl bg-white/[0.04] hover:bg-white/[0.07] border border-white/[0.07] text-white/40 hover:text-white/80 text-xs font-black transition-all flex items-center justify-center gap-1.5">
-                <Eye :size="12" /> Visualizar
-              </button>
-              <button @click="imprimirContrato"
-                class="flex-1 h-9 rounded-xl bg-white/[0.04] hover:bg-white/[0.07] border border-white/[0.07] text-white/40 hover:text-white/80 text-xs font-black transition-all flex items-center justify-center gap-1.5">
-                <Printer :size="12" /> Imprimir
-              </button>
-              <button @click="compartilharContrato"
-                class="flex-1 h-9 rounded-xl bg-white/[0.04] hover:bg-white/[0.07] border border-white/[0.07] text-white/40 hover:text-white/80 text-xs font-black transition-all flex items-center justify-center gap-1.5">
-                <Share2 :size="12" /> Enviar
-              </button>
+            <div class="flex-1 min-w-0">
+              <p class="text-xs font-black text-indigo-300 leading-tight">Contrato de Prestação de Serviços — Plano {{ contratoAtual.plano }}</p>
+              <p class="text-[10px] text-white/30 mt-0.5 font-mono">
+                Vigência: {{ formatDate(contratoAtual.dataInicio) }} → {{ contratoAtual.dataFim ? formatDate(contratoAtual.dataFim) : 'Indeterminado' }}
+                <span v-if="contratoAtual.valor"> · {{ formatCurrency(contratoAtual.valor) }}/{{ contratoAtual.ciclo }}</span>
+              </p>
             </div>
+          </div>
+
+          <!-- Ações PDF — destaque principal -->
+          <div class="grid grid-cols-3 gap-2">
+            <button @click="visualizarContrato"
+              class="h-10 rounded-xl bg-indigo-500/10 hover:bg-indigo-500/18 border border-indigo-500/20 text-indigo-400 text-xs font-black transition-all flex items-center justify-center gap-2">
+              <Eye :size="13" /> Visualizar PDF
+            </button>
+            <button @click="imprimirContrato"
+              class="h-10 rounded-xl bg-white/[0.04] hover:bg-white/[0.07] border border-white/[0.07] text-white/50 hover:text-white/80 text-xs font-black transition-all flex items-center justify-center gap-2">
+              <Printer :size="13" /> Imprimir
+            </button>
+            <button @click="compartilharContrato"
+              class="h-10 rounded-xl bg-white/[0.04] hover:bg-white/[0.07] border border-white/[0.07] text-white/50 hover:text-white/80 text-xs font-black transition-all flex items-center justify-center gap-2">
+              <Share2 :size="13" /> Compartilhar
+            </button>
           </div>
         </div>
       </section>
@@ -407,7 +406,7 @@
                   <component :is="modalModo === 'licenca' ? KeyRound : modalModo === 'contrato' ? FileText : Building2" :size="14"
                     :class="modalModo === 'licenca' ? 'text-sky-400' : modalModo === 'contrato' ? 'text-indigo-400' : 'text-violet-400'" />
                 </div>
-                <h2 class="text-sm font-black text-white">{{ modalModo === 'licenca' ? 'Editar licença' : modalModo === 'contrato' ? 'Editar contrato' : 'Editar dados' }}</h2>
+                <h2 class="text-sm font-black text-white">{{ modalModo === 'licenca' ? 'Editar licença' : modalModo === 'contrato' ? (contratoAtual ? 'Dados do contrato' : 'Gerar contrato') : 'Editar dados' }}</h2>
               </div>
               <button @click="fecharModal"
                 class="w-7 h-7 rounded-xl bg-white/[0.05] hover:bg-red-500/15 hover:text-red-400 text-white/30 flex items-center justify-center transition-all">
@@ -427,12 +426,16 @@
                   <input v-model="form.slug" type="text" class="input-field font-mono text-xs" />
                 </div>
                 <div>
-                  <label class="label-field">CNPJ</label>
-                  <input v-model="form.cnpj" type="text" class="input-field font-mono text-xs" />
+                  <label class="label-field">CNPJ ou CPF</label>
+                  <input v-model="form.cnpj" type="text" class="input-field font-mono text-xs" placeholder="00.000.000/0001-00" />
                 </div>
                 <div>
                   <label class="label-field">Responsável</label>
                   <input v-model="form.responsavel" type="text" class="input-field" />
+                </div>
+                <div>
+                  <label class="label-field">CPF do responsável</label>
+                  <input v-model="form.cpfResponsavel" type="text" class="input-field font-mono text-xs" placeholder="000.000.000-00" />
                 </div>
                 <div>
                   <label class="label-field">E-mail</label>
@@ -443,8 +446,16 @@
                   <input v-model="form.telefone" type="text" class="input-field" />
                 </div>
                 <div>
-                  <label class="label-field">Endereço</label>
-                  <input v-model="form.endereco" type="text" class="input-field" />
+                  <label class="label-field">Endereço (rua, nº, bairro)</label>
+                  <input v-model="form.endereco" type="text" class="input-field" placeholder="Rua das Flores, 123, Centro" />
+                </div>
+                <div>
+                  <label class="label-field">Cidade</label>
+                  <input v-model="form.cidade" type="text" class="input-field" />
+                </div>
+                <div>
+                  <label class="label-field">UF</label>
+                  <input v-model="form.uf" type="text" maxlength="2" class="input-field font-mono uppercase" placeholder="GO" />
                 </div>
                 <div class="sm:col-span-2">
                   <label class="label-field">Observações</label>
@@ -482,6 +493,11 @@
 
             <!-- MODO CONTRATO -->
             <div v-else-if="modalModo === 'contrato'" class="p-5 space-y-4">
+              <!-- Aviso documento jurídico -->
+              <div class="flex items-start gap-3 p-3 rounded-xl bg-indigo-500/[0.06] border border-indigo-500/15">
+                <FileText :size="13" class="text-indigo-400/70 mt-0.5 shrink-0" />
+                <p class="text-[11px] text-indigo-300/70 leading-relaxed">Esses dados serão usados para gerar o <strong class="text-indigo-300">Contrato de Prestação de Serviços</strong> em PDF — pronto para impressão e assinatura pelas partes.</p>
+              </div>
               <div class="grid grid-cols-2 gap-3">
                 <div class="col-span-2">
                   <label class="label-field">Plano *</label>
@@ -719,19 +735,19 @@ const modalModo   = ref<'dados' | 'licenca' | 'contrato'>('dados')
 const salvando    = ref(false)
 const erroModal   = ref('')
 
-const form = reactive({ nome: '', slug: '', cnpj: '', responsavel: '', contato: '', telefone: '', endereco: '', observacoes: '', vendaMobilePermitida: true, rfidDisponivel: false })
+const form = reactive({ nome: '', slug: '', cnpj: '', cpfResponsavel: '', responsavel: '', contato: '', telefone: '', endereco: '', cidade: '', uf: '', observacoes: '', vendaMobilePermitida: true, rfidDisponivel: false })
 const licencaForm = reactive({ status: 'pendente', dataAtivacao: '', dataVencimento: '' })
 const licencaStatuses = [
   { value: 'ativado',   label: 'Ativada',   activeClass: 'bg-emerald-500/15 border-emerald-500/30 text-emerald-400' },
   { value: 'pendente',  label: 'Pendente',  activeClass: 'bg-amber-500/15  border-amber-500/30  text-amber-400'  },
   { value: 'bloqueado', label: 'Bloqueada', activeClass: 'bg-red-500/15    border-red-500/30    text-red-400'    },
 ]
-const contratoForm = reactive({ plano: '', valor: '', ciclo: 'mensal', dataInicio: '', dataFim: '', status: 'ativo', licAtivacao: '', licVencimento: '' })
+const contratoForm = reactive({ plano: '', valor: '', ciclo: 'mensal', dataInicio: '', dataFim: '', status: 'trial', licAtivacao: '', licVencimento: '' })
 const contratoStatuses = [
-  { value: 'ativo',     label: 'Ativo',     activeClass: 'bg-emerald-500/15 border-emerald-500/30 text-emerald-400' },
-  { value: 'trial',     label: 'Teste',     activeClass: 'bg-sky-500/15     border-sky-500/30     text-sky-400'     },
-  { value: 'suspenso',  label: 'Suspenso',  activeClass: 'bg-amber-500/15  border-amber-500/30  text-amber-400'  },
-  { value: 'cancelado', label: 'Cancelado', activeClass: 'bg-red-500/15    border-red-500/30    text-red-400'    },
+  { value: 'ativo',     label: 'Assinado',             activeClass: 'bg-emerald-500/15 border-emerald-500/30 text-emerald-400' },
+  { value: 'trial',     label: 'Ag. assinatura',        activeClass: 'bg-amber-500/15   border-amber-500/30   text-amber-400'   },
+  { value: 'suspenso',  label: 'Suspenso',              activeClass: 'bg-red-500/15     border-red-500/30     text-red-400'     },
+  { value: 'cancelado', label: 'Rescindido',            activeClass: 'bg-red-500/20     border-red-500/40     text-red-300'     },
 ]
 const periodos = [
   { label: '30d',   dias: 30   },
@@ -790,12 +806,14 @@ const licencaIconBlock  = computed(() => licencaAtual.value?.status === 'ativado
 const licencaIconColor  = computed(() => licencaAtual.value?.status === 'ativado' ? 'text-emerald-400' : licencaAtual.value?.status === 'pendente' ? 'text-amber-400' : 'text-red-400')
 
 const dadosCadastrais = computed(() => [
-  { label: 'CNPJ',        valor: tenant.value?.cnpj,        mono: true  },
-  { label: 'Responsável', valor: tenant.value?.responsavel,  mono: false },
-  { label: 'E-mail',      valor: tenant.value?.contato,      mono: false },
-  { label: 'Telefone',    valor: tenant.value?.telefone,     mono: false },
-  { label: 'Endereço',    valor: tenant.value?.endereco,     mono: false },
-  { label: 'Observações', valor: tenant.value?.observacoes,  mono: false },
+  { label: 'CNPJ / CPF',       valor: tenant.value?.cnpj,                          mono: true  },
+  { label: 'Responsável',      valor: tenant.value?.responsavel,                   mono: false },
+  { label: 'CPF do responsável', valor: (tenant.value as any)?.cpfResponsavel,     mono: true  },
+  { label: 'E-mail',           valor: tenant.value?.contato,                       mono: false },
+  { label: 'Telefone',         valor: tenant.value?.telefone,                      mono: false },
+  { label: 'Endereço',         valor: tenant.value?.endereco,                      mono: false },
+  { label: 'Cidade / UF',      valor: [(tenant.value as any)?.cidade, (tenant.value as any)?.uf].filter(Boolean).join(' — ') || null, mono: false },
+  { label: 'Observações',      valor: tenant.value?.observacoes,                   mono: false },
 ])
 
 function statusBadge(s: string) { return s === 'ativo' ? 'bg-emerald-500/15 text-emerald-400' : s === 'suspenso' ? 'bg-amber-500/15 text-amber-400' : 'bg-red-500/15 text-red-400' }
@@ -825,7 +843,7 @@ async function carregar() {
 function abrirModalDados() {
   if (!tenant.value) return
   const t = tenant.value
-  Object.assign(form, { nome: t.nome, slug: t.slug, cnpj: t.cnpj || '', responsavel: t.responsavel || '', contato: t.contato || '', telefone: t.telefone || '', endereco: t.endereco || '', observacoes: t.observacoes || '', vendaMobilePermitida: t.vendaMobilePermitida, rfidDisponivel: t.rfidDisponivel })
+  Object.assign(form, { nome: t.nome, slug: t.slug, cnpj: t.cnpj || '', cpfResponsavel: (t as any).cpfResponsavel || '', responsavel: t.responsavel || '', contato: t.contato || '', telefone: t.telefone || '', endereco: t.endereco || '', cidade: (t as any).cidade || '', uf: (t as any).uf || '', observacoes: t.observacoes || '', vendaMobilePermitida: t.vendaMobilePermitida, rfidDisponivel: t.rfidDisponivel })
   modalModo.value = 'dados'; erroModal.value = ''; modalAberto.value = true
 }
 
@@ -840,7 +858,7 @@ function abrirModalContrato() {
     ciclo:         c?.ciclo || 'mensal',
     dataInicio:    c?.dataInicio?.substring(0, 10) || new Date().toISOString().substring(0, 10),
     dataFim:       c?.dataFim?.substring(0, 10) || '',
-    status:        c?.status || 'ativo',
+    status:        c?.status || 'trial',
     licAtivacao:   lic?.dataAtivacao?.substring(0, 10)  || new Date().toISOString().substring(0, 10),
     licVencimento: lic?.dataVencimento?.substring(0, 10) || '',
   })
@@ -897,7 +915,7 @@ async function salvar() {
       if (!form.nome.trim()) { erroModal.value = 'Nome é obrigatório'; salvando.value = false; return }
       await platformFetch(`/platform/tenants/${tenant.value!.id}`, {
         method: 'PUT',
-        body: JSON.stringify({ nome: form.nome, slug: form.slug, cnpj: form.cnpj || null, responsavel: form.responsavel || null, contato: form.contato || null, telefone: form.telefone || null, endereco: form.endereco || null, observacoes: form.observacoes || null, vendaMobilePermitida: form.vendaMobilePermitida, rfidDisponivel: form.rfidDisponivel }),
+        body: JSON.stringify({ nome: form.nome, slug: form.slug, cnpj: form.cnpj || null, cpfResponsavel: form.cpfResponsavel || null, responsavel: form.responsavel || null, contato: form.contato || null, telefone: form.telefone || null, endereco: form.endereco || null, cidade: form.cidade || null, uf: form.uf || null, observacoes: form.observacoes || null, vendaMobilePermitida: form.vendaMobilePermitida, rfidDisponivel: form.rfidDisponivel }),
       })
       showToast('success', 'Dados atualizados!')
     } else if (modalModo.value === 'licenca') {
@@ -1067,14 +1085,17 @@ function gerarContratoPDF(): Window | null {
 
   // Campos da API sanitizados antes de injetar no HTML
   const esc = escapeHtml
-  const sNome       = esc(t.nome)
-  const sSlug       = esc(t.slug)
-  const sCnpj       = esc(t.cnpj)
-  const sEndereco   = esc(t.endereco)
-  const sTelefone   = esc(t.telefone)
-  const sContato    = esc(t.contato)
-  const sResponsavel = esc(t.responsavel)
-  const sPlano      = esc(plano)
+  const sNome          = esc(t.nome)
+  const sSlug          = esc(t.slug)
+  const sCnpj          = esc(t.cnpj)
+  const sCpfResponsavel = esc((t as any).cpfResponsavel)
+  const sEndereco      = esc(t.endereco)
+  const sCidade        = esc((t as any).cidade)
+  const sUF            = esc((t as any).uf)
+  const sTelefone      = esc(t.telefone)
+  const sContato       = esc(t.contato)
+  const sResponsavel   = esc(t.responsavel)
+  const sPlano         = esc(plano)
   const sObs        = t.observacoes ? esc(t.observacoes).replace(/\n/g, '<br>') : ''
   const ciclo    = c?.ciclo || 'mensal'
   const cicloMap: Record<string, string> = { mensal: 'mensal', trimestral: 'trimestral', semestral: 'semestral', anual: 'anual' }
@@ -1149,11 +1170,11 @@ function gerarContratoPDF(): Window | null {
     <div class="party">
       <span class="party-role">Contratante</span>
       <p class="party-line"><strong>Razão Social / Nome:</strong> ${sNome}</p>
-      ${sCnpj ? `<p class="party-line"><strong>CNPJ / CPF:</strong> ${sCnpj}</p>` : `<p class="party-line"><strong>CNPJ / CPF:</strong> ___________________________________</p>`}
-      <p class="party-line"><strong>Endereço:</strong> ${sEndereco || '___________________________________________________________'}</p>
-      ${!sEndereco ? `<p class="party-line"><strong>Bairro:</strong> _________________________ <strong>Cidade/UF:</strong> _______________________</p>` : ''}
-      <p class="party-line"><strong>Telefone:</strong> ${sTelefone || '_________________________'} &nbsp; <strong>E-mail:</strong> ${sContato || '_______________________________'}</p>
-      <p class="party-line"><strong>Representante:</strong> ${sResponsavel || '_________________________________'} &nbsp; <strong>CPF:</strong> _____________________</p>
+      <p class="party-line"><strong>CNPJ / CPF:</strong> ${sCnpj || '___________________________________'}</p>
+      <p class="party-line"><strong>Endereço:</strong> ${sEndereco || '______________________________________'}</p>
+      <p class="party-line"><strong>Cidade:</strong> ${sCidade || '______________________________'} &nbsp;|&nbsp; <strong>UF:</strong> ${sUF || '__'}</p>
+      <p class="party-line"><strong>Telefone:</strong> ${sTelefone || '_________________________'} &nbsp;|&nbsp; <strong>E-mail:</strong> ${sContato || '_______________________________'}</p>
+      <p class="party-line"><strong>Representante:</strong> ${sResponsavel || '________________________________'} &nbsp;|&nbsp; <strong>CPF:</strong> ${sCpfResponsavel || '___________________'}</p>
     </div>
   </div>
 

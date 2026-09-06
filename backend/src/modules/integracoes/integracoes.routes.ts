@@ -4,7 +4,7 @@ import { requireTenant } from '../../middlewares/tenant.middleware'
 import { requirePermissao } from '../../middlewares/permission.middleware'
 import { prisma } from '../../lib/prisma'
 
-const mp: any = require(path.resolve(__dirname, '../../../src/services/mercadopago.service'))
+const mp: any = require(path.resolve(__dirname, '../../services/mercadopago.service'))
 
 async function getCfg(tenantId: string) {
   return prisma.configuracoes.findFirst({ where: { tenantId } })

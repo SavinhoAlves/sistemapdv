@@ -564,10 +564,14 @@ async function confirmarVenda() {
   processando.value = true
   try {
     const resp = await api.post<any>('/vendas', {
-      itens:      carrinho.value,
-      metodo_id:  metodoSelecionado.value.id,
-      desconto:   descontoNum.value,
-      valor_pago: metodoSelecionado.value.nome === 'Dinheiro' ? valorRecebidoNum.value : total.value
+      idempotencyKey: carrinhoStore.idempotencyKey,
+      itens: carrinho.value.map(i => ({
+        produtoId:  i.produto_id,
+        quantidade: i.quantidade,
+        ...(i.observacao ? { observacao: i.observacao } : {}),
+      })),
+      metodoId:      metodoSelecionado.value.id,
+      valorRecebido: metodoSelecionado.value.nome === 'Dinheiro' ? valorRecebidoNum.value : undefined,
     })
     fichaAtual.value = resp.ficha
     carrinhoStore.limpar()

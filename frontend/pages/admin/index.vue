@@ -7,7 +7,9 @@
 
       <!-- HEADER -->
       <div class="flex items-center gap-3 mb-6">
-        <div class="w-1 h-8 bg-orange-500 rounded-full shrink-0"></div>
+        <div class="size-11 rounded-xl bg-gradient-to-br from-orange-500 to-orange-700 shadow-md shadow-orange-900/50 flex items-center justify-center shrink-0">
+          <ShieldCheck :size="18" class="text-white" />
+        </div>
         <div>
           <h1 class="text-2xl font-black text-gray-900 dark:text-white">Administração</h1>
           <p class="text-sm text-gray-500 dark:text-white/50 mt-0.5">Gerencie funcionários, categorias e métodos de pagamento</p>
@@ -101,8 +103,8 @@
           <div v-for="cat in categorias" :key="cat.id"
             class="bg-white dark:bg-white/5 backdrop-blur-xl border border-gray-200 dark:border-white/[0.08] rounded-2xl p-4 flex items-center justify-between gap-3">
             <div class="flex items-center gap-3">
-              <div class="w-8 h-8 rounded-xl bg-orange-500/10 flex items-center justify-center shrink-0">
-                <Tag :size="14" class="text-orange-500" />
+              <div class="size-8 rounded-xl bg-gradient-to-br from-orange-500 to-orange-700 shadow-sm shadow-orange-900/40 flex items-center justify-center shrink-0">
+                <Tag :size="14" class="text-white" />
               </div>
               <p class="text-sm font-black text-gray-900 dark:text-white">{{ cat.nome }}</p>
             </div>
@@ -478,8 +480,8 @@
           <div class="bg-white dark:bg-neutral-900 border border-gray-200 dark:border-white/[0.08] rounded-3xl shadow-2xl w-full max-w-sm p-6">
             <div class="flex items-center justify-between mb-5">
               <div class="flex items-center gap-3">
-                <div class="w-9 h-9 rounded-xl bg-orange-500/10 dark:bg-orange-500/10 flex items-center justify-center shrink-0">
-                  <Users :size="16" class="text-orange-500" />
+                <div class="size-9 rounded-xl bg-gradient-to-br from-orange-500 to-orange-700 shadow-sm shadow-orange-900/40 flex items-center justify-center shrink-0">
+                  <Users :size="16" class="text-white" />
                 </div>
                 <h3 class="font-black text-gray-900 dark:text-white text-base">Atribuir por Cargo</h3>
               </div>

@@ -63,8 +63,8 @@
 
         <!-- Sistema suspenso pela central -->
         <div v-else-if="status?.suspenso" class="flex flex-col items-center gap-3">
-          <div class="w-14 h-14 rounded-2xl bg-red-500/10 flex items-center justify-center">
-            <ShieldOff :size="28" class="text-red-400" />
+          <div class="size-14 rounded-2xl bg-gradient-to-br from-red-600 to-red-900 shadow-xl shadow-red-900/40 flex items-center justify-center">
+            <ShieldOff :size="28" class="text-white" />
           </div>
           <p class="text-base font-black text-red-400">Sistema suspenso</p>
           <div class="w-full mt-2 p-4 bg-gray-50 dark:bg-white/5 rounded-2xl border border-gray-200 dark:border-white/10">
@@ -83,8 +83,8 @@
 
         <!-- Licença revogada pela central (cliente excluído) -->
         <div v-else-if="status?.revogado" class="flex flex-col items-center gap-3 w-full">
-          <div class="w-14 h-14 rounded-2xl bg-orange-500/10 flex items-center justify-center">
-            <ShieldOff :size="28" class="text-orange-400" />
+          <div class="size-14 rounded-2xl bg-gradient-to-br from-orange-500 to-orange-700 shadow-xl shadow-orange-900/40 flex items-center justify-center">
+            <ShieldOff :size="28" class="text-white" />
           </div>
           <p class="text-base font-black text-orange-400">Licença revogada</p>
           <div class="w-full mt-2 p-4 bg-gray-50 dark:bg-white/5 rounded-2xl border border-gray-200 dark:border-white/10">

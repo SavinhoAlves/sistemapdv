@@ -2,7 +2,7 @@ import path from 'path'
 import { prisma } from '../../lib/prisma'
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
-const impressaoSvc: any = require(path.resolve(__dirname, '../../../src/services/impressao.service'))
+const impressaoSvc: any = require(path.resolve(__dirname, '../../services/impressao.service'))
 
 export const { montarCupomTeste, montarFichas, montarConta, montarFechamento,
                enviarParaImpressora, logoParaRasterEscPos, LOGO_LARGURAS } = impressaoSvc

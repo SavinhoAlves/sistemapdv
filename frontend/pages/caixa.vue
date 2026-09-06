@@ -139,8 +139,8 @@
                 <div v-for="m in porMetodo" :key="m.metodo"
                   class="flex items-center justify-between px-5 py-3 hover:bg-gray-50 dark:hover:bg-white/5 transition-colors">
                   <div class="flex items-center gap-2.5 min-w-0">
-                    <div class="w-8 h-8 rounded-xl bg-orange-500/10 flex items-center justify-center shrink-0">
-                      <component :is="iconeMetodo(m.metodo)" :size="13" class="text-orange-400" />
+                    <div class="size-8 rounded-xl bg-gradient-to-br from-orange-500 to-orange-700 shadow-sm shadow-orange-900/40 flex items-center justify-center shrink-0">
+                      <component :is="iconeMetodo(m.metodo)" :size="13" class="text-white" />
                     </div>
                     <p class="text-sm font-black text-gray-900 dark:text-white truncate">{{ m.metodo }}</p>
                     <span class="text-[10px] font-black text-gray-500 dark:text-white/40 bg-gray-100 dark:bg-white/[0.06] rounded-md px-1.5 py-0.5 shrink-0">{{ m.qtd }}</span>

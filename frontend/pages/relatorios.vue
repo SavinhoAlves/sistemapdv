@@ -8,7 +8,9 @@
       <!-- ══ HEADER ══════════════════════════════════════════════════ -->
       <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 no-print">
         <div class="flex items-center gap-3">
-          <div class="w-1 h-8 bg-orange-500 rounded-full shrink-0"></div>
+          <div class="size-11 rounded-xl bg-gradient-to-br from-orange-500 to-orange-700 shadow-md shadow-orange-900/50 flex items-center justify-center shrink-0">
+            <FileText :size="18" class="text-white" />
+          </div>
           <div>
             <h1 class="text-2xl font-black text-gray-900 dark:text-white">Relatórios</h1>
             <p class="text-sm text-gray-500 dark:text-white/50 mt-0.5">{{ labelContexto }}</p>
@@ -370,7 +372,7 @@
 import { ref, computed, onMounted } from 'vue'
 import {
   CalendarDays, RefreshCw, BarChart2, ShieldCheck, Package,
-  ChevronDown, Printer, Download, Users
+  ChevronDown, Printer, Download, Users, FileText
 } from 'lucide-vue-next'
 import Navbar  from '~/layouts/Navbar.vue'
 import Sidebar from '~/components/Sidebar.vue'

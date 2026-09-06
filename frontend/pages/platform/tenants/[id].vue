@@ -316,8 +316,8 @@
           <div class="flex flex-col sm:flex-row sm:items-start gap-4">
             <!-- Plano + valor -->
             <div class="flex items-center gap-4 flex-1 p-4 rounded-xl bg-indigo-500/[0.04] border border-indigo-500/10">
-              <div class="w-10 h-10 rounded-xl bg-indigo-500/10 flex items-center justify-center shrink-0">
-                <FileText :size="16" class="text-indigo-400" />
+              <div class="size-10 rounded-xl bg-gradient-to-br from-indigo-600 to-indigo-900 shadow-md shadow-indigo-900/50 flex items-center justify-center shrink-0">
+                <FileText :size="16" class="text-white" />
               </div>
               <div class="flex-1 min-w-0">
                 <p class="text-[9px] font-black uppercase tracking-widest text-indigo-400/50 mb-0.5">Plano · {{ contratoAtual.ciclo }}</p>

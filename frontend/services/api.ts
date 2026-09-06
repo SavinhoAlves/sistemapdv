@@ -2,6 +2,7 @@ import { useAuthStore } from '../stores/auth'
 import { useRouter, useRuntimeConfig } from '#imports'
 
 let logoutEmAndamento = false
+let refreshPromise: Promise<boolean> | null = null
 
 export function useApi() {
   const router    = useRouter()
@@ -9,9 +10,38 @@ export function useApi() {
   const config    = useRuntimeConfig()
   const baseURL   = `${config.public.apiUrl}/api`
 
-  async function request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
+  async function tentarRefresh(): Promise<boolean> {
+    if (refreshPromise) return refreshPromise
+
+    refreshPromise = (async () => {
+      const rt = authStore.refreshToken
+      if (!rt) return false
+      try {
+        const resp = await fetch(`${baseURL}/auth/refresh`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ refreshToken: rt }),
+        })
+        if (!resp.ok) return false
+        const data = await resp.json()
+        if (data?.access_token) {
+          authStore.setAuth(data.access_token, authStore.usuario!, data.refresh_token)
+          return true
+        }
+        return false
+      } catch {
+        return false
+      } finally {
+        refreshPromise = null
+      }
+    })()
+
+    return refreshPromise
+  }
+
+  async function request<T>(endpoint: string, options: RequestInit = {}, _isRetry = false): Promise<T> {
     const token      = authStore.token
-    const isAuthRoute = endpoint.includes('/auth/login') || endpoint.includes('/auth/rfid')
+    const isAuthRoute = endpoint.includes('/auth/login') || endpoint.includes('/auth/rfid') || endpoint.includes('/auth/refresh')
 
     const headers: Record<string, string> = {
       ...(options.body !== undefined ? { 'Content-Type': 'application/json' } : {}),
@@ -25,6 +55,13 @@ export function useApi() {
     const response = await fetch(`${baseURL}${endpoint}`, { ...options, headers })
 
     if (response.status === 401) {
+      if (!isAuthRoute && !_isRetry) {
+        const refrescou = await tentarRefresh()
+        if (refrescou) {
+          return request<T>(endpoint, options, true)
+        }
+      }
+
       let errMsg = 'Sessão expirada'
       try {
         const body = await response.clone().json()

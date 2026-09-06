@@ -14,7 +14,7 @@ router.get('/', async (req, res) => {
       include: {
         licencas: { orderBy: { createdAt: 'desc' }, take: 1 },
         caixas:   { where: { status: 'aberto' }, take: 1 },
-        _count:   { select: { mesas: { where: { status: { in: ['aberta', 'ocupada'] } } } } },
+        _count:   { select: { mesas: { where: { status: { in: ['aberta', 'fechando'] } } } } },
       },
     })
 

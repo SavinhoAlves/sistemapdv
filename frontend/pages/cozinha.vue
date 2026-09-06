@@ -491,10 +491,9 @@ onMounted(() => {
   quiosque.value = lsGet('kds_quiosque') === 'on'
   buscar()
 
-  const s = socket.connect()
   tempoReal.value = socket.isConnected()
-  s?.on('connect', () => { tempoReal.value = true; agendarBusca() })
-  s?.on('disconnect', () => { tempoReal.value = false })
+  desinscrever.push(socket.on('connect', () => { tempoReal.value = true; agendarBusca() }))
+  desinscrever.push(socket.on('disconnect', () => { tempoReal.value = false }))
   desinscrever.push(socket.on('cozinha:novo_item', (d: any) => {
     tocarSom('novo')
     toastStore.success(`Novo pedido: ${d.quantidade}x ${d.produto}`)
@@ -526,7 +525,6 @@ onBeforeUnmount(() => {
   clearInterval(timerRelogio)
   clearInterval(timerToken)
   desinscrever.forEach(fn => fn())
-  socket.disconnect()
   document.removeEventListener('pointerdown', destravarAudio)
 })
 </script>

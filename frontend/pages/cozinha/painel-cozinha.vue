@@ -363,8 +363,7 @@ onMounted(() => {
   buscar()
   atualizarRelogio()
 
-  const s = socket.connect()
-  s?.on('connect', () => agendarBusca())
+  desinscrever.push(socket.on('connect', () => agendarBusca()))
   desinscrever.push(socket.on('cozinha:novo_item', () => { tocarSom('novo'); agendarBusca() }))
   desinscrever.push(socket.on('cozinha:item_status', () => agendarBusca()))
   desinscrever.push(socket.on('cozinha:item_cancelado', () => { tocarSom('cancelado'); agendarBusca() }))
@@ -383,7 +382,6 @@ onBeforeUnmount(() => {
   clearInterval(timerAgora)
   clearInterval(timerRelogio)
   desinscrever.forEach(fn => fn())
-  socket.disconnect()
 })
 </script>
 

@@ -18,7 +18,7 @@ const router = useRouter()
 
 // Tempo mínimo que o skeleton permanece visível após a rota resolver.
 // Garante que o efeito de carregamento seja perceptível mesmo em navegações rápidas.
-const SKELETON_MIN_MS = 1500
+const SKELETON_MIN_MS = 0
 
 const rotaPronta = ref(false)
 let skeletonTimer: ReturnType<typeof setTimeout> | null = null

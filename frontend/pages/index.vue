@@ -2,125 +2,58 @@
   <div class="min-h-screen com-sidebar">
 
     <!-- HEADER -->
-    <div class="relative">
-      <div class="absolute inset-x-0 top-0 h-32 bg-gradient-to-b from-orange-500/[0.06] to-transparent pointer-events-none"></div>
-      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 pb-6 relative flex items-end justify-between gap-4">
-        <div>
-          <div class="flex items-center gap-2 mb-2.5">
-            <div class="w-1.5 h-1.5 rounded-full bg-orange-500 shadow-sm shadow-orange-500/60 animate-pulse"></div>
-            <p class="text-[11px] font-black uppercase tracking-[0.15em] text-orange-500/70">{{ dataHoje }}</p>
-          </div>
-          <h1 class="text-3xl sm:text-4xl font-black text-gray-900 dark:text-white tracking-tight leading-tight">
-            {{ saudacao }},
-            <span class="text-orange-400">{{ usuarioNome }}</span>
-          </h1>
-          <p class="text-sm text-gray-400 dark:text-white/30 mt-1.5 font-medium">Resumo de hoje em tempo real</p>
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 pb-6 flex items-end justify-between gap-4">
+      <div>
+        <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/[0.05] border border-white/[0.07] mb-3">
+          <div class="w-1.5 h-1.5 rounded-full bg-orange-400 animate-pulse"></div>
+          <span class="text-[11px] font-medium text-white/45">{{ dataHoje }}</span>
         </div>
-        <button
-          @click="() => carregar()"
-          :class="carregando ? 'opacity-40 pointer-events-none' : 'hover:bg-gray-100 dark:hover:bg-white/[0.08]'"
-          class="shrink-0 flex items-center gap-2 h-9 px-4 rounded-xl bg-gray-50 dark:bg-white/[0.05] border border-gray-200 dark:border-white/[0.07] text-gray-500 dark:text-white/50 text-xs font-bold transition-all"
-        >
-          <RefreshCw :size="13" :class="carregando ? 'animate-spin' : ''" />
-          Atualizar
-        </button>
+        <h1 class="text-3xl sm:text-4xl font-black text-gray-900 dark:text-white tracking-tight leading-tight">
+          {{ saudacao }},
+          <span class="text-orange-400">{{ usuarioNome }}</span>
+        </h1>
+        <p class="text-sm text-gray-400 dark:text-white/30 mt-1.5 font-medium">Resumo de hoje em tempo real</p>
       </div>
+      <button
+        @click="() => carregar()"
+        :class="carregando ? 'opacity-40 pointer-events-none' : 'hover:bg-white/[0.06]'"
+        class="shrink-0 flex items-center gap-2 h-9 px-4 rounded-xl bg-white/[0.04] border border-white/[0.07] text-white/50 text-xs font-bold transition-all"
+      >
+        <RefreshCw :size="13" :class="carregando ? 'animate-spin' : ''" />
+        Atualizar
+      </button>
     </div>
 
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-10 space-y-5">
 
       <!-- KPI CARDS -->
       <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
-
-        <!-- Faturamento -->
-        <div class="relative overflow-hidden rounded-2xl">
-          <div class="absolute inset-0 bg-gradient-to-br from-emerald-500/[0.12] via-transparent to-transparent"></div>
-          <div class="relative bg-white dark:bg-white/[0.04] backdrop-blur-xl border border-gray-200 dark:border-white/[0.07] rounded-2xl p-5 h-full flex flex-col">
-            <div class="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-emerald-400/25 to-transparent"></div>
-            <div class="flex items-start justify-between mb-4">
-              <div class="w-9 h-9 rounded-xl bg-emerald-500/10 border border-emerald-500/15 flex items-center justify-center">
-                <TrendingUp :size="15" class="text-emerald-400" />
-              </div>
-              <span class="text-[9px] font-black uppercase tracking-[0.12em] text-gray-400 dark:text-white/25 mt-0.5">Faturamento</span>
-            </div>
-            <p class="text-2xl sm:text-[1.75rem] font-black text-gray-900 dark:text-white leading-none tabular-nums mt-auto">
-              <span v-if="carregando" class="inline-block w-24 h-7 bg-gray-100 dark:bg-white/[0.06] animate-pulse rounded-lg"></span>
-              <span v-else>R$&nbsp;{{ fmtMoeda(stats.faturamentoHoje) }}</span>
-            </p>
-            <p class="text-xs text-gray-400 dark:text-white/30 mt-2 font-medium tabular-nums">
-              {{ stats.pagamentosHoje }} pgto{{ stats.pagamentosHoje !== 1 ? 's' : '' }}
-            </p>
+        <div v-for="kpi in kpiCards" :key="kpi.label"
+          class="p-5 rounded-2xl border border-gray-200 dark:border-white/[0.07] bg-white dark:bg-white/[0.02] flex flex-col gap-4 hover:bg-gray-50 dark:hover:bg-white/[0.035] transition-colors"
+        >
+          <div :class="['size-11 rounded-xl flex items-center justify-center shadow-lg shrink-0', kpi.iconBg]">
+            <component :is="kpi.icon" :size="18" class="text-white" />
           </div>
-        </div>
-
-        <!-- Mesas Abertas -->
-        <div class="relative overflow-hidden rounded-2xl">
-          <div class="absolute inset-0 bg-gradient-to-br from-orange-500/[0.12] via-transparent to-transparent"></div>
-          <div class="relative bg-white dark:bg-white/[0.04] backdrop-blur-xl border border-gray-200 dark:border-white/[0.07] rounded-2xl p-5 h-full flex flex-col">
-            <div class="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-orange-400/25 to-transparent"></div>
-            <div class="flex items-start justify-between mb-4">
-              <div class="w-9 h-9 rounded-xl bg-orange-500/10 border border-orange-500/15 flex items-center justify-center">
-                <LayoutGrid :size="15" class="text-orange-400" />
-              </div>
-              <span class="text-[9px] font-black uppercase tracking-[0.12em] text-gray-400 dark:text-white/25 mt-0.5">Mesas</span>
-            </div>
-            <p class="text-2xl sm:text-[1.75rem] font-black text-gray-900 dark:text-white leading-none tabular-nums mt-auto">
-              <span v-if="carregando" class="inline-block w-12 h-7 bg-gray-100 dark:bg-white/[0.06] animate-pulse rounded-lg"></span>
-              <span v-else>{{ stats.mesasAbertas }}</span>
-            </p>
-            <p class="text-xs text-gray-400 dark:text-white/30 mt-2 font-medium">em atendimento agora</p>
-          </div>
-        </div>
-
-        <!-- Pedidos -->
-        <div class="relative overflow-hidden rounded-2xl">
-          <div class="absolute inset-0 bg-gradient-to-br from-blue-500/[0.12] via-transparent to-transparent"></div>
-          <div class="relative bg-white dark:bg-white/[0.04] backdrop-blur-xl border border-gray-200 dark:border-white/[0.07] rounded-2xl p-5 h-full flex flex-col">
-            <div class="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-blue-400/25 to-transparent"></div>
-            <div class="flex items-start justify-between mb-4">
-              <div class="w-9 h-9 rounded-xl bg-blue-500/10 border border-blue-500/15 flex items-center justify-center">
-                <ClipboardList :size="15" class="text-blue-400" />
-              </div>
-              <span class="text-[9px] font-black uppercase tracking-[0.12em] text-gray-400 dark:text-white/25 mt-0.5">Pedidos</span>
-            </div>
-            <p class="text-2xl sm:text-[1.75rem] font-black text-gray-900 dark:text-white leading-none tabular-nums mt-auto">
-              <span v-if="carregando" class="inline-block w-12 h-7 bg-gray-100 dark:bg-white/[0.06] animate-pulse rounded-lg"></span>
-              <span v-else>{{ stats.pedidosHoje }}</span>
-            </p>
-            <p class="text-xs text-gray-400 dark:text-white/30 mt-2 font-medium">comandas no dia</p>
-          </div>
-        </div>
-
-        <!-- Ticket Médio -->
-        <div class="relative overflow-hidden rounded-2xl">
-          <div class="absolute inset-0 bg-gradient-to-br from-violet-500/[0.12] via-transparent to-transparent"></div>
-          <div class="relative bg-white dark:bg-white/[0.04] backdrop-blur-xl border border-gray-200 dark:border-white/[0.07] rounded-2xl p-5 h-full flex flex-col">
-            <div class="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-violet-400/25 to-transparent"></div>
-            <div class="flex items-start justify-between mb-4">
-              <div class="w-9 h-9 rounded-xl bg-violet-500/10 border border-violet-500/15 flex items-center justify-center">
-                <Receipt :size="15" class="text-violet-400" />
-              </div>
-              <span class="text-[9px] font-black uppercase tracking-[0.12em] text-gray-400 dark:text-white/25 mt-0.5">Ticket Médio</span>
-            </div>
-            <p class="text-2xl sm:text-[1.75rem] font-black text-gray-900 dark:text-white leading-none tabular-nums mt-auto">
+          <div>
+            <p class="text-2xl sm:text-3xl font-black text-gray-900 dark:text-white leading-none tabular-nums">
               <span v-if="carregando" class="inline-block w-20 h-7 bg-gray-100 dark:bg-white/[0.06] animate-pulse rounded-lg"></span>
-              <span v-else>R$&nbsp;{{ fmtMoeda(stats.ticketMedio) }}</span>
+              <span v-else>{{ kpi.value }}</span>
             </p>
-            <p class="text-xs text-gray-400 dark:text-white/30 mt-2 font-medium">por pagamento hoje</p>
+            <p class="text-xs font-bold text-gray-500 dark:text-white/40 mt-1.5">{{ kpi.label }}</p>
+            <p class="text-[11px] text-gray-400 dark:text-white/25 mt-0.5">{{ kpi.sub }}</p>
           </div>
         </div>
-
       </div>
 
       <!-- LINHA INFERIOR -->
       <div class="grid grid-cols-1 lg:grid-cols-3 gap-5">
 
         <!-- PAGAMENTOS RECENTES -->
-        <div class="lg:col-span-2 bg-white dark:bg-white/[0.04] backdrop-blur-xl rounded-2xl border border-gray-200 dark:border-white/[0.07] overflow-hidden">
+        <div class="lg:col-span-2 bg-white dark:bg-white/[0.02] rounded-2xl border border-gray-200 dark:border-white/[0.07] overflow-hidden">
           <div class="px-5 py-4 border-b border-gray-100 dark:border-white/[0.05] flex items-center justify-between">
             <div class="flex items-center gap-2.5">
-              <div class="w-7 h-7 rounded-lg bg-orange-500/10 flex items-center justify-center">
-                <Receipt :size="13" class="text-orange-400" />
+              <div class="size-8 rounded-xl bg-gradient-to-br from-orange-500 to-orange-700 shadow-sm shadow-orange-900/50 flex items-center justify-center">
+                <Receipt :size="13" class="text-white" />
               </div>
               <h2 class="text-sm font-black text-gray-900 dark:text-white">Últimos Pagamentos</h2>
             </div>
@@ -165,10 +98,10 @@
         <div class="space-y-4">
 
           <!-- STATUS DO CAIXA -->
-          <div class="relative overflow-hidden bg-white dark:bg-white/[0.04] backdrop-blur-xl rounded-2xl border border-gray-200 dark:border-white/[0.07] p-5">
+          <div class="bg-white dark:bg-white/[0.02] rounded-2xl border border-gray-200 dark:border-white/[0.07] p-5">
             <div class="flex items-center gap-2.5 mb-4">
-              <div class="w-7 h-7 rounded-lg bg-orange-500/10 flex items-center justify-center">
-                <Landmark :size="13" class="text-orange-400" />
+              <div class="size-8 rounded-xl bg-gradient-to-br from-emerald-600 to-emerald-900 shadow-sm shadow-emerald-900/50 flex items-center justify-center">
+                <Landmark :size="13" class="text-white" />
               </div>
               <h2 class="text-sm font-black text-gray-900 dark:text-white">Status do Caixa</h2>
             </div>
@@ -198,10 +131,10 @@
           </div>
 
           <!-- MÉTODOS DE PAGAMENTO -->
-          <div class="bg-white dark:bg-white/[0.04] backdrop-blur-xl rounded-2xl border border-gray-200 dark:border-white/[0.07] p-5">
+          <div class="bg-white dark:bg-white/[0.02] rounded-2xl border border-gray-200 dark:border-white/[0.07] p-5">
             <div class="flex items-center gap-2.5 mb-4">
-              <div class="w-7 h-7 rounded-lg bg-orange-500/10 flex items-center justify-center">
-                <CreditCard :size="13" class="text-orange-400" />
+              <div class="size-8 rounded-xl bg-gradient-to-br from-blue-600 to-blue-900 shadow-sm shadow-blue-900/50 flex items-center justify-center">
+                <CreditCard :size="13" class="text-white" />
               </div>
               <h2 class="text-sm font-black text-gray-900 dark:text-white">Métodos Hoje</h2>
             </div>
@@ -278,6 +211,37 @@ const dataHoje = computed(() =>
   new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: 'long' })
 )
 
+const kpiCards = computed(() => [
+  {
+    icon: TrendingUp,
+    iconBg: 'bg-gradient-to-br from-emerald-600 to-emerald-900 shadow-emerald-900/50',
+    value: `R$ ${fmtMoeda(stats.value.faturamentoHoje)}`,
+    label: 'Faturamento',
+    sub: `${stats.value.pagamentosHoje ?? 0} pgto${(stats.value.pagamentosHoje ?? 0) !== 1 ? 's' : ''} hoje`,
+  },
+  {
+    icon: LayoutGrid,
+    iconBg: 'bg-gradient-to-br from-orange-500 to-orange-700 shadow-orange-900/50',
+    value: String(stats.value.mesasAbertas ?? 0),
+    label: 'Mesas abertas',
+    sub: 'em atendimento agora',
+  },
+  {
+    icon: ClipboardList,
+    iconBg: 'bg-gradient-to-br from-blue-600 to-blue-900 shadow-blue-900/50',
+    value: String(stats.value.pedidosHoje ?? 0),
+    label: 'Pedidos hoje',
+    sub: 'comandas no dia',
+  },
+  {
+    icon: Receipt,
+    iconBg: 'bg-gradient-to-br from-violet-600 to-violet-900 shadow-violet-900/50',
+    value: `R$ ${fmtMoeda(stats.value.ticketMedio)}`,
+    label: 'Ticket médio',
+    sub: 'por pagamento hoje',
+  },
+])
+
 const totalMetodos = computed(() =>
   stats.value.metodosPie.reduce((s: number, m: any) => s + Number(m.total), 0)
 )
@@ -311,12 +275,12 @@ function iconeMetodo(nome: string) {
 
 function corMetodo(nome: string) {
   const n = (nome || '').toLowerCase()
-  if (n.includes('dinheiro'))  return { bg: 'bg-emerald-500/15', icon: 'text-emerald-400' }
-  if (n.includes('pix'))       return { bg: 'bg-blue-500/15',    icon: 'text-blue-400' }
-  if (n.includes('crédito') || n.includes('credito')) return { bg: 'bg-purple-500/15', icon: 'text-purple-400' }
-  if (n.includes('débito') || n.includes('debito'))   return { bg: 'bg-indigo-500/15', icon: 'text-indigo-400' }
-  if (n.includes('vale'))      return { bg: 'bg-orange-500/15',  icon: 'text-orange-400' }
-  return { bg: 'bg-gray-100 dark:bg-white/[0.06]', icon: 'text-gray-500 dark:text-white/40' }
+  if (n.includes('dinheiro'))  return { bg: 'bg-gradient-to-br from-emerald-600 to-emerald-900 shadow-sm shadow-emerald-900/50', icon: 'text-white' }
+  if (n.includes('pix'))       return { bg: 'bg-gradient-to-br from-blue-600 to-blue-900 shadow-sm shadow-blue-900/50',         icon: 'text-white' }
+  if (n.includes('crédito') || n.includes('credito')) return { bg: 'bg-gradient-to-br from-violet-600 to-violet-900 shadow-sm shadow-violet-900/50', icon: 'text-white' }
+  if (n.includes('débito') || n.includes('debito'))   return { bg: 'bg-gradient-to-br from-indigo-600 to-indigo-900 shadow-sm shadow-indigo-900/50', icon: 'text-white' }
+  if (n.includes('vale'))      return { bg: 'bg-gradient-to-br from-orange-500 to-orange-700 shadow-sm shadow-orange-900/50',  icon: 'text-white' }
+  return { bg: 'bg-white/[0.06]', icon: 'text-white/40' }
 }
 
 async function carregar(mostrarLoading = true) {

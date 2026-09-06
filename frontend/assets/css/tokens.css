@@ -1,0 +1,278 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   Tokens — RestaurantePDV
+
+   Direção: o sistema é uma ferramenta de operação, não uma vitrine. Quem usa
+   está em pé, com pressa, num tablet barato, sob luz que muda do almoço ao
+   jantar. Então:
+
+   1. COR É DADO, não decoração. O laranja da marca fica reservado para AÇÃO.
+      Estado de comanda tem cor própria e fixa: âmbar na cozinha, verde pronto
+      para entregar, azul conta pedida, vermelho tempo excedido. Quem olha o
+      salão de longe lê o estado pela cor antes de ler qualquer texto.
+
+   2. SEM BLUR. `backdrop-blur-xl` estava em card, sidebar e todos os modais.
+      Cada camada com blur força composição nova no GPU e derruba o frame rate
+      justamente no scroll do cardápio. Superfícies aqui são sólidas.
+
+   3. DINHEIRO É MONOESPAÇADO E TABULAR. Números com a mesma largura alinham a
+      vírgula na vertical; comparar 12 comandas vira leitura de coluna, não de
+      texto. É o ganho funcional que justifica a segunda família tipográfica.
+
+   4. CONTRASTE MÍNIMO 4,5:1 PARA INFORMAÇÃO. O tema anterior usava
+      `text-white/25` e `/30` (≈2,8:1) para nome do garçom e placeholders —
+      informação real em contraste de decoração.
+
+   5. ALVO DE TOQUE 48px. `.btn-sm` tinha 28px de altura.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+:root {
+  /* ── Superfícies ──────────────────────────────────────────────────────────
+     Base azul-escura em vez de preto puro: preto absoluto num painel OLED de
+     tablet cria halo em volta do texto claro. */
+  --sup-fundo:     #0e1119;
+  --sup-painel:    #161b26;
+  --sup-cartao:    #1c2231;
+  --sup-elevado:   #242c3d;
+  --sup-pressed:   #2d3648;
+
+  --linha:         #2b3345;
+  --linha-forte:   #3a445a;
+
+  /* ── Texto ────────────────────────────────────────────────────────────────
+     Três níveis. O terciário é o piso: abaixo dele, não é informação. */
+  --txt:           #f1f4f9;   /* 15.8:1 sobre --sup-fundo */
+  --txt-2:         #a9b3c6;   /*  7.4:1 — legendas, nomes secundários */
+  --txt-3:         #7b8598;   /*  4.6:1 — mínimo AA, só metadados */
+
+  /* ── Ação ─────────────────────────────────────────────────────────────────
+     O laranja da marca, e SÓ para ação. Não é mais cor de "selecionado",
+     de avatar, de ícone decorativo nem de gradiente de fundo. */
+  --acao:          #f97316;
+  --acao-hover:    #fb8b3c;
+  --acao-press:    #dd5f08;
+  --acao-fraca:    #f973161f;
+  --acao-txt:      #ffffff;
+
+  /* ── Estado da comanda ────────────────────────────────────────────────────
+     Cada uma responde a uma pergunta operacional distinta. */
+  --st-cozinha:    #f5a524;   /* tem item em preparo */
+  --st-pronto:     #2ec27e;   /* tem item pronto esperando garçom */
+  --st-conta:      #4d8df6;   /* conta pedida, não aceita lançamento */
+  --st-atencao:    #ef5350;   /* tempo excedido ou saldo em risco */
+  --st-parado:     #7b8598;   /* sem movimento */
+
+  /* Fundos de estado — 12% de opacidade mantém o texto legível por cima. */
+  --st-cozinha-bg: #f5a5241f;
+  --st-pronto-bg:  #2ec27e1f;
+  --st-conta-bg:   #4d8df61f;
+  --st-atencao-bg: #ef53501f;
+
+  /* ── Tipografia ───────────────────────────────────────────────────────────
+     Duas famílias com papéis separados, não por estilo:
+     Sora para linguagem, mono para número. Ambas AUTO-HOSPEDADAS — o deploy
+     é em LAN isolada (o README descreve 10.0.0.100) e o carregamento via
+     fonts.googleapis.com simplesmente falha sem internet. */
+  --fonte-texto:   'Sora', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --fonte-numero:  'JetBrains Mono', ui-monospace, 'SF Mono', monospace;
+
+  /* Escala. Piso em 13px; nada abaixo disso carrega informação.
+     O antigo `text-[10px]` era usado em rótulo de mesa e nome de garçom. */
+  --t-micro:       0.8125rem;  /* 13px — metadado */
+  --t-corpo:       0.9375rem;  /* 15px — texto padrão */
+  --t-destaque:    1.0625rem;  /* 17px — nome da comanda */
+  --t-valor:       1.375rem;   /* 22px — total da conta no card */
+  --t-valor-forte: 2.5rem;     /* 40px — restante a pagar */
+  --t-titulo:      1.5rem;     /* 24px */
+
+  /* ── Espaço e forma ───────────────────────────────────────────────────────
+     Raio por hierarquia, não um valor para tudo. Superfície grande arredonda
+     mais; controle arredonda menos, para a área de toque parecer maior. */
+  --r-controle:    10px;
+  --r-cartao:      14px;
+  --r-folha:       20px;
+
+  --toque-min:     48px;   /* altura mínima de qualquer alvo tocável */
+  --toque-conf:    64px;   /* ações de confirmação e teclado numérico */
+
+  --e-1: 4px;  --e-2: 8px;  --e-3: 12px;
+  --e-4: 16px; --e-5: 24px; --e-6: 32px;
+
+  /* ── Elevação ─────────────────────────────────────────────────────────────
+     Duas sombras. A anterior tinha card/card-lg/float mais shadow-2xl do
+     Tailwind espalhado, sem hierarquia definida. */
+  --sombra-cartao: 0 1px 2px #00000040;
+  --sombra-folha:  0 12px 32px #00000066;
+
+  /* ── Movimento ────────────────────────────────────────────────────────────
+     Só responde a ação do usuário. Nada de entrada em cascata: o
+     `SKELETON_MIN_MS = 1500` do app.vue segurava a tela por 1,5s em TODA
+     troca de rota, e a percepção não era de polimento, era de travamento. */
+  --tempo-toque:   90ms;
+  --tempo-folha:   180ms;
+  --curva:         cubic-bezier(0.2, 0, 0, 1);
+}
+
+/* ── Tema claro ─────────────────────────────────────────────────────────────
+   Mantido como tema real, não como afterthought. A página de mesas usava
+   `text-white/30` e `bg-white/[0.02]` sem prefixo `dark:` — no tema claro
+   ficava branco sobre branco. */
+html.light {
+  --sup-fundo:   #f4f6f9;
+  --sup-painel:  #ffffff;
+  --sup-cartao:  #ffffff;
+  --sup-elevado: #eef1f6;
+  --sup-pressed: #e3e8ef;
+
+  --linha:       #dde3ec;
+  --linha-forte: #c3ccda;
+
+  --txt:         #131820;
+  --txt-2:       #4a5567;
+  --txt-3:       #6b7688;
+
+  --sombra-cartao: 0 1px 2px #0f172a14;
+  --sombra-folha:  0 12px 32px #0f172a29;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Primitivas
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.pdv-valor {
+  font-family: var(--fonte-numero);
+  /* Dígitos de largura fixa: a vírgula alinha na vertical entre comandas. */
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'tnum' 1;
+  letter-spacing: -0.01em;
+}
+
+.pdv-botao {
+  min-height: var(--toque-min);
+  padding: 0 var(--e-4);
+  border-radius: var(--r-controle);
+  font-family: var(--fonte-texto);
+  font-size: var(--t-corpo);
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--e-2);
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: background-color var(--tempo-toque) var(--curva);
+}
+
+.pdv-botao--acao {
+  background: var(--acao);
+  color: var(--acao-txt);
+}
+.pdv-botao--acao:hover  { background: var(--acao-hover); }
+.pdv-botao--acao:active { background: var(--acao-press); }
+
+.pdv-botao--neutro {
+  background: var(--sup-elevado);
+  color: var(--txt);
+  border-color: var(--linha);
+}
+.pdv-botao--neutro:active { background: var(--sup-pressed); }
+
+/* Ação destrutiva não ganha vermelho por padrão — vermelho está reservado
+   para ALERTA de estado. Destrutivo é neutro com texto vermelho, e sempre
+   pede confirmação. */
+.pdv-botao--destrutivo {
+  background: var(--sup-elevado);
+  color: var(--st-atencao);
+  border-color: var(--linha);
+}
+
+.pdv-botao--confirmar {
+  min-height: var(--toque-conf);
+  font-size: var(--t-destaque);
+  font-weight: 700;
+}
+
+.pdv-botao:focus-visible {
+  outline: 2px solid var(--acao);
+  outline-offset: 2px;
+}
+
+.pdv-cartao {
+  background: var(--sup-cartao);
+  border: 1px solid var(--linha);
+  border-radius: var(--r-cartao);
+  box-shadow: var(--sombra-cartao);
+  /* sem backdrop-filter — ver nota 2 no topo */
+}
+
+.pdv-campo {
+  min-height: var(--toque-min);
+  width: 100%;
+  padding: 0 var(--e-3);
+  background: var(--sup-elevado);
+  border: 1px solid var(--linha);
+  border-radius: var(--r-controle);
+  color: var(--txt);
+  font-family: var(--fonte-texto);
+  font-size: var(--t-corpo);
+}
+.pdv-campo::placeholder { color: var(--txt-3); }
+.pdv-campo:focus {
+  outline: none;
+  border-color: var(--acao);
+  box-shadow: 0 0 0 3px var(--acao-fraca);
+}
+
+/* Rótulo em sentence case. O padrão anterior era
+   `text-[10px] font-black uppercase tracking-widest` — 10px em caixa alta
+   com tracking aberto é a combinação mais difícil de ler que existe. */
+.pdv-rotulo {
+  font-size: var(--t-micro);
+  font-weight: 500;
+  color: var(--txt-2);
+}
+
+/* ── Faixa de estado ────────────────────────────────────────────────────────
+   A barra vertical à esquerda do card. É o que se lê primeiro atravessando
+   o salão, antes de qualquer texto. */
+.pdv-faixa       { width: 4px; border-radius: 2px; background: var(--st-parado); }
+.pdv-faixa--cozinha { background: var(--st-cozinha); }
+.pdv-faixa--pronto  { background: var(--st-pronto); }
+.pdv-faixa--conta   { background: var(--st-conta); }
+.pdv-faixa--atencao { background: var(--st-atencao); }
+
+/* ── Cupom ──────────────────────────────────────────────────────────────────
+   A comanda na tela imita o cupom impresso: mesma ordem, mesmo agrupamento
+   por rodada, mesma linha tracejada. O garçom passa a ver na tela exatamente
+   o que a cozinha recebeu no papel — a conferência vira comparação direta. */
+.pdv-cupom {
+  font-family: var(--fonte-numero);
+  font-size: var(--t-corpo);
+  line-height: 1.55;
+}
+.pdv-cupom__rodada {
+  border-top: 1px dashed var(--linha-forte);
+  padding-top: var(--e-3);
+  margin-top: var(--e-3);
+}
+.pdv-cupom__rodada:first-child { border-top: none; margin-top: 0; padding-top: 0; }
+
+.pdv-cupom__linha {
+  display: grid;
+  grid-template-columns: 2.5rem 1fr auto;
+  gap: var(--e-3);
+  align-items: baseline;
+}
+.pdv-cupom__linha > :last-child { text-align: right; }
+
+/* ── Acessibilidade ─────────────────────────────────────────────────────────*/
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+@media print {
+  .pdv-nao-imprimir { display: none !important; }
+}

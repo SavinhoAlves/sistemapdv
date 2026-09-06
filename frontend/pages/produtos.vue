@@ -7,7 +7,9 @@
     <!-- HEADER -->
     <div class="px-6 pt-6 pb-4 flex items-center justify-between gap-4 flex-wrap">
       <div class="flex items-center gap-3">
-        <div class="w-1 h-8 bg-orange-500 rounded-full shrink-0"></div>
+        <div class="size-11 rounded-xl bg-gradient-to-br from-orange-500 to-orange-700 shadow-md shadow-orange-900/50 flex items-center justify-center shrink-0">
+          <Package :size="18" class="text-white" />
+        </div>
         <div>
           <h1 class="text-2xl font-black text-gray-900 dark:text-white">Produtos</h1>
           <p class="text-sm text-gray-500 dark:text-white/50 mt-0.5">Controle de cardápio e estoque</p>
@@ -165,8 +167,8 @@
       <!-- VAZIO -->
       <div v-else-if="!produtosFiltrados.length" class="h-full flex items-center justify-center">
         <div class="text-center">
-          <div class="w-20 h-20 mx-auto rounded-full bg-orange-500/10 flex items-center justify-center mb-4">
-            <Package :size="36" class="text-orange-300" />
+          <div class="size-20 mx-auto rounded-2xl bg-gradient-to-br from-orange-500 to-orange-700 shadow-xl shadow-orange-900/50 flex items-center justify-center mb-4">
+            <Package :size="32" class="text-white" />
           </div>
           <h3 class="text-xl font-black text-gray-600 dark:text-white/80">
             {{ busca || filtroCategoria || filtroBaixoEstoque ? 'Nenhum produto encontrado' : 'Nenhum produto cadastrado' }}

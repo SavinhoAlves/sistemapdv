@@ -65,14 +65,17 @@ export async function visaoGeral(
       _avg: { valor: true },
     }),
 
-    prisma.pedido.aggregate({
+    // Antes: prisma.pedido.aggregate sobre o escalar `Pedido.desconto`.
+    // O desconto virou tabela Abatimento — cada linha com motivo e autor —
+    // então o relatório passa a somar as linhas não canceladas.
+    prisma.abatimento.aggregate({
       where: {
         tenantId,
+        cancelado: false,
         createdAt: range,
-        desconto: { gt: 0 },
-        ...(pedidoIdsComGarcom ? { id: { in: pedidoIdsComGarcom } } : {}),
+        ...(pedidoIdsComGarcom ? { pedidoId: { in: pedidoIdsComGarcom } } : {}),
       },
-      _sum: { desconto: true },
+      _sum: { valor: true },
       _count: { id: true },
     }),
 
@@ -163,7 +166,7 @@ export async function visaoGeral(
       faturamento:    Number(aggs._sum.valor ?? 0),
       qtdPagamentos:  aggs._count.id,
       ticketMedio:    Number(aggs._avg.valor ?? 0),
-      totalAbatido:   Number(descontos._sum.desconto ?? 0),
+      totalAbatido:   Number(descontos._sum.valor ?? 0),
       qtdAbatimentos: descontos._count.id,
     },
     anterior: {
@@ -338,19 +341,40 @@ export async function mesas(
   }
 
   // Descontos (abatimentos) no período
-  const descontosMesas = await prisma.pedido.findMany({
-    where: { tenantId, createdAt: range, desconto: { gt: 0 } },
+  // Agora o relatório mostra motivo e autor de cada abatimento — antes só
+  // existia um total por pedido, sem nenhum rastro de quem concedeu nem por quê.
+  const linhas = await prisma.abatimento.findMany({
+    where: { tenantId, cancelado: false, createdAt: range },
     select: {
-      desconto: true,
-      mesa: { select: { nomeMesa: true, numero: true } },
+      valor: true,
+      tipo: true,
+      motivo: true,
+      createdAt: true,
+      usuario: { select: { nome: true } },
+      pedido: { select: { numero: true, mesa: { select: { nomeMesa: true, numero: true } } } },
     },
+    orderBy: { createdAt: 'desc' },
   })
 
-  const abatimentos = descontosMesas.map((p) => ({
-    nomeMesa:    p.mesa?.nomeMesa ?? `Mesa ${p.mesa?.numero ?? '?'}`,
-    qtdAbatimentos: 1,
-    totalAbatido: Number(p.desconto),
-  }))
+  // Agrupa por comanda, mantendo os motivos individuais.
+  const porComanda = new Map<string, { nomeMesa: string; qtdAbatimentos: number; totalAbatido: number; detalhes: any[] }>()
+  for (const l of linhas) {
+    const nomeMesa = l.pedido.mesa?.nomeMesa
+      ?? (l.pedido.mesa ? `Mesa ${l.pedido.mesa.numero}` : `Balcão #${l.pedido.numero}`)
+    const atual = porComanda.get(nomeMesa) ?? { nomeMesa, qtdAbatimentos: 0, totalAbatido: 0, detalhes: [] }
+    atual.qtdAbatimentos += 1
+    atual.totalAbatido = Number((atual.totalAbatido + Number(l.valor)).toFixed(2))
+    atual.detalhes.push({
+      valor: Number(l.valor),
+      tipo: l.tipo,
+      motivo: l.motivo,
+      por: l.usuario.nome,
+      em: l.createdAt,
+    })
+    porComanda.set(nomeMesa, atual)
+  }
+
+  const abatimentos = [...porComanda.values()].sort((a, b) => b.totalAbatido - a.totalAbatido)
 
   return { periodo: { inicio, fim }, resumo, ranking, abatimentos }
 }

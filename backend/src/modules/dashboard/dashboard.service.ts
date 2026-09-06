@@ -3,7 +3,7 @@ import { prisma } from '../../lib/prisma'
 export async function stats(tenantId: string) {
   // Mesas abertas
   const mesasAbertas = await prisma.mesa.count({
-    where: { tenantId, status: { in: ['aberta', 'ocupada', 'fechando'] }, dataFechamento: null },
+    where: { tenantId, status: { in: ['aberta', 'fechando'] }, dataFechamento: null },
   })
 
   // Caixa aberto atual

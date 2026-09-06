@@ -1,6 +1,5 @@
 import type { FastifyRequest, FastifyReply } from 'fastify'
 import { verifyAccessToken } from '../lib/jwt'
-import { tenantStorage } from '../lib/prisma'
 
 export async function authMiddleware(
   request: FastifyRequest,
@@ -29,15 +28,7 @@ export async function authMiddleware(
   }
 }
 
-// Hook que injeta tenantId no AsyncLocalStorage — deve rodar após authMiddleware
-export function withTenantContext(
-  handler: (req: FastifyRequest, reply: FastifyReply) => Promise<void>
-) {
-  return async (request: FastifyRequest, reply: FastifyReply) => {
-    if (request.tenantId) {
-      await tenantStorage.run({ tenantId: request.tenantId }, () => handler(request, reply))
-    } else {
-      await handler(request, reply)
-    }
-  }
-}
+// withTenantContext saiu daqui. A instalação do contexto agora acontece em
+// middlewares/tenant-context.ts, registrada em app.ts — antes esta função
+// existia e nunca era chamada, deixando a extensão do Prisma inerte.
+

@@ -7,7 +7,9 @@
 
       <!-- HEADER -->
       <div class="flex items-center gap-3 mb-7">
-        <div class="w-1 h-8 bg-orange-500 rounded-full shrink-0"></div>
+        <div class="size-11 rounded-xl bg-gradient-to-br from-orange-500 to-orange-700 shadow-md shadow-orange-900/50 flex items-center justify-center shrink-0">
+          <Settings :size="18" class="text-white" />
+        </div>
         <div>
           <h1 class="text-2xl font-black text-gray-900 dark:text-white">Configurações</h1>
           <p class="text-sm text-gray-500 dark:text-white/50 mt-0.5">Personalize o sistema e as fichas impressas</p>
@@ -22,8 +24,8 @@
           <!-- ══ CARD: IDENTIDADE ══ -->
           <div class="bg-white dark:bg-white/5 backdrop-blur-xl rounded-2xl border border-gray-200 dark:border-white/[0.08] overflow-hidden">
             <div class="px-6 py-5 border-b border-gray-100 dark:border-white/[0.06] flex items-center gap-3">
-              <div class="w-8 h-8 rounded-xl bg-orange-500/10 flex items-center justify-center shrink-0">
-                <UtensilsCrossed :size="14" class="text-orange-500" />
+              <div class="size-8 rounded-xl bg-gradient-to-br from-orange-500 to-orange-700 shadow-sm shadow-orange-900/50 flex items-center justify-center shrink-0">
+                <UtensilsCrossed :size="14" class="text-white" />
               </div>
               <div>
                 <h2 class="text-sm font-black text-gray-900 dark:text-white">Identidade</h2>
@@ -137,8 +139,8 @@
           <!-- ══ CARD: FICHAS ══ -->
           <div class="bg-white dark:bg-white/5 backdrop-blur-xl rounded-2xl border border-gray-200 dark:border-white/[0.08] overflow-hidden">
             <div class="px-6 py-5 border-b border-gray-100 dark:border-white/[0.06] flex items-center gap-3">
-              <div class="w-8 h-8 rounded-xl bg-blue-500/10 flex items-center justify-center shrink-0">
-                <FileText :size="14" class="text-blue-500" />
+              <div class="size-8 rounded-xl bg-gradient-to-br from-blue-600 to-blue-900 shadow-sm shadow-blue-900/50 flex items-center justify-center shrink-0">
+                <FileText :size="14" class="text-white" />
               </div>
               <div>
                 <h2 class="text-sm font-black text-gray-900 dark:text-white">Fichas</h2>
@@ -173,8 +175,8 @@
           <!-- ══ CARD: IMPRESSORA ══ -->
           <div class="bg-white dark:bg-white/5 backdrop-blur-xl rounded-2xl border border-gray-200 dark:border-white/[0.08] overflow-hidden">
             <div class="px-6 py-5 border-b border-gray-100 dark:border-white/[0.06] flex items-center gap-3">
-              <div class="w-8 h-8 rounded-xl bg-purple-500/10 flex items-center justify-center shrink-0">
-                <Printer :size="14" class="text-purple-500" />
+              <div class="size-8 rounded-xl bg-gradient-to-br from-violet-600 to-violet-900 shadow-sm shadow-violet-900/50 flex items-center justify-center shrink-0">
+                <Printer :size="14" class="text-white" />
               </div>
               <div>
                 <h2 class="text-sm font-black text-gray-900 dark:text-white">Impressora</h2>
@@ -320,8 +322,8 @@
           <div class="bg-white dark:bg-white/5 backdrop-blur-xl rounded-2xl border border-gray-200 dark:border-white/[0.08] overflow-hidden">
             <div class="px-6 py-5 border-b border-gray-100 dark:border-white/[0.06] flex items-center justify-between gap-3">
               <div class="flex items-center gap-3">
-                <div class="w-8 h-8 rounded-xl bg-indigo-500/10 flex items-center justify-center shrink-0">
-                  <Printer :size="14" class="text-indigo-500" />
+                <div class="size-8 rounded-xl bg-gradient-to-br from-indigo-600 to-indigo-900 shadow-sm shadow-indigo-900/50 flex items-center justify-center shrink-0">
+                  <Printer :size="14" class="text-white" />
                 </div>
                 <div>
                   <h2 class="text-sm font-black text-gray-900 dark:text-white">Impressoras por Destino</h2>
@@ -519,8 +521,8 @@
           <!-- ══ CARD: INTEGRAÇÕES ══ -->
           <div class="bg-white dark:bg-white/5 backdrop-blur-xl rounded-2xl border border-gray-200 dark:border-white/[0.08] overflow-hidden">
             <div class="px-6 py-5 border-b border-gray-100 dark:border-white/[0.06] flex items-center gap-3">
-              <div class="w-8 h-8 rounded-xl bg-emerald-500/10 flex items-center justify-center shrink-0">
-                <Plug :size="14" class="text-emerald-500" />
+              <div class="size-8 rounded-xl bg-gradient-to-br from-emerald-600 to-emerald-900 shadow-sm shadow-emerald-900/50 flex items-center justify-center shrink-0">
+                <Plug :size="14" class="text-white" />
               </div>
               <div>
                 <h2 class="text-sm font-black text-gray-900 dark:text-white">Integrações</h2>
@@ -652,8 +654,8 @@
           <!-- ══ CARD: ACESSO ══ -->
           <div class="bg-white dark:bg-white/5 backdrop-blur-xl rounded-2xl border border-gray-200 dark:border-white/[0.08] overflow-hidden">
             <div class="px-6 py-5 border-b border-gray-100 dark:border-white/[0.06] flex items-center gap-3">
-              <div class="w-8 h-8 rounded-xl bg-violet-500/10 flex items-center justify-center shrink-0">
-                <ShieldCheck :size="14" class="text-violet-500" />
+              <div class="size-8 rounded-xl bg-gradient-to-br from-violet-600 to-violet-900 shadow-sm shadow-violet-900/50 flex items-center justify-center shrink-0">
+                <ShieldCheck :size="14" class="text-white" />
               </div>
               <div>
                 <h2 class="text-sm font-black text-gray-900 dark:text-white">Acesso</h2>
@@ -708,8 +710,8 @@
         <div class="lg:sticky lg:top-20">
           <div class="bg-white dark:bg-white/5 backdrop-blur-xl rounded-2xl border border-gray-200 dark:border-white/[0.08] overflow-hidden">
             <div class="px-6 py-5 border-b border-gray-100 dark:border-white/[0.06] flex items-center gap-3">
-              <div class="w-8 h-8 rounded-xl bg-green-500/10 flex items-center justify-center shrink-0">
-                <Eye :size="14" class="text-green-500" />
+              <div class="size-8 rounded-xl bg-gradient-to-br from-emerald-600 to-emerald-900 shadow-sm shadow-emerald-900/50 flex items-center justify-center shrink-0">
+                <Eye :size="14" class="text-white" />
               </div>
               <div>
                 <h2 class="text-sm font-black text-gray-900 dark:text-white">Pré-visualização da Ficha</h2>
@@ -763,7 +765,7 @@
 import { ref, reactive, computed, onMounted } from 'vue'
 import {
   ImageIcon, Upload, Trash2, Save, Loader2, UtensilsCrossed, Printer, FileText, Eye, EyeOff,
-  Minus, Plus, Plug, CreditCard, RefreshCw, CheckCircle, Ruler, ShieldCheck, ChevronDown
+  Minus, Plus, Plug, CreditCard, RefreshCw, CheckCircle, Ruler, ShieldCheck, ChevronDown, Settings
 } from 'lucide-vue-next'
 import Navbar from '~/layouts/Navbar.vue'
 import Sidebar from '~/components/Sidebar.vue'

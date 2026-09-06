@@ -3,6 +3,8 @@ import cors from '@fastify/cors'
 import helmet from '@fastify/helmet'
 import rateLimit from '@fastify/rate-limit'
 import { authMiddleware } from './middlewares/auth.middleware'
+import { registrarContextoTenant } from './middlewares/tenant-context'
+import { registrarTratadorDeErros } from './lib/erros'
 import { authRoutes } from './modules/auth/auth.routes'
 import { categoriasRoutes } from './modules/categorias/categorias.routes'
 import { produtosRoutes } from './modules/produtos/produtos.routes'
@@ -21,38 +23,6 @@ import { vendasRoutes } from './modules/vendas/vendas.routes'
 import { integracoesRoutes } from './modules/integracoes/integracoes.routes'
 import { platformAuthRoutes } from './modules/platform/platform-auth.routes'
 import { platformTenantsRoutes } from './modules/platform/platform-tenants.routes'
-
-function snakeToCamel(s: string): string {
-  return s.replace(/_([a-z0-9])/g, (_, c) => c.toUpperCase())
-}
-
-function camelToSnake(s: string): string {
-  return s.replace(/[A-Z]/g, (c) => '_' + c.toLowerCase())
-}
-
-function normalizeBodyKeys(val: unknown): unknown {
-  if (Array.isArray(val)) return val.map(normalizeBodyKeys)
-  if (val !== null && typeof val === 'object') {
-    const out: Record<string, unknown> = {}
-    for (const [k, v] of Object.entries(val as Record<string, unknown>)) {
-      out[snakeToCamel(k)] = normalizeBodyKeys(v)
-    }
-    return out
-  }
-  return val
-}
-
-function normalizeResponseKeys(val: unknown): unknown {
-  if (Array.isArray(val)) return val.map(normalizeResponseKeys)
-  if (val !== null && typeof val === 'object' && !(val instanceof Date)) {
-    const out: Record<string, unknown> = {}
-    for (const [k, v] of Object.entries(val as Record<string, unknown>)) {
-      out[camelToSnake(k)] = normalizeResponseKeys(v)
-    }
-    return out
-  }
-  return val
-}
 
 export async function buildApp() {
   const app = Fastify({
@@ -94,24 +64,26 @@ export async function buildApp() {
   // ── Middleware global de autenticação ──────────────────────────────────────
   app.addHook('onRequest', authMiddleware)
 
-  // ── Body normalizer: aceita snake_case do frontend legado ─────────────────
-  app.addHook('preHandler', async (request) => {
-    if (request.body && typeof request.body === 'object') {
-      request.body = normalizeBodyKeys(request.body)
-    }
-  })
+  // ── Contexto de tenant ─────────────────────────────────────────────────────
+  // Instala o tenantId no AsyncLocalStorage para o resto do ciclo da
+  // requisição. Sem esta linha a extensão do Prisma em lib/prisma.ts é um
+  // no-op — era exatamente o que acontecia antes: `withTenantContext` existia
+  // e nunca era chamado, então todo o isolamento entre restaurantes dependia
+  // de cada service lembrar de escrever `tenantId` no where.
+  registrarContextoTenant(app)
 
-  // ── Response normalizer: converte camelCase → snake_case para o frontend ──
-  app.addHook('onSend', async (_request, reply, payload) => {
-    const ct = reply.getHeader('content-type') as string | undefined
-    if (typeof payload !== 'string' || !ct?.includes('application/json')) return payload
-    try {
-      const parsed = JSON.parse(payload)
-      return JSON.stringify(normalizeResponseKeys(parsed))
-    } catch {
-      return payload
-    }
-  })
+  // ── Tratamento de erros ────────────────────────────────────────────────────
+  // Traduz erro de negócio (Object.assign(new Error, { status })), ZodError e
+  // códigos do Prisma para respostas HTTP. Antes cada rota repetia o mesmo
+  // try/catch, e onde o `if (409)` faltava um conflito de negócio virava 500.
+  registrarTratadorDeErros(app)
+
+  // NOTA: os hooks de conversão snake_case ↔ camelCase foram removidos.
+  // Eles reserializavam todo JSON de entrada e saída em toda requisição,
+  // mutilavam chaves de DADOS junto com as de schema (um objeto `permissoes`
+  // com chave `adicionarPedido` saía como `adicionar_pedido`), e existiam para
+  // compatibilidade com um frontend que hoje está inteiro sob seu controle.
+  // Os services já devolvem snake_case onde o frontend espera.
 
   // ── Rotas ──────────────────────────────────────────────────────────────────
   // Rate limit mais restrito para endpoints de autenticação (anti brute-force)

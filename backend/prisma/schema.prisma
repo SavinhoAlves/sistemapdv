@@ -28,12 +28,9 @@ enum UserCargo {
 }
 
 enum MesaStatus {
-  livre
-  aberta
-  fechada
-  ocupada
-  fechando
-  finalizada
+  aberta      // recebendo lançamentos
+  fechando    // conta impressa, aguardando pagamento — bloqueia novos itens
+  fechada     // quitada ou encerrada com justificativa
 }
 
 enum PedidoStatus {
@@ -127,6 +124,10 @@ model Tenant {
   tickets              TicketSuporte[]
 
   @@map("tenants")
+
+  // relações adicionadas pelas correções do PDV
+  abatimentos Abatimento[]
+  pedidoItens PedidoItem[]
 }
 
 // ── Platform User ──────────────────────────────────────────────────────────────
@@ -195,6 +196,13 @@ model Usuario {
   @@unique([tenantId, cartaoRfid])
   @@index([tenantId])
   @@map("usuarios")
+
+  // relações adicionadas pelas correções do PDV
+  mesasEncerradas    Mesa[]        @relation("EncerradaPor")
+  abatimentosFeitos  Abatimento[]  @relation("AbatimentoAutor")
+  abatimentosCancelados Abatimento[] @relation("AbatimentoCancelador")
+  itensLancados      PedidoItem[]  @relation("ItemLancadoPor")
+  pagamentosEstornados Pagamento[] @relation("PagamentoEstornadoPor")
 }
 
 model RefreshToken {
@@ -299,27 +307,35 @@ model Mesa {
   id             String     @id @default(uuid())
   tenantId       String     @map("tenant_id")
   numero         Int
-  capacidade     Int        @default(4)
   cliente        String?
   nomeMesa       String?    @map("nome_mesa")
-  status         MesaStatus @default(livre)
+  status         MesaStatus @default(aberta)
   garcomId       String?    @map("garcom_id")
   caixaId        String?    @map("caixa_id")
   dataAbertura   DateTime?  @map("data_abertura")
   dataFechamento DateTime?  @map("data_fechamento")
   observacoes    String?
-  createdAt      DateTime   @default(now()) @map("created_at")
-  updatedAt      DateTime   @updatedAt @map("updated_at")
 
-  tenant     Tenant     @relation(fields: [tenantId], references: [id])
-  garcom     Usuario?   @relation("GarcomMesas", fields: [garcomId], references: [id])
-  caixa      Caixa?     @relation(fields: [caixaId], references: [id])
-  pedidos    Pedido[]
-  pagamentos Pagamento[]
+  // Encerramento sem quitação exige justificativa e responsável.
+  // Antes `fechar()` não checava saldo nenhum: a dívida sumia da operação
+  // e o pedido ficava `aberto` para sempre.
+  encerradaSemPagamento Boolean @default(false) @map("encerrada_sem_pagamento")
+  motivoEncerramento    String? @map("motivo_encerramento")
+  encerradaPorId        String? @map("encerrada_por")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  tenant       Tenant      @relation(fields: [tenantId], references: [id])
+  garcom       Usuario?    @relation("GarcomMesas", fields: [garcomId], references: [id])
+  encerradaPor Usuario?    @relation("EncerradaPor", fields: [encerradaPorId], references: [id])
+  caixa        Caixa?      @relation(fields: [caixaId], references: [id])
+  pedidos      Pedido[]
+  pagamentos   Pagamento[]
 
   @@unique([tenantId, numero])
-  @@index([tenantId])
   @@index([tenantId, status])
+  @@index([tenantId, dataAbertura])
   @@map("mesas")
 }
 
@@ -331,20 +347,26 @@ model Pedido {
   mesaId      String?      @map("mesa_id")
   garcomId    String       @map("garcom_id")
   status      PedidoStatus @default(aberto)
-  total       Decimal      @default(0) @db.Decimal(10, 2)
-  desconto    Decimal      @default(0) @db.Decimal(10, 2)
   taxaPct     Decimal      @default(0) @db.Decimal(5, 2) @map("taxa_pct")
+
+  /// Nº sequencial por tenant, para a ficha impressa. Antes a venda direta
+  /// gerava `F${Date.now()}` que não era persistido em lugar nenhum — não
+  /// havia como localizar depois a venda pelo número dado ao cliente.
+  numero      Int
+
   observacoes String?
+  fechadoEm   DateTime?    @map("fechado_em")
   createdAt   DateTime     @default(now()) @map("created_at")
   updatedAt   DateTime     @updatedAt @map("updated_at")
 
-  tenant     Tenant      @relation(fields: [tenantId], references: [id])
-  mesa       Mesa?       @relation(fields: [mesaId], references: [id])
-  garcom     Usuario     @relation(fields: [garcomId], references: [id])
-  itens      PedidoItem[]
-  pagamentos Pagamento[]
+  tenant      Tenant       @relation(fields: [tenantId], references: [id])
+  mesa        Mesa?        @relation(fields: [mesaId], references: [id])
+  garcom      Usuario      @relation(fields: [garcomId], references: [id])
+  itens       PedidoItem[]
+  pagamentos  Pagamento[]
+  abatimentos Abatimento[]
 
-  @@index([tenantId])
+  @@unique([tenantId, numero])
   @@index([tenantId, status])
   @@index([tenantId, mesaId])
   @@map("pedidos")
@@ -355,19 +377,34 @@ model PedidoItem {
   tenantId      String           @map("tenant_id")
   pedidoId      String           @map("pedido_id")
   produtoId     String           @map("produto_id")
+
+  /// Nº da rodada dentro do pedido. Itens da mesma rodada saem na mesma ficha.
+  rodada        Int              @default(1)
+
   quantidade    Int
   precoUnitario Decimal          @db.Decimal(10, 2) @map("preco_unitario")
   precoTotal    Decimal          @db.Decimal(10, 2) @map("preco_total")
   status        PedidoItemStatus @default(pendente)
   observacao    String?
+
+  /// Quem lançou. Antes só o pedido tinha garçom; numa troca de turno não
+  /// dava para saber quem lançou o quê.
+  lancadoPorId  String?          @map("lancado_por")
+
+  canceladoPorId String?         @map("cancelado_por")
+  motivoCancelamento String?     @map("motivo_cancelamento")
+
   createdAt     DateTime         @default(now()) @map("created_at")
   updatedAt     DateTime         @updatedAt @map("updated_at")
 
-  pedido  Pedido  @relation(fields: [pedidoId], references: [id], onDelete: Cascade)
-  produto Produto @relation(fields: [produtoId], references: [id])
+  tenant     Tenant   @relation(fields: [tenantId], references: [id])
+  pedido     Pedido   @relation(fields: [pedidoId], references: [id], onDelete: Cascade)
+  produto    Produto  @relation(fields: [produtoId], references: [id])
+  lancadoPor Usuario? @relation("ItemLancadoPor", fields: [lancadoPorId], references: [id])
 
   @@index([tenantId])
-  @@index([pedidoId])
+  @@index([pedidoId, rodada])
+  @@index([tenantId, status])
   @@map("pedido_itens")
 }
 
@@ -424,24 +461,38 @@ model Pagamento {
   id        String          @id @default(uuid())
   tenantId  String          @map("tenant_id")
   mesaId    String?         @map("mesa_id")
-  pedidoId  String?         @map("pedido_id")
+  pedidoId  String          @map("pedido_id")
   metodoId  String          @map("metodo_id")
   valor     Decimal         @db.Decimal(10, 2)
+  /// Valor físico entregue pelo cliente. Antes só existia `troco`, e não dava
+  /// para reconstruir a conferência da gaveta.
+  valorRecebido Decimal     @db.Decimal(10, 2) @map("valor_recebido")
   troco     Decimal         @default(0) @db.Decimal(10, 2)
   caixaId   String          @map("caixa_id")
   usuarioId String          @map("usuario_id")
   status    PagamentoStatus @default(confirmado)
+
+  /// Enviada pelo cliente. Unique por tenant — o retry devolve o mesmo
+  /// pagamento em vez de criar outro.
+  idempotencyKey String     @map("idempotency_key")
+
+  estornadoEm     DateTime? @map("estornado_em")
+  estornadoPorId  String?   @map("estornado_por")
+  motivoEstorno   String?   @map("motivo_estorno")
+
   createdAt DateTime        @default(now()) @map("created_at")
 
   tenant  Tenant          @relation(fields: [tenantId], references: [id])
   mesa    Mesa?           @relation(fields: [mesaId], references: [id])
-  pedido  Pedido?         @relation(fields: [pedidoId], references: [id])
+  pedido  Pedido          @relation(fields: [pedidoId], references: [id])
   metodo  MetodoPagamento @relation(fields: [metodoId], references: [id])
   caixa   Caixa           @relation(fields: [caixaId], references: [id])
   usuario Usuario         @relation(fields: [usuarioId], references: [id])
+  estornadoPor Usuario?   @relation("PagamentoEstornadoPor", fields: [estornadoPorId], references: [id])
 
-  @@index([tenantId])
-  @@index([tenantId, mesaId])
+  @@unique([tenantId, idempotencyKey])
+  @@index([tenantId, caixaId])
+  @@index([pedidoId])
   @@map("pagamentos")
 }
 
@@ -661,4 +712,49 @@ model TicketSuporte {
   @@index([tenantId])
   @@index([status])
   @@map("tickets_suporte")
+}
+
+enum AbatimentoTipo {
+  valor        // R$ fixo
+  percentual   // % sobre o líquido no momento da aplicação
+  cortesia     // item ou conta por conta da casa
+}
+
+model Abatimento {
+  id        String         @id @default(uuid())
+  tenantId  String         @map("tenant_id")
+  pedidoId  String         @map("pedido_id")
+  tipo      AbatimentoTipo @default(valor)
+
+  /// Valor em reais efetivamente abatido, já resolvido (percentual vira R$).
+  valor     Decimal        @db.Decimal(10, 2)
+  /// Guardado só para exibição quando tipo = percentual.
+  percentual Decimal?      @db.Decimal(5, 2)
+
+  motivo    String
+  usuarioId String         @map("usuario_id")
+
+  cancelado   Boolean   @default(false)
+  canceladoEm DateTime? @map("cancelado_em")
+  canceladoPorId String? @map("cancelado_por")
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  tenant      Tenant   @relation(fields: [tenantId], references: [id])
+  pedido      Pedido   @relation(fields: [pedidoId], references: [id], onDelete: Cascade)
+  usuario     Usuario  @relation("AbatimentoAutor", fields: [usuarioId], references: [id])
+  canceladoPor Usuario? @relation("AbatimentoCancelador", fields: [canceladoPorId], references: [id])
+
+  @@index([tenantId])
+  @@index([pedidoId])
+  @@map("abatimentos")
+}
+
+model Sequencia {
+  tenantId String @map("tenant_id")
+  nome     String // 'pedido' | 'mesa'
+  valor    Int    @default(0)
+
+  @@id([tenantId, nome])
+  @@map("sequencias")
 }

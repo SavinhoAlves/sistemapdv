@@ -25,6 +25,12 @@
           <span class="text-sm font-semibold text-white flex-1 truncate">Restaurantes</span>
           <span v-if="tenants.length" class="text-[11px] font-bold text-violet-300 tabular-nums bg-violet-500/20 px-1.5 py-0.5 rounded-lg shrink-0">{{ tenants.length }}</span>
         </div>
+        <NuxtLink to="/platform/tickets" class="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-white/[0.04] transition-colors">
+          <div class="size-8 rounded-xl bg-white/[0.05] flex items-center justify-center shrink-0">
+            <UIcon name="i-lucide-ticket" class="text-white/40 size-3.5" />
+          </div>
+          <span class="text-sm font-medium text-white/50 flex-1 truncate">Tickets</span>
+        </NuxtLink>
       </nav>
 
       <!-- User -->
@@ -143,8 +149,8 @@
               </div>
             </div>
             <NuxtLink
-              v-for="a in dashboard.alertas" :key="a.tenant_id"
-              :to="`/platform/tenants/${a.tenant_id}`"
+              v-for="a in dashboard.alertas" :key="a.tenantId"
+              :to="`/platform/tenants/${a.tenantId}`"
               class="flex items-center gap-4 px-5 py-3.5 hover:bg-white/[0.025] transition-colors group border-b border-amber-500/[0.06] last:border-0"
             >
               <div :class="['size-9 rounded-xl flex items-center justify-center shrink-0 shadow-md', alertaStyle(a.tipo).bgClass]">
@@ -223,8 +229,8 @@
                       </div>
                       <div class="flex items-center gap-1.5 mt-0.5">
                         <span class="text-white/25 text-[11px] font-mono truncate">{{ tenant.slug }}</span>
-                        <span v-if="tenant.rfid_disponivel" class="text-violet-400/50 text-[10px] font-bold">· RFID</span>
-                        <span v-if="tenant.venda_mobile_permitida" class="text-sky-400/50 text-[10px] font-bold">· Mobile</span>
+                        <span v-if="tenant.rfidDisponivel" class="text-violet-400/50 text-[10px] font-bold">· RFID</span>
+                        <span v-if="tenant.vendaMobilePermitida" class="text-sky-400/50 text-[10px] font-bold">· Mobile</span>
                       </div>
                     </div>
                   </NuxtLink>
@@ -246,8 +252,8 @@
                   <div class="flex items-center gap-1.5 justify-end">
                     <button
                       @click="toggleRfid(tenant)"
-                      :title="tenant.rfid_disponivel ? 'Desativar RFID' : 'Ativar RFID'"
-                      :class="['action-btn', tenant.rfid_disponivel
+                      :title="tenant.rfidDisponivel ? 'Desativar RFID' : 'Ativar RFID'"
+                      :class="['action-btn', tenant.rfidDisponivel
                         ? 'text-white bg-gradient-to-br from-violet-600 to-violet-800 shadow-md shadow-violet-900/40'
                         : 'text-white/25 bg-white/[0.04] hover:bg-white/[0.07] hover:text-white/50']"
                     >
@@ -290,8 +296,8 @@
                 <p class="text-lg font-black text-emerald-400 tabular-nums shrink-0">{{ formatCurrency(dashboard?.financeiro?.mrr ?? 0) }}</p>
               </div>
               <div class="p-6">
-                <div v-if="dashboard?.financeiro?.por_plano?.length" class="space-y-5">
-                  <div v-for="p in dashboard.financeiro.por_plano" :key="p.plano">
+                <div v-if="dashboard?.financeiro?.porPlano?.length" class="space-y-5">
+                  <div v-for="p in dashboard.financeiro.porPlano" :key="p.plano">
                     <div class="flex items-center justify-between mb-2">
                       <div class="flex items-center gap-2">
                         <span class="text-sm font-semibold text-white/80">{{ p.plano }}</span>
@@ -460,7 +466,7 @@
                 <UInput v-model="licencaForm.dataVencimento" type="date" size="sm" :ui="{ rounded: 'rounded-xl' }" class="input-dark" />
               </div>
             </div>
-            <div v-if="licencaAtual" class="text-[10px] text-white/25 pt-1">Criada em {{ formatDate(licencaAtual.created_at) }}</div>
+            <div v-if="licencaAtual" class="text-[10px] text-white/25 pt-1">Criada em {{ formatDate(licencaAtual.createdAt) }}</div>
           </div>
         </div>
 
@@ -553,19 +559,19 @@ import { usePlatformAuthStore } from '~/stores/platformAuth'
 
 definePageMeta({ layout: false })
 
-interface Licenca  { id: string; status: string; data_ativacao: string | null; data_vencimento: string | null; created_at: string }
-interface Contrato { id: string; plano: string; valor: string | null; ciclo: string; status: string; data_inicio?: string | null }
+interface Licenca  { id: string; status: string; dataAtivacao: string | null; dataVencimento: string | null; createdAt: string }
+interface Contrato { id: string; plano: string; valor: string | null; ciclo: string; status: string; dataInicio?: string | null }
 interface Tenant {
   id: string; nome: string; slug: string; cnpj: string | null; contato: string | null
   responsavel: string | null; telefone: string | null; endereco: string | null; observacoes: string | null
-  status: string; rfid_disponivel: boolean; venda_mobile_permitida: boolean; created_at: string
+  status: string; rfidDisponivel: boolean; vendaMobilePermitida: boolean; createdAt: string
   licencas: Licenca[]; contratos: Contrato[]
 }
 interface Dashboard {
   totais:     { tenants: number; ativos: number; suspensos: number }
   licencas:   { ativas: number; pendentes: number; bloqueadas: number; vencendo: number; vencidas: number }
-  financeiro: { mrr: number; arr: number; por_plano: { plano: string; count: number; mrr: number }[] }
-  alertas:    { tenant_id: string; nome: string; tipo: string; dias?: number }[]
+  financeiro: { mrr: number; arr: number; porPlano: { plano: string; count: number; mrr: number }[] }
+  alertas:    { tenantId: string; nome: string; tipo: string; dias?: number }[]
 }
 
 const platformAuth  = usePlatformAuthStore()
@@ -618,7 +624,7 @@ const licencaForm  = reactive({ status: 'pendente', dataAtivacao: '', dataVencim
 const contratoForm = reactive({ plano: '', valor: '', ciclo: 'mensal' as 'mensal' | 'trimestral' | 'semestral' | 'anual', dataInicio: '', status: 'ativo' as 'trial' | 'ativo' })
 
 const baseUrl = computed(() => (runtimeConfig.public as any).apiUrl as string)
-const maxMrr  = computed(() => Math.max(...(dashboard.value?.financeiro?.por_plano?.map(p => p.mrr) ?? [0]), 0))
+const maxMrr  = computed(() => Math.max(...(dashboard.value?.financeiro?.porPlano?.map(p => p.mrr) ?? [0]), 0))
 
 const tenantsFiltrados = computed(() => {
   const q = busca.value.toLowerCase().trim()
@@ -647,8 +653,8 @@ const metrics = computed(() => {
 })
 
 const featCards = computed(() => [
-  { label: 'RFID',    icon: 'i-lucide-credit-card', color: 'from-violet-600 to-violet-900', barColor: 'from-violet-600 to-violet-500', textColor: 'text-violet-400', count: tenants.value.filter(t => t.rfid_disponivel).length },
-  { label: 'Celular', icon: 'i-lucide-smartphone',  color: 'from-sky-600 to-sky-900',      barColor: 'from-sky-600 to-sky-500',      textColor: 'text-sky-400',    count: tenants.value.filter(t => t.venda_mobile_permitida).length },
+  { label: 'RFID',    icon: 'i-lucide-credit-card', color: 'from-violet-600 to-violet-900', barColor: 'from-violet-600 to-violet-500', textColor: 'text-violet-400', count: tenants.value.filter(t => t.rfidDisponivel).length },
+  { label: 'Celular', icon: 'i-lucide-smartphone',  color: 'from-sky-600 to-sky-900',      barColor: 'from-sky-600 to-sky-500',      textColor: 'text-sky-400',    count: tenants.value.filter(t => t.vendaMobilePermitida).length },
 ])
 
 const AVATAR_GRADIENTS = [
@@ -662,10 +668,10 @@ const AVATAR_GRADIENTS = [
 function avatarGradient(nome: string) { return AVATAR_GRADIENTS[nome.charCodeAt(0) % AVATAR_GRADIENTS.length] }
 function licencaPillClass(s: string) { return s === 'ativado' ? 'meta-pill-sky' : s === 'pendente' ? 'meta-pill-amber' : 'meta-pill-red' }
 function licencaLabel(lic: Licenca) {
-  if (lic.status === 'ativado' && lic.data_vencimento) {
-    const d = Math.ceil((new Date(lic.data_vencimento).getTime() - Date.now()) / 86400000)
+  if (lic.status === 'ativado' && lic.dataVencimento) {
+    const d = Math.ceil((new Date(lic.dataVencimento).getTime() - Date.now()) / 86400000)
     if (d < 0) return 'Expirada'; if (d <= 7) return `${d}d restantes`
-    return `Até ${formatDate(lic.data_vencimento)}`
+    return `Até ${formatDate(lic.dataVencimento)}`
   }
   return lic.status === 'ativado' ? 'Ativa' : lic.status === 'pendente' ? 'Pendente' : 'Bloqueada'
 }
@@ -717,12 +723,12 @@ function resetContratoForm() {
 function abrirModal(tenant: Tenant | null) {
   erroModal.value = ''; abaAtiva.value = 'dados'; licencaAtual.value = null; contratoAtualTenant.value = null
   if (tenant) {
-    Object.assign(form, { id: tenant.id, nome: tenant.nome, slug: tenant.slug, cnpj: tenant.cnpj || '', responsavel: tenant.responsavel || '', contato: tenant.contato || '', telefone: tenant.telefone || '', endereco: tenant.endereco || '', observacoes: tenant.observacoes || '', vendaMobilePermitida: tenant.venda_mobile_permitida, rfidDisponivel: tenant.rfid_disponivel })
+    Object.assign(form, { id: tenant.id, nome: tenant.nome, slug: tenant.slug, cnpj: tenant.cnpj || '', responsavel: tenant.responsavel || '', contato: tenant.contato || '', telefone: tenant.telefone || '', endereco: tenant.endereco || '', observacoes: tenant.observacoes || '', vendaMobilePermitida: tenant.vendaMobilePermitida, rfidDisponivel: tenant.rfidDisponivel })
     const lic = tenant.licencas?.[0]
-    if (lic) { licencaAtual.value = lic; licencaForm.status = lic.status; licencaForm.dataAtivacao = lic.data_ativacao?.substring(0, 10) || ''; licencaForm.dataVencimento = lic.data_vencimento?.substring(0, 10) || '' }
+    if (lic) { licencaAtual.value = lic; licencaForm.status = lic.status; licencaForm.dataAtivacao = lic.dataAtivacao?.substring(0, 10) || ''; licencaForm.dataVencimento = lic.dataVencimento?.substring(0, 10) || '' }
     else { licencaForm.status = 'pendente'; licencaForm.dataAtivacao = ''; licencaForm.dataVencimento = '' }
     const con = tenant.contratos?.[0]
-    if (con) { contratoAtualTenant.value = con; contratoForm.plano = con.plano; contratoForm.valor = con.valor || ''; contratoForm.ciclo = (con.ciclo as any) || 'mensal'; contratoForm.dataInicio = con.data_inicio?.substring(0, 10) || ''; contratoForm.status = (con.status as any) || 'ativo' }
+    if (con) { contratoAtualTenant.value = con; contratoForm.plano = con.plano; contratoForm.valor = con.valor || ''; contratoForm.ciclo = (con.ciclo as any) || 'mensal'; contratoForm.dataInicio = con.dataInicio?.substring(0, 10) || ''; contratoForm.status = (con.status as any) || 'ativo' }
     else resetContratoForm()
   } else {
     Object.assign(form, { id: null, nome: '', slug: '', cnpj: '', responsavel: '', contato: '', telefone: '', endereco: '', observacoes: '', vendaMobilePermitida: true, rfidDisponivel: false })
@@ -767,8 +773,8 @@ async function toggleRfid(tenant: Tenant) {
   if (togglingId.value) return
   togglingId.value = tenant.id
   try {
-    await platformFetch(`/platform/tenants/${tenant.id}/rfid`, { method: 'PATCH', body: JSON.stringify({ disponivel: !tenant.rfid_disponivel }) })
-    tenant.rfid_disponivel = !tenant.rfid_disponivel
+    await platformFetch(`/platform/tenants/${tenant.id}/rfid`, { method: 'PATCH', body: JSON.stringify({ disponivel: !tenant.rfidDisponivel }) })
+    tenant.rfidDisponivel = !tenant.rfidDisponivel
   } catch (e: any) { showToast('error', e?.message || 'Erro') }
   finally { togglingId.value = null }
 }

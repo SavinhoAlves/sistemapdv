@@ -23,6 +23,7 @@ import { vendasRoutes } from './modules/vendas/vendas.routes'
 import { integracoesRoutes } from './modules/integracoes/integracoes.routes'
 import { platformAuthRoutes } from './modules/platform/platform-auth.routes'
 import { platformTenantsRoutes } from './modules/platform/platform-tenants.routes'
+import { platformTicketsRoutes } from './modules/platform/platform-tickets.routes'
 
 export async function buildApp() {
   const app = Fastify({
@@ -117,6 +118,7 @@ export async function buildApp() {
   await app.register(vendasRoutes,        { prefix: '/api/vendas' })
   await app.register(integracoesRoutes,   { prefix: '/api/integracoes' })
   await app.register(platformTenantsRoutes, { prefix: '/api/platform/tenants' })
+  await app.register(platformTicketsRoutes, { prefix: '/api/platform/tickets' })
 
   // Health check
   app.get('/health', { config: { public: true } }, async () => ({ ok: true }))
@@ -184,7 +186,7 @@ export async function buildApp() {
   // Ativação de licença — no SaaS a licença é gerenciada pela plataforma central
   app.post('/api/sistema/ativar', { config: { public: true } }, async () => ({
     success: false,
-    message: 'Licença gerenciada pela plataforma central SaaS — acesse o painel em :4000',
+    message: 'Licença gerenciada pela plataforma central SaaS — acesse o painel em /platform',
   }))
 
   return app

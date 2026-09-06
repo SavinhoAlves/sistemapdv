@@ -67,13 +67,6 @@
     scrollbar-color: rgba(0, 0, 0, 0.16) transparent;
   }
 
-  /* ── Select: respeita dark/light no dropdown nativo ── */
-  select {
-    color-scheme: light;
-  }
-  html.dark select {
-    color-scheme: dark;
-  }
 }
 
 @layer components {
@@ -187,6 +180,34 @@
       radial-gradient(ellipse 80% 45% at 50% -5%, rgba(249,115,22,0.12), transparent 60%),
       #0b0b12;
   }
+}
+
+/* ── Select: dark/light mode ───────────────────────────────── */
+/* Fora do @layer — option não herda bg via CSS, precisa de valor sólido.    */
+/* As utilities Tailwind continuam sobrescrevendo o select em si (ok),       */
+/* mas o popup de options fica sempre legível.                               */
+select {
+  color-scheme: light;
+}
+html.dark select {
+  color-scheme: dark;
+}
+select option {
+  background-color: #f9fafb;
+  color: #111827;
+}
+html.dark select option {
+  background-color: #14141f;
+  color: #ffffff;
+}
+/* Selects que usam apenas a utility .input do main.css ganham bg sólido     */
+/* para o elemento em si também, pois bg-white/[0.06] é quase transparente. */
+select.input {
+  background-color: #f9fafb;
+  color: #111827;
+}
+html.dark select.input {
+  background-color: rgba(255,255,255,0.06);
 }
 
 /* ── RFID ──────────────────────────────────────────────────── */

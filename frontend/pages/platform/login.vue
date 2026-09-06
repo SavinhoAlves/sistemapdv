@@ -188,12 +188,12 @@ async function handleLogin() {
     const data = await resp.json()
     if (!resp.ok) throw new Error(data.error || 'Credenciais inválidas')
 
-    const token = data.access_token
+    const token = data.accessToken
     const user  = data.user
     if (!token || !user) throw new Error('Resposta inválida do servidor')
 
-    if (data.refresh_token) {
-      localStorage.setItem('platform_refresh_token', data.refresh_token)
+    if (data.refreshToken) {
+      localStorage.setItem('platform_refresh_token', data.refreshToken)
     }
     platformAuth.set(token, user)
     showMsg('success', `Bem-vindo, ${user.nome}!`)

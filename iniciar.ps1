@@ -58,7 +58,7 @@ function Configurar-Ambiente($ip) {
 # da porta (nao pela janela do PowerShell), assim nao sobra processo node
 # orfao travando a porta na proxima subida
 function Parar-Servidores {
-    foreach ($porta in 3000, 3002, 4000) {
+    foreach ($porta in 3000, 3002) {
         $conexoes = Get-NetTCPConnection -LocalPort $porta -State Listen -ErrorAction SilentlyContinue
         foreach ($c in $conexoes) {
             Stop-Process -Id $c.OwningProcess -Force -ErrorAction SilentlyContinue
@@ -71,10 +71,6 @@ function Iniciar-Servidores {
     # Backend Fastify com tsx (TypeScript)
     Start-Process powershell -ArgumentList "-NoExit", "-Command", "cd '$PSScriptRoot\backend'; npx tsx src/server.ts" -WindowStyle Normal
     Start-Sleep -Seconds 2
-
-    # Central admin panel
-    Start-Process powershell -ArgumentList "-NoExit", "-Command", "cd '$PSScriptRoot\central'; node server.js" -WindowStyle Normal
-    Start-Sleep -Seconds 1
 
     # Frontend em modo PRODUCAO: o servidor de dev (Vite) nao serve sub-caminhos
     # (/m, /login, etc.) corretamente para clientes externos como celulares.
@@ -92,9 +88,9 @@ function Iniciar-Servidores {
 
     Start-Process powershell -ArgumentList "-NoExit", "-Command", "${prefixoCA}cd '$PSScriptRoot\frontend'; npm run start" -WindowStyle Normal
     Write-Host "Servidores iniciados!" -ForegroundColor Green
-    Write-Host "  API:     http://${ip}:3002" -ForegroundColor DarkGray
-    Write-Host "  Central: http://${ip}:4000" -ForegroundColor DarkGray
-    Write-Host "  PDV:     http://${ip}:3000" -ForegroundColor DarkGray
+    Write-Host "  API:      http://${ip}:3002" -ForegroundColor DarkGray
+    Write-Host "  PDV:      http://${ip}:3000" -ForegroundColor DarkGray
+    Write-Host "  Platform: http://${ip}:3000/platform" -ForegroundColor DarkGray
     Write-Host ""
 }
 

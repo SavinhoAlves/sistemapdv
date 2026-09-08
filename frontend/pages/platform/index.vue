@@ -462,6 +462,35 @@
             </div>
           </div>
 
+          <!-- Seção: Acesso do administrador -->
+          <div class="space-y-3">
+            <p class="text-[10px] font-black uppercase tracking-widest text-rose-400/60 flex items-center gap-1.5">
+              <UIcon name="i-lucide-lock" class="size-3" /> Acesso do administrador
+            </p>
+            <div class="p-3 rounded-xl bg-rose-500/[0.05] border border-rose-500/10 text-[11px] text-rose-300/60 leading-relaxed">
+              Defina as credenciais que o cliente usará para acessar o sistema. O e-mail e a senha podem ser alterados posteriormente na área do tenant.
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div class="sm:col-span-2">
+                <label class="label-field">E-mail de acesso *</label>
+                <UInput v-model="adminForm.email" type="email" placeholder="admin@restaurante.com" size="sm" :ui="{ rounded: 'rounded-xl' }" class="input-dark" autocomplete="off" />
+              </div>
+              <div>
+                <label class="label-field">Senha inicial * <span class="text-white/20 normal-case font-normal">(mín. 6 caracteres)</span></label>
+                <UInput v-model="adminForm.senha" :type="mostrarSenha ? 'text' : 'password'" placeholder="••••••••" size="sm" :ui="{ rounded: 'rounded-xl' }" class="input-dark" autocomplete="new-password"
+                  :trailing-icon="mostrarSenha ? 'i-lucide-eye-off' : 'i-lucide-eye'"
+                  @click:trailing="mostrarSenha = !mostrarSenha" />
+              </div>
+              <div>
+                <label class="label-field">Confirmar senha *</label>
+                <UInput v-model="adminForm.senhaConfirm" :type="mostrarSenha ? 'text' : 'password'" placeholder="••••••••" size="sm"
+                  :ui="{ rounded: 'rounded-xl', icon: { trailing: { color: adminForm.senhaConfirm && adminForm.senhaConfirm !== adminForm.senha ? 'text-red-400' : 'text-emerald-400' } } }"
+                  :trailing-icon="adminForm.senhaConfirm ? (adminForm.senhaConfirm === adminForm.senha ? 'i-lucide-check-circle-2' : 'i-lucide-x-circle') : undefined"
+                  class="input-dark" autocomplete="new-password" />
+              </div>
+            </div>
+          </div>
+
           <!-- Seção: Plano / Contrato -->
           <div class="space-y-3">
             <p class="text-[10px] font-black uppercase tracking-widest text-emerald-400/60 flex items-center gap-1.5">
@@ -764,6 +793,8 @@ const ciclos = [
 const form = reactive({ id: null as string | null, nome: '', slug: '', cnpj: '', cpfResponsavel: '', responsavel: '', contato: '', telefone: '', endereco: '', cidade: '', uf: '', observacoes: '', vendaMobilePermitida: true, rfidDisponivel: false })
 const licencaForm  = reactive({ status: 'pendente', dataAtivacao: '', dataVencimento: '' })
 const contratoForm = reactive({ plano: 'Básico', valor: '', ciclo: 'mensal' as 'mensal' | 'trimestral' | 'semestral' | 'anual', dataInicio: new Date().toISOString().substring(0, 10), dataFim: '', status: 'trial' as 'trial' | 'ativo' })
+const adminForm    = reactive({ email: '', senha: '', senhaConfirm: '' })
+const mostrarSenha = ref(false)
 
 const baseUrl = computed(() => (runtimeConfig.public as any).apiUrl as string)
 const maxMrr  = computed(() => Math.max(...(dashboard.value?.financeiro?.porPlano?.map(p => p.mrr) ?? [0]), 0))
@@ -875,6 +906,7 @@ function abrirModal(tenant: Tenant | null) {
   } else {
     Object.assign(form, { id: null, nome: '', slug: '', cnpj: '', cpfResponsavel: '', responsavel: '', contato: '', telefone: '', endereco: '', cidade: '', uf: '', observacoes: '', vendaMobilePermitida: true, rfidDisponivel: false })
     licencaForm.status = 'pendente'; licencaForm.dataAtivacao = ''; licencaForm.dataVencimento = ''; resetContratoForm()
+    Object.assign(adminForm, { email: '', senha: '', senhaConfirm: '' }); mostrarSenha.value = false
   }
   modalAberto.value = true
 }
@@ -888,6 +920,9 @@ async function salvar() {
   try {
     if (!form.id) {
       if (!contratoForm.plano.trim()) { erroModal.value = 'Selecione o plano do contrato'; salvando.value = false; return }
+      if (!adminForm.email.trim()) { erroModal.value = 'E-mail do administrador é obrigatório'; salvando.value = false; return }
+      if (adminForm.senha.length < 6) { erroModal.value = 'Senha deve ter no mínimo 6 caracteres'; salvando.value = false; return }
+      if (adminForm.senha !== adminForm.senhaConfirm) { erroModal.value = 'As senhas não conferem'; salvando.value = false; return }
       const payload: any = {
         nome: form.nome, slug: form.slug,
         cnpj: form.cnpj || null, cpfResponsavel: form.cpfResponsavel || null,
@@ -897,6 +932,7 @@ async function salvar() {
         observacoes: form.observacoes || null,
         vendaMobilePermitida: form.vendaMobilePermitida, rfidDisponivel: form.rfidDisponivel,
         contrato: { plano: contratoForm.plano.trim(), valor: contratoForm.valor ? parseFloat(contratoForm.valor) : null, ciclo: contratoForm.ciclo, dataInicio: contratoForm.dataInicio || null, dataFim: contratoForm.dataFim || null, status: contratoForm.status },
+        adminEmail: adminForm.email.trim(), adminSenha: adminForm.senha,
       }
       const created = await platformFetch<any>('/platform/tenants', { method: 'POST', body: JSON.stringify(payload) })
       fecharModal(); await carregar()

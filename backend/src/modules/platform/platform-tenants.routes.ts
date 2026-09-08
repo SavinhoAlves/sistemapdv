@@ -1,6 +1,7 @@
 import type { FastifyInstance } from 'fastify'
 import { requirePlatform, invalidateTenantCache } from '../../middlewares/tenant.middleware'
 import { prisma } from '../../lib/prisma'
+import bcrypt from 'bcrypt'
 
 function slugify(s: string) {
   return s
@@ -167,9 +168,11 @@ export async function platformTenantsRoutes(app: FastifyInstance) {
   // POST / — criar tenant (+ licença pendente automática + contrato opcional)
   app.post('/', { preHandler: requirePlatform }, async (request, reply) => {
     const body = request.body as any
-    const { nome, slug, cnpj, cpfResponsavel, responsavel, contato, telefone, endereco, cidade, uf, observacoes, vendaMobilePermitida, rfidDisponivel, contrato } = body
+    const { nome, slug, cnpj, cpfResponsavel, responsavel, contato, telefone, endereco, cidade, uf, observacoes, vendaMobilePermitida, rfidDisponivel, contrato, adminEmail, adminSenha } = body
 
     if (typeof nome !== 'string' || !nome.trim()) return reply.status(400).send({ error: 'Nome é obrigatório' })
+    if (typeof adminEmail !== 'string' || !adminEmail.trim()) return reply.status(400).send({ error: 'E-mail do administrador é obrigatório' })
+    if (typeof adminSenha !== 'string' || adminSenha.length < 6) return reply.status(400).send({ error: 'Senha do administrador deve ter no mínimo 6 caracteres' })
 
     const slugInput = typeof slug === 'string' ? slug.trim() : ''
     const finalSlug = (slugInput || slugify(nome)).toLowerCase()
@@ -207,6 +210,17 @@ export async function platformTenantsRoutes(app: FastifyInstance) {
             },
           })
         }
+        const senhaHash = await bcrypt.hash(adminSenha, 12)
+        await tx.usuario.create({
+          data: {
+            tenantId: t.id,
+            nome:     typeof responsavel === 'string' && responsavel.trim() ? responsavel.trim() : nome.trim(),
+            email:    adminEmail.trim().toLowerCase(),
+            senhaHash,
+            cargo:    'administrador',
+            ativo:    true,
+          },
+        })
         return t
       })
       return reply.status(201).send(tenant)

@@ -1113,246 +1113,327 @@ function gerarContratoPDF(): Window | null {
   <title>Contrato — ${sNome}</title>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: "Times New Roman", serif; font-size: 12pt; color: #111; background: #fff; line-height: 1.8; }
-    .page { max-width: 820px; margin: 0 auto; padding: 48px 64px; }
-    .header { text-align: center; margin-bottom: 32px; border-bottom: 2px solid #111; padding-bottom: 20px; }
-    .header h1 { font-size: 14pt; text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 4px; }
-    .header .subtitle { font-size: 11pt; color: #444; margin-top: 4px; }
-    .header .doc-num { font-size: 9.5pt; color: #777; margin-top: 6px; font-style: italic; }
-    .parties { margin-bottom: 28px; border: 1px solid #ccc; border-radius: 4px; overflow: hidden; }
-    .parties-title { background: #f0f0f0; border-bottom: 1px solid #ccc; padding: 8px 16px; font-size: 10pt; font-weight: bold; text-transform: uppercase; letter-spacing: 0.5px; }
-    .party { padding: 12px 16px; font-size: 10.5pt; }
-    .party + .party { border-top: 1px solid #eee; }
-    .party-role { font-weight: bold; font-size: 10pt; text-transform: uppercase; color: #333; display: block; margin-bottom: 4px; letter-spacing: 0.5px; }
-    .party-line { margin: 1px 0; }
-    .party-line strong { display: inline-block; min-width: 160px; font-size: 10pt; }
+    body { font-family: Arial, "Helvetica Neue", Helvetica, sans-serif; font-size: 11pt; color: #1a1a2e; background: #fff; line-height: 1.75; }
+    .page { max-width: 820px; margin: 0 auto; }
+    .header-bar { background: linear-gradient(135deg, #1a1f3c 0%, #2d3680 100%); padding: 26px 48px; display: flex; align-items: center; justify-content: space-between; }
+    .brand-block { display: flex; align-items: center; gap: 12px; }
+    .brand-icon { width: 38px; height: 38px; background: rgba(255,255,255,0.12); border-radius: 9px; display: flex; align-items: center; justify-content: center; font-size: 18px; line-height: 1; }
+    .brand-name { color: #fff; font-size: 17pt; font-weight: 900; letter-spacing: -0.5px; line-height: 1; display: block; }
+    .brand-sub { color: rgba(255,255,255,0.4); font-size: 7.5pt; font-weight: 700; text-transform: uppercase; letter-spacing: 2px; display: block; margin-top: 3px; }
+    .header-ref { text-align: right; }
+    .doc-type { color: rgba(255,255,255,0.75); font-size: 7.5pt; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; display: block; }
+    .doc-num { color: rgba(255,255,255,0.4); font-size: 8pt; font-weight: 600; margin-top: 4px; display: block; }
+    .title-section { background: #f5f6ff; border-bottom: 1px solid #dde0f5; padding: 22px 48px; text-align: center; }
+    .contract-title { font-size: 12.5pt; font-weight: 900; color: #1a1f3c; text-transform: uppercase; letter-spacing: 0.8px; }
+    .contract-subtitle { font-size: 9.5pt; color: #6b7280; margin-top: 4px; }
+    .plano-badge { display: inline-flex; align-items: center; background: #ede9fe; color: #4f46e5; font-size: 8pt; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; padding: 3px 12px; border-radius: 999px; margin-top: 8px; }
+    .body { padding: 32px 48px 48px; }
+    .section-label { font-size: 7.5pt; font-weight: 800; text-transform: uppercase; letter-spacing: 2px; color: #9ca3af; margin-bottom: 10px; display: flex; align-items: center; gap: 8px; }
+    .section-label::before { content: ''; display: block; width: 18px; height: 2px; background: #4f46e5; border-radius: 2px; flex-shrink: 0; }
+    .parties-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 32px; }
+    .party-card { border-radius: 10px; border: 1px solid #dde0f5; overflow: hidden; }
+    .party-card-header { padding: 10px 16px; font-size: 8pt; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; }
+    .party-card-contratada .party-card-header { background: #1a1f3c; color: #fff; }
+    .party-card-contratante .party-card-header { background: #4f46e5; color: #fff; }
+    .party-card-body { padding: 14px 16px; background: #fafaff; }
+    .pfield { margin-bottom: 5px; font-size: 9.5pt; color: #374151; line-height: 1.45; }
+    .pfield strong { font-weight: 700; color: #1a1f3c; font-size: 8.5pt; }
+    .clauses-label { font-size: 7.5pt; font-weight: 800; text-transform: uppercase; letter-spacing: 2px; color: #9ca3af; margin-bottom: 18px; display: flex; align-items: center; gap: 8px; }
+    .clauses-label::before { content: ''; display: block; width: 18px; height: 2px; background: #4f46e5; border-radius: 2px; flex-shrink: 0; }
     .clause { margin-bottom: 22px; }
-    .clause h3 { font-size: 11pt; font-weight: bold; text-transform: uppercase; margin-bottom: 8px; letter-spacing: 0.3px; }
-    .clause p { margin-bottom: 8px; text-align: justify; font-size: 11pt; }
-    .clause ol { padding-left: 28px; margin-top: 4px; }
-    .clause ol li { margin-bottom: 5px; text-align: justify; font-size: 11pt; }
-    .clause .paragrafo { margin-top: 6px; font-size: 11pt; text-align: justify; }
-    .clause .paragrafo::before { content: "Parágrafo único. "; font-weight: bold; }
-    ${t.observacoes ? '.notes-box { background: #fffbe6; border-left: 3px solid #e6c000; padding: 12px 16px; margin-bottom: 28px; font-size: 10.5pt; }' : ''}
-    .sig-section { margin-top: 56px; padding-top: 20px; border-top: 1px solid #ccc; }
-    .sig-city { font-size: 11pt; margin-bottom: 48px; text-align: right; }
-    .sig-lines { display: flex; gap: 56px; margin-bottom: 32px; }
-    .sig-line { flex: 1; text-align: center; }
-    .sig-line .line { border-top: 1px solid #333; margin-bottom: 6px; }
-    .sig-name-label { font-size: 10.5pt; font-weight: bold; }
-    .sig-role-label { font-size: 9.5pt; color: #555; margin-top: 2px; }
-    .witness-lines { margin-top: 8px; }
-    .witness-title { font-size: 10pt; font-weight: bold; text-transform: uppercase; margin-bottom: 28px; letter-spacing: 0.3px; }
-    .footer { margin-top: 48px; padding-top: 12px; border-top: 1px solid #ddd; display: flex; justify-content: space-between; font-size: 8.5pt; color: #999; }
-    @media print { body { font-size: 11pt; } .page { padding: 0; } @page { margin: 2.5cm 2cm; } }
+    .clause-header { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+    .clause-num { width: 26px; height: 26px; border-radius: 7px; background: #1a1f3c; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 8.5pt; font-weight: 900; flex-shrink: 0; text-align: center; line-height: 26px; }
+    .clause-title { font-size: 10pt; font-weight: 800; color: #1a1f3c; text-transform: uppercase; letter-spacing: 0.4px; }
+    .clause p { margin-bottom: 8px; text-align: justify; font-size: 10.5pt; color: #374151; }
+    .clause ol { padding-left: 22px; margin-top: 6px; margin-bottom: 8px; }
+    .clause ol li { margin-bottom: 5px; text-align: justify; font-size: 10.5pt; color: #374151; }
+    .clause .paragrafo { margin-top: 8px; font-size: 10.5pt; text-align: justify; color: #374151; padding: 10px 14px; background: #f5f6ff; border-left: 3px solid #4f46e5; border-radius: 0 6px 6px 0; }
+    .clause .paragrafo::before { content: "Parágrafo único. "; font-weight: 800; }
+    .notes-box { background: #fffbeb; border-left: 3px solid #f59e0b; border-radius: 0 8px 8px 0; padding: 14px 16px; margin-bottom: 28px; font-size: 10.5pt; color: #374151; }
+    .sig-section { margin-top: 44px; padding-top: 20px; border-top: 2px solid #dde0f5; }
+    .sig-city { font-size: 10.5pt; color: #374151; margin-bottom: 50px; text-align: center; }
+    .sig-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 48px; margin-bottom: 32px; }
+    .sig-block { text-align: center; }
+    .sig-line-el { border-top: 1.5px solid #374151; margin-bottom: 8px; }
+    .sig-name { font-size: 10pt; font-weight: 700; color: #1a1f3c; }
+    .sig-role { font-size: 8.5pt; color: #6b7280; margin-top: 2px; }
+    .witness-label { font-size: 8.5pt; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; color: #9ca3af; margin-bottom: 24px; }
+    .witness-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 48px; }
+    .witness-block { text-align: center; }
+    .witness-field { font-size: 9pt; color: #6b7280; margin-top: 6px; }
+    .footer { padding: 14px 48px; background: #f5f6ff; border-top: 1px solid #dde0f5; display: flex; justify-content: space-between; align-items: center; font-size: 8pt; color: #9ca3af; }
+    .footer-brand { font-weight: 800; color: #1a1f3c; }
+    @media print {
+      body { font-size: 10.5pt; }
+      .page { padding: 0; }
+      @page { margin: 2cm 1.8cm; }
+      .header-bar, .party-card-contratada .party-card-header, .party-card-contratante .party-card-header, .clause-num, .clause .paragrafo, .title-section, .footer { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    }
   </style>
 </head>
 <body>
 <div class="page">
 
-  <div class="header">
-    <h1>Contrato de Prestação de Serviços de Tecnologia</h1>
-    <p class="subtitle">Modalidade SaaS — Sistema de Ponto de Venda · Plano <strong>${sPlano}</strong></p>
-    <p class="doc-num">Ref.: ${sSlug.toUpperCase()}-${inicio.getFullYear()}</p>
-  </div>
-
-  <div class="parties">
-    <div class="parties-title">Partes Contratantes</div>
-    <div class="party">
-      <span class="party-role">Contratada</span>
-      <p class="party-line"><strong>Razão Social:</strong> ${CONTRATADA.razaoSocial}</p>
-      <p class="party-line"><strong>Nome Fantasia:</strong> ${CONTRATADA.nomeFantasia}</p>
-      <p class="party-line"><strong>CNPJ:</strong> ${CONTRATADA.cnpj} &nbsp;|&nbsp; <strong>Insc. Estadual:</strong> ${CONTRATADA.inscricaoEstadual}</p>
-      <p class="party-line"><strong>Endereço:</strong> ${CONTRATADA.endereco}, ${CONTRATADA.bairro}, ${CONTRATADA.cidade}/${CONTRATADA.uf} — CEP ${CONTRATADA.cep}</p>
-      <p class="party-line"><strong>Telefone:</strong> ${CONTRATADA.telefone} &nbsp;|&nbsp; <strong>E-mail:</strong> ${CONTRATADA.email}</p>
-      <p class="party-line"><strong>Representante:</strong> ${CONTRATADA.representante}, CPF ${CONTRATADA.cpfRepresentante}, RG ${CONTRATADA.rgRepresentante}</p>
-    </div>
-    <div class="party">
-      <span class="party-role">Contratante</span>
-      <p class="party-line"><strong>Razão Social / Nome:</strong> ${sNome}</p>
-      <p class="party-line"><strong>CNPJ / CPF:</strong> ${sCnpj || '___________________________________'}</p>
-      <p class="party-line"><strong>Endereço:</strong> ${sEndereco || '______________________________________'}</p>
-      <p class="party-line"><strong>Cidade:</strong> ${sCidade || '______________________________'} &nbsp;|&nbsp; <strong>UF:</strong> ${sUF || '__'}</p>
-      <p class="party-line"><strong>Telefone:</strong> ${sTelefone || '_________________________'} &nbsp;|&nbsp; <strong>E-mail:</strong> ${sContato || '_______________________________'}</p>
-      <p class="party-line"><strong>Representante:</strong> ${sResponsavel || '________________________________'} &nbsp;|&nbsp; <strong>CPF:</strong> ${sCpfResponsavel || '___________________'}</p>
-    </div>
-  </div>
-
-  <div class="clause">
-    <h3>Cláusula 1ª — Do Objeto</h3>
-    <p>O presente instrumento tem por objeto a prestação de serviços de tecnologia pela CONTRATADA
-    à CONTRATANTE, consistindo no licenciamento de uso do sistema de Ponto de Venda (PDV)
-    <strong>Restaurante PDV</strong>, na modalidade <em>Software as a Service</em> (SaaS), plano
-    <strong>${sPlano}</strong>, compreendendo:</p>
-    <ol>
-      <li>Acesso ao sistema via navegador web, com suporte a múltiplos dispositivos;</li>
-      <li>Painel administrativo para gestão de produtos, mesas, pedidos e caixa;</li>
-      <li>Atualizações de versão disponibilizadas automaticamente durante a vigência;</li>
-      <li>Suporte técnico nos canais e horários definidos na Cláusula 4ª;</li>
-      <li>Armazenamento dos dados do CONTRATANTE em ambiente seguro com backups periódicos.</li>
-    </ol>
-  </div>
-
-  <div class="clause">
-    <h3>Cláusula 2ª — Da Vigência</h3>
-    <p>O presente contrato vigorará ${vigencia}, renovando-se automaticamente por períodos sucessivos de
-    ${cicloExtMap[ciclo] || '30 (trinta) dias'}, salvo notificação de não renovação por qualquer das partes,
-    realizada com antecedência mínima de 30 (trinta) dias antes do término do período vigente,
-    por e-mail ou notificação escrita.</p>
-  </div>
-
-  <div class="clause">
-    <h3>Cláusula 3ª — Do Valor e Forma de Pagamento</h3>
-    <p>Pela prestação dos serviços descritos, a CONTRATANTE pagará à CONTRATADA o valor de
-    <strong>${valor}</strong> por ciclo <strong>${cicloMap[ciclo] || ciclo}</strong>, com vencimento no dia
-    <strong>10 (dez)</strong> de cada período de referência.</p>
-    <p>São aceitos os seguintes meios de pagamento: PIX, transferência bancária (TED/DOC) ou boleto bancário.</p>
-    <p class="paragrafo">O não pagamento até a data de vencimento acarretará multa moratória de 2% (dois por cento)
-    sobre o valor em aberto, acrescida de juros de mora de 1% (um por cento) ao mês, calculados pro rata die,
-    além de correção monetária pelo IGPM/FGV, sem prejuízo da suspensão imediata do acesso ao sistema após
-    10 (dez) dias de inadimplência.</p>
-  </div>
-
-  <div class="clause">
-    <h3>Cláusula 4ª — Das Obrigações da Contratada</h3>
-    <p>Compete à CONTRATADA:</p>
-    <ol>
-      <li>Garantir a disponibilidade do sistema com SLA mínimo de 99% (noventa e nove por cento) ao mês,
-      excluídas janelas de manutenção programada comunicadas com antecedência;</li>
-      <li>Realizar backups automáticos dos dados da CONTRATANTE com frequência mínima diária;</li>
-      <li>Prestar suporte técnico de segunda a sexta-feira, das 08h às 18h (horário de Brasília),
-      por meio de e-mail (${CONTRATADA.email}) e WhatsApp (${CONTRATADA.telefone});</li>
-      <li>Comunicar à CONTRATANTE, com antecedência mínima de 48 (quarenta e oito) horas, as
-      manutenções programadas que impliquem indisponibilidade do sistema;</li>
-      <li>Manter a confidencialidade dos dados da CONTRATANTE, não os compartilhando com terceiros,
-      salvo por determinação legal ou judicial.</li>
-    </ol>
-  </div>
-
-  <div class="clause">
-    <h3>Cláusula 5ª — Das Obrigações da Contratante</h3>
-    <p>Compete à CONTRATANTE:</p>
-    <ol>
-      <li>Manter em sigilo as credenciais de acesso ao sistema, sendo integralmente responsável
-      por uso indevido decorrente de compartilhamento não autorizado;</li>
-      <li>Efetuar os pagamentos nas datas e condições acordadas neste instrumento;</li>
-      <li>Utilizar o sistema exclusivamente para fins lícitos, em conformidade com a legislação
-      brasileira e com os termos deste contrato;</li>
-      <li>Notificar a CONTRATADA, imediatamente, sobre qualquer suspeita de violação de segurança,
-      acesso não autorizado ou uso indevido do sistema;</li>
-      <li>Manter seus dados cadastrais atualizados junto à CONTRATADA.</li>
-    </ol>
-  </div>
-
-  <div class="clause">
-    <h3>Cláusula 6ª — Da Propriedade Intelectual</h3>
-    <p>O sistema <strong>Restaurante PDV</strong> e todos os seus componentes — incluindo código-fonte,
-    interfaces, algoritmos, documentação e marca — são de propriedade exclusiva da CONTRATADA, protegidos
-    pela Lei nº 9.609/1998 (Lei de Software) e pela Lei nº 9.610/1998 (Lei de Direitos Autorais).</p>
-    <p class="paragrafo">Este contrato confere à CONTRATANTE licença de uso não exclusiva, intransferível
-    e revogável do software, pelo período de vigência contratual. Não implica cessão, transferência ou
-    sublicenciamento de quaisquer direitos de propriedade intelectual.</p>
-  </div>
-
-  <div class="clause">
-    <h3>Cláusula 7ª — Da Confidencialidade e Proteção de Dados (LGPD)</h3>
-    <p>As partes comprometem-se a tratar os dados pessoais eventualmente compartilhados em estrita
-    conformidade com a Lei Geral de Proteção de Dados Pessoais (Lei nº 13.709/2018 — LGPD),
-    adotando medidas técnicas e organizacionais adequadas para proteger as informações contra
-    acesso não autorizado, destruição, perda, alteração ou divulgação indevida.</p>
-    <p>A CONTRATADA atuará como <em>operadora</em> dos dados inseridos pela CONTRATANTE no sistema,
-    processando-os exclusivamente para as finalidades previstas neste contrato. A CONTRATANTE,
-    na qualidade de <em>controladora</em>, é responsável pela legalidade do tratamento de dados
-    de seus clientes e colaboradores dentro do sistema.</p>
-  </div>
-
-  <div class="clause">
-    <h3>Cláusula 8ª — Da Limitação de Responsabilidade</h3>
-    <p>A CONTRATADA não será responsabilizada por danos indiretos, lucros cessantes ou perda de
-    dados decorrentes de:</p>
-    <ol>
-      <li>Uso inadequado do sistema pela CONTRATANTE ou por terceiros com acesso autorizado por ela;</li>
-      <li>Falhas de infraestrutura de terceiros (internet, energia elétrica, provedores de nuvem);</li>
-      <li>Eventos de força maior ou caso fortuito, conforme o art. 393 do Código Civil Brasileiro;</li>
-      <li>Manutenções programadas devidamente comunicadas.</li>
-    </ol>
-    <p class="paragrafo">Em qualquer hipótese, a responsabilidade máxima da CONTRATADA fica limitada
-    ao valor pago pela CONTRATANTE nos últimos 3 (três) meses de vigência do contrato.</p>
-  </div>
-
-  <div class="clause">
-    <h3>Cláusula 9ª — Da Rescisão</h3>
-    <p>Este contrato poderá ser rescindido:</p>
-    <ol>
-      <li><strong>Por qualquer das partes</strong>, mediante notificação escrita com antecedência
-      mínima de 30 (trinta) dias, sem ônus ou penalidades;</li>
-      <li><strong>Por inadimplência</strong> da CONTRATANTE, após decorridos 10 (dez) dias do
-      vencimento sem pagamento, independentemente de notificação prévia, não gerando direito
-      a restituição de valores já pagos;</li>
-      <li><strong>Por descumprimento contratual</strong> de qualquer das partes, após notificação
-      e prazo de 5 (cinco) dias úteis para regularização.</li>
-    </ol>
-    <p class="paragrafo">Rescindido o contrato, a CONTRATADA manterá os dados da CONTRATANTE
-    disponíveis para exportação por 30 (trinta) dias, após os quais poderão ser definitivamente
-    excluídos.</p>
-  </div>
-
-  <div class="clause">
-    <h3>Cláusula 10ª — Das Disposições Gerais</h3>
-    <ol>
-      <li>Este contrato constitui o acordo integral entre as partes, substituindo quaisquer
-      entendimentos anteriores sobre o mesmo objeto;</li>
-      <li>Qualquer alteração deste instrumento somente terá validade se formalizada por escrito
-      e assinada por ambas as partes;</li>
-      <li>A tolerância de uma das partes em relação ao descumprimento de qualquer cláusula não
-      constituirá novação ou renúncia ao direito de exigi-la futuramente;</li>
-      <li>Caso qualquer disposição deste contrato seja considerada inválida, as demais permanecerão
-      em pleno vigor.</li>
-    </ol>
-  </div>
-
-  <div class="clause">
-    <h3>Cláusula 11ª — Do Foro</h3>
-    <p>Fica eleito o foro da Comarca de <strong>${CONTRATADA.foroCidade}/${CONTRATADA.foroUF}</strong>
-    para dirimir quaisquer controvérsias oriundas deste instrumento, com renúncia expressa a qualquer
-    outro, por mais privilegiado que seja, ressalvados os casos em que a legislação imponha foro
-    diverso de forma imperativa.</p>
-  </div>
-
-  ${sObs ? `<div class="notes-box"><strong>Condições específicas / Observações:</strong><br>${sObs}</div>` : ''}
-
-  <div class="sig-section">
-    <p class="sig-city">Goiânia/GO, _______ de __________________ de _______</p>
-    <div class="sig-lines">
-      <div class="sig-line">
-        <div class="line"></div>
-        <p class="sig-name-label">${sNome}</p>
-        <p class="sig-role-label">CONTRATANTE</p>
-      </div>
-      <div class="sig-line">
-        <div class="line"></div>
-        <p class="sig-name-label">${CONTRATADA.representante}</p>
-        <p class="sig-role-label">CONTRATADA — ${CONTRATADA.cargoRepresentante}</p>
+  <div class="header-bar">
+    <div class="brand-block">
+      <div class="brand-icon">⚡</div>
+      <div>
+        <span class="brand-name">Restaurante PDV</span>
+        <span class="brand-sub">Sistema de Gestão PDV</span>
       </div>
     </div>
-    <div class="witness-lines">
-      <p class="witness-title">Testemunhas:</p>
-      <div class="sig-lines">
-        <div class="sig-line">
-          <div class="line"></div>
-          <p class="sig-role-label">Nome: ___________________________ CPF: ___________________</p>
+    <div class="header-ref">
+      <span class="doc-type">Contrato de Prestação de Serviços</span>
+      <span class="doc-num">Ref.: ${sSlug.toUpperCase()}-${inicio.getFullYear()}</span>
+    </div>
+  </div>
+
+  <div class="title-section">
+    <div class="contract-title">Contrato de Prestação de Serviços de Tecnologia</div>
+    <div class="contract-subtitle">Modalidade SaaS — Sistema de Ponto de Venda</div>
+    <div class="plano-badge">Plano ${sPlano}</div>
+  </div>
+
+  <div class="body">
+
+    <div class="section-label">Partes Contratantes</div>
+    <div class="parties-grid">
+      <div class="party-card party-card-contratada">
+        <div class="party-card-header">Contratada</div>
+        <div class="party-card-body">
+          <p class="pfield"><strong>Razão Social:</strong> ${CONTRATADA.razaoSocial}</p>
+          <p class="pfield"><strong>Nome Fantasia:</strong> ${CONTRATADA.nomeFantasia}</p>
+          <p class="pfield"><strong>CNPJ:</strong> ${CONTRATADA.cnpj} · IE ${CONTRATADA.inscricaoEstadual}</p>
+          <p class="pfield"><strong>Endereço:</strong> ${CONTRATADA.endereco}, ${CONTRATADA.bairro}, ${CONTRATADA.cidade}/${CONTRATADA.uf} — CEP ${CONTRATADA.cep}</p>
+          <p class="pfield"><strong>Contato:</strong> ${CONTRATADA.telefone} · ${CONTRATADA.email}</p>
+          <p class="pfield"><strong>Representante:</strong> ${CONTRATADA.representante} · CPF ${CONTRATADA.cpfRepresentante}</p>
         </div>
-        <div class="sig-line">
-          <div class="line"></div>
-          <p class="sig-role-label">Nome: ___________________________ CPF: ___________________</p>
+      </div>
+      <div class="party-card party-card-contratante">
+        <div class="party-card-header">Contratante</div>
+        <div class="party-card-body">
+          <p class="pfield"><strong>Razão Social / Nome:</strong> ${sNome}</p>
+          <p class="pfield"><strong>CNPJ / CPF:</strong> ${sCnpj || '___________________________________'}</p>
+          <p class="pfield"><strong>Endereço:</strong> ${sEndereco || '______________________________________'}</p>
+          <p class="pfield"><strong>Cidade / UF:</strong> ${sCidade || '_______________________'} / ${sUF || '___'}</p>
+          <p class="pfield"><strong>Contato:</strong> ${sTelefone || '_______________________'} · ${sContato || '_______________________________'}</p>
+          <p class="pfield"><strong>Representante:</strong> ${sResponsavel || '______________________________'} · CPF ${sCpfResponsavel || '___________________'}</p>
         </div>
       </div>
     </div>
+
+    <div class="clauses-label">Cláusulas Contratuais</div>
+
+    <div class="clause">
+      <div class="clause-header">
+        <div class="clause-num">1</div>
+        <div class="clause-title">Do Objeto</div>
+      </div>
+      <p>O presente instrumento tem por objeto a prestação de serviços de tecnologia pela CONTRATADA
+      à CONTRATANTE, consistindo no licenciamento de uso do sistema de Ponto de Venda (PDV)
+      <strong>Restaurante PDV</strong>, na modalidade <em>Software as a Service</em> (SaaS), plano
+      <strong>${sPlano}</strong>, compreendendo:</p>
+      <ol>
+        <li>Acesso ao sistema via navegador web, com suporte a múltiplos dispositivos;</li>
+        <li>Painel administrativo para gestão de produtos, mesas, pedidos e caixa;</li>
+        <li>Atualizações de versão disponibilizadas automaticamente durante a vigência;</li>
+        <li>Suporte técnico nos canais e horários definidos na Cláusula 4ª;</li>
+        <li>Armazenamento dos dados do CONTRATANTE em ambiente seguro com backups periódicos.</li>
+      </ol>
+    </div>
+
+    <div class="clause">
+      <div class="clause-header">
+        <div class="clause-num">2</div>
+        <div class="clause-title">Da Vigência</div>
+      </div>
+      <p>O presente contrato vigorará ${vigencia}, renovando-se automaticamente por períodos sucessivos de
+      ${cicloExtMap[ciclo] || '30 (trinta) dias'}, salvo notificação de não renovação por qualquer das partes,
+      realizada com antecedência mínima de 30 (trinta) dias antes do término do período vigente,
+      por e-mail ou notificação escrita.</p>
+    </div>
+
+    <div class="clause">
+      <div class="clause-header">
+        <div class="clause-num">3</div>
+        <div class="clause-title">Do Valor e Forma de Pagamento</div>
+      </div>
+      <p>Pela prestação dos serviços descritos, a CONTRATANTE pagará à CONTRATADA o valor de
+      <strong>${valor}</strong> por ciclo <strong>${cicloMap[ciclo] || ciclo}</strong>, com vencimento no dia
+      <strong>10 (dez)</strong> de cada período de referência.</p>
+      <p>São aceitos os seguintes meios de pagamento: PIX, transferência bancária (TED/DOC) ou boleto bancário.</p>
+      <p class="paragrafo">O não pagamento até a data de vencimento acarretará multa moratória de 2% (dois por cento)
+      sobre o valor em aberto, acrescida de juros de mora de 1% (um por cento) ao mês, calculados pro rata die,
+      além de correção monetária pelo IGPM/FGV, sem prejuízo da suspensão imediata do acesso ao sistema após
+      10 (dez) dias de inadimplência.</p>
+    </div>
+
+    <div class="clause">
+      <div class="clause-header">
+        <div class="clause-num">4</div>
+        <div class="clause-title">Das Obrigações da Contratada</div>
+      </div>
+      <p>Compete à CONTRATADA:</p>
+      <ol>
+        <li>Garantir a disponibilidade do sistema com SLA mínimo de 99% (noventa e nove por cento) ao mês,
+        excluídas janelas de manutenção programada comunicadas com antecedência;</li>
+        <li>Realizar backups automáticos dos dados da CONTRATANTE com frequência mínima diária;</li>
+        <li>Prestar suporte técnico de segunda a sexta-feira, das 08h às 18h (horário de Brasília),
+        por meio de e-mail (${CONTRATADA.email}) e WhatsApp (${CONTRATADA.telefone});</li>
+        <li>Comunicar à CONTRATANTE, com antecedência mínima de 48 (quarenta e oito) horas, as
+        manutenções programadas que impliquem indisponibilidade do sistema;</li>
+        <li>Manter a confidencialidade dos dados da CONTRATANTE, não os compartilhando com terceiros,
+        salvo por determinação legal ou judicial.</li>
+      </ol>
+    </div>
+
+    <div class="clause">
+      <div class="clause-header">
+        <div class="clause-num">5</div>
+        <div class="clause-title">Das Obrigações da Contratante</div>
+      </div>
+      <p>Compete à CONTRATANTE:</p>
+      <ol>
+        <li>Manter em sigilo as credenciais de acesso ao sistema, sendo integralmente responsável
+        por uso indevido decorrente de compartilhamento não autorizado;</li>
+        <li>Efetuar os pagamentos nas datas e condições acordadas neste instrumento;</li>
+        <li>Utilizar o sistema exclusivamente para fins lícitos, em conformidade com a legislação
+        brasileira e com os termos deste contrato;</li>
+        <li>Notificar a CONTRATADA, imediatamente, sobre qualquer suspeita de violação de segurança,
+        acesso não autorizado ou uso indevido do sistema;</li>
+        <li>Manter seus dados cadastrais atualizados junto à CONTRATADA.</li>
+      </ol>
+    </div>
+
+    <div class="clause">
+      <div class="clause-header">
+        <div class="clause-num">6</div>
+        <div class="clause-title">Da Propriedade Intelectual</div>
+      </div>
+      <p>O sistema <strong>Restaurante PDV</strong> e todos os seus componentes — incluindo código-fonte,
+      interfaces, algoritmos, documentação e marca — são de propriedade exclusiva da CONTRATADA, protegidos
+      pela Lei nº 9.609/1998 (Lei de Software) e pela Lei nº 9.610/1998 (Lei de Direitos Autorais).</p>
+      <p class="paragrafo">Este contrato confere à CONTRATANTE licença de uso não exclusiva, intransferível
+      e revogável do software, pelo período de vigência contratual. Não implica cessão, transferência ou
+      sublicenciamento de quaisquer direitos de propriedade intelectual.</p>
+    </div>
+
+    <div class="clause">
+      <div class="clause-header">
+        <div class="clause-num">7</div>
+        <div class="clause-title">Da Confidencialidade e Proteção de Dados (LGPD)</div>
+      </div>
+      <p>As partes comprometem-se a tratar os dados pessoais eventualmente compartilhados em estrita
+      conformidade com a Lei Geral de Proteção de Dados Pessoais (Lei nº 13.709/2018 — LGPD),
+      adotando medidas técnicas e organizacionais adequadas para proteger as informações contra
+      acesso não autorizado, destruição, perda, alteração ou divulgação indevida.</p>
+      <p>A CONTRATADA atuará como <em>operadora</em> dos dados inseridos pela CONTRATANTE no sistema,
+      processando-os exclusivamente para as finalidades previstas neste contrato. A CONTRATANTE,
+      na qualidade de <em>controladora</em>, é responsável pela legalidade do tratamento de dados
+      de seus clientes e colaboradores dentro do sistema.</p>
+    </div>
+
+    <div class="clause">
+      <div class="clause-header">
+        <div class="clause-num">8</div>
+        <div class="clause-title">Da Limitação de Responsabilidade</div>
+      </div>
+      <p>A CONTRATADA não será responsabilizada por danos indiretos, lucros cessantes ou perda de
+      dados decorrentes de:</p>
+      <ol>
+        <li>Uso inadequado do sistema pela CONTRATANTE ou por terceiros com acesso autorizado por ela;</li>
+        <li>Falhas de infraestrutura de terceiros (internet, energia elétrica, provedores de nuvem);</li>
+        <li>Eventos de força maior ou caso fortuito, conforme o art. 393 do Código Civil Brasileiro;</li>
+        <li>Manutenções programadas devidamente comunicadas.</li>
+      </ol>
+      <p class="paragrafo">Em qualquer hipótese, a responsabilidade máxima da CONTRATADA fica limitada
+      ao valor pago pela CONTRATANTE nos últimos 3 (três) meses de vigência do contrato.</p>
+    </div>
+
+    <div class="clause">
+      <div class="clause-header">
+        <div class="clause-num">9</div>
+        <div class="clause-title">Da Rescisão</div>
+      </div>
+      <p>Este contrato poderá ser rescindido:</p>
+      <ol>
+        <li><strong>Por qualquer das partes</strong>, mediante notificação escrita com antecedência
+        mínima de 30 (trinta) dias, sem ônus ou penalidades;</li>
+        <li><strong>Por inadimplência</strong> da CONTRATANTE, após decorridos 10 (dez) dias do
+        vencimento sem pagamento, independentemente de notificação prévia, não gerando direito
+        a restituição de valores já pagos;</li>
+        <li><strong>Por descumprimento contratual</strong> de qualquer das partes, após notificação
+        e prazo de 5 (cinco) dias úteis para regularização.</li>
+      </ol>
+      <p class="paragrafo">Rescindido o contrato, a CONTRATADA manterá os dados da CONTRATANTE
+      disponíveis para exportação por 30 (trinta) dias, após os quais poderão ser definitivamente
+      excluídos.</p>
+    </div>
+
+    <div class="clause">
+      <div class="clause-header">
+        <div class="clause-num">10</div>
+        <div class="clause-title">Das Disposições Gerais</div>
+      </div>
+      <ol>
+        <li>Este contrato constitui o acordo integral entre as partes, substituindo quaisquer
+        entendimentos anteriores sobre o mesmo objeto;</li>
+        <li>Qualquer alteração deste instrumento somente terá validade se formalizada por escrito
+        e assinada por ambas as partes;</li>
+        <li>A tolerância de uma das partes em relação ao descumprimento de qualquer cláusula não
+        constituirá novação ou renúncia ao direito de exigi-la futuramente;</li>
+        <li>Caso qualquer disposição deste contrato seja considerada inválida, as demais permanecerão
+        em pleno vigor.</li>
+      </ol>
+    </div>
+
+    <div class="clause">
+      <div class="clause-header">
+        <div class="clause-num">11</div>
+        <div class="clause-title">Do Foro</div>
+      </div>
+      <p>Fica eleito o foro da Comarca de <strong>${CONTRATADA.foroCidade}/${CONTRATADA.foroUF}</strong>
+      para dirimir quaisquer controvérsias oriundas deste instrumento, com renúncia expressa a qualquer
+      outro, por mais privilegiado que seja, ressalvados os casos em que a legislação imponha foro
+      diverso de forma imperativa.</p>
+    </div>
+
+    ${sObs ? `<div class="notes-box"><strong>Condições específicas / Observações:</strong><br>${sObs}</div>` : ''}
+
+    <div class="sig-section">
+      <p class="sig-city">${CONTRATADA.foroCidade}/${CONTRATADA.foroUF}, _______ de __________________ de _______</p>
+      <div class="sig-grid">
+        <div class="sig-block">
+          <div class="sig-line-el"></div>
+          <div class="sig-name">${sNome}</div>
+          <div class="sig-role">CONTRATANTE</div>
+        </div>
+        <div class="sig-block">
+          <div class="sig-line-el"></div>
+          <div class="sig-name">${CONTRATADA.representante}</div>
+          <div class="sig-role">CONTRATADA — ${CONTRATADA.cargoRepresentante}</div>
+        </div>
+      </div>
+      <div style="margin-top:8px;">
+        <div class="witness-label">Testemunhas:</div>
+        <div class="witness-grid">
+          <div class="witness-block">
+            <div class="sig-line-el"></div>
+            <div class="witness-field">Nome: ___________________________ CPF: ___________________</div>
+          </div>
+          <div class="witness-block">
+            <div class="sig-line-el"></div>
+            <div class="witness-field">Nome: ___________________________ CPF: ___________________</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
   </div>
 
   <div class="footer">
-    <span>${CONTRATADA.razaoSocial} · CNPJ ${CONTRATADA.cnpj}</span>
-    <span>Documento gerado em ${new Date().toLocaleDateString('pt-BR')} · ${sNome} · Plano ${sPlano}</span>
+    <span><span class="footer-brand">Restaurante PDV</span> · ${CONTRATADA.razaoSocial} · CNPJ ${CONTRATADA.cnpj}</span>
+    <span>Gerado em ${new Date().toLocaleDateString('pt-BR')} · ${sNome} · Plano ${sPlano}</span>
   </div>
 
 </div>

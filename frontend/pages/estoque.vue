@@ -328,8 +328,6 @@ import {
   TrendingUp, TrendingDown
 } from 'lucide-vue-next'
 
-definePageMeta({ middleware: 'auth' })
-
 const api = useApi()
 
 interface Produto {

@@ -8,7 +8,8 @@
 
   <aside
     class="hidden sm:flex fixed left-0 flex-col
-           bg-[#0e0d14] border-r border-white/[0.06]
+           bg-white dark:bg-[#0e0d14]
+           border-r border-gray-200 dark:border-white/[0.06]
            transition-all duration-200 overflow-hidden"
     :class="[expandida ? 'w-52' : 'w-14', 'z-40']"
     :style="{ top: authStore.modoSuporte ? '2.5rem' : '0', height: authStore.modoSuporte ? 'calc(100vh - 2.5rem)' : '100vh' }"
@@ -16,15 +17,15 @@
     <!-- LOGO (clique expande/recolhe) -->
     <button
       @click="expandida = !expandida"
-      class="h-14 w-full flex items-center gap-2.5 px-3 shrink-0 border-b border-white/[0.06] hover:bg-white/[0.04] transition-colors"
+      class="h-14 w-full flex items-center gap-2.5 px-3 shrink-0 border-b border-gray-200 dark:border-white/[0.06] hover:bg-gray-100 dark:hover:bg-white/[0.04] transition-colors"
       :title="expandida ? 'Recolher menu' : 'Expandir menu'"
     >
       <div class="w-8 h-8 rounded-xl bg-gradient-to-br from-orange-500 to-orange-700 shadow-md shadow-orange-900/50 flex items-center justify-center shrink-0">
         <UtensilsCrossed :size="14" class="text-white" />
       </div>
       <div class="overflow-hidden transition-opacity duration-200" :class="expandida ? 'opacity-100' : 'opacity-0'">
-        <span class="text-sm font-black text-white tracking-tight whitespace-nowrap">
-          Restaurante <span class="text-orange-400">PDV</span>
+        <span class="text-sm font-black text-gray-900 dark:text-white tracking-tight whitespace-nowrap">
+          Restaurante <span class="text-orange-500 dark:text-orange-400">PDV</span>
         </span>
       </div>
     </button>
@@ -38,7 +39,7 @@
         class="w-full flex items-center h-10 rounded-xl transition-all whitespace-nowrap"
         :class="[
           expandida ? 'gap-3 px-2' : 'justify-center',
-          isAtivo(item.rota) ? 'bg-orange-500/[0.10]' : 'hover:bg-white/[0.05]'
+          isAtivo(item.rota) ? 'bg-orange-500/[0.10]' : 'hover:bg-gray-100 dark:hover:bg-white/[0.05]'
         ]"
         :title="item.label"
       >
@@ -47,20 +48,20 @@
           :class="isAtivo(item.rota) ? 'bg-gradient-to-br from-orange-500 to-orange-700 shadow-sm shadow-orange-900/50' : ''"
         >
           <component :is="item.icon" :size="15" :stroke-width="2.2"
-            :class="isAtivo(item.rota) ? 'text-white' : 'text-white/35'" />
+            :class="isAtivo(item.rota) ? 'text-white' : 'text-gray-400 dark:text-white/35'" />
         </div>
         <span
           class="text-xs font-bold truncate transition-opacity duration-200 flex-1 text-left"
-          :class="[expandida ? 'opacity-100' : 'opacity-0 w-0', isAtivo(item.rota) ? 'text-white' : 'text-white/40']"
+          :class="[expandida ? 'opacity-100' : 'opacity-0 w-0', isAtivo(item.rota) ? 'text-gray-900 dark:text-white' : 'text-gray-500 dark:text-white/40']"
         >{{ item.label }}</span>
       </button>
     </nav>
 
     <!-- RODAPÉ: SAIR -->
-    <div class="p-2 border-t border-white/[0.06] shrink-0">
+    <div class="p-2 border-t border-gray-200 dark:border-white/[0.06] shrink-0">
       <button
         @click="authStore.logout()"
-        class="w-full flex items-center h-10 rounded-xl text-xs font-bold transition-all whitespace-nowrap hover:bg-red-950/40"
+        class="w-full flex items-center h-10 rounded-xl text-xs font-bold transition-all whitespace-nowrap hover:bg-red-50 dark:hover:bg-red-950/40"
         :class="expandida ? 'gap-3 px-2' : 'justify-center'"
         title="Sair"
       >

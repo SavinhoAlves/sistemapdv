@@ -1,7 +1,7 @@
 import { computed } from 'vue'
 import {
   BarChart2, LayoutGrid, ShoppingCart, Package, Landmark,
-  FileText, ShieldCheck, Settings, ChefHat
+  FileText, ShieldCheck, Settings, ChefHat, Boxes
 } from 'lucide-vue-next'
 import { useAuthStore } from '~/stores/auth'
 
@@ -33,15 +33,16 @@ export function useNavItems() {
 
     // Administrador sempre vê tudo
     if (cargo === 'administrador') return [
-      { rota: '/',              label: 'Dashboard',     icon: BarChart2   },
-      { rota: '/mesas',         label: 'Mesas',         icon: LayoutGrid  },
+      { rota: '/',              label: 'Dashboard',     icon: BarChart2    },
+      { rota: '/mesas',         label: 'Mesas',         icon: LayoutGrid   },
       { rota: '/vendas',        label: 'Vendas',        icon: ShoppingCart },
-      { rota: '/produtos',      label: 'Produtos',      icon: Package     },
-      { rota: '/caixa',         label: 'Caixa',         icon: Landmark    },
-      { rota: '/cozinha',       label: 'Cozinha',       icon: ChefHat     },
-      { rota: '/relatorios',    label: 'Relatórios',    icon: FileText    },
-      { rota: '/admin',         label: 'Admin',         icon: ShieldCheck },
-      { rota: '/configuracoes', label: 'Configurações', icon: Settings    }
+      { rota: '/produtos',      label: 'Produtos',      icon: Package      },
+      { rota: '/estoque',       label: 'Estoque',       icon: Boxes        },
+      { rota: '/caixa',         label: 'Caixa',         icon: Landmark     },
+      { rota: '/cozinha',       label: 'Cozinha',       icon: ChefHat      },
+      { rota: '/relatorios',    label: 'Relatórios',    icon: FileText     },
+      { rota: '/admin',         label: 'Admin',         icon: ShieldCheck  },
+      { rota: '/configuracoes', label: 'Configurações', icon: Settings     }
     ]
 
     // Com perfil atribuído: nav baseada nas permissões e modo de operação do perfil

@@ -164,6 +164,7 @@
 import { ref, onMounted } from 'vue'
 import { UtensilsCrossed, ShieldCheck, ShieldOff, ShieldAlert, Loader2, RefreshCw, LayoutDashboard } from 'lucide-vue-next'
 import { useToastStore } from '../stores/toast'
+import { getTenantSlug } from '~/composables/useTenantSlug'
 
 definePageMeta({ layout: false })
 
@@ -194,7 +195,7 @@ function fmtData(iso: string) {
 }
 
 async function carregarStatus() {
-  const slug = (config.public as any).tenantSlug as string
+  const slug = getTenantSlug()
   try {
     status.value = await $fetch<any>(`${config.public.apiUrl}/api/sistema/status-licenca`, { query: { slug } })
   } catch {

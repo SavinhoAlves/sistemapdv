@@ -166,16 +166,29 @@ export async function buildApp() {
         return reply.send({ ativo: false, semLicenca: true, motivo: licenca?.status ?? 'sem_licenca' })
       }
 
-      const expirado = licenca.dataVencimento ? licenca.dataVencimento < new Date() : false
+      const agora = new Date()
+      const expirado = licenca.dataVencimento ? licenca.dataVencimento < agora : false
       if (expirado) {
-        return reply.send({ ativo: false, expirado: true, motivo: 'expirado', venceu_em: licenca.dataVencimento })
+        return reply.send({
+          ativo: false,
+          expirado: true,
+          motivo: 'expirado',
+          dataVencimento: licenca.dataVencimento,
+          cliente: tenant.nome,
+        })
       }
+
+      const diasRestantes = licenca.dataVencimento
+        ? Math.ceil((licenca.dataVencimento.getTime() - agora.getTime()) / (1000 * 60 * 60 * 24))
+        : null
 
       return reply.send({
         ativo: true,
         expirado: false,
         semLicenca: false,
-        expira_em: licenca.dataVencimento,
+        cliente: tenant.nome,
+        dataVencimento: licenca.dataVencimento,
+        diasRestantes,
       })
     } catch {
       // Fail-closed: em caso de erro no banco, bloqueia o acesso

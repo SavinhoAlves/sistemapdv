@@ -1,9 +1,15 @@
+import { getTenantSlug } from '~/composables/useTenantSlug'
+
 const ROTAS_LIVRES = ['/ativacao', '/login', '/m', '/platform']
 const CACHE_TTL = 60 * 1000
 
 export default defineNuxtRouteMiddleware(async (to) => {
   if (ROTAS_LIVRES.some(r => to.path.startsWith(r))) return
   if (!process.client) return
+
+  const config = useRuntimeConfig()
+
+  if (localStorage.getItem('suporte_token') || localStorage.getItem('suporte_pending_token')) return
 
   const cache = useState<{ valido: boolean | null; ts: number }>(
     'licenca_cache',
@@ -16,8 +22,7 @@ export default defineNuxtRouteMiddleware(async (to) => {
     return
   }
 
-  const config = useRuntimeConfig()
-  const slug   = (config.public as any).tenantSlug as string
+  const slug = getTenantSlug()
 
   try {
     const res = await $fetch<any>(

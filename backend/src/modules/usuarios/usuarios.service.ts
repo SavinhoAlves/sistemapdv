@@ -129,11 +129,14 @@ export async function gerarMobileToken(tenantId: string, id: string) {
   })
   if (!usuario) throw Object.assign(new Error('Usuário não encontrado'), { status: 404 })
 
+  const tenant = await prisma.tenant.findUnique({ where: { id: tenantId }, select: { slug: true } })
+
   const payload: TenantJwtPayload = {
     type: 'tenant',
     sub: usuario.id,
     nome: usuario.nome,
     tenantId,
+    slug: tenant?.slug ?? '',
     cargo: usuario.cargo,
     perfilId: usuario.perfilId,
     permissoes: (usuario.perfil?.permissoes as Record<string, boolean>) ?? {},

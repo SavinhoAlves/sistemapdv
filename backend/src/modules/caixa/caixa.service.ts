@@ -382,9 +382,20 @@ export async function movimentos(_tenantId: string) {
     include: { usuario: { select: { id: true, nome: true } } },
   })
 
+  const pagamentoIds = movs.map((m) => m.pagamentoId).filter((id): id is string => !!id)
+  const pagamentos = pagamentoIds.length
+    ? await prisma.pagamento.findMany({ where: { id: { in: pagamentoIds } }, select: { id: true, status: true } })
+    : []
+  const statusPorPagamento = new Map(pagamentos.map((p) => [p.id, p.status]))
+
   return {
     caixa: serializarCaixa(caixa),
-    movimentos: movs.map((m) => ({ ...m, valor: Number(m.valor) })),
+    movimentos: movs.map((m) => ({
+      ...m,
+      valor: Number(m.valor),
+      pagamento_id: m.pagamentoId,
+      pagamento_status: m.pagamentoId ? statusPorPagamento.get(m.pagamentoId) ?? null : null,
+    })),
     resumo: await resumoCaixa(_tenantId, caixa.id),
   }
 }

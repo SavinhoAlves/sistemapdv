@@ -1,7 +1,8 @@
 import type { FastifyInstance } from 'fastify'
 import { requirePlatform, invalidateTenantCache } from '../../middlewares/tenant.middleware'
 import { prisma } from '../../lib/prisma'
-import bcrypt from 'bcrypt'
+import { signAccessToken } from '../../lib/jwt'
+import bcrypt from 'bcryptjs'
 
 function slugify(s: string) {
   return s
@@ -366,6 +367,100 @@ export async function platformTenantsRoutes(app: FastifyInstance) {
       : await prisma.contrato.create({ data: { tenantId: id, ...data } })
 
     return reply.send(contrato)
+  })
+
+  // GET /:id/admin — retorna o usuário administrador do tenant
+  app.get('/:id/admin', { preHandler: requirePlatform }, async (request, reply) => {
+    const { id } = request.params as { id: string }
+    const admin = await prisma.usuario.findFirst({
+      where: { tenantId: id, cargo: 'administrador' },
+      select: { id: true, nome: true, email: true, ativo: true },
+      orderBy: { createdAt: 'asc' },
+    })
+    return reply.send(admin ?? null)
+  })
+
+  // PUT /:id/admin — cria ou atualiza o usuário administrador do tenant
+  app.put('/:id/admin', { preHandler: requirePlatform }, async (request, reply) => {
+    const { id } = request.params as { id: string }
+    const { nome, email, senha } = request.body as any
+
+    if (typeof email !== 'string' || !email.trim()) return reply.status(400).send({ error: 'E-mail é obrigatório' })
+
+    const tenant = await prisma.tenant.findUnique({ where: { id }, select: { id: true, nome: true } })
+    if (!tenant) return reply.status(404).send({ error: 'Tenant não encontrado' })
+
+    const existing = await prisma.usuario.findFirst({
+      where: { tenantId: id, cargo: 'administrador' },
+      orderBy: { createdAt: 'asc' },
+    })
+
+    const senhaHash = senha && senha.length >= 6 ? await bcrypt.hash(senha, 12) : undefined
+
+    if (existing) {
+      const updated = await prisma.usuario.update({
+        where: { id: existing.id },
+        data: {
+          ...(typeof nome === 'string' && nome.trim() ? { nome: nome.trim() } : {}),
+          email: email.trim().toLowerCase(),
+          ...(senhaHash ? { senhaHash } : {}),
+          ativo: true,
+        },
+        select: { id: true, nome: true, email: true, ativo: true },
+      })
+      return reply.send(updated)
+    }
+
+    if (!senhaHash) return reply.status(400).send({ error: 'Senha é obrigatória ao criar o administrador (mín. 6 caracteres)' })
+
+    const created = await prisma.usuario.create({
+      data: {
+        tenantId: id,
+        nome:     typeof nome === 'string' && nome.trim() ? nome.trim() : tenant.nome,
+        email:    email.trim().toLowerCase(),
+        senhaHash,
+        cargo:    'administrador',
+        ativo:    true,
+      },
+      select: { id: true, nome: true, email: true, ativo: true },
+    })
+    return reply.status(201).send(created)
+  })
+
+  // POST /:id/support-token — token de curta duração para acesso de suporte
+  app.post('/:id/support-token', { preHandler: requirePlatform }, async (request, reply) => {
+    const { id } = request.params as { id: string }
+
+    const tenant = await prisma.tenant.findUnique({
+      where: { id },
+      select: { id: true, nome: true, slug: true, status: true },
+    })
+    if (!tenant) return reply.status(404).send({ error: 'Tenant não encontrado' })
+
+    const admin = await prisma.usuario.findFirst({
+      where: { tenantId: id, cargo: 'administrador', ativo: true },
+      select: { id: true, nome: true, cargo: true, email: true },
+    })
+    if (!admin) return reply.status(404).send({ error: 'Nenhum administrador ativo encontrado para este tenant' })
+
+    const access_token = signAccessToken({
+      type:       'tenant',
+      sub:        admin.id,
+      nome:       admin.nome,
+      tenantId:   tenant.id,
+      slug:       tenant.slug,
+      cargo:      admin.cargo,
+      perfilId:   null,
+      permissoes: {},
+      suporte:    true,
+    })
+
+    return reply.send({
+      access_token,
+      tenantNome: tenant.nome,
+      tenantSlug: tenant.slug,
+      usuario: { id: admin.id, nome: admin.nome, cargo: admin.cargo, email: admin.email },
+    })
   })
 
   // PUT /:id/licenca — criar ou atualizar licença

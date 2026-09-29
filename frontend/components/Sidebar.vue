@@ -7,10 +7,11 @@
   />
 
   <aside
-    class="hidden sm:flex fixed left-0 top-0 h-screen z-40 flex-col
+    class="hidden sm:flex fixed left-0 flex-col
            bg-[#0e0d14] border-r border-white/[0.06]
            transition-all duration-200 overflow-hidden"
-    :class="expandida ? 'w-52' : 'w-14'"
+    :class="[expandida ? 'w-52' : 'w-14', 'z-40']"
+    :style="{ top: authStore.modoSuporte ? '2.5rem' : '0', height: authStore.modoSuporte ? 'calc(100vh - 2.5rem)' : '100vh' }"
   >
     <!-- LOGO (clique expande/recolhe) -->
     <button

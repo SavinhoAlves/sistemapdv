@@ -53,7 +53,7 @@
       </div>
 
       <div class="relative z-10">
-        <p class="text-white/20 text-[11px]">© 2025 Restaurante PDV · Plataforma Central</p>
+        <p class="text-white/20 text-[11px]">© {{ new Date().getFullYear() }} Restaurante PDV · Plataforma Central</p>
       </div>
     </div>
 

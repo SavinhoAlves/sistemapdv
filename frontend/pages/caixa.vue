@@ -407,12 +407,12 @@
             <p class="text-xs text-gray-500 dark:text-white/40 mb-1 truncate">{{ movEstorno.descricao || 'Pagamento' }}</p>
             <p class="text-base font-black text-red-400 mb-5">R$ {{ fmt(movEstorno.valor) }}</p>
 
-            <label for="estorno-motivo" class="block text-[10px] font-black uppercase tracking-widest text-gray-500 dark:text-white/40 mb-2">Motivo (opcional)</label>
-            <input id="estorno-motivo" name="estorno-motivo" v-model="motivoEstorno" type="text" maxlength="120" placeholder="Ex: cobrança duplicada"
+            <label for="estorno-motivo" class="block text-[10px] font-black uppercase tracking-widest text-gray-500 dark:text-white/40 mb-2">Motivo</label>
+            <input id="estorno-motivo" name="estorno-motivo" v-model="motivoEstorno" type="text" maxlength="120" placeholder="Ex: cobrança duplicada (mín. 5 letras)"
               class="w-full h-12 px-4 bg-gray-50 dark:bg-white/[0.06] border border-gray-200 dark:border-white/10 rounded-2xl text-gray-900 dark:text-white font-medium text-sm outline-none focus:border-orange-500 transition-all mb-3" />
 
             <p class="text-[11px] text-gray-400 dark:text-white/40 mb-5">
-              O pagamento sai dos totais do caixa. Em vendas de balcão, o pedido é cancelado e o estoque gerenciado é devolvido.
+              O valor sai dos totais do caixa e o pedido volta a ficar em aberto, com o saldo para receber de novo.
             </p>
 
             <div class="flex gap-3">
@@ -420,7 +420,7 @@
                 class="flex-1 h-12 rounded-2xl border border-gray-200 dark:border-white/10 text-gray-500 dark:text-white/60 text-sm font-black hover:bg-gray-50 dark:hover:bg-white/5 transition-all">
                 Cancelar
               </button>
-              <button @click="confirmarEstorno" :disabled="estornando"
+              <button @click="confirmarEstorno" :disabled="estornando || motivoEstorno.trim().length < 5"
                 class="flex-1 h-12 rounded-2xl bg-red-500 hover:bg-red-400 text-white text-sm font-black transition-all active:scale-95 disabled:opacity-40">
                 {{ estornando ? 'Estornando…' : 'Confirmar' }}
               </button>
@@ -491,9 +491,8 @@ async function confirmarEstorno() {
   if (!movEstorno.value || estornando.value) return
   estornando.value = true
   try {
-    await api.post('/caixa/estorno', {
-      movimento_id: movEstorno.value.id,
-      motivo: motivoEstorno.value || undefined
+    await api.post(`/pagamentos/${movEstorno.value.pagamento_id}/estornar`, {
+      motivo: motivoEstorno.value.trim()
     })
     toastStore.success('Pagamento estornado')
     movEstorno.value = null

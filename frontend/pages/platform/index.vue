@@ -68,7 +68,7 @@
       </header>
 
       <!-- Conteúdo -->
-      <main class="flex-1 px-6 lg:px-10 py-8 space-y-8 max-w-[1100px] w-full">
+      <main class="flex-1 px-6 lg:px-10 py-8 space-y-8 w-full">
 
         <!-- LOADING -->
         <div v-if="loading" class="flex items-center justify-center py-48">
@@ -183,7 +183,7 @@
 
             <div class="rounded-2xl border border-white/[0.07] overflow-hidden">
               <div class="table-header grid items-center px-5 py-3.5"
-                style="grid-template-columns: 1fr 168px 136px 116px">
+                style="grid-template-columns: 1fr 168px 136px 172px">
                 <span class="col-label">Restaurante</span>
                 <span class="col-label hidden md:block text-center">Licença</span>
                 <span class="col-label hidden md:block text-center">Plano</span>
@@ -214,7 +214,7 @@
                   v-for="tenant in tenantsFiltrados" :key="tenant.id"
                   class="tenant-row grid items-center px-5 py-4 group border-l-2 transition-colors"
                   :class="tenant.status === 'suspenso' ? 'border-l-red-500/50 bg-red-500/[0.025] hover:bg-red-500/[0.04]' : 'border-l-transparent hover:bg-white/[0.025]'"
-                  style="grid-template-columns: 1fr 168px 136px 116px"
+                  style="grid-template-columns: 1fr 168px 136px 172px"
                 >
                   <NuxtLink :to="`/platform/tenants/${tenant.id}`" class="flex items-center gap-4 min-w-0">
                     <div :class="['size-10 rounded-xl flex items-center justify-center text-[13px] font-black text-white shrink-0 shadow-md', avatarGradient(tenant.nome)]">
@@ -250,15 +250,55 @@
                   </div>
 
                   <div class="flex items-center gap-1.5 justify-end">
+                    <!-- Suporte dropdown -->
+                    <div class="relative" @click.stop>
+                      <button
+                        @click="suporteDropdown = suporteDropdown === tenant.id ? null : tenant.id"
+                        :title="`Suporte remoto — ${tenant.nome}`"
+                        :class="['action-btn gap-1 px-2 text-sky-400', suporteDropdown === tenant.id ? 'bg-sky-500/20 border border-sky-400/30' : 'bg-sky-500/10 border border-sky-400/15 hover:bg-sky-500/20']"
+                        style="width:auto"
+                      >
+                        <UIcon name="i-lucide-monitor" class="size-3.5 shrink-0" />
+                        <UIcon name="i-lucide-chevron-down" :class="['size-3 shrink-0 transition-transform duration-150', suporteDropdown === tenant.id ? 'rotate-180' : '']" />
+                      </button>
+
+                      <Transition enter-active-class="transition ease-out duration-100" enter-from-class="opacity-0 scale-95" enter-to-class="opacity-100 scale-100" leave-active-class="transition ease-in duration-75" leave-from-class="opacity-100 scale-100" leave-to-class="opacity-0 scale-95">
+                        <div
+                          v-if="suporteDropdown === tenant.id"
+                          class="absolute right-0 top-full mt-1.5 z-50 rounded-xl border border-white/[0.09] shadow-2xl shadow-black/60 overflow-hidden"
+                          style="background:#16151f; min-width:148px"
+                        >
+                          <button
+                            @click="acessarComoSuporte(tenant, 'visualizacao'); suporteDropdown = null"
+                            class="w-full flex items-center gap-2.5 px-3 py-2.5 text-sm hover:bg-white/[0.06] transition-colors text-left"
+                          >
+                            <UIcon name="i-lucide-eye" class="size-3.5 text-sky-400 shrink-0" />
+                            <span class="text-white/75">Visualizar</span>
+                          </button>
+                          <div class="mx-3 h-px bg-white/[0.06]"></div>
+                          <button
+                            @click="acessarComoSuporte(tenant, 'auxiliar'); suporteDropdown = null"
+                            class="w-full flex items-center gap-2.5 px-3 py-2.5 text-sm hover:bg-white/[0.06] transition-colors text-left"
+                          >
+                            <UIcon name="i-lucide-mouse-pointer-2" class="size-3.5 text-amber-400 shrink-0" />
+                            <span class="text-white/75">Auxiliar</span>
+                          </button>
+                        </div>
+                      </Transition>
+                    </div>
+
+                    <!-- RFID toggle -->
                     <button
                       @click="toggleRfid(tenant)"
                       :title="tenant.rfidDisponivel ? 'Desativar RFID' : 'Ativar RFID'"
                       :class="['action-btn', tenant.rfidDisponivel
                         ? 'text-white bg-gradient-to-br from-violet-600 to-violet-800 shadow-md shadow-violet-900/40'
-                        : 'text-white/25 bg-white/[0.04] hover:bg-white/[0.07] hover:text-white/50']"
+                        : 'text-white/20 bg-white/[0.04] hover:bg-white/[0.08] hover:text-white/50']"
                     >
                       <UIcon :name="togglingId === tenant.id ? 'i-lucide-loader-2' : 'i-lucide-credit-card'" :class="['size-3.5', togglingId === tenant.id ? 'animate-spin' : '']" />
                     </button>
+
+                    <!-- Status toggle -->
                     <button
                       @click="toggleStatus(tenant)"
                       :title="tenant.status === 'ativo' ? 'Suspender' : 'Reativar'"
@@ -268,9 +308,11 @@
                     >
                       <UIcon :name="tenant.status === 'ativo' ? 'i-lucide-toggle-right' : 'i-lucide-toggle-left'" class="size-3.5" />
                     </button>
+
+                    <!-- Detalhes -->
                     <NuxtLink
                       :to="`/platform/tenants/${tenant.id}`"
-                      class="action-btn text-white/25 bg-white/[0.04] hover:bg-white/[0.07] hover:text-white/70"
+                      class="action-btn text-white/30 bg-white/[0.04] hover:bg-white/[0.09] hover:text-white/80"
                       title="Ver detalhes"
                     >
                       <UIcon name="i-lucide-arrow-right" class="size-3.5" />
@@ -720,13 +762,95 @@
       </UCard>
     </UModal>
 
+    <!-- Modal: seletor de tela para suporte -->
+    <UModal v-model="suporteModal.aberto" :ui="{ width: 'sm:max-w-sm', rounded: 'rounded-2xl' }">
+      <UCard :ui="{ background: 'bg-[#0e0d14]', ring: 'ring-1 ring-white/[0.08]', rounded: 'rounded-2xl', body: { padding: 'p-5' }, header: { padding: 'px-5 pt-5 pb-0' } }">
+        <template #header>
+          <div class="flex items-center gap-3 mb-4">
+            <div :class="['size-9 rounded-xl flex items-center justify-center shrink-0',
+              suporteModal.modo === 'visualizacao' ? 'bg-sky-500/10' : 'bg-amber-500/10']">
+              <UIcon :name="suporteModal.modo === 'visualizacao' ? 'i-lucide-eye' : 'i-lucide-wrench'"
+                :class="['size-4', suporteModal.modo === 'visualizacao' ? 'text-sky-400' : 'text-amber-400']" />
+            </div>
+            <div>
+              <p class="text-sm font-black text-white">
+                {{ suporteModal.modo === 'visualizacao' ? 'Modo visualização' : 'Modo ação' }}
+              </p>
+              <p class="text-[11px] text-white/30">{{ suporteModal.tenant?.nome }}</p>
+            </div>
+          </div>
+          <p class="text-[11px] text-white/40 mb-3">Em qual tela o cliente está com problema?</p>
+        </template>
+
+        <div class="space-y-1.5">
+          <button
+            v-for="r in rotasSuporte" :key="r.rota"
+            @click="suporteModal.rota = r.rota"
+            :class="['w-full flex items-center gap-3 rounded-xl transition-colors text-left border',
+              r.destaque ? 'px-3 py-3' : 'px-3 py-2.5',
+              suporteModal.rota === r.rota
+                ? (suporteModal.modo === 'visualizacao' ? 'bg-sky-500/15 border-sky-500/25' : 'bg-amber-500/15 border-amber-500/25')
+                : r.destaque
+                  ? 'bg-white/[0.05] border-white/[0.10] hover:bg-white/[0.08]'
+                  : 'bg-white/[0.03] border-transparent hover:bg-white/[0.06]']"
+          >
+            <div :class="['shrink-0 flex items-center justify-center rounded-lg',
+              r.destaque ? 'size-7' : 'size-5',
+              suporteModal.rota === r.rota
+                ? (suporteModal.modo === 'visualizacao' ? 'bg-sky-500/20' : 'bg-amber-500/20')
+                : r.destaque ? 'bg-white/[0.08]' : 'bg-transparent']">
+              <UIcon :name="r.icone" :class="[
+                r.destaque ? 'size-4' : 'size-3.5',
+                suporteModal.rota === r.rota
+                  ? (suporteModal.modo === 'visualizacao' ? 'text-sky-400' : 'text-amber-400')
+                  : r.destaque ? 'text-white/60' : 'text-white/30']" />
+            </div>
+            <div>
+              <span :class="['font-semibold block leading-tight',
+                r.destaque ? 'text-xs' : 'text-xs',
+                suporteModal.rota === r.rota ? 'text-white/90' : r.destaque ? 'text-white/70' : 'text-white/50']">
+                {{ r.label }}
+              </span>
+              <span v-if="r.destaque" class="text-[10px] text-white/25">Resumo do dia com dados ao vivo</span>
+            </div>
+            <UIcon v-if="r.destaque && suporteModal.rota !== r.rota" name="i-lucide-star" class="size-3 text-white/20 ml-auto" />
+          </button>
+
+          <div class="pt-1">
+            <label class="text-[10px] font-bold text-white/25 uppercase tracking-wider block mb-1.5">Outra tela (caminho)</label>
+            <input v-model="suporteModal.rota" type="text" placeholder="/pagina-especifica"
+              class="w-full h-9 px-3 rounded-xl bg-white/[0.04] border border-white/[0.08] text-white/80 text-xs placeholder-white/20 outline-none focus:border-indigo-500/40 transition-colors font-mono" />
+          </div>
+        </div>
+
+        <template #footer>
+          <div class="flex gap-2 pt-1">
+            <button @click="suporteModal.aberto = false"
+              class="flex-1 h-9 rounded-xl bg-white/[0.04] hover:bg-white/[0.07] border border-white/[0.07] text-white/40 text-xs font-bold transition-colors">
+              Cancelar
+            </button>
+            <button @click="confirmarSuporte" :disabled="suporteModal.loading"
+              :class="['flex-1 h-9 rounded-xl text-xs font-black transition-colors flex items-center justify-center gap-2 disabled:opacity-50',
+                suporteModal.modo === 'visualizacao'
+                  ? 'bg-sky-500/15 hover:bg-sky-500/25 border border-sky-500/25 text-sky-400'
+                  : 'bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/25 text-amber-400']">
+              <UIcon v-if="suporteModal.loading" name="i-lucide-loader-2" class="size-3.5 animate-spin" />
+              <UIcon v-else :name="suporteModal.modo === 'visualizacao' ? 'i-lucide-eye' : 'i-lucide-wrench'" class="size-3.5" />
+              Entrar
+            </button>
+          </div>
+        </template>
+      </UCard>
+    </UModal>
+
     <UNotifications />
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, reactive, onMounted } from 'vue'
+import { ref, computed, reactive, onMounted, onUnmounted } from 'vue'
 import { usePlatformAuthStore } from '~/stores/platformAuth'
+import { useAuthStore } from '~/stores/auth'
 
 definePageMeta({ layout: false })
 
@@ -746,6 +870,7 @@ interface Dashboard {
 }
 
 const platformAuth  = usePlatformAuthStore()
+const authStore     = useAuthStore()
 const runtimeConfig = useRuntimeConfig()
 const toast         = useToast()
 
@@ -795,6 +920,25 @@ const licencaForm  = reactive({ status: 'pendente', dataAtivacao: '', dataVencim
 const contratoForm = reactive({ plano: 'Básico', valor: '', ciclo: 'mensal' as 'mensal' | 'trimestral' | 'semestral' | 'anual', dataInicio: new Date().toISOString().substring(0, 10), dataFim: '', status: 'trial' as 'trial' | 'ativo' })
 const adminForm    = reactive({ email: '', senha: '', senhaConfirm: '' })
 const mostrarSenha = ref(false)
+
+// ── Modal seletor de rota de suporte ─────────────────────────────────────────
+const rotasSuporte = [
+  { label: 'Tempo Real',     rota: '/',               icone: 'i-lucide-activity',        destaque: true  },
+  { label: 'Mesas',          rota: '/mesas',           icone: 'i-lucide-layout-grid',     destaque: false },
+  { label: 'Caixa',          rota: '/caixa',           icone: 'i-lucide-calculator',      destaque: false },
+  { label: 'Vendas',         rota: '/vendas',          icone: 'i-lucide-shopping-cart',   destaque: false },
+  { label: 'Configurações',  rota: '/configuracoes',   icone: 'i-lucide-settings',        destaque: false },
+  { label: 'Relatórios',     rota: '/relatorios',      icone: 'i-lucide-bar-chart-2',     destaque: false },
+  { label: 'Administração',  rota: '/admin',           icone: 'i-lucide-shield',          destaque: false },
+]
+const suporteModal = reactive({
+  aberto:  false,
+  tenant:  null as Tenant | null,
+  modo:    'auxiliar' as 'visualizacao' | 'auxiliar',
+  rota:    '/',
+  loading: false,
+})
+const suporteDropdown = ref<string | null>(null)
 
 const baseUrl = computed(() => (runtimeConfig.public as any).apiUrl as string)
 const maxMrr  = computed(() => Math.max(...(dashboard.value?.financeiro?.porPlano?.map(p => p.mrr) ?? [0]), 0))
@@ -967,6 +1111,42 @@ async function toggleRfid(tenant: Tenant) {
   finally { togglingId.value = null }
 }
 
+function acessarComoSuporte(tenant: Tenant, modo: 'visualizacao' | 'auxiliar') {
+  suporteModal.tenant  = tenant
+  suporteModal.modo    = modo
+  suporteModal.rota    = '/'
+  suporteModal.loading = false
+  suporteModal.aberto  = true
+}
+
+async function confirmarSuporte() {
+  if (!suporteModal.tenant) return
+  suporteModal.loading = true
+
+  // Abre a aba imediatamente (gesto síncrono do usuário) para evitar bloqueio de popup
+  const novaAba = window.open('about:blank', '_blank')
+
+  try {
+    const res = await platformFetch<any>(`/platform/tenants/${suporteModal.tenant.id}/support-token`, { method: 'POST', body: '{}' })
+    authStore.entrarComoSuporte(res.access_token, res.tenantNome, {
+      id:    res.usuario.id,
+      nome:  res.usuario.nome,
+      cargo: res.usuario.cargo,
+    }, suporteModal.modo)
+    suporteModal.aberto = false
+
+    // Navega a aba já aberta para a rota escolhida
+    if (novaAba) {
+      novaAba.location.href = suporteModal.rota
+    }
+  } catch (e: any) {
+    novaAba?.close()
+    showToast('error', e?.message || 'Não foi possível gerar token de suporte')
+  } finally {
+    suporteModal.loading = false
+  }
+}
+
 async function toggleStatus(tenant: Tenant) {
   const novoStatus = tenant.status === 'ativo' ? 'suspenso' : 'ativo'
   const ok = await showConfirm(
@@ -989,10 +1169,17 @@ async function handleLogout() {
   platformAuth.logout(); navigateTo('/platform/login')
 }
 
+function fecharDropdownSuporte() { suporteDropdown.value = null }
+
 onMounted(() => {
   platformAuth.restore()
   if (!platformAuth.isAuthenticated) { navigateTo('/platform/login'); return }
   carregar()
+  document.addEventListener('click', fecharDropdownSuporte)
+})
+
+onUnmounted(() => {
+  document.removeEventListener('click', fecharDropdownSuporte)
 })
 </script>
 

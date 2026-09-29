@@ -49,4 +49,9 @@ export async function perfisRoutes(app: FastifyInstance) {
     const result = await Service.seed(request.tenantId!)
     return { success: true, perfis: result }
   })
+
+  // POST /api/perfis/auto-atribuir
+  app.post('/auto-atribuir', { preHandler: [requireTenant, requirePermissao('gerenciarPerfis')] }, async (request) => {
+    return Service.autoAtribuir(request.tenantId!)
+  })
 }

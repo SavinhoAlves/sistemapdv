@@ -2,6 +2,7 @@ import 'dotenv/config'
 import { buildApp } from './app'
 import { prisma } from './lib/prisma'
 import { initSocket } from './sockets/socket'
+import { iniciarSchedulerLicencas } from './jobs/licenca-checker'
 
 const PORT = parseInt(process.env.PORT ?? '3002', 10)
 const HOST = process.env.HOST ?? '0.0.0.0'
@@ -11,6 +12,9 @@ async function start() {
 
   // Inicializa Socket.IO antes do listen (usa o mesmo HTTP server do Fastify)
   initSocket(app)
+
+  // Job de bloqueio automático de licenças vencidas / tenants suspensos
+  iniciarSchedulerLicencas()
 
   try {
     await app.listen({ port: PORT, host: HOST })

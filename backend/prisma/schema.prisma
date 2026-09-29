@@ -447,6 +447,8 @@ model MovimentoCaixa {
   valor     Decimal            @db.Decimal(10, 2)
   descricao String?
   usuarioId String             @map("usuario_id")
+  /// Pagamento de origem (tipo pagamento/estorno). Permite estornar pelo caixa.
+  pagamentoId String?        @map("pagamento_id")
   createdAt DateTime           @default(now()) @map("created_at")
 
   tenant  Tenant  @relation(fields: [tenantId], references: [id])
@@ -455,6 +457,7 @@ model MovimentoCaixa {
 
   @@index([tenantId])
   @@index([caixaId])
+  @@index([pagamentoId])
   @@map("movimentos_caixa")
 }
 

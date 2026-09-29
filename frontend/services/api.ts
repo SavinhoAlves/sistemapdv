@@ -1,5 +1,6 @@
 import { useAuthStore } from '../stores/auth'
 import { useRouter, useRuntimeConfig } from '#imports'
+import { getTenantSlug } from '~/composables/useTenantSlug'
 
 let logoutEmAndamento = false
 let refreshPromise: Promise<boolean> | null = null
@@ -24,8 +25,8 @@ export function useApi() {
         })
         if (!resp.ok) return false
         const data = await resp.json()
-        if (data?.access_token) {
-          authStore.setAuth(data.access_token, authStore.usuario!, data.refresh_token)
+        if (data?.accessToken || data?.access_token) {
+          authStore.setAuth(data.accessToken ?? data.access_token, authStore.usuario!, data.refreshToken ?? data.refresh_token)
           return true
         }
         return false
@@ -102,12 +103,12 @@ export function useApi() {
     delete: <T>(endpoint: string)                  => request<T>(endpoint, { method: 'DELETE' }),
 
     auth: {
-      login: (email: string, senha: string) => {
-        const slug = (config.public as any).tenantSlug as string
+      login: (email: string, senha: string, slugOverride?: string) => {
+        const slug = slugOverride || getTenantSlug()
         return request('/auth/login', { method: 'POST', body: JSON.stringify({ email, senha, slug }) })
       },
-      rfid: (rfid: string) => {
-        const slug = (config.public as any).tenantSlug as string
+      rfid: (rfid: string, slugOverride?: string) => {
+        const slug = slugOverride || getTenantSlug()
         return request('/auth/rfid', { method: 'POST', body: JSON.stringify({ cartaoRfid: rfid, slug }) })
       },
       me: () => request('/auth/me')

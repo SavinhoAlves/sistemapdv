@@ -23,6 +23,9 @@ export default defineNuxtRouteMiddleware((to) => {
     auth.restoreSession()
   }
 
+  // Nova aba de suporte: pending_token ainda não foi migrado pelo plugin
+  if (!auth.token && process.client && localStorage.getItem('suporte_pending_token')) return
+
   const isAuthenticated = !!auth.token
   const isLoginPage     = to.path === '/login' || to.path === '/admin/login'
 

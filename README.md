@@ -1,5 +1,7 @@
 # RestaurantePDV — Sistema SaaS Multi-Tenant
 
+> **Guia de uso atualizado:** [docs/GUIA-DE-USO.md](docs/GUIA-DE-USO.md). Partes deste README (Express, MySQL, porta 3001) estão desatualizadas: o backend atual é Fastify + Prisma + PostgreSQL na porta 3002.
+
 Sistema profissional de PDV (Ponto de Venda) para restaurantes e bares, arquitetado como plataforma SaaS multi-tenant com operação em rede local (LAN) ou remota.
 
 ---

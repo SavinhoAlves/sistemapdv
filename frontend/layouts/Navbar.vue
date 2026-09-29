@@ -1,5 +1,5 @@
 <template>
-  <header class="w-full bg-white/95 dark:bg-black/20 backdrop-blur-xl border-b border-gray-200 dark:border-white/[0.08] shrink-0 sticky top-0 z-20">
+  <header class="w-full bg-white/95 dark:bg-black/20 backdrop-blur-xl border-b border-gray-200 dark:border-white/[0.08] shrink-0 sticky" :class="authStore.modoSuporte ? 'top-10 z-20' : 'top-0 z-20'">
     <div class="h-14 px-5 flex items-center justify-between gap-4">
 
       <!-- LOGO (só no mobile — em telas maiores ela vive na Sidebar) -->

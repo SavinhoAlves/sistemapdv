@@ -11,14 +11,14 @@ module.exports = {
       max_memory_restart: '512M',
       env: {
         NODE_ENV: 'production',
-        FASTIFY_PORT: 3002,
+        PORT: 3002,
       },
     },
     {
       name: 'pdv-frontend',
       cwd: './frontend',
-      script: './node_modules/.bin/nuxt',
-      args: 'start',
+      script: '.output/server/index.mjs',
+
       instances: 1,
       autorestart: true,
       watch: false,

@@ -47,9 +47,11 @@ import { LockKeyhole } from 'lucide-vue-next'
 import Navbar from './Navbar.vue'
 import Sidebar from '~/components/Sidebar.vue'
 import { useCaixaStore } from '~/stores/caixa'
+import { useAuthStore } from '~/stores/auth'
 
 const route      = useRoute()
 const caixaStore = useCaixaStore()
+const authStore  = useAuthStore()
 
 const paginaExempta = computed(() =>
   route.path.startsWith('/admin') || route.path.startsWith('/configuracoes')

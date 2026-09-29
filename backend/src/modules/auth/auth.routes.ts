@@ -123,6 +123,7 @@ export async function authRoutes(app: FastifyInstance) {
   })
 
   // POST /api/auth/rfid-identify — identifica usuário mid-session via RFID (sem refresh token)
+  // Retorna também as mesas abertas vinculadas ao garçom identificado.
   app.post('/rfid-identify', { config: { public: true } }, async (request, reply) => {
     const body = request.body as any
     const cartaoRfid = body.cartaoRfid || body.rfid || ''
@@ -131,7 +132,31 @@ export async function authRoutes(app: FastifyInstance) {
     if (!slug) return reply.status(400).send({ error: 'Slug obrigatório' })
     try {
       const data = await AuthService.loginComRfid(cartaoRfid, slug)
-      return reply.send({ usuario: data.usuario })
+
+      const tenant = await prisma.tenant.findUnique({ where: { slug }, select: { id: true } })
+      let mesas: object[] = []
+      if (tenant) {
+        const mesasDb = await prisma.mesa.findMany({
+          where: { tenantId: tenant.id, garcomId: data.usuario.id, status: 'aberta' },
+          include: {
+            pedidos: {
+              where: { status: { not: 'fechado' } },
+              include: {
+                itens: { where: { status: { not: 'cancelado' } } },
+              },
+            },
+          },
+          orderBy: { numero: 'asc' },
+        })
+        mesas = mesasDb.map(m => {
+          const itens  = m.pedidos.flatMap(p => p.itens)
+          const total  = itens.reduce((s, i) => s + Number(i.precoTotal), 0)
+          const nItens = itens.reduce((s, i) => s + i.quantidade, 0)
+          return { id: m.id, numero: m.numero, nome_mesa: m.nomeMesa, cliente: m.cliente, total, n_itens: nItens }
+        })
+      }
+
+      return reply.send({ usuario: data.usuario, mesas })
     } catch (err: any) {
       return reply.status(401).send({ error: err.message })
     }

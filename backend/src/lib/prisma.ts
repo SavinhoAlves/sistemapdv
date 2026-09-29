@@ -79,7 +79,7 @@ function buildPrismaClient() {
           if (!MODELOS_COM_TENANT.has(chave)) return query(args)
 
           const tenantId = tenantStorage.getStore()?.tenantId
-          if (!tenantId) {
+          if (tenantId === undefined) {
             // Sem contexto instalado. Em produção isso é sinal de rota que
             // esqueceu o hook — falhar alto é mais seguro que vazar dados.
             if (process.env.NODE_ENV === 'production') {

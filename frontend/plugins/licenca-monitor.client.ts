@@ -1,10 +1,11 @@
+import { getTenantSlug } from '~/composables/useTenantSlug'
+
 const ROTAS_LIVRES = ['/ativacao', '/login', '/m', '/platform']
 const POLL_MS = 30_000
 
 export default defineNuxtPlugin(() => {
   const config = useRuntimeConfig()
   const router = useRouter()
-  const slug   = (config.public as any).tenantSlug as string
   const cache  = useState<{ valido: boolean | null; ts: number }>(
     'licenca_cache',
     () => ({ valido: null, ts: 0 })
@@ -16,7 +17,7 @@ export default defineNuxtPlugin(() => {
     try {
       const res = await $fetch<any>(
         `${config.public.apiUrl}/api/sistema/status-licenca`,
-        { query: { slug } }
+        { query: { slug: getTenantSlug() } }
       )
       const valido = !!(res.ativo && !res.expirado && !res.semLicenca)
       cache.value = { valido, ts: Date.now() }

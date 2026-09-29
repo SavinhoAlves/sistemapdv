@@ -71,12 +71,11 @@ async function main() {
     })
 
     // Mesas
+    const tenantAId = tenantA.id
     await prisma.mesa.createMany({
       data: Array.from({ length: 10 }, (_, i) => ({
-        tenantId: tenantA.id,
+        tenantId: tenantAId,
         numero: i + 1,
-        capacidade: 4,
-        status: 'livre' as const,
       })),
     })
 
@@ -148,12 +147,11 @@ async function main() {
       ],
     })
 
+    const tenantBId = tenantB.id
     await prisma.mesa.createMany({
       data: Array.from({ length: 8 }, (_, i) => ({
-        tenantId: tenantB.id,
+        tenantId: tenantBId,
         numero: i + 1,
-        capacidade: 4,
-        status: 'livre' as const,
       })),
     })
 

@@ -106,3 +106,38 @@ export async function seed(tenantId: string) {
   }
   return results
 }
+
+// Perfil padrão de cada cargo. Administrador fica de fora: tem acesso total
+// pelo cargo, independente de perfil.
+const PERFIL_POR_CARGO = {
+  garcom: 'Garçom',
+  caixa: 'Caixa',
+  cozinha: 'Cozinha',
+} as const
+
+/** Atribui o perfil padrão do cargo a todo funcionário ativo sem perfil. */
+export async function autoAtribuir(tenantId: string) {
+  const perfis = await prisma.perfil.findMany({
+    where: { tenantId, nome: { in: Object.values(PERFIL_POR_CARGO) } },
+    select: { id: true, nome: true },
+  })
+  const idPorNome = new Map(perfis.map((p) => [p.nome, p.id]))
+
+  let atualizados = 0
+  const perfisFaltando: string[] = []
+
+  for (const [cargo, nome] of Object.entries(PERFIL_POR_CARGO)) {
+    const perfilId = idPorNome.get(nome)
+    if (!perfilId) {
+      perfisFaltando.push(nome)
+      continue
+    }
+    const { count } = await prisma.usuario.updateMany({
+      where: { tenantId, cargo: cargo as keyof typeof PERFIL_POR_CARGO, perfilId: null },
+      data: { perfilId },
+    })
+    atualizados += count
+  }
+
+  return { atualizados, perfisFaltando }
+}

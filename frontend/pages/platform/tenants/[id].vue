@@ -387,6 +387,75 @@
         </div>
       </section>
 
+      <!-- ─ ACESSO DO ADMINISTRADOR (largura total) ─ -->
+      <section class="rounded-2xl border border-white/[0.06] bg-white/[0.015]">
+        <div class="flex items-center justify-between px-5 pt-4 pb-3 border-b border-white/[0.05]">
+          <div class="flex items-center gap-2.5">
+            <UserCog :size="11" class="text-white/30" />
+            <h2 class="text-[10px] font-black text-white/40 uppercase tracking-widest">Acesso do administrador</h2>
+          </div>
+          <span v-if="adminAtual" class="text-[9px] font-black px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400">Configurado</span>
+          <span v-else class="text-[9px] font-black px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-400">Sem acesso</span>
+        </div>
+
+        <div class="p-5 space-y-4">
+          <!-- Aviso sem admin -->
+          <div v-if="!adminAtual" class="flex items-start gap-3 p-3 rounded-xl bg-amber-500/[0.07] border border-amber-500/15 text-[11px] text-amber-300/80">
+            <Lock :size="13" class="mt-0.5 shrink-0 text-amber-400" />
+            Nenhum administrador configurado. Defina as credenciais abaixo para que o cliente consiga acessar o sistema e para que o suporte remoto funcione.
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div class="sm:col-span-2">
+              <label class="text-[10px] font-bold text-white/30 uppercase tracking-wider block mb-1.5">Nome do administrador</label>
+              <input v-model="adminForm.nome" type="text" placeholder="Ex: João Silva"
+                class="w-full h-9 px-3 rounded-xl bg-white/[0.04] border border-white/[0.08] text-white/80 text-xs placeholder-white/20 outline-none focus:border-indigo-500/40 transition-colors" />
+            </div>
+            <div class="sm:col-span-2">
+              <label class="text-[10px] font-bold text-white/30 uppercase tracking-wider block mb-1.5">E-mail de acesso</label>
+              <input v-model="adminForm.email" type="email" placeholder="admin@restaurante.com" autocomplete="off"
+                class="w-full h-9 px-3 rounded-xl bg-white/[0.04] border border-white/[0.08] text-white/80 text-xs placeholder-white/20 outline-none focus:border-indigo-500/40 transition-colors" />
+            </div>
+            <div>
+              <label class="text-[10px] font-bold text-white/30 uppercase tracking-wider block mb-1.5">
+                Nova senha <span class="normal-case font-normal text-white/20">{{ adminAtual ? '(deixe em branco para manter)' : '* mín. 6 caracteres' }}</span>
+              </label>
+              <div class="relative">
+                <input v-model="adminForm.senha" :type="mostrarSenha ? 'text' : 'password'" placeholder="••••••••" autocomplete="new-password"
+                  class="w-full h-9 px-3 pr-9 rounded-xl bg-white/[0.04] border border-white/[0.08] text-white/80 text-xs placeholder-white/20 outline-none focus:border-indigo-500/40 transition-colors" />
+                <button type="button" @click="mostrarSenha = !mostrarSenha"
+                  class="absolute right-2.5 top-1/2 -translate-y-1/2 text-white/25 hover:text-white/60 transition-colors">
+                  <Eye :size="13" />
+                </button>
+              </div>
+            </div>
+            <div>
+              <label class="text-[10px] font-bold text-white/30 uppercase tracking-wider block mb-1.5">Confirmar senha</label>
+              <input v-model="adminForm.senhaConfirm" :type="mostrarSenha ? 'text' : 'password'" placeholder="••••••••" autocomplete="new-password"
+                :class="['w-full h-9 px-3 rounded-xl bg-white/[0.04] border text-white/80 text-xs placeholder-white/20 outline-none transition-colors',
+                  adminForm.senhaConfirm && adminForm.senhaConfirm !== adminForm.senha ? 'border-red-500/40 focus:border-red-500/60' : 'border-white/[0.08] focus:border-indigo-500/40']" />
+            </div>
+          </div>
+
+          <div v-if="erroAdmin" class="text-xs text-red-400 font-bold">{{ erroAdmin }}</div>
+          <div v-if="sucessoAdmin" class="text-xs text-emerald-400 font-bold flex items-center gap-1.5">
+            <CheckCircle2 :size="12" /> {{ sucessoAdmin }}
+          </div>
+
+          <div class="flex items-center justify-between pt-1">
+            <p v-if="adminAtual" class="text-[10px] text-white/20">
+              Login atual: <span class="text-white/40 font-mono">{{ adminAtual.email }}</span>
+            </p>
+            <button @click="salvarAdmin" :disabled="salvandoAdmin"
+              class="ml-auto h-9 px-5 rounded-xl bg-indigo-500/15 hover:bg-indigo-500/25 border border-indigo-500/25 text-indigo-400 text-xs font-black transition-all flex items-center gap-2 disabled:opacity-50">
+              <Loader2 v-if="salvandoAdmin" :size="12" class="animate-spin" />
+              <ShieldCheck v-else :size="12" />
+              {{ adminAtual ? 'Atualizar credenciais' : 'Criar administrador' }}
+            </button>
+          </div>
+        </div>
+      </section>
+
     </main>
 
     </div><!-- /flex-1 área principal -->
@@ -692,7 +761,7 @@ import { ref, computed, reactive, onMounted } from 'vue'
 import {
   ArrowLeft, Building2, CreditCard, Smartphone,
   Loader2, AlertCircle, AlertTriangle, CheckCircle2, Pencil, X, FileText, KeyRound,
-  Zap, ToggleRight, ToggleLeft, Eye, Printer, Share2,
+  Zap, ToggleRight, ToggleLeft, Eye, Printer, Share2, ShieldCheck, Lock, UserCog,
 } from 'lucide-vue-next'
 import { usePlatformAuthStore } from '~/stores/platformAuth'
 
@@ -734,6 +803,44 @@ const modalAberto = ref(false)
 const modalModo   = ref<'dados' | 'licenca' | 'contrato'>('dados')
 const salvando    = ref(false)
 const erroModal   = ref('')
+
+// ── Acesso do administrador ───────────────────────────────────────────────────
+const adminAtual      = ref<{ id: string; nome: string; email: string; ativo: boolean } | null>(null)
+const adminForm       = reactive({ nome: '', email: '', senha: '', senhaConfirm: '' })
+const mostrarSenha    = ref(false)
+const salvandoAdmin   = ref(false)
+const erroAdmin       = ref('')
+const sucessoAdmin    = ref('')
+
+async function carregarAdmin() {
+  const data = await platformFetch<any>(`/platform/tenants/${route.params.id}/admin`)
+  adminAtual.value = data
+  if (data) { adminForm.nome = data.nome; adminForm.email = data.email }
+  adminForm.senha = ''; adminForm.senhaConfirm = ''
+}
+
+async function salvarAdmin() {
+  erroAdmin.value = ''; sucessoAdmin.value = ''
+  if (!adminForm.email.trim()) { erroAdmin.value = 'E-mail é obrigatório'; return }
+  if (adminForm.senha && adminForm.senha.length < 6) { erroAdmin.value = 'Senha deve ter no mínimo 6 caracteres'; return }
+  if (adminForm.senha !== adminForm.senhaConfirm) { erroAdmin.value = 'As senhas não conferem'; return }
+  if (!adminAtual.value && !adminForm.senha) { erroAdmin.value = 'Defina uma senha para criar o administrador'; return }
+  salvandoAdmin.value = true
+  try {
+    const res = await platformFetch<any>(`/platform/tenants/${route.params.id}/admin`, {
+      method: 'PUT',
+      body: JSON.stringify({ nome: adminForm.nome, email: adminForm.email, senha: adminForm.senha || undefined }),
+    })
+    adminAtual.value = res
+    adminForm.senha = ''; adminForm.senhaConfirm = ''
+    sucessoAdmin.value = adminAtual.value ? 'Credenciais atualizadas' : 'Administrador criado'
+    setTimeout(() => { sucessoAdmin.value = '' }, 3000)
+  } catch (e: any) {
+    erroAdmin.value = e?.message || 'Erro ao salvar'
+  } finally {
+    salvandoAdmin.value = false
+  }
+}
 
 const form = reactive({ nome: '', slug: '', cnpj: '', cpfResponsavel: '', responsavel: '', contato: '', telefone: '', endereco: '', cidade: '', uf: '', observacoes: '', vendaMobilePermitida: true, rfidDisponivel: false })
 const licencaForm = reactive({ status: 'pendente', dataAtivacao: '', dataVencimento: '' })
@@ -835,7 +942,10 @@ async function platformFetch<T>(path: string, options: RequestInit = {}): Promis
 
 async function carregar() {
   loading.value = true; erro.value = ''
-  try { tenant.value = await platformFetch<Tenant>(`/platform/tenants/${route.params.id}`) }
+  try {
+    tenant.value = await platformFetch<Tenant>(`/platform/tenants/${route.params.id}`)
+    await carregarAdmin()
+  }
   catch (e: any) { erro.value = e?.message || 'Erro ao carregar' }
   finally { loading.value = false }
 }

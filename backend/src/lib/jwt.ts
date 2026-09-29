@@ -39,9 +39,11 @@ export interface TenantJwtPayload {
   sub: string           // usuarioId
   nome: string
   tenantId: string
+  slug: string
   cargo: string
   perfilId: string | null
   permissoes: Record<string, boolean>
+  suporte?: boolean
 }
 
 export interface PlatformJwtPayload {

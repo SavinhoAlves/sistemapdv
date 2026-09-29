@@ -1,5 +1,6 @@
 import { navigateTo, useRuntimeConfig } from 'nuxt/app'
 import { defineStore } from 'pinia'
+import { getTenantSlug } from '~/composables/useTenantSlug'
 
 export interface Usuario {
   id: string
@@ -17,11 +18,14 @@ export const useAuthStore = defineStore('auth', {
     refreshToken:   null as string | null,
     usuario:        null as Usuario | null,
     loading:        false,
-    ultimoRefresh:  0
+    ultimoRefresh:  0,
+    modoSuporte:    false as false | 'visualizacao' | 'auxiliar',
+    suporteTenant:  null as string | null,
   }),
 
   getters: {
-    isAuthenticated: (state) => !!state.token && !!state.usuario,
+    isAuthenticated:     (state) => !!state.token && !!state.usuario,
+    modoSuporteLeitura:  (state) => state.modoSuporte === 'visualizacao',
     isCozinha:       (state) => state.usuario?.cargo === 'cozinha',
     isCaixa:         (state) => state.usuario?.cargo === 'caixa',
     funcionario:     (state) => state.usuario,
@@ -50,6 +54,48 @@ export const useAuthStore = defineStore('auth', {
           this.logout()
         }
       }
+
+      const suporteToken  = localStorage.getItem('suporte_token')
+      const suporteTenant = localStorage.getItem('suporte_tenant')
+      const suporteModo   = localStorage.getItem('suporte_modo') as 'visualizacao' | 'auxiliar' | null
+      if (suporteToken && suporteTenant) {
+        this.modoSuporte   = suporteModo ?? 'auxiliar'
+        this.suporteTenant = suporteTenant
+      }
+    },
+
+    entrarComoSuporte(access_token: string, tenantNome: string, usuario: Usuario, modo: 'visualizacao' | 'auxiliar' = 'auxiliar', rota = '/') {
+      if (!process.client) return
+      // Grava em chaves temporárias; a nova aba lê e migra para as chaves de auth normais
+      localStorage.setItem('suporte_pending_token',  access_token)
+      localStorage.setItem('suporte_pending_tenant', tenantNome)
+      localStorage.setItem('suporte_pending_modo',   modo)
+      localStorage.setItem('suporte_pending_nome',   usuario.nome)
+      localStorage.setItem('suporte_pending_cargo',  usuario.cargo)
+      localStorage.setItem('suporte_pending_id',     usuario.id)
+      window.open(rota, '_blank')
+    },
+
+    alterarModoSuporte(modo: 'visualizacao' | 'auxiliar') {
+      if (!process.client) return
+      localStorage.setItem('suporte_modo', modo)
+      this.modoSuporte = modo
+    },
+
+    sairDoSuporte() {
+      if (!process.client) return
+      localStorage.removeItem('suporte_token')
+      localStorage.removeItem('suporte_tenant')
+      localStorage.removeItem('suporte_modo')
+      localStorage.removeItem('auth_token')
+      localStorage.removeItem('auth_refresh_token')
+      localStorage.removeItem('auth_user')
+      this.token         = null
+      this.refreshToken  = null
+      this.usuario       = null
+      this.modoSuporte   = false
+      this.suporteTenant = null
+      window.close()
     },
 
     setAuth(token: string, usuario: Usuario, refreshToken?: string | null) {
@@ -66,7 +112,7 @@ export const useAuthStore = defineStore('auth', {
       if (!rfid || typeof rfid !== 'string' || rfid.trim() === '') return false
 
       const config = useRuntimeConfig()
-      const slug   = (config.public as any).tenantSlug as string
+      const slug   = getTenantSlug()
       this.loading = true
 
       try {
@@ -75,7 +121,7 @@ export const useAuthStore = defineStore('auth', {
           { method: 'POST', body: { cartaoRfid: rfid.trim(), slug } }
         )
 
-        if (resposta?.usuario && resposta?.access_token) {
+        if (resposta?.usuario && (resposta?.accessToken || resposta?.access_token)) {
           const usuario: Usuario = {
             id:         resposta.usuario.id,
             nome:       resposta.usuario.nome,
@@ -83,7 +129,7 @@ export const useAuthStore = defineStore('auth', {
             perfil_id:  resposta.usuario.perfil_id ?? null,
             permissoes: resposta.usuario.permissoes ?? null,
           }
-          this.setAuth(resposta.access_token, usuario, resposta.refresh_token)
+          this.setAuth(resposta.accessToken ?? resposta.access_token, usuario, resposta.refreshToken ?? resposta.refresh_token)
           return true
         }
         return false

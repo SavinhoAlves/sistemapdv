@@ -128,6 +128,7 @@ export async function registrarPagamento(tenantId: string, input: RegistrarPagam
           data: {
             caixaId: caixa.id,
             tipo: 'pagamento',
+            pagamentoId: pagamento.id,
             valor: paraDecimal(aplicadoCent),
             descricao: `${identificacao} · ${metodo.nome}`,
             usuarioId,
@@ -241,6 +242,7 @@ export async function estornarPagamento(
       data: {
         caixaId: caixa.id,
         tipo: 'estorno',
+        pagamentoId: pagamento.id,
         valor: pagamento.valor,
         descricao: `Estorno ${(pagamento as any).metodo?.nome ?? ''} · ${motivo.trim()}`.slice(0, 250),
         usuarioId,

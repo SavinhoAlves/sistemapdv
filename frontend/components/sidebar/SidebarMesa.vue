@@ -219,7 +219,7 @@
             </button>
             <button
               v-if="podeFecharMesa"
-              @click="caixaAberto ? (modalPagamento = true) : exigirCaixa()"
+              @click="abrirPagamentoComRfid"
               class="h-12 rounded-xl text-white text-sm font-black uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 active:scale-95"
               :class="caixaAberto
                 ? 'bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-400 hover:to-emerald-500 shadow-md shadow-green-500/20'
@@ -404,12 +404,15 @@
     @reimprimir="handleReimprimir"
   />
 
-  <!-- RFID: identificação do garçom antes de lançar produto -->
+  <!-- RFID: identificação do garçom para qualquer ação -->
   <ModalRfidAuth
     v-model="rfidModal"
     :mensagem="rfidMensagem"
     :erro="erroModal"
+    :identificado="rfidIdentificado"
+    :carregando-rfid="carregandoRfid"
     @auth-success="onRfidSuccess"
+    @confirmar="onRfidConfirmar"
     @cancelar="onRfidCancelar"
   />
 </template>
@@ -451,7 +454,18 @@ const caixaStore       = useCaixaStore()
 const configStore      = useConfigStore()
 const impressorasStore = useImpressorasStore()
 const authStore        = useAuthStore()
-const { rfidAtivo, modalAberto: rfidModal, mensagemModal: rfidMensagem, erroModal, identificarViaRfid, onRfidSuccess, onRfidCancelar } = useRfidIdentify()
+const {
+  rfidAtivo,
+  modalAberto:    rfidModal,
+  mensagemModal:  rfidMensagem,
+  erroModal,
+  identificado:   rfidIdentificado,
+  carregandoRfid,
+  identificarViaRfid,
+  onRfidSuccess,
+  onRfidConfirmar,
+  onRfidCancelar,
+} = useRfidIdentify()
 const caixaAberto = computed(() => caixaStore.aberto)
 const podeFecharMesa = computed(() => authStore.isCaixa || authStore.temPermissao('fecharMesa'))
 const podeTaxa       = computed(() => authStore.usuario?.cargo === 'administrador' || authStore.isCaixa)
@@ -468,7 +482,7 @@ async function emitirAbrirProdutosComRfid() {
     // Usa sessão da página se disponível; senão solicita cartão
     let garcom: { id: number; nome: string } | null = props.garcomSessao || null
     if (!garcom) {
-      const lido = await identificarViaRfid('Passe o cartão para identificar o garçom')
+      const lido = await identificarViaRfid('Passe o cartão para identificar o garçom', true)
       if (lido) garcom = lido
     }
 
@@ -537,6 +551,9 @@ const restante   = computed(() => Math.max(0, Math.round((totalConta.value - val
 
 async function alternarTaxa() {
   if (!pedidoId.value || alternandoTaxa.value) return
+  try {
+    await identificarViaRfid('Passe o cartão para alterar a taxa de serviço', true)
+  } catch { return }
   alternandoTaxa.value = true
   try {
     const res = await api.patch<{ taxa_pct: number }>(`/pedidos/${pedidoId.value}/taxa-servico`, {
@@ -560,6 +577,10 @@ function fecharModalAbater() {
 
 async function confirmarAbater() {
   if (!pedidoId.value || valorAbaterNum.value <= 0 || salvandoAbater.value) return
+  try {
+    await identificarViaRfid('Passe o cartão para aplicar o abatimento', true)
+  } catch { return }
+
   salvandoAbater.value = true
   try {
     await api.patch(`/pedidos/${pedidoId.value}/abater`, { valor: valorAbaterNum.value })
@@ -599,6 +620,10 @@ function fecharModalDesconto() {
 
 async function confirmarDesconto() {
   if (!pedidoId.value || valorDescontoCalc.value <= 0 || salvandoDesconto.value) return
+  try {
+    await identificarViaRfid('Passe o cartão para aplicar o desconto', true)
+  } catch { return }
+
   salvandoDesconto.value = true
   const motivo = modoDesconto.value === 'pct'
     ? `Desconto ${valorDescontoNum.value}%`
@@ -619,6 +644,14 @@ watch(modalDesconto, (v) => { if (v) nextTick(() => inputDescontoRef.value?.focu
 
 // ─── Pagamento ────────────────────────────────────────────
 const modalPagamento = ref(false)
+
+async function abrirPagamentoComRfid() {
+  if (!caixaAberto.value) { exigirCaixa(); return }
+  try {
+    await identificarViaRfid('Passe o cartão para processar o pagamento', true)
+  } catch { return }
+  modalPagamento.value = true
+}
 
 function onPago() {
   modalPagamento.value = false
@@ -838,6 +871,11 @@ function detach() {
 
 async function adicionarItem(produto: ProdutoMesa) {
   if (!caixaAberto.value) { exigirCaixa(); return }
+  try {
+    const rfid = await identificarViaRfid('Passe o cartão para adicionar item', true)
+    if (rfid) garcomRfid.value = { id: rfid.id, nome: rfid.nome }
+  } catch { return }
+
   const preco = Number(produto.preco_unitario)
   produto.quantidade++
   produto.total = Number(produto.total) + preco
@@ -858,6 +896,11 @@ async function adicionarItem(produto: ProdutoMesa) {
 
 async function removerItem(produto: ProdutoMesa) {
   if (!caixaAberto.value) { exigirCaixa(); return }
+  try {
+    const rfid = await identificarViaRfid('Passe o cartão para remover item', true)
+    if (rfid) garcomRfid.value = { id: rfid.id, nome: rfid.nome }
+  } catch { return }
+
   const preco = Number(produto.preco_unitario)
 
   if (produto.quantidade <= 1) {
@@ -880,6 +923,13 @@ async function removerItem(produto: ProdutoMesa) {
 
 async function excluirItem(id: number, silencioso = false) {
   if (!caixaAberto.value) { if (!silencioso) exigirCaixa(); return }
+  if (!silencioso) {
+    try {
+      const rfid = await identificarViaRfid('Passe o cartão para excluir item', true)
+      if (rfid) garcomRfid.value = { id: rfid.id, nome: rfid.nome }
+    } catch { return }
+  }
+
   const idx  = produtos.value.findIndex(p => p.id === id)
   const item = produtos.value[idx]
 

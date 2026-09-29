@@ -46,7 +46,7 @@ function Configurar-Ambiente($ip) {
     Set-Content -Path $frontendEnvPath -Value $frontendEnv -Encoding UTF8
 
     $backendEnvPath = "$PSScriptRoot\backend\.env"
-    (Get-Content $backendEnvPath) -replace 'CORS_ORIGIN=.*', "CORS_ORIGIN=${protocolo}://${ip}:3000" |
+    (Get-Content $backendEnvPath) -replace 'CORS_ORIGIN=.*', "CORS_ORIGIN=${protocolo}://${ip}:3000,${protocolo}://localhost:3000" |
         Set-Content $backendEnvPath -Encoding UTF8
 
     Write-Host "Arquivos .env atualizados." -ForegroundColor Green

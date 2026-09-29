@@ -55,7 +55,7 @@
 
       <!-- FUNDO: Rodapé -->
       <div class="relative z-10">
-        <p class="text-white/20 text-[11px]">© 2025 Restaurante PDV · v1.0</p>
+        <p class="text-white/20 text-[11px]">© {{ new Date().getFullYear() }} Restaurante PDV · v1.0</p>
       </div>
     </div>
 
@@ -191,6 +191,28 @@
           <form v-else key="manual" @submit.prevent="handleManualLogin"
             class="bg-white dark:bg-white/[0.04] border border-gray-200 dark:border-white/[0.08] rounded-3xl p-7 shadow-sm space-y-5">
 
+            <!-- SLUG do restaurante -->
+            <div>
+              <label for="login-slug" class="block text-[10px] font-black uppercase tracking-widest text-gray-500 dark:text-white/40 mb-2">
+                Restaurante
+              </label>
+              <div class="relative">
+                <Store :size="14" class="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 dark:text-white/25 pointer-events-none" />
+                <input
+                  id="login-slug"
+                  name="pdv-restaurante-slug"
+                  v-model="form.slug"
+                  autocomplete="off"
+                  type="text"
+                  placeholder="ex: restaurante-test"
+                  class="w-full h-12 pl-11 pr-4 bg-gray-50 dark:bg-white/[0.06] border border-gray-200 dark:border-white/10 rounded-2xl text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-white/20 text-sm focus:outline-none focus:border-orange-500/70 focus:ring-2 focus:ring-orange-500/15 transition-all duration-200"
+                  readonly
+                  @focus="($event.target as HTMLInputElement).removeAttribute('readonly')"
+                  required
+                />
+              </div>
+            </div>
+
             <div>
               <label for="login-email" class="block text-[10px] font-black uppercase tracking-widest text-gray-500 dark:text-white/40 mb-2">
                 E-mail
@@ -273,10 +295,11 @@ import {
   UtensilsCrossed, CreditCard, KeyRound, Wifi,
   Mail, Lock, Eye, EyeOff, LogIn, Loader2,
   CheckCircle2, AlertCircle, LayoutGrid, Receipt,
-  BarChart2, Smartphone
+  BarChart2, Smartphone, Store
 } from 'lucide-vue-next'
 import { useApi } from '~/services/api'
 import { useAuthStore } from '~/stores/auth'
+import { getTenantSlug, setTenantSlug } from '~/composables/useTenantSlug'
 
 definePageMeta({ layout: false })
 
@@ -295,7 +318,7 @@ const emailRef     = ref<HTMLInputElement>()
 const rfidFocused  = ref(false)
 const rfidReading  = ref(false)
 const rfidBuffer   = ref('')
-const form         = reactive({ email: '', senha: '' })
+const form         = reactive({ email: '', senha: '', slug: '' })
 let rfidTimer: any = null
 
 const features = [
@@ -329,14 +352,17 @@ function onRfidEnter() {
 }
 
 async function loginRfid(cartao_rfid: string) {
+  const slug = form.slug.trim() || getTenantSlug()
+  if (!slug) return showMsg('error', 'Informe o código do restaurante')
   rfidReading.value = true
   hideMsg()
   try {
-    const res: any = await api.auth.rfid(cartao_rfid)
+    const res: any = await api.auth.rfid(cartao_rfid, slug)
     const raw = res.usuario
-    if (res.access_token && raw) {
+    if ((res.accessToken || res.access_token) && raw) {
+      setTenantSlug(slug)
       const user = { id: raw.id, nome: raw.nome, cargo: raw.cargo, perfil_id: raw.perfil_id ?? null, permissoes: raw.permissoes ?? null }
-      authStore.setAuth(res.access_token, user, res.refresh_token)
+      authStore.setAuth(res.accessToken ?? res.access_token, user, res.refreshToken ?? res.refresh_token)
       showMsg('success', `Bem-vindo, ${raw.nome}!`)
       return navigateTo('/')
     }
@@ -349,15 +375,18 @@ async function loginRfid(cartao_rfid: string) {
 }
 
 async function handleManualLogin() {
+  const slug = form.slug.trim()
+  if (!slug)          return showMsg('error', 'Informe o código do restaurante')
   if (!form.email || !form.senha) return showMsg('error', 'Preencha todos os campos')
   loading.value = true
   hideMsg()
   try {
-    const res: any = await api.auth.login(form.email, form.senha)
+    const res: any = await api.auth.login(form.email, form.senha, slug)
     const raw = res.usuario
-    if (res.access_token && raw) {
+    if ((res.accessToken || res.access_token) && raw) {
+      setTenantSlug(slug)
       const user = { id: raw.id, nome: raw.nome, cargo: raw.cargo, perfil_id: raw.perfil_id ?? null, permissoes: raw.permissoes ?? null }
-      authStore.setAuth(res.access_token, user, res.refresh_token)
+      authStore.setAuth(res.accessToken ?? res.access_token, user, res.refreshToken ?? res.refresh_token)
       showMsg('success', 'Acesso autorizado!')
       return navigateTo('/')
     }
@@ -376,13 +405,16 @@ onMounted(async () => {
   authStore.restoreSession()
   if (authStore.isAuthenticated) return navigateTo('/')
 
+  // Pré-preenche o slug se já houver um salvo nesta sessão
+  form.slug = getTenantSlug() !== ((runtimeConfig.public as any).tenantSlug || '') ? getTenantSlug() : ''
+
   // Verifica se RFID está habilitado (endpoint público, sem auth)
   try {
-    const slug = (runtimeConfig.public as any).tenantSlug || ''
+    const slug = getTenantSlug()
     const cfg = await api.get<{ rfid_ativo: boolean }>(`/sistema/config-publica?slug=${slug}`)
     rfidAtivo.value = cfg.rfid_ativo !== false
   } catch {
-    rfidAtivo.value = true // fallback seguro
+    rfidAtivo.value = true
   }
 
   if (!rfidAtivo.value) {

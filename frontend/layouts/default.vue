@@ -54,7 +54,10 @@ const caixaStore = useCaixaStore()
 const authStore  = useAuthStore()
 
 const paginaExempta = computed(() =>
-  route.path.startsWith('/admin') || route.path.startsWith('/configuracoes')
+  route.path.startsWith('/admin') ||
+  route.path.startsWith('/configuracoes') ||
+  route.path.startsWith('/estoque') ||
+  route.path.startsWith('/relatorios')
 )
 
 const mostrarBloqueio = computed(() =>

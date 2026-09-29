@@ -367,11 +367,11 @@ function onVisibilityChange() {
 onMounted(async () => {
   carregarMesas(true)
 
-  if (authStore.usuario?.cargo === 'garcom') {
-    try {
-      const garcom = await identificarViaRfid('Passe o cartão para identificar o garçom')
-      if (garcom) {
-        garcomSessao.value = garcom
+  try {
+    const garcom = await identificarViaRfid('Passe o cartão para identificar o garçom')
+    if (garcom) {
+      garcomSessao.value = garcom
+      if (authStore.usuario?.cargo === 'garcom') {
         // Aguarda mesas carregarem se ainda estiver loading
         await new Promise<void>(r => {
           if (!loading.value) return r()
@@ -380,8 +380,8 @@ onMounted(async () => {
         const mesasDoGarcom = mesas.value.filter(m => m.garcom_id === garcom.id)
         if (mesasDoGarcom.length === 1) abrirMesa(mesasDoGarcom[0])
       }
-    } catch {}
-  }
+    }
+  } catch {}
 
   pollingTimer = setInterval(() => { if (!document.hidden) carregarMesas() }, 20000)
   document.addEventListener('visibilitychange', onVisibilityChange)

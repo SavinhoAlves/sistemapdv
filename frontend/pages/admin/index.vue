@@ -53,7 +53,7 @@
                 class="border-t border-gray-100 dark:border-white/[0.06] hover:bg-gray-50 dark:hover:bg-white/5 transition-colors">
                 <td class="px-5 py-3">
                   <p class="text-xs font-black text-gray-900 dark:text-white">{{ f.nome }}</p>
-                  <p v-if="f.cartao_rfid" class="text-[10px] text-gray-400 dark:text-white/40 font-mono">RFID: {{ f.cartao_rfid }}</p>
+                  <p v-if="f.cartaoRfid" class="text-[10px] text-gray-400 dark:text-white/40 font-mono">RFID: {{ f.cartaoRfid }}</p>
                 </td>
                 <td class="px-5 py-3">
                   <span class="text-[10px] font-black px-2 py-0.5 rounded-full capitalize" :class="corCargo(f.cargo)">{{ f.cargo }}</span>
@@ -309,8 +309,14 @@
               </div>
               <div>
                 <label for="fRfid" class="block text-[10px] font-black uppercase tracking-widest text-gray-500 dark:text-white/40 mb-1.5">Cartão RFID</label>
-                <input id="fRfid" v-model="funcForm.cartao_rfid" type="text" placeholder="Código do cartão"
-                  class="w-full h-11 px-4 bg-gray-50 dark:bg-white/[0.06] border border-gray-200 dark:border-white/10 rounded-xl text-gray-900 dark:text-white text-sm font-mono outline-none focus:border-orange-500/70 transition-all placeholder:text-gray-400 dark:placeholder:text-white/25" />
+                <div class="flex gap-2">
+                  <input id="fRfid" v-model="funcForm.cartao_rfid" type="text" placeholder="Clique aqui e passe o cartão no leitor"
+                    class="flex-1 h-11 px-4 bg-gray-50 dark:bg-white/[0.06] border border-gray-200 dark:border-white/10 rounded-xl text-gray-900 dark:text-white text-sm font-mono outline-none focus:border-orange-500/70 transition-all placeholder:text-gray-400 dark:placeholder:text-white/25" />
+                  <button v-if="funcForm.cartao_rfid" type="button" @click="funcForm.cartao_rfid = ''"
+                    class="h-11 w-11 shrink-0 rounded-xl border border-red-500/30 bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-all flex items-center justify-center">
+                    <X :size="14" />
+                  </button>
+                </div>
               </div>
             </div>
 
@@ -643,7 +649,7 @@ async function carregarFuncionarios() {
 function abrirModalFunc(f: any) {
   erroFunc.value = ''
   if (f) {
-    Object.assign(funcForm, { id: f.id, nome: f.nome, cargo: f.cargo, email: f.email || '', senha: '', cartao_rfid: f.cartao_rfid || '', perfil_id: f.perfil_id || null })
+    Object.assign(funcForm, { id: f.id, nome: f.nome, cargo: f.cargo, email: f.email || '', senha: '', cartao_rfid: f.cartaoRfid || '', perfil_id: f.perfilId || null })
   } else {
     Object.assign(funcForm, { id: null, nome: '', cargo: '', email: '', senha: '', cartao_rfid: '', perfil_id: null })
   }
@@ -655,7 +661,7 @@ async function salvarFunc() {
   salvandoFunc.value = true; erroFunc.value = ''
   try {
     const payload = { nome: funcForm.nome, email: funcForm.email || null, cargo: funcForm.cargo,
-      cartao_rfid: funcForm.cartao_rfid || null, perfil_id: funcForm.perfil_id || null,
+      cartaoRfid: funcForm.cartao_rfid || null, perfilId: funcForm.perfil_id || null,
       ...(funcForm.senha ? { senha: funcForm.senha } : {}) }
     if (funcForm.id) await api.put(`/usuarios/${funcForm.id}`, payload)
     else await api.post('/usuarios', payload)

@@ -49,7 +49,7 @@ export default defineNuxtConfig({
     }
   },
 
-  css: ['~/assets/css/tokens.css', '~/assets/css/main.css'],
+  css: ['~/assets/css/tokens.css', '~/assets/css/main.css', '~/assets/css/auth.css'],
 
   ssr: false, // SPA mode para LAN
 

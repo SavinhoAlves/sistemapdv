@@ -20,6 +20,8 @@ export const useThemeStore = defineStore('theme', {
     },
     _apply() {
       document.documentElement.classList.toggle('dark', this.dark)
+      // tokens.css troca a paleta por `html.light`
+      document.documentElement.classList.toggle('light', !this.dark)
     }
   }
 })

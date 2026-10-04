@@ -1,0 +1,240 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   Telas de acesso — /login e /platform/login
+
+   Conceito: "início de turno". A tela fica aberta no tablet do balcão o dia
+   inteiro, então em vez de um hero de marketing ela mostra o que importa de
+   relance — hora, saudação e um único cartão de identificação, centralizado e
+   com alvos grandes para o dedo.
+
+   A plataforma usa o mesmo esqueleto e só troca o acento (`--auth-acento`):
+   violeta = território de super admin. Segue tokens.css: sem blur, sem
+   gradiente decorativo, rótulos em sentence case, toque mínimo de 48px.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.auth {
+  --auth-acento:       var(--acao);
+  --auth-acento-hover: var(--acao-hover);
+  --auth-acento-fraco: var(--acao-fraca);
+
+  min-height: 100dvh;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  background-color: var(--sup-fundo);
+  /* Malha de pontos: dá textura sem gradiente nem blur */
+  background-image: radial-gradient(var(--linha) 1px, transparent 1px);
+  background-size: 24px 24px;
+  color: var(--txt);
+  font-family: var(--fonte-texto);
+}
+
+.auth--plataforma {
+  --auth-acento:       #8b5cf6;
+  --auth-acento-hover: #a078f8;
+  --auth-acento-fraco: #8b5cf624;
+}
+.auth--plataforma .pdv-botao--acao        { background: var(--auth-acento); }
+.auth--plataforma .pdv-botao--acao:hover  { background: var(--auth-acento-hover); }
+.auth--plataforma .pdv-campo:focus        { border-color: var(--auth-acento); box-shadow: 0 0 0 3px var(--auth-acento-fraco); }
+
+/* ── Barra superior ───────────────────────────────────────────────────────── */
+.auth__barra {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: var(--e-4);
+  padding: var(--e-4);
+}
+@media (min-width: 640px) { .auth__barra { padding: var(--e-5) var(--e-6); } }
+
+.auth__marca {
+  display: flex; align-items: center; gap: var(--e-3);
+  font-weight: 700;
+  font-size: var(--t-corpo);
+}
+.auth__marca-icone {
+  width: 40px; height: 40px;
+  display: grid; place-items: center;
+  border-radius: var(--r-controle);
+  background: var(--auth-acento);
+  color: #fff;
+}
+
+.auth__relogio { display: flex; flex-direction: column; align-items: flex-end; line-height: 1.2; }
+.auth__hora { font-size: var(--t-valor); font-weight: 600; }
+.auth__data { font-size: var(--t-micro); color: var(--txt-2); }
+.auth__data::first-letter { text-transform: uppercase; }
+
+/* ── Centro ───────────────────────────────────────────────────────────────── */
+.auth__centro {
+  display: flex; align-items: center; justify-content: center;
+  padding: var(--e-4);
+}
+.auth__caixa { width: 100%; max-width: 440px; }
+
+.auth__saudacao { text-align: center; margin-bottom: var(--e-5); }
+.auth__saudacao h1 {
+  margin-top: var(--e-3);
+  font-size: clamp(2rem, 6vw, 2.75rem);
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1.05;
+}
+.auth__saudacao p { margin-top: var(--e-2); color: var(--txt-2); font-size: var(--t-destaque); }
+
+.auth__online {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 5px 12px;
+  border-radius: 999px;
+  background: var(--sup-painel);
+  border: 1px solid var(--linha);
+  font-size: var(--t-micro); font-weight: 500;
+  color: var(--txt-2);
+}
+.auth__online i { width: 8px; height: 8px; border-radius: 50%; background: var(--st-pronto); }
+.auth--plataforma .auth__online i { background: var(--auth-acento); }
+
+.auth__cartao {
+  background: var(--sup-cartao);
+  border: 1px solid var(--linha);
+  border-radius: var(--r-folha);
+  box-shadow: var(--sombra-folha);
+  padding: var(--e-5);
+}
+@media (min-width: 640px) { .auth__cartao { padding: var(--e-6); } }
+
+/* Métodos: dois blocos grandes */
+.auth__metodos {
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: var(--e-3);
+  margin-bottom: var(--e-5);
+}
+.auth__metodos button {
+  display: flex; align-items: center; gap: var(--e-3);
+  min-height: var(--toque-conf);
+  padding: var(--e-3);
+  text-align: left;
+  border-radius: var(--r-cartao);
+  border: 1.5px solid var(--linha);
+  background: var(--sup-painel);
+  color: var(--txt-2);
+  cursor: pointer;
+  transition: border-color var(--tempo-toque) var(--curva), background-color var(--tempo-toque) var(--curva), color var(--tempo-toque) var(--curva);
+}
+.auth__metodos button:hover { border-color: var(--linha-forte); color: var(--txt); }
+.auth__metodos button.ativo {
+  border-color: var(--auth-acento);
+  background: var(--auth-acento-fraco);
+  color: var(--txt);
+}
+.auth__metodos button.ativo svg { color: var(--auth-acento); }
+.auth__metodos strong { display: block; font-size: var(--t-corpo); font-weight: 600; }
+.auth__metodos small  { display: block; font-size: var(--t-micro); color: var(--txt-3); }
+
+.auth__alerta {
+  display: flex; align-items: center; gap: var(--e-2);
+  padding: var(--e-3) var(--e-4);
+  margin-bottom: var(--e-4);
+  border-radius: var(--r-controle);
+  font-size: var(--t-micro);
+  font-weight: 600;
+}
+.auth__alerta--error   { background: var(--st-atencao-bg); color: var(--st-atencao); }
+.auth__alerta--success { background: var(--st-pronto-bg);  color: var(--st-pronto); }
+
+/* Formulário */
+.auth__form { display: flex; flex-direction: column; gap: var(--e-4); }
+.auth__campo { display: flex; flex-direction: column; gap: 6px; }
+.auth__input { position: relative; }
+.auth__input > svg {
+  position: absolute; left: 14px; top: 50%; transform: translateY(-50%);
+  color: var(--txt-3); pointer-events: none;
+}
+.auth__input .pdv-campo { padding-left: 44px; min-height: 52px; }
+.auth__input .pdv-campo[name='senha'] { padding-right: 52px; }
+.auth__olho {
+  position: absolute; right: 6px; top: 50%; transform: translateY(-50%);
+  width: 40px; height: 40px;
+  display: grid; place-items: center;
+  border-radius: 8px;
+  color: var(--txt-3);
+  cursor: pointer;
+}
+.auth__olho:hover { color: var(--txt); background: var(--sup-pressed); }
+.auth__form .pdv-botao { margin-top: var(--e-2); }
+.auth__form .pdv-botao:disabled { opacity: .5; cursor: not-allowed; }
+
+/* RFID: crachá com ondas de aproximação */
+.auth__rfid {
+  position: relative;
+  display: flex; flex-direction: column; align-items: center;
+  gap: var(--e-3);
+  padding: var(--e-3) 0 var(--e-2);
+  text-align: center;
+}
+.auth__rfid-alvo {
+  position: relative;
+  width: 168px; height: 168px;
+  display: grid; place-items: center;
+  border-radius: 50%;
+  cursor: pointer;
+}
+.auth__rfid-ondas, .auth__rfid-ondas i { position: absolute; inset: 0; border-radius: 50%; }
+.auth__rfid-ondas i { border: 1.5px solid var(--linha-forte); }
+.auth__rfid-ondas i:nth-child(2) { inset: 18px; }
+.auth__rfid-ondas i:nth-child(3) { inset: 36px; border-color: var(--linha); }
+.auth__rfid-alvo:hover .auth__rfid-ondas i,
+.auth__rfid-alvo.ativo .auth__rfid-ondas i { border-color: var(--auth-acento); opacity: .45; }
+.auth__rfid-alvo.ativo .auth__rfid-ondas i { animation: auth-onda 2.4s var(--curva) infinite; }
+.auth__rfid-alvo.ativo .auth__rfid-ondas i:nth-child(2) { animation-delay: .3s; }
+.auth__rfid-alvo.ativo .auth__rfid-ondas i:nth-child(3) { animation-delay: .6s; }
+@keyframes auth-onda { 0%, 100% { opacity: .2; } 50% { opacity: .7; } }
+
+.auth__rfid-cartao {
+  position: relative;
+  width: 72px; height: 96px;
+  display: grid; place-items: center;
+  border-radius: 12px;
+  background: var(--sup-elevado);
+  border: 1px solid var(--linha-forte);
+  color: var(--txt-2);
+  box-shadow: var(--sombra-cartao);
+  transition: transform var(--tempo-folha) var(--curva), background-color var(--tempo-folha) var(--curva), color var(--tempo-folha) var(--curva);
+}
+.auth__rfid-cartao::before {
+  content: '';
+  position: absolute; top: 10px;
+  width: 22px; height: 4px; border-radius: 2px;
+  background: var(--linha-forte);
+}
+.auth__rfid-alvo.ativo .auth__rfid-cartao { color: var(--auth-acento); }
+.auth__rfid-alvo.lendo .auth__rfid-cartao {
+  background: var(--auth-acento);
+  border-color: var(--auth-acento);
+  color: #fff;
+  transform: scale(1.06);
+}
+
+.auth__rfid-titulo { font-size: var(--t-destaque); font-weight: 600; }
+.auth__rfid-status {
+  display: inline-flex; align-items: center; gap: var(--e-2);
+  font-size: var(--t-micro);
+  color: var(--txt-2);
+}
+.auth__rfid-status i { width: 8px; height: 8px; border-radius: 50%; background: var(--st-parado); }
+.auth__rfid-alvo.ativo ~ .auth__rfid-status i { background: var(--st-pronto); }
+.auth__rfid-alvo.lendo ~ .auth__rfid-status i { background: var(--auth-acento); }
+
+/* Rodapé */
+.auth__rodape {
+  display: flex; justify-content: space-between; align-items: center;
+  gap: var(--e-4);
+  padding: var(--e-3) var(--e-4) var(--e-4);
+  font-size: var(--t-micro);
+  color: var(--txt-3);
+}
+@media (min-width: 640px) { .auth__rodape { padding: var(--e-4) var(--e-6) var(--e-5); } }
+.auth__rodape a {
+  display: inline-flex; align-items: center; gap: 6px;
+  min-height: 40px;
+  color: var(--txt-2);
+  font-weight: 500;
+}
+.auth__rodape a:hover { color: var(--txt); }

@@ -1089,7 +1089,7 @@ onBeforeUnmount(() => {
   fecharRadial()
 })
 
-defineExpose({ recarregar: carregarProdutos })
+defineExpose({ recarregar: carregarProdutos, lancarProdutos: emitirAbrirProdutosComRfid })
 </script>
 
 <style scoped>

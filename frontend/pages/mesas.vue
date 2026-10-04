@@ -11,210 +11,142 @@
 
       <main class="flex-1 overflow-hidden">
 
-        <!-- LISTA DE MESAS -->
-        <div v-if="!modoProdutos" class="h-full overflow-auto p-4 sm:p-6 lg:p-8">
+        <!-- SALÃO -->
+        <div v-if="!modoProdutos" class="salao h-full overflow-auto">
 
-          <!-- HEADER -->
-          <div class="flex flex-wrap items-center justify-between gap-3 mb-6">
-            <div class="flex items-center gap-3">
-              <div class="size-11 rounded-xl bg-gradient-to-br from-orange-500 to-orange-700 shadow-md shadow-orange-900/50 flex items-center justify-center shrink-0">
-                <LayoutGrid :size="18" class="text-white" />
-              </div>
-              <div>
-                <h1 class="text-2xl sm:text-3xl font-black text-gray-900 dark:text-white leading-none">Mesas</h1>
-                <p class="text-sm text-gray-500 dark:text-white/40 mt-1">
-                  <span class="font-bold text-gray-700 dark:text-white/60">{{ mesas.length }}</span>
-                  mesa{{ mesas.length !== 1 ? 's' : '' }} em atendimento
-                </p>
-              </div>
+          <!-- CABEÇALHO -->
+          <header class="salao__cabeca">
+            <div class="min-w-0">
+              <h1 class="salao__titulo">Mesas</h1>
+              <p class="salao__resumo">
+                <span>{{ mesas.length }} {{ mesas.length === 1 ? 'comanda aberta' : 'comandas abertas' }}</span>
+                <span v-if="mesas.length" class="salao__sep" aria-hidden="true">·</span>
+                <span v-if="mesas.length">a receber <strong class="pdv-valor">{{ moeda.format(totalSalao) }}</strong></span>
+              </p>
             </div>
 
             <div class="flex items-center gap-2">
-              <!-- Toggle de visualização -->
-              <div class="flex items-center bg-white/[0.04] border border-white/[0.07] rounded-xl p-1 gap-0.5">
-                <button
-                  @click="viewMode = 'grade'"
-                  title="Visualização em grade"
-                  class="w-8 h-8 rounded-lg flex items-center justify-center transition-all"
-                  :class="viewMode === 'grade'
-                    ? 'bg-gradient-to-br from-orange-500 to-orange-700 text-white shadow-sm shadow-orange-900/30'
-                    : 'text-white/30 hover:text-white/60 hover:bg-white/[0.05]'"
-                >
-                  <LayoutGrid :size="15" />
+              <div class="salao__alternar" role="group" aria-label="Visualização">
+                <button :class="{ ativo: viewMode === 'grade' }" :aria-pressed="viewMode === 'grade'" title="Grade" @click="viewMode = 'grade'">
+                  <LayoutGrid :size="18" />
                 </button>
-                <button
-                  @click="viewMode = 'lista'"
-                  title="Visualização em lista"
-                  class="w-8 h-8 rounded-lg flex items-center justify-center transition-all"
-                  :class="viewMode === 'lista'
-                    ? 'bg-gradient-to-br from-orange-500 to-orange-700 text-white shadow-sm shadow-orange-900/30'
-                    : 'text-white/30 hover:text-white/60 hover:bg-white/[0.05]'"
-                >
-                  <List :size="15" />
+                <button :class="{ ativo: viewMode === 'lista' }" :aria-pressed="viewMode === 'lista'" title="Lista" @click="viewMode = 'lista'">
+                  <List :size="18" />
                 </button>
               </div>
 
-              <button
-                @click="caixaAberto ? modalAbrirMesa = true : toastStore.warning('Abra o caixa para iniciar atendimentos')"
-                class="h-9 px-5 rounded-xl text-white font-black text-sm transition-all flex items-center gap-2 shrink-0"
-                :class="caixaAberto
-                  ? 'bg-gradient-to-br from-orange-500 to-orange-700 hover:from-orange-400 hover:to-orange-600 shadow-md shadow-orange-900/40 active:scale-95'
-                  : 'bg-white/[0.06] cursor-not-allowed opacity-50'"
-              >
-                <Plus :size="15" />
-                Nova Mesa
+              <button class="pdv-botao pdv-botao--acao" :class="{ salao__desativado: !caixaAberto }" @click="novaMesa">
+                <Plus :size="18" />
+                Iniciar mesa
               </button>
             </div>
-          </div>
+          </header>
 
-          <!-- SKELETON LOADING -->
+          <!-- FILTRO POR ESTADO (também é a legenda das cores) -->
+          <nav v-if="!loading && mesas.length" class="salao__filtros" aria-label="Filtrar por estado">
+            <button :class="{ ativo: filtro === null }" @click="filtro = null">
+              Todas <span class="pdv-valor">{{ mesas.length }}</span>
+            </button>
+            <button
+              v-for="k in ordemEstados"
+              :key="k"
+              :class="[`f--${k}`, { ativo: filtro === k, vazio: !contagem[k] }]"
+              :disabled="!contagem[k]"
+              @click="filtro = filtro === k ? null : k"
+            >
+              <i aria-hidden="true" />
+              {{ ROTULO_ESTADO[k] }}
+              <span class="pdv-valor">{{ contagem[k] }}</span>
+            </button>
+          </nav>
+
+          <!-- SKELETON -->
           <template v-if="loading">
-            <div v-if="viewMode === 'grade'" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-              <div v-for="n in 10" :key="n" class="h-44 rounded-2xl bg-gray-100 dark:bg-white/[0.04] border border-gray-200 dark:border-white/[0.06] animate-pulse" />
+            <div v-if="viewMode === 'grade'" class="salao__grade">
+              <div v-for="n in 10" :key="n" class="salao__esqueleto h-[148px]" />
             </div>
             <div v-else class="space-y-2">
-              <div v-for="n in 6" :key="n" class="h-16 rounded-2xl bg-gray-100 dark:bg-white/[0.04] border border-gray-200 dark:border-white/[0.06] animate-pulse" />
+              <div v-for="n in 6" :key="n" class="salao__esqueleto h-14" />
             </div>
           </template>
 
-          <!-- ESTADO VAZIO -->
-          <div v-else-if="mesas.length === 0" class="flex items-center justify-center h-[60vh]">
-            <div class="text-center">
-              <div class="size-20 mx-auto rounded-2xl bg-gradient-to-br from-orange-500 to-orange-700 shadow-xl shadow-orange-900/50 flex items-center justify-center mb-5">
-                <LayoutGrid :size="32" class="text-white" />
-              </div>
-              <h3 class="text-xl font-black text-gray-900 dark:text-white">Nenhuma mesa aberta</h3>
-              <p class="text-gray-400 dark:text-white/35 mt-2 text-sm max-w-xs mx-auto leading-relaxed">
-                Abra o caixa e crie uma nova mesa para iniciar o atendimento
-              </p>
-              <button
-                @click="caixaAberto ? modalAbrirMesa = true : toastStore.warning('Abra o caixa para iniciar atendimentos')"
-                class="mt-6 h-10 px-7 rounded-xl text-white font-black text-sm transition-all active:scale-95 inline-flex items-center gap-2"
-                :class="caixaAberto ? 'bg-gradient-to-br from-orange-500 to-orange-700 hover:from-orange-400 hover:to-orange-600 shadow-lg shadow-orange-900/40' : 'bg-white/[0.06] cursor-not-allowed opacity-50'"
-              >
-                <Plus :size="15" />
-                Abrir Primeira Mesa
-              </button>
-            </div>
-          </div>
-
-          <!-- ── GRADE ── -->
-          <div v-else-if="viewMode === 'grade'" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+          <!-- VAZIO -->
+          <div v-else-if="mesas.length === 0" class="salao__vazio">
+            <span class="salao__vazio-icone"><LayoutGrid :size="28" /></span>
+            <h3>Nenhuma mesa aberta</h3>
+            <p v-if="caixaAberto">Quando um cliente sentar, inicie a mesa para começar a lançar os pedidos.</p>
+            <p v-else>O caixa está fechado. Peça ao responsável para abrir o caixa antes de iniciar mesas.</p>
             <button
-              v-for="mesa in mesas"
-              :key="mesa.id"
-              @click="abrirMesa(mesa)"
-              class="group relative rounded-2xl border transition-all duration-200 hover:-translate-y-0.5 active:scale-[0.98] overflow-hidden text-left"
-              :class="mesaSelecionada?.id === mesa.id
-                ? 'bg-white/[0.04] border-orange-500/40 shadow-xl shadow-orange-500/15 -translate-y-0.5'
-                : 'bg-white/[0.02] border-white/[0.07] hover:bg-white/[0.05] hover:border-white/[0.12]'"
+              class="pdv-botao pdv-botao--acao pdv-botao--confirmar"
+              :class="{ salao__desativado: !caixaAberto }"
+              :aria-disabled="!caixaAberto"
+              @click="novaMesa"
             >
-              <!-- Barra topo quando selecionada -->
-              <div class="absolute top-0 inset-x-0 h-0.5 transition-opacity"
-                :class="mesaSelecionada?.id === mesa.id
-                  ? 'bg-gradient-to-r from-orange-500/30 via-orange-400 to-orange-500/30 opacity-100'
-                  : 'bg-gradient-to-r from-transparent via-white/[0.07] to-transparent opacity-100'"
-              ></div>
-
-              <!-- Dot de status -->
-              <div class="absolute top-3 right-3 size-2 rounded-full"
-                :class="mesaSelecionada?.id === mesa.id ? 'bg-orange-400 shadow-sm shadow-orange-400/60' : 'bg-orange-500/40'">
-              </div>
-
-              <div class="relative p-4 pt-5 flex flex-col items-center min-h-[11rem] justify-center gap-2">
-                <!-- Mesa label -->
-                <span class="text-[10px] font-black uppercase tracking-widest transition-colors"
-                  :class="mesaSelecionada?.id === mesa.id ? 'text-orange-400' : 'text-white/30'">
-                  {{ mesa.nome_mesa || `Mesa ${mesa.numero}` }}
-                </span>
-
-                <!-- Avatar com gradiente quando selecionado -->
-                <div class="size-14 rounded-2xl flex items-center justify-center font-black text-xl transition-all duration-200"
-                  :class="mesaSelecionada?.id === mesa.id
-                    ? 'bg-gradient-to-br from-orange-500 to-orange-700 text-white shadow-lg shadow-orange-900/50'
-                    : 'bg-white/[0.06] text-white/40 border border-white/[0.08] group-hover:bg-orange-500/10 group-hover:text-orange-400 group-hover:border-orange-500/20'">
-                  {{ mesa.cliente ? mesa.cliente.charAt(0).toUpperCase() : '?' }}
-                </div>
-
-                <!-- Nome cliente -->
-                <p class="text-sm font-bold text-center truncate w-full px-2 leading-tight"
-                  :class="mesaSelecionada?.id === mesa.id ? 'text-white' : 'text-white/70'">
-                  {{ mesa.cliente || '—' }}
-                </p>
-
-                <!-- Garçom -->
-                <p v-if="mesa.garcom?.nome"
-                  class="text-[10px] text-center"
-                  :class="mesaSelecionada?.id === mesa.id ? 'text-orange-400/70' : 'text-white/25'">
-                  {{ mesa.garcom.nome }}
-                </p>
-              </div>
+              <Plus :size="20" /> Iniciar mesa
             </button>
           </div>
 
-          <!-- ── LISTA ── -->
-          <div v-else class="bg-white/[0.02] border border-white/[0.07] rounded-2xl overflow-hidden">
-            <!-- Cabeçalho da tabela -->
-            <div class="grid grid-cols-[2fr_2fr_2fr_auto] gap-4 px-5 py-3 border-b border-white/[0.05] bg-white/[0.02]">
-              <span class="text-[10px] font-black uppercase tracking-widest text-white/30">Mesa</span>
-              <span class="text-[10px] font-black uppercase tracking-widest text-white/30">Cliente</span>
-              <span class="text-[10px] font-black uppercase tracking-widest text-white/30">Garçom</span>
-              <span class="text-[10px] font-black uppercase tracking-widest text-white/30 text-right">Ação</span>
-            </div>
-
-            <!-- Linhas -->
-            <div class="divide-y divide-white/[0.04]">
-              <button
-                v-for="mesa in mesas"
-                :key="mesa.id"
-                @click="abrirMesa(mesa)"
-                class="w-full grid grid-cols-[2fr_2fr_2fr_auto] gap-4 items-center px-5 py-3.5 text-left transition-all border-l-2"
-                :class="mesaSelecionada?.id === mesa.id
-                  ? 'bg-orange-500/[0.07] border-l-orange-500'
-                  : 'hover:bg-white/[0.03] border-l-transparent'"
-              >
-                <!-- Mesa -->
-                <div class="flex items-center gap-3 min-w-0">
-                  <div class="size-9 rounded-xl flex items-center justify-center font-black text-sm shrink-0 transition-all duration-200"
-                    :class="mesaSelecionada?.id === mesa.id
-                      ? 'bg-gradient-to-br from-orange-500 to-orange-700 text-white shadow-md shadow-orange-900/50'
-                      : 'bg-white/[0.06] text-white/40 border border-white/[0.08]'"
-                  >
-                    {{ mesa.cliente ? mesa.cliente.charAt(0).toUpperCase() : '?' }}
-                  </div>
-                  <span class="font-black text-sm truncate"
-                    :class="mesaSelecionada?.id === mesa.id ? 'text-white' : 'text-white/80'">
-                    {{ mesa.nome_mesa || `Mesa ${mesa.numero}` }}
-                  </span>
-                </div>
-
-                <!-- Cliente -->
-                <div class="min-w-0">
-                  <span v-if="mesa.cliente" class="text-sm font-semibold truncate block"
-                    :class="mesaSelecionada?.id === mesa.id ? 'text-white/90' : 'text-white/60'">
-                    {{ mesa.cliente }}
-                  </span>
-                  <span v-else class="text-sm italic text-white/20">Sem cliente</span>
-                </div>
-
-                <!-- Garçom -->
-                <span class="text-sm truncate text-white/35">
-                  {{ mesa.garcom?.nome || '—' }}
-                </span>
-
-                <!-- Ação -->
-                <div class="flex items-center justify-end">
-                  <span class="text-[10px] font-black px-3 py-1.5 rounded-lg transition-all"
-                    :class="mesaSelecionada?.id === mesa.id
-                      ? 'bg-orange-500/20 text-orange-400'
-                      : 'bg-white/[0.05] text-white/30'">
-                    Abrir
-                  </span>
-                </div>
-              </button>
-            </div>
+          <!-- GRADE -->
+          <div v-else-if="viewMode === 'grade'" class="salao__grade">
+            <ComandaCard
+              v-for="mesa in mesasVisiveis"
+              :key="mesa.id"
+              :comanda="mesa"
+              :selecionada="mesaSelecionada?.id === mesa.id"
+              pode-vender
+              @abrir="abrirMesa(mesa)"
+              @vender="venderMesa(mesa)"
+            />
           </div>
 
+          <!-- LISTA -->
+          <div v-else class="pdv-cartao salao__lista" role="table">
+            <div class="salao__linha salao__linha--cabeca" role="row">
+              <span role="columnheader">Mesa</span>
+              <span role="columnheader">Estado</span>
+              <span role="columnheader" class="hidden md:block">Garçom</span>
+              <span role="columnheader" class="hidden sm:block text-right">Aberta há</span>
+              <span role="columnheader" class="text-right">Total</span>
+              <span role="columnheader" class="sr-only">Ação</span>
+            </div>
+            <button
+              v-for="mesa in mesasVisiveis"
+              :key="mesa.id"
+              role="row"
+              class="salao__linha"
+              :class="{ sel: mesaSelecionada?.id === mesa.id }"
+              @click="abrirMesa(mesa)"
+            >
+              <span class="flex items-center gap-3 min-w-0" role="cell">
+                <span class="pdv-faixa self-stretch" :class="`pdv-faixa--${chaveEstado(mesa)}`" aria-hidden="true" />
+                <span class="min-w-0">
+                  <span class="block font-semibold truncate text-[var(--txt)]">{{ mesa.nome }}</span>
+                  <span v-if="mesa.cliente" class="block truncate text-[var(--txt-2)] text-[13px]">{{ mesa.cliente }}</span>
+                </span>
+              </span>
+              <span role="cell"><span class="salao__selo" :class="`s--${chaveEstado(mesa)}`">{{ ROTULO_ESTADO[chaveEstado(mesa)] }}</span></span>
+              <span role="cell" class="hidden md:block truncate text-[var(--txt-2)]">{{ mesa.garcom?.nome ?? '—' }}</span>
+              <span role="cell" class="hidden sm:block text-right pdv-valor text-[var(--txt-3)]">{{ mesa.aberta_em ? duracao(minutosDesde(mesa.aberta_em)) : '—' }}</span>
+              <span role="cell" class="text-right pdv-valor font-semibold" :class="mesa.qtd_itens ? 'text-[var(--txt)]' : 'text-[var(--txt-3)]'">{{ moeda.format(mesa.total) }}</span>
+              <span role="cell" class="flex justify-end">
+                <span
+                  role="button"
+                  tabindex="0"
+                  class="salao__vender"
+                  :class="{ off: mesa.status === 'fechando' }"
+                  :title="mesa.status === 'fechando' ? 'Conta pedida — reabra a mesa para lançar' : 'Lançar produtos'"
+                  @click.stop="mesa.status !== 'fechando' && venderMesa(mesa)"
+                  @keydown.enter.stop.prevent="mesa.status !== 'fechando' && venderMesa(mesa)"
+                >
+                  <Plus :size="16" stroke-width="2.5" /><span class="hidden lg:inline">Lançar</span>
+                </span>
+              </span>
+            </button>
+          </div>
+
+          <p v-if="!loading && mesas.length && !mesasVisiveis.length" class="salao__nada">
+            Nenhuma comanda neste estado.
+          </p>
         </div>
 
         <!-- PAINEL DE PRODUTOS -->
@@ -259,8 +191,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue'
 import { Plus, LayoutGrid, List } from 'lucide-vue-next'
+import ComandaCard from '~/components/salao/ComandaCard.vue'
+import { chaveEstado, minutosDesde, duracao, ROTULO_ESTADO, type ChaveEstado, type ComandaResumo } from '~/composables/useEstadoComanda'
 
 import Navbar from '~/layouts/Navbar.vue'
 import Sidebar from '~/components/Sidebar.vue'
@@ -277,15 +211,11 @@ import ModalRfidAuth from '~/components/modals/ModalRfidAuth.vue'
 
 definePageMeta({ layout: false })
 
-interface Mesa {
-  id: string
-  numero: number
-  nome_mesa?: string
-  cliente?: string
-  garcom?: { id: string; nome: string } | null
-  garcom_id?: string | null
-  status: string
-}
+/**
+ * O resumo do salão (GET /mesas) + os campos que SidebarMesa e
+ * PainelProdutos ainda leem no formato antigo (nome_mesa, garcom_id).
+ */
+type Mesa = ComandaResumo & { nome_mesa: string; garcom_id: string | null }
 
 const api         = useApi()
 const caixaStore  = useCaixaStore()
@@ -310,10 +240,33 @@ const viewMode  = ref<'grade' | 'lista'>((savedView === 'lista' ? 'lista' : 'gra
 
 watch(viewMode, v => { if (typeof localStorage !== 'undefined') localStorage.setItem('mesas-view', v) })
 
+const moeda = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' })
+
+const ordemEstados: ChaveEstado[] = ['pronto', 'cozinha', 'conta', 'atencao', 'parado']
+const filtro = ref<ChaveEstado | null>(null)
+
+const contagem = computed(() => {
+  const c: Record<ChaveEstado, number> = { pronto: 0, cozinha: 0, conta: 0, atencao: 0, parado: 0 }
+  for (const m of mesas.value) c[chaveEstado(m)]++
+  return c
+})
+const mesasVisiveis = computed(() =>
+  filtro.value ? mesas.value.filter(m => chaveEstado(m) === filtro.value) : mesas.value,
+)
+const totalSalao = computed(() => mesas.value.reduce((s, m) => s + (m.restante ?? m.total ?? 0), 0))
+
+// Se o estado filtrado esvaziar (ex.: prato entregue), volta para todas
+watch(contagem, c => { if (filtro.value && !c[filtro.value]) filtro.value = null })
+
+function novaMesa() {
+  if (caixaAberto.value) modalAbrirMesa.value = true
+  else toastStore.warning('Abra o caixa para iniciar atendimentos')
+}
+
 const abrirProdutos = () => { modoProdutos.value = true }
 
 function onGarcomMismatch(garcom: { id: number; nome: string }) {
-  const mesasDoGarcom = mesas.value.filter(m => m.garcom_id === garcom.id)
+  const mesasDoGarcom = mesas.value.filter(m => m.garcom_id === String(garcom.id))
   if (mesasDoGarcom.length === 0) {
     toastStore.warning(`${garcom.nome} não tem mesa aberta. Abra uma mesa primeiro.`)
     sidebarMesa.value = false
@@ -338,12 +291,27 @@ const carregarMesas = async (mostrarLoading = false) => {
   try {
     if (mostrarLoading) loading.value = true
     const response = await api.mesas.listar<Mesa>()
-    mesas.value = response.filter(m => m.status === 'aberta')
+    // 'fechando' = conta pedida: continua no salão, com a cor de conta
+    mesas.value = (response as any[])
+      .filter(m => m.status === 'aberta' || m.status === 'fechando')
+      .map(m => ({ ...m, nome_mesa: m.nome, garcom_id: m.garcom?.id ?? null }))
   } catch (error) {
     console.error(error)
   } finally {
     if (mostrarLoading) loading.value = false
   }
+}
+
+/**
+ * Atalho do card: seleciona a mesa e passa pela mesma identificação RFID do
+ * botão "Produtos" do painel (dono da mesa, sessão do garçom) antes de abrir
+ * o cardápio. Não é um bypass da checagem.
+ */
+async function venderMesa(mesa: Mesa) {
+  if (!caixaAberto.value) return toastStore.warning('Abra o caixa para lançar produtos')
+  mesaSelecionada.value = mesa
+  await nextTick()
+  sidebarRef.value?.lancarProdutos()
 }
 
 const abrirMesa = (mesa: Mesa) => {
@@ -377,7 +345,7 @@ onMounted(async () => {
           if (!loading.value) return r()
           const stop = watch(loading, v => { if (!v) { stop(); r() } })
         })
-        const mesasDoGarcom = mesas.value.filter(m => m.garcom_id === garcom.id)
+        const mesasDoGarcom = mesas.value.filter(m => m.garcom_id === String(garcom.id))
         if (mesasDoGarcom.length === 1) abrirMesa(mesasDoGarcom[0])
       }
     }
@@ -399,8 +367,154 @@ onUnmounted(() => {
   will-change: padding-right;
 }
 @media (min-width: 1024px) {
-  .pagina-mesas.sidebar-open {
-    padding-right: 420px;
-  }
+  .pagina-mesas.sidebar-open { padding-right: 420px; }
 }
+
+/* ── Salão sobre tokens: a cor do card é o estado; o laranja é só ação ── */
+.salao { padding: var(--e-5) var(--e-4); }
+@media (min-width: 640px)  { .salao { padding: var(--e-6) var(--e-5); } }
+@media (min-width: 1024px) { .salao { padding: var(--e-6); } }
+
+.salao__cabeca {
+  display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between;
+  gap: var(--e-4);
+  margin-bottom: var(--e-5);
+}
+.salao__titulo { font-size: 1.75rem; font-weight: 700; letter-spacing: -0.02em; color: var(--txt); line-height: 1.1; }
+.salao__resumo { margin-top: 6px; display: flex; flex-wrap: wrap; gap: 6px; font-size: var(--t-corpo); color: var(--txt-2); }
+.salao__resumo strong { color: var(--txt); font-weight: 600; }
+.salao__sep { color: var(--txt-3); }
+
+.salao__alternar {
+  display: flex; gap: 2px; padding: 3px;
+  background: var(--sup-painel);
+  border: 1px solid var(--linha);
+  border-radius: var(--r-controle);
+}
+.salao__alternar button {
+  width: 42px; height: 40px;
+  display: grid; place-items: center;
+  border-radius: 7px;
+  color: var(--txt-3);
+}
+.salao__alternar button:hover { color: var(--txt); }
+.salao__alternar button.ativo { background: var(--sup-elevado); color: var(--txt); box-shadow: var(--sombra-cartao); }
+
+.salao__desativado { opacity: .45; cursor: not-allowed; }
+
+/* Filtros = legenda: cada chip carrega a cor do estado que filtra */
+.salao__filtros {
+  display: flex; gap: var(--e-2);
+  margin-bottom: var(--e-5);
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.salao__filtros::-webkit-scrollbar { display: none; }
+.salao__filtros button {
+  flex-shrink: 0;
+  display: inline-flex; align-items: center; gap: 8px;
+  height: 40px; padding: 0 14px;
+  border-radius: 999px;
+  border: 1px solid var(--linha);
+  background: var(--sup-painel);
+  color: var(--txt-2);
+  font-size: var(--t-micro); font-weight: 500;
+  transition: background-color var(--tempo-toque) var(--curva), border-color var(--tempo-toque) var(--curva);
+}
+.salao__filtros button:hover:not(:disabled) { border-color: var(--linha-forte); color: var(--txt); }
+.salao__filtros button.ativo { background: var(--sup-elevado); border-color: var(--linha-forte); color: var(--txt); }
+.salao__filtros button.vazio { opacity: .5; cursor: default; }
+.salao__filtros .pdv-valor { color: var(--txt-3); }
+.salao__filtros button.ativo .pdv-valor { color: var(--txt); }
+.salao__filtros i { width: 8px; height: 8px; border-radius: 50%; background: var(--st-parado); }
+.f--pronto  i { background: var(--st-pronto); }
+.f--cozinha i { background: var(--st-cozinha); }
+.f--conta   i { background: var(--st-conta); }
+.f--atencao i { background: var(--st-atencao); }
+
+.salao__grade {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: var(--e-3);
+}
+@media (max-width: 480px) { .salao__grade { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
+.salao__esqueleto {
+  border-radius: var(--r-cartao);
+  background: var(--sup-cartao);
+  border: 1px solid var(--linha);
+  animation: pulsar 1.4s ease-in-out infinite;
+}
+@keyframes pulsar { 50% { opacity: .55; } }
+
+.salao__vazio {
+  min-height: 55vh;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: var(--e-3);
+  text-align: center;
+}
+.salao__vazio-icone {
+  width: 64px; height: 64px;
+  display: grid; place-items: center;
+  border-radius: var(--r-cartao);
+  background: var(--sup-cartao);
+  border: 1px solid var(--linha);
+  color: var(--txt-2);
+}
+.salao__vazio h3 { font-size: var(--t-titulo); font-weight: 700; color: var(--txt); }
+.salao__vazio p  { max-width: 34ch; color: var(--txt-2); font-size: var(--t-corpo); margin-bottom: var(--e-2); }
+
+/* Lista */
+.salao__lista { overflow: hidden; }
+.salao__linha {
+  width: 100%;
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1.4fr) auto auto;
+  gap: var(--e-4);
+  align-items: center;
+  min-height: 60px;
+  padding: var(--e-2) var(--e-4);
+  text-align: left;
+  font-size: var(--t-corpo);
+  border-top: 1px solid var(--linha);
+}
+@media (min-width: 640px) { .salao__linha { grid-template-columns: minmax(0, 2fr) minmax(0, 1.4fr) 90px 120px auto; } }
+@media (min-width: 768px) { .salao__linha { grid-template-columns: minmax(0, 2fr) minmax(0, 1.4fr) minmax(0, 1.2fr) 90px 120px auto; } }
+.salao__linha--cabeca {
+  min-height: 44px;
+  border-top: none;
+  background: var(--sup-painel);
+  font-size: var(--t-micro); font-weight: 500;
+  color: var(--txt-3);
+}
+button.salao__linha:hover { background: var(--sup-elevado); }
+button.salao__linha.sel   { background: var(--sup-elevado); }
+button.salao__linha:focus-visible { outline: 2px solid var(--acao); outline-offset: -2px; }
+
+.salao__selo {
+  display: inline-block;
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-size: var(--t-micro); font-weight: 500;
+  background: var(--sup-elevado); color: var(--txt-2);
+  white-space: nowrap;
+}
+.s--pronto  { background: var(--st-pronto-bg);  color: var(--st-pronto); }
+.s--cozinha { background: var(--st-cozinha-bg); color: var(--st-cozinha); }
+.s--conta   { background: var(--st-conta-bg);   color: var(--st-conta); }
+.s--atencao { background: var(--st-atencao-bg); color: var(--st-atencao); }
+
+.salao__vender {
+  display: inline-flex; align-items: center; gap: 6px;
+  height: 40px; min-width: 40px; padding: 0 12px;
+  justify-content: center;
+  border-radius: var(--r-controle);
+  background: var(--acao); color: var(--acao-txt);
+  font-size: var(--t-micro); font-weight: 600;
+  cursor: pointer;
+}
+.salao__vender:hover { background: var(--acao-hover); }
+.salao__vender.off { background: var(--sup-elevado); color: var(--txt-3); cursor: not-allowed; }
+
+.salao__nada { padding: var(--e-6) 0; text-align: center; color: var(--txt-2); }
 </style>

@@ -1,381 +1,250 @@
 <template>
   <Transition name="slide">
 
-    <aside
-      v-if="modelValue"
-      class="fixed right-0 top-0 w-full lg:w-[420px] h-screen bg-white dark:bg-neutral-900/95 backdrop-blur-2xl border-l border-gray-200 dark:border-white/[0.08] shadow-2xl flex flex-col overflow-hidden z-30"
-    >
+    <aside v-if="modelValue" class="sm-painel" aria-label="Comanda da mesa">
 
-      <!-- HEADER -->
-      <div class="shrink-0">
-        <!-- accent top -->
-        <div class="h-1 bg-gradient-to-r from-orange-500 to-amber-500"></div>
-        <div class="p-5 border-b border-gray-100 dark:border-white/[0.06]">
-          <div class="flex items-start justify-between gap-3">
-            <div class="min-w-0">
-              <p class="text-[10px] font-black uppercase tracking-widest text-orange-500 mb-1">
-                {{ mesa?.nome_mesa || `Mesa ${mesa?.numero}` }}
-              </p>
-              <h2 class="text-xl font-black text-gray-900 dark:text-white truncate">
-                {{ mesa?.cliente || 'Sem cliente' }}
-              </h2>
-              <p v-if="rfidAtivo && garcomRfid" class="text-[11px] font-bold text-orange-400 mt-0.5">
-                Garçom: {{ garcomRfid.nome }}
-              </p>
-              <p class="text-xs text-gray-500 dark:text-white/40 mt-1">Segure para reimprimir · Toque no lixo para remover</p>
-            </div>
-
-            <button
-              @click="fechar"
-              class="w-9 h-9 rounded-xl bg-gray-100 dark:bg-white/[0.06] hover:bg-red-500/10 hover:text-red-400 text-gray-500 dark:text-white/50 transition-all flex items-center justify-center shrink-0"
-            >
-              <X :size="16" />
-            </button>
-          </div>
+      <!-- CABEÇALHO -->
+      <header class="sm-cabeca">
+        <div class="min-w-0">
+          <p class="sm-mesa">{{ mesa?.nome_mesa || `Mesa ${mesa?.numero}` }}</p>
+          <h2 class="sm-cliente">{{ mesa?.cliente || 'Sem cliente' }}</h2>
+          <span v-if="rfidAtivo && garcomRfid" class="sm-garcom">
+            <UserRound :size="14" /> {{ garcomRfid.nome }}
+          </span>
         </div>
-      </div>
+        <button class="sm-fechar" aria-label="Fechar painel" @click="fechar">
+          <X :size="20" />
+        </button>
+      </header>
 
-      <!-- LISTA -->
-      <div
-        ref="listaRef"
-        class="flex-1 overflow-y-auto overflow-x-hidden p-4 space-y-2"
-      >
+      <!-- ITENS: a tela imita o cupom impresso -->
+      <div ref="listaRef" class="sm-lista">
 
-        <!-- LOADING -->
         <div v-if="loading" class="space-y-2">
-          <div
-            v-for="n in 5"
-            :key="n"
-            class="h-16 rounded-2xl bg-gray-100 dark:bg-white/5 animate-pulse"
-          />
+          <div v-for="n in 5" :key="n" class="sm-esqueleto" />
         </div>
 
-        <!-- VAZIO -->
-        <div
-          v-else-if="produtos.length === 0"
-          class="h-full flex items-center justify-center py-20"
-        >
-          <div class="text-center">
-            <h3 class="text-lg font-black text-gray-500 dark:text-white/60">Nenhum produto</h3>
-            <p class="text-sm text-gray-400 dark:text-white/40 mt-1">Esta mesa não possui itens lançados</p>
-          </div>
+        <div v-else-if="produtos.length === 0" class="sm-vazio">
+          <span class="sm-vazio-icone"><ReceiptText :size="26" /></span>
+          <h3>Nenhum item lançado</h3>
+          <p>Use “Lançar produtos” para começar a comanda desta mesa.</p>
         </div>
 
-        <!-- CARDS -->
         <template v-else>
+          <p class="sm-dica">Segure um item para reimprimir a ficha</p>
 
-          <div
-            v-for="produto in produtos"
-            :key="produto.id"
-            class="relative rounded-2xl bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/[0.08] overflow-hidden select-none"
-            @contextmenu.prevent="(e) => onContextMenu(e, produto.id)"
-            @pointerdown="(e) => onPointerDown(e, produto.id)"
-          >
-            <!-- shimmer top -->
-            <div class="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-white/[0.1] to-transparent"></div>
-
-            <div class="flex items-center px-4 py-3.5 gap-3 min-h-[68px]">
-
-              <!-- NOME + PREÇO UNIT -->
-              <div class="flex-1 min-w-0">
-                <h3 class="text-sm font-black text-gray-900 dark:text-white truncate">{{ produto.nome }}</h3>
-                <span class="text-[11px] text-gray-400 dark:text-white/30">R$ {{ Number(produto.preco_unitario).toFixed(2) }} / un</span>
+          <ul class="sm-itens">
+            <li
+              v-for="produto in produtos"
+              :key="produto.id"
+              class="sm-item"
+              @contextmenu.prevent="(e) => onContextMenu(e, produto.id)"
+              @pointerdown="(e) => onPointerDown(e, produto.id)"
+            >
+              <div class="sm-item__info">
+                <span class="sm-item__nome">{{ produto.nome }}</span>
+                <span class="sm-item__unit pdv-valor">{{ moeda(produto.preco_unitario) }} / un</span>
               </div>
 
-              <!-- QUANTIDADE -->
-              <div class="flex items-center gap-1.5 shrink-0">
-                <button
-                  @click.stop="removerItem(produto)"
-                  class="w-7 h-7 rounded-lg bg-gray-100 dark:bg-white/[0.06] hover:bg-red-500/15 text-gray-400 dark:text-white/30 hover:text-red-400 flex items-center justify-center transition-all active:scale-90"
-                >
-                  <Minus :size="11" />
+              <div class="sm-qtd" @pointerdown.stop>
+                <button :aria-label="`Remover uma unidade de ${produto.nome}`" @click.stop="removerItem(produto)">
+                  <Minus :size="16" />
                 </button>
-                <span class="text-sm font-black text-gray-900 dark:text-white tabular-nums w-5 text-center">{{ produto.quantidade }}</span>
-                <button
-                  @click.stop="adicionarItem(produto)"
-                  class="w-7 h-7 rounded-lg bg-gray-100 dark:bg-white/[0.06] hover:bg-green-500/15 text-gray-400 dark:text-white/30 hover:text-green-400 flex items-center justify-center transition-all active:scale-90"
-                >
-                  <Plus :size="11" />
+                <span class="pdv-valor">{{ produto.quantidade }}</span>
+                <button :aria-label="`Adicionar uma unidade de ${produto.nome}`" @click.stop="adicionarItem(produto)">
+                  <Plus :size="16" />
                 </button>
               </div>
 
-              <!-- TOTAL -->
-              <span class="text-sm font-black text-orange-400 tabular-nums shrink-0">R$ {{ Number(produto.total).toFixed(2) }}</span>
+              <span class="sm-item__total pdv-valor">{{ moeda(produto.total) }}</span>
 
-              <!-- EXCLUIR -->
               <button
+                class="sm-excluir"
+                :aria-label="`Excluir ${produto.nome}`"
+                @pointerdown.stop
                 @click.stop="excluirItem(produto.id)"
-                class="w-7 h-7 rounded-xl bg-gray-50 dark:bg-white/[0.04] hover:bg-red-500/15 text-gray-300 dark:text-white/20 hover:text-red-400 flex items-center justify-center transition-all active:scale-90 shrink-0"
               >
-                <Trash2 :size="12" />
+                <Trash2 :size="16" />
               </button>
+            </li>
+          </ul>
 
-            </div>
-          </div>
-
-          <!-- CARDS DE ABATIMENTO (sem gestos, sem remoção) -->
-          <div
-            v-for="abat in abatimentos"
-            :key="'abat-' + abat.id"
-            class="rounded-2xl bg-purple-500/10 border border-purple-500/20 overflow-hidden"
-          >
-            <div class="flex items-center px-4 py-3.5 gap-3 min-h-[68px]">
-              <BadgePercent :size="14" class="text-purple-400 shrink-0" />
-              <h3 class="text-sm font-black text-purple-400 flex-1 truncate">{{ abat.motivo || 'Abatimento' }}</h3>
-              <span class="text-sm font-black text-purple-400 shrink-0">− R$ {{ Number(abat.valor).toFixed(2) }}</span>
-            </div>
-          </div>
-
+          <!-- Abatimentos: linhas do cupom, sem gesto -->
+          <ul v-if="abatimentos.length" class="sm-abats">
+            <li v-for="abat in abatimentos" :key="'abat-' + abat.id">
+              <BadgePercent :size="16" />
+              <span class="flex-1 truncate">{{ abat.motivo || 'Abatimento' }}</span>
+              <span class="pdv-valor">− {{ moeda(abat.valor) }}</span>
+            </li>
+          </ul>
         </template>
       </div>
 
-      <!-- FOOTER -->
-      <div class="border-t border-gray-100 dark:border-white/[0.06] bg-gray-50/80 dark:bg-black/20 shrink-0">
+      <!-- RODAPÉ: conta + ações -->
+      <footer class="sm-pe">
 
-        <!-- FOOTER NORMAL -->
-        <div class="p-5">
-          <div v-if="desconto > 0" class="flex items-center justify-between mb-1">
-            <span class="text-xs text-green-600 font-bold">Abatimento</span>
-            <span class="text-sm text-green-600 font-bold">− R$ {{ desconto.toFixed(2) }}</span>
+        <dl class="sm-conta">
+          <div v-if="desconto > 0">
+            <dt>Abatimento</dt>
+            <dd class="pdv-valor">− {{ moeda(desconto) }}</dd>
           </div>
 
-          <!-- TAXA DE SERVIÇO (somente admin/caixa) -->
-          <div v-if="podeTaxa" class="flex items-center justify-between mb-1">
-            <button
-              @click="alternarTaxa"
-              :disabled="alternandoTaxa || !pedidoId"
-              class="flex items-center gap-1.5 text-xs font-bold transition-colors disabled:opacity-40"
-              :class="taxaPct > 0 ? 'text-blue-400' : 'text-gray-500 dark:text-white/40 hover:text-blue-400'"
-            >
-              <span
-                class="w-8 h-4.5 rounded-full relative transition-all shrink-0"
-                :class="taxaPct > 0 ? 'bg-blue-500' : 'bg-gray-200 dark:bg-white/10'"
-                style="height: 18px"
+          <div v-if="podeTaxa">
+            <dt>
+              <button
+                class="sm-taxa"
+                role="switch"
+                :aria-checked="taxaPct > 0"
+                :disabled="alternandoTaxa || !pedidoId"
+                @click="alternarTaxa"
               >
-                <span class="absolute top-0.5 w-3.5 h-3.5 rounded-full bg-white shadow transition-all"
-                  :class="taxaPct > 0 ? 'left-[16px]' : 'left-0.5'" />
-              </span>
-              Taxa de serviço{{ taxaPct > 0 ? ` (${taxaPct}%)` : '' }}
-            </button>
-            <span v-if="taxaPct > 0" class="text-sm font-bold text-blue-400">
-              + R$ {{ taxaValor.toFixed(2) }}
-            </span>
+                <span class="sm-chave" :class="{ on: taxaPct > 0 }"><i /></span>
+                Taxa de serviço{{ taxaPct > 0 ? ` (${taxaPct}%)` : '' }}
+              </button>
+            </dt>
+            <dd v-if="taxaPct > 0" class="pdv-valor">+ {{ moeda(taxaValor) }}</dd>
           </div>
 
-          <div v-if="valorPago > 0" class="flex items-center justify-between mb-1">
-            <span class="text-xs text-orange-500 font-bold">Já pago</span>
-            <span class="text-sm text-orange-500 font-bold">− R$ {{ valorPago.toFixed(2) }}</span>
+          <div v-if="valorPago > 0">
+            <dt>Já pago</dt>
+            <dd class="pdv-valor sm-pago">− {{ moeda(valorPago) }}</dd>
           </div>
+        </dl>
 
-          <div class="flex items-center justify-between mb-4 mt-2 p-3 bg-gray-100 dark:bg-white/5 rounded-2xl">
-            <span class="text-[10px] font-black uppercase tracking-widest text-gray-400 dark:text-white/30">
-              {{ valorPago > 0 ? 'Restante' : 'Total' }}
-            </span>
-            <span class="text-3xl font-black text-gray-900 dark:text-white">R$ {{ restante.toFixed(2) }}</span>
-          </div>
-
-          <div class="grid grid-cols-3 gap-2 mb-2">
-            <button
-              @click="imprimir"
-              class="h-12 rounded-xl border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5 hover:bg-gray-100 dark:hover:bg-white/[0.08] flex flex-col items-center justify-center gap-1 text-gray-500 dark:text-white/40 font-black text-[10px] uppercase tracking-wide transition-all active:scale-95"
-            >
-              <PrinterIcon :size="14" />
-              Imprimir
-            </button>
-            <button
-              @click="caixaAberto ? (modalDesconto = true) : exigirCaixa()"
-              :disabled="!caixaAberto"
-              class="h-12 rounded-xl border flex flex-col items-center justify-center gap-1 font-black text-[10px] uppercase tracking-wide transition-all disabled:opacity-40 disabled:cursor-not-allowed"
-              :class="caixaAberto
-                ? 'border-amber-500/30 bg-amber-500/10 text-amber-400 hover:bg-amber-500/15 active:scale-95'
-                : 'border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5 text-gray-400 dark:text-white/30'"
-            >
-              <Divide :size="14" />
-              Desconto
-            </button>
-            <button
-              @click="caixaAberto ? (modalAbater = true) : exigirCaixa()"
-              :disabled="!caixaAberto"
-              class="h-12 rounded-xl border flex flex-col items-center justify-center gap-1 font-black text-[10px] uppercase tracking-wide transition-all disabled:opacity-40 disabled:cursor-not-allowed"
-              :class="caixaAberto
-                ? 'border-purple-500/30 bg-purple-500/10 text-purple-400 hover:bg-purple-500/15 active:scale-95'
-                : 'border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5 text-gray-400 dark:text-white/30'"
-            >
-              <BadgePercent :size="14" />
-              Abater
-            </button>
-          </div>
-
-          <div :class="podeFecharMesa ? 'grid grid-cols-2 gap-2' : 'grid grid-cols-1 gap-2'">
-            <button
-              @click="emitirAbrirProdutosComRfid"
-              class="h-12 rounded-xl border text-sm font-black uppercase tracking-wider transition-all flex items-center justify-center gap-1.5"
-              :class="caixaAberto
-                ? 'border-orange-500 text-orange-400 hover:bg-orange-500/10 active:scale-95'
-                : 'border-gray-200 dark:border-white/10 text-gray-400 dark:text-white/30 opacity-50 cursor-not-allowed'"
-            >
-              <Plus :size="15" />
-              Produtos
-            </button>
-            <button
-              v-if="podeFecharMesa"
-              @click="abrirPagamentoComRfid"
-              class="h-12 rounded-xl text-white text-sm font-black uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 active:scale-95"
-              :class="caixaAberto
-                ? 'bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-400 hover:to-emerald-500 shadow-md shadow-green-500/20'
-                : 'bg-gray-200 dark:bg-white/10 opacity-50 cursor-not-allowed'"
-            >
-              <CreditCard :size="15" />
-              Pagar
-            </button>
-          </div>
+        <div class="sm-total">
+          <span>{{ valorPago > 0 ? 'Restante' : 'Total' }}</span>
+          <strong class="pdv-valor">{{ moeda(restante) }}</strong>
         </div>
 
-      </div>
+        <div class="sm-secundarias">
+          <button class="sm-sec" @click="imprimir">
+            <PrinterIcon :size="18" /> Conta
+          </button>
+          <button class="sm-sec" :disabled="!caixaAberto" @click="caixaAberto ? (modalDesconto = true) : exigirCaixa()">
+            <Divide :size="18" /> Desconto
+          </button>
+          <button class="sm-sec" :disabled="!caixaAberto" @click="caixaAberto ? (modalAbater = true) : exigirCaixa()">
+            <BadgePercent :size="18" /> Abater
+          </button>
+        </div>
 
-      <!-- MODAL ABATER -->
+        <div class="sm-principais" :class="{ dupla: podeFecharMesa }">
+          <button
+            class="pdv-botao pdv-botao--confirmar"
+            :class="[podeFecharMesa ? 'pdv-botao--neutro' : 'pdv-botao--acao', { 'sm-off': !caixaAberto }]"
+            @click="emitirAbrirProdutosComRfid"
+          >
+            <Plus :size="20" /> {{ podeFecharMesa ? 'Produtos' : 'Lançar produtos' }}
+          </button>
+          <button
+            v-if="podeFecharMesa"
+            class="pdv-botao pdv-botao--acao pdv-botao--confirmar"
+            :class="{ 'sm-off': !caixaAberto }"
+            @click="abrirPagamentoComRfid"
+          >
+            <CreditCard :size="20" /> Pagar
+          </button>
+        </div>
+      </footer>
+
+      <!-- FOLHA: ABATER -->
       <Transition name="pop">
-        <div
-          v-if="modalAbater"
-          class="absolute inset-0 bg-black/40 flex items-end z-10"
-          @click.self="fecharModalAbater"
-        >
-          <div class="w-full bg-white dark:bg-neutral-900/95 backdrop-blur-2xl border border-gray-200 dark:border-white/[0.08] rounded-t-3xl p-6 space-y-5">
-
-            <div class="flex items-center justify-between">
-              <h3 class="text-lg font-black text-gray-900 dark:text-white">Abater valor</h3>
-              <button @click="fecharModalAbater" class="w-8 h-8 rounded-xl bg-gray-100 dark:bg-white/[0.06] hover:bg-red-950/40 hover:text-red-500 text-gray-500 dark:text-white/60 flex items-center justify-center transition-all">
-                <X :size="15" />
-              </button>
+        <div v-if="modalAbater" class="sm-veu" @click.self="fecharModalAbater">
+          <div class="sm-folha" role="dialog" aria-labelledby="sm-abater-titulo">
+            <div class="sm-folha__topo">
+              <h3 id="sm-abater-titulo">Abater valor</h3>
+              <button class="sm-fechar" aria-label="Fechar" @click="fecharModalAbater"><X :size="18" /></button>
             </div>
 
-            <div class="bg-gray-50 dark:bg-white/5 rounded-2xl p-4 flex justify-between items-center">
-              <span class="text-sm text-gray-500 dark:text-white/40 font-bold">Total atual</span>
-              <span class="text-xl font-black text-gray-900 dark:text-white">R$ {{ totalLiquido.toFixed(2) }}</span>
+            <div class="sm-linha-valor">
+              <span>Total atual</span>
+              <strong class="pdv-valor">{{ moeda(totalLiquido) }}</strong>
             </div>
 
-            <div>
-              <label for="valor-abater" class="text-xs font-black text-gray-500 dark:text-white/40 uppercase tracking-widest">Valor a abater</label>
-              <div class="relative mt-2">
-                <span class="absolute left-4 top-1/2 -translate-y-1/2 font-black text-gray-400 dark:text-white/40">R$</span>
+            <div class="sm-campo">
+              <label for="valor-abater" class="pdv-rotulo">Valor a abater</label>
+              <div class="sm-campo__wrap">
+                <span>R$</span>
                 <input
                   id="valor-abater"
                   name="valor-abater"
                   ref="inputAbaterRef"
                   v-model="valorAbater"
+                  class="pdv-campo pdv-valor"
                   type="number"
                   min="0.01"
                   :max="totalLiquido"
                   step="0.01"
                   placeholder="0,00"
-                  class="w-full h-14 pl-10 pr-4 border-2 border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/[0.06] text-gray-900 dark:text-white focus:border-purple-400/70 rounded-2xl text-xl font-black outline-none placeholder:text-gray-400 dark:placeholder:text-white/25"
                 />
               </div>
             </div>
 
-            <div
-              v-if="valorAbaterNum > 0"
-              class="bg-green-500/10 rounded-2xl p-4 flex justify-between items-center"
-            >
-              <span class="text-sm text-green-400 font-bold">Total após abatimento</span>
-              <span class="text-xl font-black text-green-400">
-                R$ {{ Math.max(0, totalLiquido - valorAbaterNum).toFixed(2) }}
-              </span>
+            <div v-if="valorAbaterNum > 0" class="sm-linha-valor sm-linha-valor--depois">
+              <span>Total após abatimento</span>
+              <strong class="pdv-valor">{{ moeda(Math.max(0, totalLiquido - valorAbaterNum)) }}</strong>
             </div>
 
-            <div class="flex gap-3">
+            <div class="sm-folha__acoes">
+              <button class="pdv-botao pdv-botao--neutro" @click="fecharModalAbater">Cancelar</button>
               <button
-                @click="fecharModalAbater"
-                class="flex-1 h-12 rounded-xl border border-gray-200 dark:border-white/10 font-black text-sm text-gray-500 dark:text-white/50 hover:bg-gray-50 dark:hover:bg-white/5 transition-colors"
-              >
-                Cancelar
-              </button>
-              <button
-                @click="confirmarAbater"
+                class="pdv-botao pdv-botao--acao"
                 :disabled="valorAbaterNum <= 0 || valorAbaterNum > totalLiquido || salvandoAbater"
-                class="flex-1 h-12 rounded-xl bg-purple-500 hover:bg-purple-600 disabled:opacity-40 text-white font-black text-sm transition-all active:scale-95"
+                @click="confirmarAbater"
               >
-                {{ salvandoAbater ? 'Salvando...' : 'Confirmar' }}
+                {{ salvandoAbater ? 'Salvando…' : 'Confirmar' }}
               </button>
             </div>
-
           </div>
         </div>
       </Transition>
 
-      <!-- MODAL DESCONTO -->
+      <!-- FOLHA: DESCONTO -->
       <Transition name="pop">
-        <div
-          v-if="modalDesconto"
-          class="absolute inset-0 bg-black/40 flex items-end z-10"
-          @click.self="fecharModalDesconto"
-        >
-          <div class="w-full bg-white dark:bg-neutral-900/95 backdrop-blur-2xl border border-gray-200 dark:border-white/[0.08] rounded-t-3xl p-6 space-y-5">
-
-            <div class="flex items-center justify-between">
-              <h3 class="text-lg font-black text-gray-900 dark:text-white">Aplicar desconto</h3>
-              <button @click="fecharModalDesconto" class="w-8 h-8 rounded-xl bg-gray-100 dark:bg-white/[0.06] hover:bg-red-950/40 hover:text-red-500 text-gray-500 dark:text-white/60 flex items-center justify-center transition-all">
-                <X :size="15" />
-              </button>
+        <div v-if="modalDesconto" class="sm-veu" @click.self="fecharModalDesconto">
+          <div class="sm-folha" role="dialog" aria-labelledby="sm-desconto-titulo">
+            <div class="sm-folha__topo">
+              <h3 id="sm-desconto-titulo">Aplicar desconto</h3>
+              <button class="sm-fechar" aria-label="Fechar" @click="fecharModalDesconto"><X :size="18" /></button>
             </div>
 
-            <!-- toggle % / R$ -->
-            <div class="flex bg-gray-100 dark:bg-white/5 rounded-xl p-1 gap-1">
-              <button
-                @click="modoDesconto = 'pct'; valorDesconto = ''"
-                class="flex-1 h-9 rounded-lg text-sm font-black transition-all"
-                :class="modoDesconto === 'pct' ? 'bg-gray-200 dark:bg-white/10 shadow text-amber-400' : 'text-gray-500 dark:text-white/40'"
-              >
-                Porcentagem %
-              </button>
-              <button
-                @click="modoDesconto = 'val'; valorDesconto = ''"
-                class="flex-1 h-9 rounded-lg text-sm font-black transition-all"
-                :class="modoDesconto === 'val' ? 'bg-gray-200 dark:bg-white/10 shadow text-amber-400' : 'text-gray-500 dark:text-white/40'"
-              >
-                Valor R$
-              </button>
+            <div class="sm-alternar" role="group" aria-label="Tipo de desconto">
+              <button :class="{ ativo: modoDesconto === 'pct' }" @click="modoDesconto = 'pct'; valorDesconto = ''">Porcentagem (%)</button>
+              <button :class="{ ativo: modoDesconto === 'val' }" @click="modoDesconto = 'val'; valorDesconto = ''">Valor (R$)</button>
             </div>
 
-            <div class="relative">
-              <span class="absolute left-4 top-1/2 -translate-y-1/2 font-black text-gray-400 dark:text-white/40">
-                {{ modoDesconto === 'pct' ? '%' : 'R$' }}
-              </span>
+            <div class="sm-campo__wrap">
+              <span>{{ modoDesconto === 'pct' ? '%' : 'R$' }}</span>
               <input
                 id="valor-desconto"
                 name="valor-desconto"
                 ref="inputDescontoRef"
                 v-model="valorDesconto"
+                class="pdv-campo pdv-valor"
                 aria-label="Valor do desconto"
                 type="number"
                 min="0.01"
                 :max="modoDesconto === 'pct' ? 100 : totalLiquido"
                 step="0.01"
                 placeholder="0"
-                class="w-full h-14 pl-10 pr-4 border-2 border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/[0.06] text-gray-900 dark:text-white focus:border-amber-400/70 rounded-2xl text-xl font-black outline-none placeholder:text-gray-400 dark:placeholder:text-white/25"
               />
             </div>
 
-            <div v-if="valorDescontoCalc > 0" class="bg-amber-500/10 rounded-2xl p-4 flex justify-between items-center">
-              <span class="text-sm text-amber-400 font-bold">Total após desconto</span>
-              <span class="text-xl font-black text-amber-400">
-                R$ {{ Math.max(0, totalLiquido - valorDescontoCalc).toFixed(2) }}
-              </span>
+            <div v-if="valorDescontoCalc > 0" class="sm-linha-valor sm-linha-valor--depois">
+              <span>Total após desconto</span>
+              <strong class="pdv-valor">{{ moeda(Math.max(0, totalLiquido - valorDescontoCalc)) }}</strong>
             </div>
 
-            <div class="flex gap-3">
-              <button @click="fecharModalDesconto" class="flex-1 h-12 rounded-xl border border-gray-200 dark:border-white/10 font-black text-sm text-gray-500 dark:text-white/50 hover:bg-gray-50 dark:hover:bg-white/5 transition-colors">
-                Cancelar
-              </button>
+            <div class="sm-folha__acoes">
+              <button class="pdv-botao pdv-botao--neutro" @click="fecharModalDesconto">Cancelar</button>
               <button
-                @click="confirmarDesconto"
+                class="pdv-botao pdv-botao--acao"
                 :disabled="valorDescontoCalc <= 0 || salvandoDesconto"
-                class="flex-1 h-12 rounded-xl bg-amber-500 hover:bg-amber-600 disabled:opacity-40 text-white font-black text-sm transition-all active:scale-95"
+                @click="confirmarDesconto"
               >
-                {{ salvandoDesconto ? 'Salvando...' : 'Aplicar' }}
+                {{ salvandoDesconto ? 'Salvando…' : 'Aplicar' }}
               </button>
             </div>
-
           </div>
         </div>
       </Transition>
@@ -432,6 +301,8 @@ import {
   BadgePercent,
   Plus,
   Minus,
+  UserRound,
+  ReceiptText,
 } from 'lucide-vue-next'
 import MenuFlutuanteProduto from '../modals/MenuFlutuanteProduto.vue'
 import ModalPagamento from '../modals/ModalPagamento.vue'
@@ -439,6 +310,10 @@ import ModalRfidAuth from '../modals/ModalRfidAuth.vue'
 import { useApi } from '~/services/api'
 import { useToastStore } from '~/stores/toast'
 import { useRfidIdentify } from '~/composables/useRfidIdentify'
+
+// Valores da comanda sempre no formato da moeda (vírgula decimal, R$)
+const formatoMoeda = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' })
+const moeda = (v: number | string | null | undefined) => formatoMoeda.format(Number(v ?? 0))
 
 const props = defineProps({
   modelValue:   Boolean,
@@ -1101,4 +976,238 @@ defineExpose({ recarregar: carregarProdutos, lancarProdutos: emitirAbrirProdutos
 .slide-leave-to {
   transform: translateX(100%);
 }
+
+/* ── Painel da mesa sobre tokens ────────────────────────────────────────────
+   A comanda na tela imita o cupom: itens em linhas, valores monoespaçados,
+   linha tracejada antes da conta. Sem blur, sem gradiente; o laranja fica
+   na ação principal (Pagar, ou Lançar produtos para quem não fecha mesa). */
+.sm-painel {
+  position: fixed; right: 0; top: 0; z-index: 30;
+  width: 100%; height: 100vh;
+  display: flex; flex-direction: column;
+  overflow: hidden;
+  background: var(--sup-painel);
+  border-left: 1px solid var(--linha);
+  box-shadow: var(--sombra-folha);
+  color: var(--txt);
+}
+@media (min-width: 1024px) { .sm-painel { width: 420px; } }
+
+.sm-cabeca {
+  display: flex; align-items: flex-start; justify-content: space-between; gap: var(--e-3);
+  padding: var(--e-5) var(--e-5) var(--e-4);
+  border-bottom: 1px solid var(--linha);
+  flex-shrink: 0;
+}
+.sm-mesa { font-size: var(--t-micro); font-weight: 600; color: var(--txt-2); }
+.sm-cliente {
+  margin-top: 2px;
+  font-size: var(--t-titulo); font-weight: 700; letter-spacing: -0.02em;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.sm-garcom {
+  margin-top: var(--e-2);
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: var(--sup-elevado);
+  font-size: var(--t-micro); color: var(--txt-2);
+}
+.sm-fechar {
+  width: 44px; height: 44px; flex-shrink: 0;
+  display: grid; place-items: center;
+  border-radius: var(--r-controle);
+  color: var(--txt-2);
+}
+.sm-fechar:hover { background: var(--sup-elevado); color: var(--txt); }
+
+/* Lista */
+.sm-lista { flex: 1; overflow-y: auto; overflow-x: hidden; padding: var(--e-3) var(--e-4) var(--e-4); }
+.sm-esqueleto { height: 64px; border-radius: var(--r-controle); background: var(--sup-cartao); animation: sm-pulsar 1.4s ease-in-out infinite; }
+@keyframes sm-pulsar { 50% { opacity: .55; } }
+
+.sm-vazio {
+  height: 100%; min-height: 240px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: var(--e-2); text-align: center;
+}
+.sm-vazio-icone {
+  width: 56px; height: 56px; margin-bottom: var(--e-2);
+  display: grid; place-items: center;
+  border-radius: var(--r-cartao);
+  background: var(--sup-cartao); border: 1px solid var(--linha);
+  color: var(--txt-2);
+}
+.sm-vazio h3 { font-size: var(--t-destaque); font-weight: 600; }
+.sm-vazio p  { max-width: 30ch; font-size: var(--t-micro); color: var(--txt-2); }
+
+.sm-dica { padding: 0 var(--e-1) var(--e-2); font-size: var(--t-micro); color: var(--txt-3); }
+
+.sm-itens { list-style: none; margin: 0; padding: 0; }
+.sm-item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto auto;
+  align-items: center;
+  gap: var(--e-2);
+  min-height: 64px;
+  padding: var(--e-2) var(--e-1);
+  border-bottom: 1px solid var(--linha);
+  user-select: none;
+  touch-action: pan-y;
+}
+.sm-item:last-child { border-bottom: none; }
+.sm-item__info { display: flex; flex-direction: column; min-width: 0; }
+.sm-item__nome {
+  font-size: var(--t-corpo); font-weight: 600; line-height: 1.3;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+.sm-item__unit { font-size: var(--t-micro); color: var(--txt-3); }
+.sm-item__total { min-width: 76px; text-align: right; font-size: var(--t-corpo); font-weight: 600; }
+
+/* Stepper de quantidade: alvos de 40px, número tabular no meio */
+.sm-qtd {
+  display: flex; align-items: center;
+  border: 1px solid var(--linha);
+  border-radius: var(--r-controle);
+  background: var(--sup-cartao);
+}
+.sm-qtd button {
+  width: 40px; height: 40px;
+  display: grid; place-items: center;
+  color: var(--txt-2);
+  border-radius: 9px;
+}
+.sm-qtd button:hover  { background: var(--sup-elevado); color: var(--txt); }
+.sm-qtd button:active { background: var(--sup-pressed); }
+.sm-qtd span { min-width: 24px; text-align: center; font-weight: 600; }
+
+.sm-excluir {
+  width: 40px; height: 40px;
+  display: grid; place-items: center;
+  border-radius: var(--r-controle);
+  color: var(--txt-3);
+}
+.sm-excluir:hover { background: var(--st-atencao-bg); color: var(--st-atencao); }
+
+.sm-abats {
+  list-style: none; margin: var(--e-2) 0 0; padding: var(--e-3) var(--e-1) 0;
+  border-top: 1px dashed var(--linha-forte);
+}
+.sm-abats li {
+  display: flex; align-items: center; gap: var(--e-2);
+  min-height: 40px;
+  font-size: var(--t-corpo);
+  color: var(--st-conta);
+}
+
+/* Rodapé */
+.sm-pe {
+  flex-shrink: 0;
+  padding: var(--e-4) var(--e-5) var(--e-5);
+  border-top: 1px dashed var(--linha-forte);
+  background: var(--sup-painel);
+}
+.sm-conta { margin: 0; display: flex; flex-direction: column; gap: 2px; }
+.sm-conta > div { display: flex; align-items: center; justify-content: space-between; min-height: 32px; }
+.sm-conta dt { font-size: var(--t-micro); color: var(--txt-2); }
+.sm-conta dd { margin: 0; font-size: var(--t-corpo); color: var(--txt-2); }
+.sm-pago { color: var(--st-pronto) !important; }
+
+.sm-taxa {
+  display: inline-flex; align-items: center; gap: var(--e-2);
+  min-height: 36px;
+  font-size: var(--t-micro); color: var(--txt-2);
+}
+.sm-taxa:disabled { opacity: .45; }
+.sm-chave {
+  position: relative; width: 36px; height: 20px; border-radius: 999px;
+  background: var(--sup-pressed);
+  transition: background-color var(--tempo-toque) var(--curva);
+}
+.sm-chave i {
+  position: absolute; top: 2px; left: 2px;
+  width: 16px; height: 16px; border-radius: 50%;
+  background: #fff; box-shadow: var(--sombra-cartao);
+  transition: transform var(--tempo-toque) var(--curva);
+}
+.sm-chave.on   { background: var(--st-conta); }
+.sm-chave.on i { transform: translateX(16px); }
+
+.sm-total {
+  display: flex; align-items: baseline; justify-content: space-between; gap: var(--e-3);
+  margin: var(--e-2) 0 var(--e-4);
+}
+.sm-total span { font-size: var(--t-corpo); font-weight: 500; color: var(--txt-2); }
+.sm-total strong { font-size: var(--t-valor-forte); font-weight: 700; line-height: 1; }
+
+.sm-secundarias { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--e-2); margin-bottom: var(--e-2); }
+.sm-sec {
+  min-height: var(--toque-min);
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  border-radius: var(--r-controle);
+  border: 1px solid var(--linha);
+  background: var(--sup-cartao);
+  color: var(--txt-2);
+  font-size: var(--t-micro); font-weight: 600;
+}
+.sm-sec:hover:not(:disabled) { background: var(--sup-elevado); color: var(--txt); }
+.sm-sec:disabled { opacity: .45; cursor: not-allowed; }
+
+.sm-principais { display: grid; grid-template-columns: 1fr; gap: var(--e-2); }
+.sm-principais.dupla { grid-template-columns: 1fr 1fr; }
+.sm-principais .pdv-botao { width: 100%; }
+.sm-off { opacity: .45; cursor: not-allowed; }
+
+/* Folhas (abater / desconto) */
+.sm-veu {
+  position: absolute; inset: 0; z-index: 10;
+  display: flex; align-items: flex-end;
+  background: #00000073;
+}
+.sm-folha {
+  width: 100%;
+  display: flex; flex-direction: column; gap: var(--e-4);
+  padding: var(--e-5);
+  background: var(--sup-cartao);
+  border-top: 1px solid var(--linha);
+  border-radius: var(--r-folha) var(--r-folha) 0 0;
+  box-shadow: var(--sombra-folha);
+}
+.sm-folha__topo { display: flex; align-items: center; justify-content: space-between; }
+.sm-folha__topo h3 { font-size: var(--t-destaque); font-weight: 700; }
+.sm-folha__acoes { display: grid; grid-template-columns: 1fr 1fr; gap: var(--e-2); }
+.sm-folha__acoes .pdv-botao:disabled { opacity: .45; cursor: not-allowed; }
+
+.sm-linha-valor {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: var(--e-3) var(--e-4);
+  border-radius: var(--r-controle);
+  background: var(--sup-elevado);
+  font-size: var(--t-micro); color: var(--txt-2);
+}
+.sm-linha-valor strong { font-size: var(--t-valor); color: var(--txt); font-weight: 600; }
+.sm-linha-valor--depois { background: var(--st-pronto-bg); color: var(--st-pronto); }
+.sm-linha-valor--depois strong { color: var(--st-pronto); }
+
+.sm-campo { display: flex; flex-direction: column; gap: 6px; }
+.sm-campo__wrap { position: relative; }
+.sm-campo__wrap > span {
+  position: absolute; left: 14px; top: 50%; transform: translateY(-50%);
+  font-weight: 600; color: var(--txt-3); pointer-events: none;
+}
+.sm-campo__wrap .pdv-campo { min-height: var(--toque-conf); padding-left: 44px; font-size: var(--t-valor); font-weight: 600; }
+
+.sm-alternar {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 3px; padding: 3px;
+  background: var(--sup-painel);
+  border: 1px solid var(--linha);
+  border-radius: var(--r-controle);
+}
+.sm-alternar button { min-height: 42px; border-radius: 7px; font-size: var(--t-micro); font-weight: 600; color: var(--txt-2); }
+.sm-alternar button.ativo { background: var(--sup-elevado); color: var(--txt); box-shadow: var(--sombra-cartao); }
+
+.pop-enter-active, .pop-leave-active { transition: opacity var(--tempo-folha) var(--curva); }
+.pop-enter-active .sm-folha, .pop-leave-active .sm-folha { transition: transform var(--tempo-folha) var(--curva); }
+.pop-enter-from, .pop-leave-to { opacity: 0; }
+.pop-enter-from .sm-folha, .pop-leave-to .sm-folha { transform: translateY(24px); }
 </style>

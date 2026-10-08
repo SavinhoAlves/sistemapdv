@@ -28,7 +28,7 @@ export function cfgToLegacy(cfg: any) {
     impressora_largura:       cfg?.impressoraLargura ?? 80,
     impressora_copias:        cfg?.impressoraCopias ?? 1,
     impressora_auto_imprimir: cfg?.impressoraAutoImprimir ?? false,
-    impressora_tipo:          cfg?.impressoraTipo ?? 'navegador',
+    impressora_tipo:          cfg?.impressoraTipo === 'usb' ? 'windows' : (cfg?.impressoraTipo ?? 'navegador'),
     impressora_host:          cfg?.impressoraHost ?? '',
     impressora_porta:         cfg?.impressoraPorta ?? 9100,
   }

@@ -473,7 +473,7 @@ async function imprimirFicha() {
   if (!fichaAtual.value) return
   const ficha    = fichaAtual.value
 
-  if (impressorasStore.impressaoDiretaPara('caixa')) {
+  if (configStore.impressora_auto_imprimir && impressorasStore.impressaoDiretaPara('caixa')) {
     try {
       await api.post('/impressao/ficha', {
         itens:   ficha.itens.map((i: any) => ({ nome: i.nome_produto, quantidade: i.quantidade })),

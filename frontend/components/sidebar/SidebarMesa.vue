@@ -691,7 +691,7 @@ async function imprimir() {
   const liquido = totalLiquido.value
   const data   = new Date().toLocaleString('pt-BR')
 
-  if (impressorasStore.impressaoDiretaPara('caixa')) {
+  if (configStore.impressora_auto_imprimir && impressorasStore.impressaoDiretaPara('caixa')) {
     try {
       await api.post('/impressao/conta', {
         mesa: `Mesa ${mesa?.nome_mesa || mesa?.numero || mesa?.id}`,
@@ -971,7 +971,7 @@ async function handleReimprimir() {
   const dataStr = new Date().toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })
   const ref     = `P${String(produto.pedido_id).padStart(6, '0')}`
 
-  if (impressorasStore.impressaoDiretaPara('cozinha')) {
+  if (configStore.impressora_auto_imprimir && impressorasStore.impressaoDiretaPara('cozinha')) {
     try {
       await api.post('/impressao/ficha', {
         itens:   [{ nome: produto.nome, quantidade: produto.quantidade }],

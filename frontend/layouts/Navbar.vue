@@ -1,15 +1,13 @@
 <template>
-  <header class="w-full bg-white/95 dark:bg-black/20 backdrop-blur-xl border-b border-gray-200 dark:border-white/[0.08] shrink-0 sticky" :class="authStore.modoSuporte ? 'top-10 z-20' : 'top-0 z-20'">
+  <header class="nb w-full shrink-0 sticky" :class="authStore.modoSuporte ? 'top-10 z-20' : 'top-0 z-20'">
     <div class="h-14 px-5 flex items-center justify-between gap-4">
 
       <!-- LOGO (só no mobile — em telas maiores ela vive na Sidebar) -->
       <div class="flex sm:hidden items-center gap-2.5 shrink-0">
-        <div class="w-7 h-7 rounded-lg bg-orange-500 flex items-center justify-center">
+        <div class="w-8 h-8 rounded-[10px] bg-[var(--acao)] flex items-center justify-center">
           <UtensilsCrossed :size="13" class="text-white" />
         </div>
-        <span class="text-sm font-black text-gray-900 dark:text-white tracking-tight">
-          Restaurante <span class="text-orange-500">PDV</span>
-        </span>
+        <span class="text-sm font-bold text-[var(--txt)]">Restaurante PDV</span>
       </div>
 
       <!-- espaço central -->
@@ -22,34 +20,31 @@
         <template v-if="isAdmin">
           <button
             @click="solicitarCaixa"
-            class="flex items-center gap-1.5 h-7 px-3 rounded-lg border text-[11px] font-black uppercase tracking-wide transition-all"
-            :class="caixaAberto
-              ? 'border-gray-200 dark:border-white/10 bg-gray-100 dark:bg-white/[0.06] text-gray-400 dark:text-white/50 hover:border-red-500/40 hover:text-red-400'
-              : 'border-green-500/30 bg-green-500/10 text-green-500 dark:text-green-400 hover:bg-green-500/20'"
+            class="nb__caixa" :class="caixaAberto ? 'nb__caixa--aberto' : 'nb__caixa--fechado'"
           >
             <span
               class="w-1.5 h-1.5 rounded-full shrink-0"
-              :class="caixaAberto ? 'bg-green-500 animate-pulse' : 'bg-gray-400 dark:bg-white/20'"
+              :class="caixaAberto ? 'bg-[var(--st-pronto)]' : 'bg-[var(--acao)]'"
             ></span>
             <span class="sm:hidden">{{ caixaAberto ? 'Aberto' : 'Abrir' }}</span>
-            <span class="hidden sm:inline">{{ caixaAberto ? 'Caixa Aberto' : 'Abrir Caixa' }}</span>
+            <span class="hidden sm:inline">{{ caixaAberto ? 'Caixa aberto' : 'Abrir caixa' }}</span>
           </button>
-          <div class="w-px h-5 bg-gray-200 dark:bg-white/10"></div>
+          <div class="w-px h-6 bg-[var(--linha)]"></div>
         </template>
 
         <!-- PROFILE DROPDOWN -->
         <div ref="dropdownRef" class="relative">
           <button
             @click="dropdownAberto = !dropdownAberto"
-            class="flex items-center gap-2 h-8 px-2 rounded-lg hover:bg-gray-100 dark:hover:bg-white/[0.06] transition-all"
+            class="nb__perfil"
           >
-            <div class="w-6 h-6 rounded-md bg-orange-500/15 border border-orange-500/20 flex items-center justify-center shrink-0">
-              <span class="text-[11px] font-black text-orange-400">{{ inicial }}</span>
+            <div class="nb__avatar">
+              <span>{{ inicial }}</span>
             </div>
-            <span class="text-xs font-black text-gray-900 dark:text-white">{{ primeiroNome }}</span>
+            <span class="text-[13px] font-semibold text-[var(--txt)]">{{ primeiroNome }}</span>
             <ChevronDown
               :size="12"
-              class="text-gray-400 dark:text-white/40 transition-transform duration-200"
+              class="text-[var(--txt-3)] transition-transform duration-200"
               :class="dropdownAberto ? 'rotate-180' : ''"
             />
           </button>
@@ -65,12 +60,12 @@
           >
             <div
               v-if="dropdownAberto"
-              class="absolute right-0 top-full mt-2 w-52 bg-white dark:bg-neutral-900/90 backdrop-blur-xl border border-gray-200 dark:border-white/[0.08] rounded-2xl shadow-xl shadow-gray-200/80 dark:shadow-black/40 overflow-hidden z-50"
+              class="nb__menu absolute right-0 top-full mt-2 w-60 overflow-hidden z-50"
             >
               <!-- INFO USUÁRIO -->
-              <div class="px-4 py-3 border-b border-gray-100 dark:border-white/[0.06]">
-                <p class="text-xs font-black text-gray-900 dark:text-white">{{ authStore.usuario?.nome }}</p>
-                <p class="text-[11px] text-gray-500 dark:text-white/40 mt-0.5">{{ labelCargo }}</p>
+              <div class="px-4 py-3 border-b border-[var(--linha)]">
+                <p class="text-sm font-semibold text-[var(--txt)]">{{ authStore.usuario?.nome }}</p>
+                <p class="text-[13px] text-[var(--txt-2)] mt-0.5">{{ labelCargo }}</p>
               </div>
 
               <!-- ITENS -->
@@ -79,19 +74,19 @@
                 <!-- TEMA -->
                 <button
                   @click="themeStore.toggle()"
-                  class="w-full flex items-center gap-3 h-9 px-3 rounded-xl text-xs font-bold text-gray-500 dark:text-white/60 hover:bg-gray-100 dark:hover:bg-white/[0.06] hover:text-gray-900 dark:hover:text-white transition-all"
+                  class="nb__opcao"
                 >
                   <Sun v-if="themeStore.dark" :size="14" />
                   <Moon v-else :size="14" />
                   {{ themeStore.dark ? 'Modo claro' : 'Modo escuro' }}
                 </button>
 
-                <div class="h-px bg-gray-100 dark:bg-white/[0.06] my-1" />
+                <div class="h-px bg-[var(--linha)] my-1" />
 
                 <!-- SAIR -->
                 <button
                   @click="authStore.logout()"
-                  class="w-full flex items-center gap-3 h-9 px-3 rounded-xl text-xs font-bold text-red-500 hover:bg-red-50 dark:hover:bg-red-950/40 transition-all"
+                  class="nb__opcao nb__opcao--sair"
                 >
                   <LogOut :size="14" />
                   Sair
@@ -106,18 +101,15 @@
     </div>
 
     <!-- NAVEGAÇÃO MOBILE (< sm) -->
-    <div class="sm:hidden overflow-x-auto nav-scroll border-t border-gray-200 dark:border-white/[0.06]">
+    <div class="sm:hidden overflow-x-auto nav-scroll border-t border-[var(--linha)]">
       <div class="flex items-center gap-1 px-2 py-1.5 w-max">
         <button
           v-for="item in navItems"
           :key="'mob-' + item.rota"
           @click="router.push(item.rota)"
-          class="flex items-center gap-1.5 h-8 px-3 rounded-lg text-xs font-bold transition-all whitespace-nowrap"
-          :class="isAtivo(item.rota)
-            ? 'bg-orange-500 text-white shadow-sm shadow-orange-500/30'
-            : 'bg-gray-100 dark:bg-white/[0.06] text-gray-500 dark:text-white/50'"
+          class="nb__chip" :class="{ ativo: isAtivo(item.rota) }"
         >
-          <component :is="item.icon" :size="12" stroke-width="2.2" />
+          <component :is="item.icon" :size="16" stroke-width="2" />
           <span>{{ item.label }}</span>
         </button>
       </div>
@@ -349,6 +341,70 @@
 .fade-enter-from, .fade-leave-to { opacity: 0; }
 .nav-scroll::-webkit-scrollbar { display: none; }
 .nav-scroll { -ms-overflow-style: none; scrollbar-width: none; }
+
+/* Barra superior sobre tokens — sólida, sem blur (ver tokens.css, nota 2) */
+.nb { background: var(--sup-painel); border-bottom: 1px solid var(--linha); }
+
+.nb__caixa {
+  display: inline-flex; align-items: center; gap: 8px;
+  height: 36px; padding: 0 14px;
+  border-radius: var(--r-controle);
+  border: 1px solid var(--linha);
+  font-size: var(--t-micro); font-weight: 600;
+  transition: background-color var(--tempo-toque) var(--curva), color var(--tempo-toque) var(--curva);
+}
+.nb__caixa span:first-child { width: 8px; height: 8px; border-radius: 50%; }
+/* Fechado = ação pendente (laranja); aberto = estado (verde, discreto) */
+.nb__caixa--fechado { background: var(--acao); border-color: var(--acao); color: var(--acao-txt); }
+.nb__caixa--fechado span:first-child { background: #fff !important; }
+.nb__caixa--fechado:hover { background: var(--acao-hover); }
+.nb__caixa--aberto { background: var(--sup-elevado); color: var(--txt-2); }
+.nb__caixa--aberto:hover { color: var(--st-atencao); border-color: var(--st-atencao); }
+
+.nb__perfil {
+  display: flex; align-items: center; gap: 8px;
+  height: 40px; padding: 0 8px 0 4px;
+  border-radius: var(--r-controle);
+}
+.nb__perfil:hover { background: var(--sup-elevado); }
+.nb__avatar {
+  width: 32px; height: 32px; flex-shrink: 0;
+  display: grid; place-items: center;
+  border-radius: 8px;
+  background: var(--sup-elevado);
+  border: 1px solid var(--linha);
+  color: var(--txt);
+  font-size: var(--t-micro); font-weight: 700;
+}
+
+.nb__menu {
+  background: var(--sup-cartao);
+  border: 1px solid var(--linha);
+  border-radius: var(--r-cartao);
+  box-shadow: var(--sombra-folha);
+}
+.nb__opcao {
+  width: 100%;
+  display: flex; align-items: center; gap: 12px;
+  min-height: 44px; padding: 0 12px;
+  border-radius: 8px;
+  font-size: var(--t-micro); font-weight: 500;
+  color: var(--txt-2);
+}
+.nb__opcao:hover { background: var(--sup-elevado); color: var(--txt); }
+.nb__opcao--sair { color: var(--st-atencao); }
+.nb__opcao--sair:hover { background: var(--st-atencao-bg); color: var(--st-atencao); }
+
+.nb__chip {
+  display: flex; align-items: center; gap: 6px;
+  height: 40px; padding: 0 14px;
+  border-radius: var(--r-controle);
+  font-size: var(--t-micro); font-weight: 500;
+  white-space: nowrap;
+  background: var(--sup-elevado);
+  color: var(--txt-2);
+}
+.nb__chip.ativo { background: var(--txt); color: var(--sup-fundo); font-weight: 600; }
 </style>
 
 <script setup lang="ts">

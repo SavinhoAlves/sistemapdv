@@ -20,15 +20,15 @@
       >
         <div
           v-if="mostrarBloqueio"
-          class="absolute inset-0 z-30 flex flex-col items-center justify-center bg-white/70 dark:bg-neutral-950/75 backdrop-blur-sm"
+          class="absolute inset-0 z-30 flex flex-col items-center justify-center" style="background: color-mix(in srgb, var(--sup-fundo) 88%, transparent)"
         >
           <div class="flex flex-col items-center gap-4 text-center px-6 max-w-xs">
-            <div class="w-16 h-16 rounded-3xl bg-gray-100 dark:bg-white/[0.06] border border-gray-200 dark:border-white/[0.08] flex items-center justify-center">
-              <LockKeyhole :size="28" class="text-gray-400 dark:text-white/30" />
+            <div class="w-16 h-16 rounded-[14px] bg-[var(--sup-cartao)] border border-[var(--linha)] flex items-center justify-center">
+              <LockKeyhole :size="28" class="text-[var(--txt-2)]" />
             </div>
             <div>
-              <p class="text-base font-black text-gray-900 dark:text-white mb-1">Caixa fechado</p>
-              <p class="text-xs text-gray-500 dark:text-white/40 leading-relaxed">
+              <p class="text-lg font-bold text-[var(--txt)] mb-1">Caixa fechado</p>
+              <p class="text-[15px] text-[var(--txt-2)] leading-relaxed">
                 Abra o caixa pelo botão na barra superior para liberar as operações.
               </p>
             </div>

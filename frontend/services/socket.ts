@@ -2,6 +2,7 @@
 import { io, Socket } from 'socket.io-client'
 import { useAuthStore } from '~/stores/auth'
 import { useRuntimeConfig } from '#imports'
+import { urlNaOrigemAtual } from '~/services/url'
 
 let socket: Socket | null = null
 
@@ -46,10 +47,7 @@ export function useSocket() {
 
     // Usa a porta do socketUrl configurado (preserva hostname da LAN)
     const configuredUrl = config.public.socketUrl as string
-    const socketPort = (() => { try { return new URL(configuredUrl).port || '3002' } catch { return '3002' } })()
-    const socketUrl = process.client
-      ? `${window.location.protocol}//${window.location.hostname}:${socketPort}`
-      : configuredUrl
+    const socketUrl = process.client ? urlNaOrigemAtual(configuredUrl) : configuredUrl
 
     socket = io(socketUrl, opts)
 

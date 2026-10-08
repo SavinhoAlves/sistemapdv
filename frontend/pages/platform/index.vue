@@ -184,9 +184,15 @@
             <div class="rounded-2xl border border-white/[0.07] overflow-hidden">
               <div class="table-header grid items-center px-5 py-3.5"
                 style="grid-template-columns: 1fr 168px 136px 172px">
-                <span class="col-label">Restaurante</span>
-                <span class="col-label hidden md:block text-center">Licença</span>
-                <span class="col-label hidden md:block text-center">Plano</span>
+                <button @click="toggleSort('nome')" class="col-label flex items-center gap-1 hover:text-white/60 transition-colors">
+                  Restaurante <UIcon :name="sortIcon('nome')" class="size-3" />
+                </button>
+                <button @click="toggleSort('licenca')" class="col-label hidden md:flex items-center justify-center gap-1 w-full hover:text-white/60 transition-colors">
+                  Licença <UIcon :name="sortIcon('licenca')" class="size-3" />
+                </button>
+                <button @click="toggleSort('plano')" class="col-label hidden md:flex items-center justify-center gap-1 w-full hover:text-white/60 transition-colors">
+                  Plano <UIcon :name="sortIcon('plano')" class="size-3" />
+                </button>
                 <span class="col-label text-right">Ações</span>
               </div>
 
@@ -301,12 +307,16 @@
                     <!-- Status toggle -->
                     <button
                       @click="toggleStatus(tenant)"
+                      :disabled="togglingStatusId === tenant.id"
                       :title="tenant.status === 'ativo' ? 'Suspender' : 'Reativar'"
                       :class="['action-btn', tenant.status === 'ativo'
                         ? 'text-white bg-gradient-to-br from-emerald-600 to-emerald-800 shadow-md shadow-emerald-900/40'
                         : 'text-amber-400 bg-amber-500/10 hover:bg-amber-500/20']"
                     >
-                      <UIcon :name="tenant.status === 'ativo' ? 'i-lucide-toggle-right' : 'i-lucide-toggle-left'" class="size-3.5" />
+                      <UIcon
+                        :name="togglingStatusId === tenant.id ? 'i-lucide-loader-2' : (tenant.status === 'ativo' ? 'i-lucide-toggle-right' : 'i-lucide-toggle-left')"
+                        :class="['size-3.5', togglingStatusId === tenant.id ? 'animate-spin' : '']"
+                      />
                     </button>
 
                     <!-- Detalhes -->
@@ -400,448 +410,22 @@
       </main>
     </div>
 
-    <!-- ══ MODAL CRIAR / EDITAR ══ -->
-    <UModal v-model="modalAberto" :ui="{ container: 'items-start pt-8', width: 'max-w-2xl', background: 'bg-[#0e0d18]', ring: 'ring-1 ring-white/[0.09]', rounded: 'rounded-2xl' }">
-      <UCard :ui="{ background: 'bg-transparent', ring: '', divide: 'divide-white/[0.07]', header: { padding: 'px-5 py-4' }, body: { padding: 'p-0' }, footer: { padding: 'px-5 pb-5 pt-3' } }">
-        <template #header>
-          <div class="flex items-center justify-between">
-            <div class="flex items-center gap-3">
-              <div class="size-9 rounded-xl bg-gradient-to-br from-violet-600 to-violet-900 flex items-center justify-center shrink-0 shadow-lg shadow-violet-900/40">
-                <UIcon name="i-lucide-file-text" class="text-white size-4" />
-              </div>
-              <div>
-                <h2 class="text-sm font-bold text-white text-balance">{{ form.id ? 'Editar restaurante' : 'Cadastrar novo cliente' }}</h2>
-                <p class="text-white/30 text-[10px]">{{ form.id ? form.slug : 'Preencha os dados para gerar o contrato automaticamente' }}</p>
-              </div>
-            </div>
-            <button @click="fecharModal" class="size-7 rounded-xl flex items-center justify-center text-white/30 hover:text-white hover:bg-white/[0.06] transition-colors">
-              <UIcon name="i-lucide-x" class="size-3.5" />
-            </button>
-          </div>
-        </template>
+    <!-- ══ MODAIS ══ -->
+    <PlatformTenantModal v-model="modalAberto" :tenant="tenantEditando" @saved="carregar" />
 
-        <!-- ── TABS (apenas para edição) ── -->
-        <div v-if="form.id" class="flex gap-1 px-5 pt-4 border-b border-white/[0.05] pb-3">
-          <UButton
-            v-for="aba in abas" :key="aba.id"
-            :icon="aba.icon"
-            :color="abaAtiva === aba.id ? 'violet' : 'gray'"
-            :variant="abaAtiva === aba.id ? 'solid' : 'ghost'"
-            size="xs"
-            :ui="{ rounded: 'rounded-xl', font: 'font-semibold text-[11px]' }"
-            @click="abaAtiva = aba.id"
-          >{{ aba.label }}</UButton>
-        </div>
+    <PlatformConfirmDialog
+      v-model="confirmDialog.show"
+      :title="confirmDialog.title"
+      :message="confirmDialog.message"
+      :type="confirmDialog.type"
+      @resolved="onConfirmResolved"
+    />
 
-        <!-- ════ NOVO CADASTRO — form unificado ════ -->
-        <div v-if="!form.id" class="p-5 space-y-5 max-h-[75vh] overflow-y-auto">
-
-          <!-- Seção: Dados do estabelecimento -->
-          <div class="space-y-3">
-            <p class="text-[10px] font-black uppercase tracking-widest text-violet-400/60 flex items-center gap-1.5">
-              <UIcon name="i-lucide-building-2" class="size-3" /> Dados do estabelecimento
-            </p>
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div class="sm:col-span-2">
-                <label class="label-field">Nome do restaurante / comércio *</label>
-                <UInput v-model="form.nome" @input="autoSlug" placeholder="Ex: Restaurante Tarantela" size="sm" :ui="{ rounded: 'rounded-xl' }" class="input-dark" />
-              </div>
-              <div>
-                <label class="label-field">Identificador (slug) *</label>
-                <UInput v-model="form.slug" placeholder="ex: tarantela" size="sm" :ui="{ rounded: 'rounded-xl', base: 'font-mono text-xs' }" class="input-dark" />
-                <p class="text-[10px] text-white/20 mt-1">Usado na URL do sistema</p>
-              </div>
-              <div>
-                <label class="label-field">CNPJ ou CPF</label>
-                <UInput v-model="form.cnpj" placeholder="00.000.000/0001-00 ou 000.000.000-00" size="sm" :ui="{ rounded: 'rounded-xl', base: 'font-mono text-xs' }" class="input-dark" />
-              </div>
-              <div>
-                <label class="label-field">E-mail</label>
-                <UInput v-model="form.contato" type="email" placeholder="contato@restaurante.com" size="sm" :ui="{ rounded: 'rounded-xl' }" class="input-dark" />
-              </div>
-              <div>
-                <label class="label-field">Telefone</label>
-                <UInput v-model="form.telefone" placeholder="(62) 9 9999-9999" size="sm" :ui="{ rounded: 'rounded-xl' }" class="input-dark" />
-              </div>
-            </div>
-          </div>
-
-          <!-- Seção: Representante legal -->
-          <div class="space-y-3">
-            <p class="text-[10px] font-black uppercase tracking-widest text-indigo-400/60 flex items-center gap-1.5">
-              <UIcon name="i-lucide-user" class="size-3" /> Representante legal
-            </p>
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div>
-                <label class="label-field">Nome do responsável</label>
-                <UInput v-model="form.responsavel" placeholder="Nome completo" size="sm" :ui="{ rounded: 'rounded-xl' }" class="input-dark" />
-              </div>
-              <div>
-                <label class="label-field">CPF do responsável</label>
-                <UInput v-model="form.cpfResponsavel" placeholder="000.000.000-00" size="sm" :ui="{ rounded: 'rounded-xl', base: 'font-mono text-xs' }" class="input-dark" />
-              </div>
-            </div>
-          </div>
-
-          <!-- Seção: Endereço -->
-          <div class="space-y-3">
-            <p class="text-[10px] font-black uppercase tracking-widest text-sky-400/60 flex items-center gap-1.5">
-              <UIcon name="i-lucide-map-pin" class="size-3" /> Endereço
-            </p>
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div class="sm:col-span-2">
-                <label class="label-field">Logradouro (rua, número, bairro)</label>
-                <UInput v-model="form.endereco" placeholder="Rua das Flores, 123, Centro" size="sm" :ui="{ rounded: 'rounded-xl' }" class="input-dark" />
-              </div>
-              <div>
-                <label class="label-field">Cidade</label>
-                <UInput v-model="form.cidade" placeholder="Goiânia" size="sm" :ui="{ rounded: 'rounded-xl' }" class="input-dark" />
-              </div>
-              <div>
-                <label class="label-field">UF</label>
-                <UInput v-model="form.uf" placeholder="GO" maxlength="2" size="sm" :ui="{ rounded: 'rounded-xl', base: 'uppercase font-mono' }" class="input-dark" />
-              </div>
-            </div>
-          </div>
-
-          <!-- Seção: Acesso do administrador -->
-          <div class="space-y-3">
-            <p class="text-[10px] font-black uppercase tracking-widest text-rose-400/60 flex items-center gap-1.5">
-              <UIcon name="i-lucide-lock" class="size-3" /> Acesso do administrador
-            </p>
-            <div class="p-3 rounded-xl bg-rose-500/[0.05] border border-rose-500/10 text-[11px] text-rose-300/60 leading-relaxed">
-              Defina as credenciais que o cliente usará para acessar o sistema. O e-mail e a senha podem ser alterados posteriormente na área do tenant.
-            </div>
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div class="sm:col-span-2">
-                <label class="label-field">E-mail de acesso *</label>
-                <UInput v-model="adminForm.email" type="email" placeholder="admin@restaurante.com" size="sm" :ui="{ rounded: 'rounded-xl' }" class="input-dark" autocomplete="off" />
-              </div>
-              <div>
-                <label class="label-field">Senha inicial * <span class="text-white/20 normal-case font-normal">(mín. 6 caracteres)</span></label>
-                <UInput v-model="adminForm.senha" :type="mostrarSenha ? 'text' : 'password'" placeholder="••••••••" size="sm" :ui="{ rounded: 'rounded-xl' }" class="input-dark" autocomplete="new-password"
-                  :trailing-icon="mostrarSenha ? 'i-lucide-eye-off' : 'i-lucide-eye'"
-                  @click:trailing="mostrarSenha = !mostrarSenha" />
-              </div>
-              <div>
-                <label class="label-field">Confirmar senha *</label>
-                <UInput v-model="adminForm.senhaConfirm" :type="mostrarSenha ? 'text' : 'password'" placeholder="••••••••" size="sm"
-                  :ui="{ rounded: 'rounded-xl', icon: { trailing: { color: adminForm.senhaConfirm && adminForm.senhaConfirm !== adminForm.senha ? 'text-red-400' : 'text-emerald-400' } } }"
-                  :trailing-icon="adminForm.senhaConfirm ? (adminForm.senhaConfirm === adminForm.senha ? 'i-lucide-check-circle-2' : 'i-lucide-x-circle') : undefined"
-                  class="input-dark" autocomplete="new-password" />
-              </div>
-            </div>
-          </div>
-
-          <!-- Seção: Plano / Contrato -->
-          <div class="space-y-3">
-            <p class="text-[10px] font-black uppercase tracking-widest text-emerald-400/60 flex items-center gap-1.5">
-              <UIcon name="i-lucide-file-text" class="size-3" /> Plano e contrato
-            </p>
-            <div class="p-3 rounded-xl bg-indigo-500/[0.05] border border-indigo-500/10 text-[11px] text-indigo-300/60 leading-relaxed">
-              Um <strong class="text-indigo-300">Contrato de Prestação de Serviços</strong> será gerado automaticamente e ficará disponível para impressão e assinatura.
-            </div>
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div>
-                <label class="label-field">Plano *</label>
-                <div class="flex gap-1.5 mb-2 flex-wrap">
-                  <UButton v-for="p in planosPredef" :key="p"
-                    :color="contratoForm.plano === p ? 'violet' : 'gray'"
-                    :variant="contratoForm.plano === p ? 'solid' : 'ghost'"
-                    size="xs" :ui="{ rounded: 'rounded-xl', font: 'font-semibold text-xs' }"
-                    @click="contratoForm.plano = p">{{ p }}</UButton>
-                </div>
-                <UInput v-model="contratoForm.plano" placeholder="Ou escreva o nome..." size="sm" :ui="{ rounded: 'rounded-xl' }" class="input-dark" />
-              </div>
-              <div>
-                <label class="label-field">Valor mensal (R$)</label>
-                <UInput v-model="contratoForm.valor" type="number" min="0" step="0.01" placeholder="0,00" size="sm" :ui="{ rounded: 'rounded-xl' }" class="input-dark" />
-              </div>
-              <div>
-                <label class="label-field">Ciclo de cobrança</label>
-                <div class="grid grid-cols-4 gap-1.5">
-                  <UButton v-for="c in ciclos" :key="c.value"
-                    :color="contratoForm.ciclo === c.value ? 'violet' : 'gray'"
-                    :variant="contratoForm.ciclo === c.value ? 'solid' : 'ghost'"
-                    size="xs" :ui="{ rounded: 'rounded-xl', font: 'font-semibold text-xs' }"
-                    @click="contratoForm.ciclo = c.value as any">{{ c.label }}</UButton>
-                </div>
-              </div>
-              <div>
-                <label class="label-field">Início do contrato</label>
-                <UInput v-model="contratoForm.dataInicio" type="date" size="sm" :ui="{ rounded: 'rounded-xl' }" class="input-dark" />
-              </div>
-              <div>
-                <label class="label-field">Fim do contrato (opcional)</label>
-                <UInput v-model="contratoForm.dataFim" type="date" size="sm" :ui="{ rounded: 'rounded-xl' }" class="input-dark" />
-              </div>
-              <div>
-                <label class="label-field">Status do contrato</label>
-                <div class="flex gap-1.5 mt-0.5">
-                  <UButton :color="contratoForm.status === 'trial' ? 'amber' : 'gray'" :variant="contratoForm.status === 'trial' ? 'soft' : 'ghost'" size="sm" class="flex-1" :ui="{ rounded: 'rounded-xl', font: 'font-semibold text-xs' }" @click="contratoForm.status = 'trial'">Ag. assinatura</UButton>
-                  <UButton :color="contratoForm.status === 'ativo' ? 'green' : 'gray'" :variant="contratoForm.status === 'ativo' ? 'soft' : 'ghost'" size="sm" class="flex-1" :ui="{ rounded: 'rounded-xl', font: 'font-semibold text-xs' }" @click="contratoForm.status = 'ativo'">Assinado</UButton>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- ════ EDIÇÃO — abas ════ -->
-        <div v-else-if="abaAtiva === 'dados'" class="p-5 space-y-4">
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div class="sm:col-span-2">
-              <label class="label-field">Nome do restaurante *</label>
-              <UInput v-model="form.nome" @input="autoSlug" placeholder="Ex: Restaurante Tarantela" size="sm" :ui="{ rounded: 'rounded-xl' }" class="input-dark" />
-            </div>
-            <div>
-              <label class="label-field">Identificador *</label>
-              <UInput v-model="form.slug" placeholder="ex: tarantela" size="sm" :ui="{ rounded: 'rounded-xl', base: 'font-mono text-xs' }" class="input-dark" />
-              <p class="text-[10px] text-white/20 mt-1">Usado na URL do sistema</p>
-            </div>
-            <div>
-              <label class="label-field">CNPJ ou CPF</label>
-              <UInput v-model="form.cnpj" placeholder="00.000.000/0001-00" size="sm" :ui="{ rounded: 'rounded-xl', base: 'font-mono text-xs' }" class="input-dark" />
-            </div>
-            <div>
-              <label class="label-field">Nome do responsável</label>
-              <UInput v-model="form.responsavel" placeholder="Nome do responsável" size="sm" :ui="{ rounded: 'rounded-xl' }" class="input-dark" />
-            </div>
-            <div>
-              <label class="label-field">CPF do responsável</label>
-              <UInput v-model="form.cpfResponsavel" placeholder="000.000.000-00" size="sm" :ui="{ rounded: 'rounded-xl', base: 'font-mono text-xs' }" class="input-dark" />
-            </div>
-            <div>
-              <label class="label-field">E-mail</label>
-              <UInput v-model="form.contato" type="email" placeholder="contato@restaurante.com" size="sm" :ui="{ rounded: 'rounded-xl' }" class="input-dark" />
-            </div>
-            <div>
-              <label class="label-field">Telefone</label>
-              <UInput v-model="form.telefone" placeholder="(62) 9 9999-9999" size="sm" :ui="{ rounded: 'rounded-xl' }" class="input-dark" />
-            </div>
-            <div>
-              <label class="label-field">Endereço (rua, nº, bairro)</label>
-              <UInput v-model="form.endereco" placeholder="Rua das Flores, 123, Centro" size="sm" :ui="{ rounded: 'rounded-xl' }" class="input-dark" />
-            </div>
-            <div>
-              <label class="label-field">Cidade</label>
-              <UInput v-model="form.cidade" placeholder="Goiânia" size="sm" :ui="{ rounded: 'rounded-xl' }" class="input-dark" />
-            </div>
-            <div>
-              <label class="label-field">UF</label>
-              <UInput v-model="form.uf" placeholder="GO" maxlength="2" size="sm" :ui="{ rounded: 'rounded-xl', base: 'uppercase font-mono' }" class="input-dark" />
-            </div>
-            <div class="sm:col-span-2">
-              <label class="label-field">Observações</label>
-              <UTextarea v-model="form.observacoes" placeholder="Anotações internas..." :rows="2" size="sm" :ui="{ rounded: 'rounded-xl' }" class="input-dark" />
-            </div>
-          </div>
-          <div class="border-t border-white/[0.06] pt-4 space-y-3">
-            <p class="text-[10px] font-bold uppercase tracking-widest text-white/25">Features</p>
-            <div v-for="feat in features" :key="feat.key" class="flex items-center justify-between">
-              <div>
-                <p class="text-sm font-semibold text-white/80">{{ feat.label }}</p>
-                <p class="text-[11px] text-white/25">{{ feat.desc }}</p>
-              </div>
-              <UToggle
-                :model-value="(form as any)[feat.key]"
-                :on-icon="feat.onIcon"
-                :color="feat.color as any"
-                @update:model-value="(v: boolean) => (form as any)[feat.key] = v"
-              />
-            </div>
-          </div>
-        </div>
-
-        <div v-else-if="abaAtiva === 'licenca'" class="p-5">
-          <div class="space-y-4">
-            <div>
-              <label class="label-field mb-2">Status</label>
-              <div class="flex gap-2">
-                <UButton v-for="s in licencaStatuses" :key="s.value"
-                  :color="licencaForm.status === s.value ? s.color : 'gray'"
-                  :variant="licencaForm.status === s.value ? 'soft' : 'ghost'"
-                  size="sm" class="flex-1" :ui="{ rounded: 'rounded-xl', font: 'font-semibold text-xs' }"
-                  @click="licencaForm.status = s.value">{{ s.label }}</UButton>
-              </div>
-            </div>
-            <div class="grid grid-cols-2 gap-3">
-              <div>
-                <label class="label-field">Ativação</label>
-                <UInput v-model="licencaForm.dataAtivacao" type="date" size="sm" :ui="{ rounded: 'rounded-xl' }" class="input-dark" />
-              </div>
-              <div>
-                <label class="label-field">Vencimento</label>
-                <UInput v-model="licencaForm.dataVencimento" type="date" size="sm" :ui="{ rounded: 'rounded-xl' }" class="input-dark" />
-              </div>
-            </div>
-            <div v-if="licencaAtual" class="text-[10px] text-white/25 pt-1">Criada em {{ formatDate(licencaAtual.createdAt) }}</div>
-          </div>
-        </div>
-
-        <div v-else-if="abaAtiva === 'contrato'" class="p-5 space-y-4">
-          <div>
-            <label class="label-field">Plano *</label>
-            <div class="flex gap-1.5 mb-2 flex-wrap">
-              <UButton v-for="p in planosPredef" :key="p"
-                :color="contratoForm.plano === p ? 'violet' : 'gray'"
-                :variant="contratoForm.plano === p ? 'solid' : 'ghost'"
-                size="xs" :ui="{ rounded: 'rounded-xl', font: 'font-semibold text-xs' }"
-                @click="contratoForm.plano = p">{{ p }}</UButton>
-            </div>
-            <UInput v-model="contratoForm.plano" placeholder="Ou escreva o nome do plano..." size="sm" :ui="{ rounded: 'rounded-xl' }" class="input-dark" />
-          </div>
-          <div class="grid grid-cols-2 gap-3">
-            <div>
-              <label class="label-field">Valor (R$)</label>
-              <UInput v-model="contratoForm.valor" type="number" min="0" step="0.01" placeholder="0,00" size="sm" :ui="{ rounded: 'rounded-xl' }" class="input-dark" />
-            </div>
-            <div>
-              <label class="label-field">Status</label>
-              <div class="flex gap-1.5 mt-0.5">
-                <UButton :color="contratoForm.status === 'trial' ? 'amber' : 'gray'" :variant="contratoForm.status === 'trial' ? 'soft' : 'ghost'" size="sm" class="flex-1" :ui="{ rounded: 'rounded-xl', font: 'font-semibold text-xs' }" @click="contratoForm.status = 'trial'">Ag. assinatura</UButton>
-                <UButton :color="contratoForm.status === 'ativo' ? 'green' : 'gray'" :variant="contratoForm.status === 'ativo' ? 'soft' : 'ghost'" size="sm" class="flex-1" :ui="{ rounded: 'rounded-xl', font: 'font-semibold text-xs' }" @click="contratoForm.status = 'ativo'">Assinado</UButton>
-              </div>
-            </div>
-          </div>
-          <div>
-            <label class="label-field">Ciclo de cobrança</label>
-            <div class="grid grid-cols-4 gap-1.5">
-              <UButton v-for="c in ciclos" :key="c.value"
-                :color="contratoForm.ciclo === c.value ? 'violet' : 'gray'"
-                :variant="contratoForm.ciclo === c.value ? 'solid' : 'ghost'"
-                size="xs" :ui="{ rounded: 'rounded-xl', font: 'font-semibold text-xs' }"
-                @click="contratoForm.ciclo = c.value as any">{{ c.label }}</UButton>
-            </div>
-          </div>
-          <div class="grid grid-cols-2 gap-3">
-            <div>
-              <label class="label-field">Início</label>
-              <UInput v-model="contratoForm.dataInicio" type="date" size="sm" :ui="{ rounded: 'rounded-xl' }" class="input-dark" />
-            </div>
-            <div>
-              <label class="label-field">Fim (opcional)</label>
-              <UInput v-model="contratoForm.dataFim" type="date" size="sm" :ui="{ rounded: 'rounded-xl' }" class="input-dark" />
-            </div>
-          </div>
-        </div>
-
-        <UAlert v-if="erroModal" color="red" :description="erroModal" variant="soft" class="mx-5 mb-1" />
-
-        <template #footer>
-          <div class="flex gap-2">
-            <UButton color="gray" variant="ghost" block :ui="{ rounded: 'rounded-xl', font: 'font-semibold' }" @click="fecharModal">Cancelar</UButton>
-            <UButton color="violet" block :loading="salvando" :ui="{ rounded: 'rounded-xl', font: 'font-semibold' }" @click="salvar">
-              {{ salvando ? 'Salvando...' : (form.id ? 'Salvar alterações' : 'Cadastrar e gerar contrato') }}
-            </UButton>
-          </div>
-        </template>
-      </UCard>
-    </UModal>
-
-    <!-- ══ CONFIRM ══ -->
-    <UModal v-model="confirmDialog.show" :ui="{ width: 'max-w-sm', background: 'bg-[#0e0d18]', ring: 'ring-1 ring-white/[0.09]', rounded: 'rounded-2xl' }">
-      <UCard :ui="{ ring: '', background: 'bg-transparent', body: { padding: 'p-7' }, footer: { padding: 'px-6 pb-6 pt-0' } }">
-        <div class="flex flex-col items-center text-center gap-5">
-          <div :class="['size-14 rounded-2xl flex items-center justify-center shadow-xl',
-            confirmDialog.type === 'danger' ? 'bg-gradient-to-br from-red-600 to-red-900 shadow-red-900/40' : 'bg-gradient-to-br from-emerald-600 to-emerald-900 shadow-emerald-900/40']">
-            <UIcon :name="confirmDialog.type === 'danger' ? 'i-lucide-alert-triangle' : 'i-lucide-check-circle-2'" class="text-white size-6" />
-          </div>
-          <div>
-            <h3 class="text-base font-bold text-white leading-tight text-balance">{{ confirmDialog.title }}</h3>
-            <p class="text-sm text-white/40 mt-2 leading-relaxed text-pretty">{{ confirmDialog.message }}</p>
-          </div>
-        </div>
-        <template #footer>
-          <div class="flex gap-2">
-            <UButton color="gray" variant="ghost" block :ui="{ rounded: 'rounded-xl', font: 'font-semibold text-sm' }"
-              @click="confirmDialog.resolve?.(false); confirmDialog.show = false">Cancelar</UButton>
-            <UButton :color="confirmDialog.type === 'danger' ? 'red' : 'green'" block :ui="{ rounded: 'rounded-xl', font: 'font-semibold text-sm' }"
-              @click="confirmDialog.resolve?.(true); confirmDialog.show = false">Confirmar</UButton>
-          </div>
-        </template>
-      </UCard>
-    </UModal>
-
-    <!-- Modal: seletor de tela para suporte -->
-    <UModal v-model="suporteModal.aberto" :ui="{ width: 'sm:max-w-sm', rounded: 'rounded-2xl' }">
-      <UCard :ui="{ background: 'bg-[#0e0d14]', ring: 'ring-1 ring-white/[0.08]', rounded: 'rounded-2xl', body: { padding: 'p-5' }, header: { padding: 'px-5 pt-5 pb-0' } }">
-        <template #header>
-          <div class="flex items-center gap-3 mb-4">
-            <div :class="['size-9 rounded-xl flex items-center justify-center shrink-0',
-              suporteModal.modo === 'visualizacao' ? 'bg-sky-500/10' : 'bg-amber-500/10']">
-              <UIcon :name="suporteModal.modo === 'visualizacao' ? 'i-lucide-eye' : 'i-lucide-wrench'"
-                :class="['size-4', suporteModal.modo === 'visualizacao' ? 'text-sky-400' : 'text-amber-400']" />
-            </div>
-            <div>
-              <p class="text-sm font-black text-white">
-                {{ suporteModal.modo === 'visualizacao' ? 'Modo visualização' : 'Modo ação' }}
-              </p>
-              <p class="text-[11px] text-white/30">{{ suporteModal.tenant?.nome }}</p>
-            </div>
-          </div>
-          <p class="text-[11px] text-white/40 mb-3">Em qual tela o cliente está com problema?</p>
-        </template>
-
-        <div class="space-y-1.5">
-          <button
-            v-for="r in rotasSuporte" :key="r.rota"
-            @click="suporteModal.rota = r.rota"
-            :class="['w-full flex items-center gap-3 rounded-xl transition-colors text-left border',
-              r.destaque ? 'px-3 py-3' : 'px-3 py-2.5',
-              suporteModal.rota === r.rota
-                ? (suporteModal.modo === 'visualizacao' ? 'bg-sky-500/15 border-sky-500/25' : 'bg-amber-500/15 border-amber-500/25')
-                : r.destaque
-                  ? 'bg-white/[0.05] border-white/[0.10] hover:bg-white/[0.08]'
-                  : 'bg-white/[0.03] border-transparent hover:bg-white/[0.06]']"
-          >
-            <div :class="['shrink-0 flex items-center justify-center rounded-lg',
-              r.destaque ? 'size-7' : 'size-5',
-              suporteModal.rota === r.rota
-                ? (suporteModal.modo === 'visualizacao' ? 'bg-sky-500/20' : 'bg-amber-500/20')
-                : r.destaque ? 'bg-white/[0.08]' : 'bg-transparent']">
-              <UIcon :name="r.icone" :class="[
-                r.destaque ? 'size-4' : 'size-3.5',
-                suporteModal.rota === r.rota
-                  ? (suporteModal.modo === 'visualizacao' ? 'text-sky-400' : 'text-amber-400')
-                  : r.destaque ? 'text-white/60' : 'text-white/30']" />
-            </div>
-            <div>
-              <span :class="['font-semibold block leading-tight',
-                r.destaque ? 'text-xs' : 'text-xs',
-                suporteModal.rota === r.rota ? 'text-white/90' : r.destaque ? 'text-white/70' : 'text-white/50']">
-                {{ r.label }}
-              </span>
-              <span v-if="r.destaque" class="text-[10px] text-white/25">Resumo do dia com dados ao vivo</span>
-            </div>
-            <UIcon v-if="r.destaque && suporteModal.rota !== r.rota" name="i-lucide-star" class="size-3 text-white/20 ml-auto" />
-          </button>
-
-          <div class="pt-1">
-            <label class="text-[10px] font-bold text-white/25 uppercase tracking-wider block mb-1.5">Outra tela (caminho)</label>
-            <input v-model="suporteModal.rota" type="text" placeholder="/pagina-especifica"
-              class="w-full h-9 px-3 rounded-xl bg-white/[0.04] border border-white/[0.08] text-white/80 text-xs placeholder-white/20 outline-none focus:border-indigo-500/40 transition-colors font-mono" />
-          </div>
-        </div>
-
-        <template #footer>
-          <div class="flex gap-2 pt-1">
-            <button @click="suporteModal.aberto = false"
-              class="flex-1 h-9 rounded-xl bg-white/[0.04] hover:bg-white/[0.07] border border-white/[0.07] text-white/40 text-xs font-bold transition-colors">
-              Cancelar
-            </button>
-            <button @click="confirmarSuporte" :disabled="suporteModal.loading"
-              :class="['flex-1 h-9 rounded-xl text-xs font-black transition-colors flex items-center justify-center gap-2 disabled:opacity-50',
-                suporteModal.modo === 'visualizacao'
-                  ? 'bg-sky-500/15 hover:bg-sky-500/25 border border-sky-500/25 text-sky-400'
-                  : 'bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/25 text-amber-400']">
-              <UIcon v-if="suporteModal.loading" name="i-lucide-loader-2" class="size-3.5 animate-spin" />
-              <UIcon v-else :name="suporteModal.modo === 'visualizacao' ? 'i-lucide-eye' : 'i-lucide-wrench'" class="size-3.5" />
-              Entrar
-            </button>
-          </div>
-        </template>
-      </UCard>
-    </UModal>
+    <PlatformSupportModal
+      v-model="suporteModal.aberto"
+      :tenant="suporteModal.tenant"
+      :modo="suporteModal.modo"
+    />
 
     <UNotifications />
   </div>
@@ -849,8 +433,8 @@
 
 <script setup lang="ts">
 import { ref, computed, reactive, onMounted, onUnmounted } from 'vue'
+import { refDebounced } from '@vueuse/core'
 import { usePlatformAuthStore } from '~/stores/platformAuth'
-import { useAuthStore } from '~/stores/auth'
 
 definePageMeta({ layout: false })
 
@@ -858,7 +442,8 @@ interface Licenca  { id: string; status: string; dataAtivacao: string | null; da
 interface Contrato { id: string; plano: string; valor: string | null; ciclo: string; status: string; dataInicio?: string | null }
 interface Tenant {
   id: string; nome: string; slug: string; cnpj: string | null; contato: string | null
-  responsavel: string | null; telefone: string | null; endereco: string | null; observacoes: string | null
+  responsavel: string | null; cpfResponsavel: string | null; telefone: string | null
+  endereco: string | null; cidade: string | null; uf: string | null; observacoes: string | null
   status: string; rfidDisponivel: boolean; vendaMobilePermitida: boolean; createdAt: string
   licencas: Licenca[]; contratos: Contrato[]
 }
@@ -869,84 +454,54 @@ interface Dashboard {
   alertas:    { tenantId: string; nome: string; tipo: string; dias?: number }[]
 }
 
-const platformAuth  = usePlatformAuthStore()
-const authStore     = useAuthStore()
-const runtimeConfig = useRuntimeConfig()
-const toast         = useToast()
+const platformAuth      = usePlatformAuthStore()
+const toast             = useToast()
+const { platformFetch } = usePlatformFetch()
 
 const tenants    = ref<Tenant[]>([])
 const dashboard  = ref<Dashboard | null>(null)
 const loading    = ref(false)
 const erro       = ref('')
-const busca      = ref('')
-const togglingId = ref<string | null>(null)
+const busca          = ref('')
+const buscaDebounced = refDebounced(busca, 200)
+const togglingId       = ref<string | null>(null)
+const togglingStatusId = ref<string | null>(null)
+type SortCol = 'nome' | 'licenca' | 'plano'
+type SortDir = 'asc' | 'desc'
+const sortCol = ref<SortCol>('nome')
+const sortDir = ref<SortDir>('asc')
+
+const modalAberto    = ref(false)
+const tenantEditando = ref<Tenant | null>(null)
 
 const confirmDialog = reactive({
   show: false, title: '', message: '', type: 'danger' as 'danger' | 'success',
-  resolve: null as ((v: boolean) => void) | null,
 })
-function showConfirm(title: string, message: string, type: 'danger' | 'success' = 'danger'): Promise<boolean> {
-  return new Promise(resolve => { Object.assign(confirmDialog, { title, message, type, resolve, show: true }) })
-}
+let confirmResolve: ((v: boolean) => void) | null = null
 
-const modalAberto         = ref(false)
-const abaAtiva            = ref<'dados' | 'licenca' | 'contrato'>('dados')
-const salvando            = ref(false)
-const erroModal           = ref('')
-const licencaAtual        = ref<Licenca | null>(null)
-const contratoAtualTenant = ref<Contrato | null>(null)
-
-const abas = [
-  { id: 'dados' as const,    label: 'Dados',    icon: 'i-lucide-building-2' },
-  { id: 'licenca' as const,  label: 'Licença',  icon: 'i-lucide-file-text'  },
-  { id: 'contrato' as const, label: 'Contrato', icon: 'i-lucide-banknote'   },
-]
-const licencaStatuses: { value: string; label: string; color: 'green' | 'amber' | 'red' }[] = [
-  { value: 'ativado',   label: 'Ativada',   color: 'green' },
-  { value: 'pendente',  label: 'Pendente',  color: 'amber' },
-  { value: 'bloqueado', label: 'Bloqueada', color: 'red'   },
-]
-const features = [
-  { key: 'vendaMobilePermitida', label: 'Venda pelo Celular', desc: 'Acesso via QR Code e dispositivo móvel', color: 'sky',    onIcon: 'i-lucide-check' },
-  { key: 'rfidDisponivel',       label: 'RFID',               desc: 'Autenticação por cartão (feature paga)',  color: 'violet', onIcon: 'i-lucide-check' },
-]
-const planosPredef = ['Básico', 'Profissional', 'Enterprise']
-const ciclos = [
-  { value: 'mensal', label: 'Mensal' }, { value: 'trimestral', label: 'Trim.' },
-  { value: 'semestral', label: 'Semes.' }, { value: 'anual', label: 'Anual' },
-]
-const form = reactive({ id: null as string | null, nome: '', slug: '', cnpj: '', cpfResponsavel: '', responsavel: '', contato: '', telefone: '', endereco: '', cidade: '', uf: '', observacoes: '', vendaMobilePermitida: true, rfidDisponivel: false })
-const licencaForm  = reactive({ status: 'pendente', dataAtivacao: '', dataVencimento: '' })
-const contratoForm = reactive({ plano: 'Básico', valor: '', ciclo: 'mensal' as 'mensal' | 'trimestral' | 'semestral' | 'anual', dataInicio: new Date().toISOString().substring(0, 10), dataFim: '', status: 'trial' as 'trial' | 'ativo' })
-const adminForm    = reactive({ email: '', senha: '', senhaConfirm: '' })
-const mostrarSenha = ref(false)
-
-// ── Modal seletor de rota de suporte ─────────────────────────────────────────
-const rotasSuporte = [
-  { label: 'Tempo Real',     rota: '/',               icone: 'i-lucide-activity',        destaque: true  },
-  { label: 'Mesas',          rota: '/mesas',           icone: 'i-lucide-layout-grid',     destaque: false },
-  { label: 'Caixa',          rota: '/caixa',           icone: 'i-lucide-calculator',      destaque: false },
-  { label: 'Vendas',         rota: '/vendas',          icone: 'i-lucide-shopping-cart',   destaque: false },
-  { label: 'Configurações',  rota: '/configuracoes',   icone: 'i-lucide-settings',        destaque: false },
-  { label: 'Relatórios',     rota: '/relatorios',      icone: 'i-lucide-bar-chart-2',     destaque: false },
-  { label: 'Administração',  rota: '/admin',           icone: 'i-lucide-shield',          destaque: false },
-]
-const suporteModal = reactive({
-  aberto:  false,
-  tenant:  null as Tenant | null,
-  modo:    'auxiliar' as 'visualizacao' | 'auxiliar',
-  rota:    '/',
-  loading: false,
-})
 const suporteDropdown = ref<string | null>(null)
+const suporteModal = reactive({
+  aberto: false,
+  tenant: null as Tenant | null,
+  modo:   'auxiliar' as 'visualizacao' | 'auxiliar',
+})
 
-const baseUrl = computed(() => (runtimeConfig.public as any).apiUrl as string)
-const maxMrr  = computed(() => Math.max(...(dashboard.value?.financeiro?.porPlano?.map(p => p.mrr) ?? [0]), 0))
+const maxMrr = computed(() => Math.max(...(dashboard.value?.financeiro?.porPlano?.map(p => p.mrr) ?? [0]), 0))
 
 const tenantsFiltrados = computed(() => {
-  const q = busca.value.toLowerCase().trim()
-  if (!q) return tenants.value
-  return tenants.value.filter(t => t.nome.toLowerCase().includes(q) || t.slug.toLowerCase().includes(q) || (t.responsavel || '').toLowerCase().includes(q))
+  const q = buscaDebounced.value.toLowerCase().trim()
+  const list = q
+    ? tenants.value.filter(t => t.nome.toLowerCase().includes(q) || t.slug.toLowerCase().includes(q) || (t.responsavel || '').toLowerCase().includes(q))
+    : [...tenants.value]
+  list.sort((a, b) => {
+    let va = '', vb = ''
+    if (sortCol.value === 'nome')    { va = a.nome; vb = b.nome }
+    else if (sortCol.value === 'licenca') { va = a.licencas?.[0]?.status ?? ''; vb = b.licencas?.[0]?.status ?? '' }
+    else if (sortCol.value === 'plano')   { va = a.contratos?.[0]?.plano ?? ''; vb = b.contratos?.[0]?.plano ?? '' }
+    const cmp = va.localeCompare(vb, 'pt-BR')
+    return sortDir.value === 'asc' ? cmp : -cmp
+  })
+  return list
 })
 
 const metrics = computed(() => {
@@ -1005,22 +560,18 @@ function alertaDescricao(a: { tipo: string; dias?: number }) {
 }
 function formatDate(d: string | null | undefined) { if (!d) return '—'; return new Date(d).toLocaleDateString('pt-BR') }
 function formatCurrency(v: number) { return v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) }
-function slugify(s: string) { return s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') }
-function autoSlug() { if (!form.id) form.slug = slugify(form.nome) }
+
+function toggleSort(col: SortCol) {
+  if (sortCol.value === col) { sortDir.value = sortDir.value === 'asc' ? 'desc' : 'asc' }
+  else { sortCol.value = col; sortDir.value = 'asc' }
+}
+function sortIcon(col: SortCol) {
+  if (sortCol.value !== col) return 'i-lucide-chevrons-up-down'
+  return sortDir.value === 'asc' ? 'i-lucide-chevron-up' : 'i-lucide-chevron-down'
+}
 
 function showToast(type: 'success' | 'error', description: string) {
   toast.add({ title: type === 'success' ? 'Sucesso' : 'Erro', description, color: type === 'success' ? 'green' : 'red', icon: type === 'success' ? 'i-lucide-check-circle-2' : 'i-lucide-alert-circle', timeout: 3000 })
-}
-
-async function platformFetch<T>(path: string, options: RequestInit = {}): Promise<T> {
-  const resp = await fetch(`${baseUrl.value}/api${path}`, {
-    ...options,
-    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${platformAuth.token}`, ...((options.headers as any) || {}) },
-  })
-  if (resp.status === 401) { platformAuth.logout(); navigateTo('/platform/login'); throw new Error('Sessão expirada') }
-  const data = await resp.json()
-  if (!resp.ok) throw new Error(data.error || `Erro ${resp.status}`)
-  return data as T
 }
 
 async function carregar() {
@@ -1032,73 +583,14 @@ async function carregar() {
   finally { loading.value = false }
 }
 
-function resetContratoForm() {
-  contratoForm.plano = 'Básico'; contratoForm.valor = ''; contratoForm.ciclo = 'mensal'
-  contratoForm.dataInicio = new Date().toISOString().substring(0, 10); contratoForm.dataFim = ''; contratoForm.status = 'trial'
+function showConfirm(title: string, message: string, type: 'danger' | 'success' = 'danger'): Promise<boolean> {
+  return new Promise(resolve => { confirmResolve = resolve; Object.assign(confirmDialog, { title, message, type, show: true }) })
 }
+function onConfirmResolved(v: boolean) { confirmResolve?.(v); confirmResolve = null }
 
 function abrirModal(tenant: Tenant | null) {
-  erroModal.value = ''; abaAtiva.value = 'dados'; licencaAtual.value = null; contratoAtualTenant.value = null
-  if (tenant) {
-    Object.assign(form, { id: tenant.id, nome: tenant.nome, slug: tenant.slug, cnpj: tenant.cnpj || '', cpfResponsavel: (tenant as any).cpfResponsavel || '', responsavel: tenant.responsavel || '', contato: tenant.contato || '', telefone: tenant.telefone || '', endereco: tenant.endereco || '', cidade: (tenant as any).cidade || '', uf: (tenant as any).uf || '', observacoes: tenant.observacoes || '', vendaMobilePermitida: tenant.vendaMobilePermitida, rfidDisponivel: tenant.rfidDisponivel })
-    const lic = tenant.licencas?.[0]
-    if (lic) { licencaAtual.value = lic; licencaForm.status = lic.status; licencaForm.dataAtivacao = lic.dataAtivacao?.substring(0, 10) || ''; licencaForm.dataVencimento = lic.dataVencimento?.substring(0, 10) || '' }
-    else { licencaForm.status = 'pendente'; licencaForm.dataAtivacao = ''; licencaForm.dataVencimento = '' }
-    const con = tenant.contratos?.[0]
-    if (con) { contratoAtualTenant.value = con; contratoForm.plano = con.plano; contratoForm.valor = con.valor || ''; contratoForm.ciclo = (con.ciclo as any) || 'mensal'; contratoForm.dataInicio = con.dataInicio?.substring(0, 10) || ''; contratoForm.dataFim = (con as any).dataFim?.substring(0, 10) || ''; contratoForm.status = (con.status as any) || 'trial' }
-    else resetContratoForm()
-  } else {
-    Object.assign(form, { id: null, nome: '', slug: '', cnpj: '', cpfResponsavel: '', responsavel: '', contato: '', telefone: '', endereco: '', cidade: '', uf: '', observacoes: '', vendaMobilePermitida: true, rfidDisponivel: false })
-    licencaForm.status = 'pendente'; licencaForm.dataAtivacao = ''; licencaForm.dataVencimento = ''; resetContratoForm()
-    Object.assign(adminForm, { email: '', senha: '', senhaConfirm: '' }); mostrarSenha.value = false
-  }
+  tenantEditando.value = tenant
   modalAberto.value = true
-}
-function fecharModal() { modalAberto.value = false }
-
-async function salvar() {
-  erroModal.value = ''
-  if (!form.nome.trim()) { erroModal.value = 'Nome é obrigatório'; return }
-  if (!form.slug.trim()) { erroModal.value = 'Identificador é obrigatório'; return }
-  salvando.value = true
-  try {
-    if (!form.id) {
-      if (!contratoForm.plano.trim()) { erroModal.value = 'Selecione o plano do contrato'; salvando.value = false; return }
-      if (!adminForm.email.trim()) { erroModal.value = 'E-mail do administrador é obrigatório'; salvando.value = false; return }
-      if (adminForm.senha.length < 6) { erroModal.value = 'Senha deve ter no mínimo 6 caracteres'; salvando.value = false; return }
-      if (adminForm.senha !== adminForm.senhaConfirm) { erroModal.value = 'As senhas não conferem'; salvando.value = false; return }
-      const payload: any = {
-        nome: form.nome, slug: form.slug,
-        cnpj: form.cnpj || null, cpfResponsavel: form.cpfResponsavel || null,
-        responsavel: form.responsavel || null, contato: form.contato || null,
-        telefone: form.telefone || null, endereco: form.endereco || null,
-        cidade: form.cidade || null, uf: form.uf || null,
-        observacoes: form.observacoes || null,
-        vendaMobilePermitida: form.vendaMobilePermitida, rfidDisponivel: form.rfidDisponivel,
-        contrato: { plano: contratoForm.plano.trim(), valor: contratoForm.valor ? parseFloat(contratoForm.valor) : null, ciclo: contratoForm.ciclo, dataInicio: contratoForm.dataInicio || null, dataFim: contratoForm.dataFim || null, status: contratoForm.status },
-        adminEmail: adminForm.email.trim(), adminSenha: adminForm.senha,
-      }
-      const created = await platformFetch<any>('/platform/tenants', { method: 'POST', body: JSON.stringify(payload) })
-      fecharModal(); await carregar()
-      showToast('success', 'Cliente cadastrado! Contrato disponível para impressão.')
-      navigateTo(`/platform/tenants/${created.id}`)
-      return
-    }
-    const tid = form.id
-    if (abaAtiva.value === 'dados') {
-      await platformFetch(`/platform/tenants/${tid}`, { method: 'PUT', body: JSON.stringify({ nome: form.nome, slug: form.slug, cnpj: form.cnpj || null, cpfResponsavel: form.cpfResponsavel || null, responsavel: form.responsavel || null, contato: form.contato || null, telefone: form.telefone || null, endereco: form.endereco || null, cidade: form.cidade || null, uf: form.uf || null, observacoes: form.observacoes || null, vendaMobilePermitida: form.vendaMobilePermitida, rfidDisponivel: form.rfidDisponivel }) })
-      showToast('success', 'Dados atualizados!')
-    } else if (abaAtiva.value === 'licenca') {
-      await platformFetch(`/platform/tenants/${tid}/licenca`, { method: 'PUT', body: JSON.stringify({ status: licencaForm.status, dataAtivacao: licencaForm.dataAtivacao || null, dataVencimento: licencaForm.dataVencimento || null }) })
-      showToast('success', 'Licença atualizada!')
-    } else if (abaAtiva.value === 'contrato') {
-      if (!contratoForm.plano.trim()) { erroModal.value = 'Informe o nome do plano'; salvando.value = false; return }
-      await platformFetch(`/platform/tenants/${tid}/contrato`, { method: 'PUT', body: JSON.stringify({ plano: contratoForm.plano.trim(), valor: contratoForm.valor ? parseFloat(contratoForm.valor) : null, ciclo: contratoForm.ciclo, dataInicio: contratoForm.dataInicio || null, dataFim: contratoForm.dataFim || null, status: contratoForm.status }) })
-      showToast('success', 'Contrato atualizado!')
-    }
-    fecharModal(); await carregar()
-  } catch (e: any) { erroModal.value = e?.message || 'Erro ao salvar' }
-  finally { salvando.value = false }
 }
 
 async function toggleRfid(tenant: Tenant) {
@@ -1112,39 +604,9 @@ async function toggleRfid(tenant: Tenant) {
 }
 
 function acessarComoSuporte(tenant: Tenant, modo: 'visualizacao' | 'auxiliar') {
-  suporteModal.tenant  = tenant
-  suporteModal.modo    = modo
-  suporteModal.rota    = '/'
-  suporteModal.loading = false
-  suporteModal.aberto  = true
-}
-
-async function confirmarSuporte() {
-  if (!suporteModal.tenant) return
-  suporteModal.loading = true
-
-  // Abre a aba imediatamente (gesto síncrono do usuário) para evitar bloqueio de popup
-  const novaAba = window.open('about:blank', '_blank')
-
-  try {
-    const res = await platformFetch<any>(`/platform/tenants/${suporteModal.tenant.id}/support-token`, { method: 'POST', body: '{}' })
-    authStore.entrarComoSuporte(res.access_token, res.tenantNome, {
-      id:    res.usuario.id,
-      nome:  res.usuario.nome,
-      cargo: res.usuario.cargo,
-    }, suporteModal.modo)
-    suporteModal.aberto = false
-
-    // Navega a aba já aberta para a rota escolhida
-    if (novaAba) {
-      novaAba.location.href = suporteModal.rota
-    }
-  } catch (e: any) {
-    novaAba?.close()
-    showToast('error', e?.message || 'Não foi possível gerar token de suporte')
-  } finally {
-    suporteModal.loading = false
-  }
+  suporteModal.tenant = tenant
+  suporteModal.modo   = modo
+  suporteModal.aberto = true
 }
 
 async function toggleStatus(tenant: Tenant) {
@@ -1155,12 +617,14 @@ async function toggleStatus(tenant: Tenant) {
     novoStatus === 'suspenso' ? 'danger' : 'success'
   )
   if (!ok) return
+  togglingStatusId.value = tenant.id
   try {
     await platformFetch(`/platform/tenants/${tenant.id}/status`, { method: 'PATCH', body: JSON.stringify({ status: novoStatus }) })
     tenant.status = novoStatus
     showToast('success', novoStatus === 'suspenso' ? 'Tenant suspenso' : 'Tenant reativado')
     await carregar()
   } catch (e: any) { showToast('error', e?.message || 'Erro') }
+  finally { togglingStatusId.value = null }
 }
 
 async function handleLogout() {
@@ -1203,10 +667,4 @@ onUnmounted(() => {
 .meta-pill-indigo { background: rgba(99,102,241,0.1);  color: rgb(165,180,252); border: 1px solid rgba(99,102,241,0.18); }
 
 .action-btn { width: 30px; height: 30px; border-radius: 10px; display: flex; align-items: center; justify-content: center; transition: all 0.15s; cursor: pointer; flex-shrink: 0; }
-
-.label-field { display: block; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; color: rgba(255,255,255,0.30); margin-bottom: 6px; }
-
-.input-dark :deep(input), .input-dark :deep(textarea) { background: rgba(255,255,255,0.04); border-color: rgba(255,255,255,0.08); color: rgba(255,255,255,0.85); }
-.input-dark :deep(input)::placeholder, .input-dark :deep(textarea)::placeholder { color: rgba(255,255,255,0.18); }
-.input-dark :deep(input):focus, .input-dark :deep(textarea):focus { border-color: rgba(139,92,246,0.5); background: rgba(255,255,255,0.06); }
 </style>

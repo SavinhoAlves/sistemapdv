@@ -776,9 +776,9 @@ interface Tenant {
   licencas: Licenca[]; contratos: Contrato[]
 }
 
-const route        = useRoute()
-const platformAuth = usePlatformAuthStore()
-const runtimeConfig = useRuntimeConfig()
+const route             = useRoute()
+const platformAuth      = usePlatformAuthStore()
+const { platformFetch } = usePlatformFetch()
 
 const tenant         = ref<Tenant | null>(null)
 const loading        = ref(false)
@@ -863,7 +863,6 @@ const periodos = [
   { label: '1 ano', dias: 365  },
 ]
 
-const baseUrl       = computed(() => (runtimeConfig.public as any).apiUrl as string)
 const licencaAtual  = computed(() => tenant.value?.licencas?.[0] ?? null)
 const contratoAtual = computed(() => tenant.value?.contratos?.[0] ?? null)
 
@@ -930,15 +929,6 @@ function formatDate(d: string | null | undefined) { if (!d) return '—'; return
 function formatCurrency(v: string | number) { return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(v)) }
 function showToast(type: 'success' | 'error', text: string) { toastMsg.type = type; toastMsg.text = text; setTimeout(() => { toastMsg.text = '' }, 3000) }
 
-async function platformFetch<T>(path: string, options: RequestInit = {}): Promise<T> {
-  const resp = await fetch(`${baseUrl.value}/api${path}`, {
-    ...options, headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${platformAuth.token}`, ...((options.headers as any) || {}) },
-  })
-  if (resp.status === 401) { platformAuth.logout(); navigateTo('/platform/login'); throw new Error('Sessão expirada') }
-  const data = await resp.json()
-  if (!resp.ok) throw new Error(data.error || `Erro ${resp.status}`)
-  return data as T
-}
 
 async function carregar() {
   loading.value = true; erro.value = ''

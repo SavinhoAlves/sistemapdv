@@ -64,16 +64,16 @@ export const useAuthStore = defineStore('auth', {
       }
     },
 
-    entrarComoSuporte(access_token: string, tenantNome: string, usuario: Usuario, modo: 'visualizacao' | 'auxiliar' = 'auxiliar', rota = '/') {
+    entrarComoSuporte(access_token: string, tenantNome: string, usuario: Usuario, modo: 'visualizacao' | 'auxiliar' = 'auxiliar') {
       if (!process.client) return
-      // Grava em chaves temporárias; a nova aba lê e migra para as chaves de auth normais
+      // Grava em chaves temporárias; a nova aba lê e migra para as chaves de auth normais.
+      // A abertura da aba é responsabilidade do chamador (SupportModal) para evitar race condition.
       localStorage.setItem('suporte_pending_token',  access_token)
       localStorage.setItem('suporte_pending_tenant', tenantNome)
       localStorage.setItem('suporte_pending_modo',   modo)
       localStorage.setItem('suporte_pending_nome',   usuario.nome)
       localStorage.setItem('suporte_pending_cargo',  usuario.cargo)
       localStorage.setItem('suporte_pending_id',     usuario.id)
-      window.open(rota, '_blank')
     },
 
     alterarModoSuporte(modo: 'visualizacao' | 'auxiliar') {

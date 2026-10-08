@@ -1,4 +1,6 @@
 import type { FastifyInstance } from 'fastify'
+import { execFile } from 'child_process'
+import { promisify } from 'util'
 import { requireTenant } from '../../middlewares/tenant.middleware'
 import { requirePermissao } from '../../middlewares/permission.middleware'
 import { prisma } from '../../lib/prisma'
@@ -6,6 +8,8 @@ import {
   carregarConfig, cfgToLegacy, tamanhoLogo,
   montarCupomTeste, enviarParaImpressora, logoParaRasterEscPos,
 } from '../impressao/impressao.utils'
+
+const execFileAsync = promisify(execFile)
 
 const DESTINOS_VALIDOS = ['caixa', 'cozinha', 'bar']
 const TIPOS_VALIDOS    = ['navegador', 'rede', 'windows']
@@ -24,6 +28,21 @@ function normalizar(body: any) {
 }
 
 export async function impressorasRoutes(app: FastifyInstance) {
+  // Lista impressoras instaladas no Windows via Get-Printer (PowerShell)
+  app.get('/instaladas', { preHandler: [requireTenant] }, async (_request, reply) => {
+    if (process.platform !== 'win32') return reply.send({ impressoras: [] })
+    try {
+      const { stdout } = await execFileAsync('powershell.exe', [
+        '-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass',
+        '-Command', '(Get-Printer | Select-Object -ExpandProperty Name) -join "|"',
+      ], { timeout: 6000 })
+      const nomes = stdout.trim().split('|').map(s => s.trim()).filter(Boolean)
+      return reply.send({ impressoras: nomes })
+    } catch {
+      return reply.send({ impressoras: [] })
+    }
+  })
+
   app.get('/', { preHandler: [requireTenant] }, async (request) => {
     return prisma.impressora.findMany({
       where: { tenantId: request.tenantId! },

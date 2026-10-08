@@ -246,8 +246,10 @@
     <Teleport to="body">
       <Transition name="fade">
         <div v-if="modalFunc" class="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4" @click.self="modalFunc = false">
-          <div class="bg-white dark:bg-neutral-900/90 backdrop-blur-2xl border border-gray-200 dark:border-white/[0.08] rounded-3xl p-6 w-full max-w-md shadow-2xl">
-            <div class="flex items-center justify-between mb-5">
+          <div class="bg-white dark:bg-neutral-900/90 backdrop-blur-2xl border border-gray-200 dark:border-white/[0.08] rounded-3xl w-full max-w-md shadow-2xl flex flex-col max-h-[90vh]">
+
+            <!-- header -->
+            <div class="flex items-center justify-between px-6 pt-6 pb-4 shrink-0">
               <h2 class="text-lg font-black text-gray-900 dark:text-white">
                 {{ funcForm.id ? 'Editar Funcionário' : 'Novo Funcionário' }}
               </h2>
@@ -256,7 +258,8 @@
               </button>
             </div>
 
-            <div class="space-y-3">
+            <!-- conteúdo rolável -->
+            <div class="flex-1 overflow-y-auto px-6 pb-2 space-y-3">
               <div>
                 <label for="fNome" class="block text-[10px] font-black uppercase tracking-widest text-gray-500 dark:text-white/40 mb-1.5">Nome *</label>
                 <input id="fNome" v-model="funcForm.nome" type="text" placeholder="Nome completo"
@@ -318,11 +321,11 @@
                   </button>
                 </div>
               </div>
+              <div v-if="erroFunc" class="text-xs text-red-500 font-bold">{{ erroFunc }}</div>
             </div>
 
-            <div v-if="erroFunc" class="mt-3 text-xs text-red-500 font-bold">{{ erroFunc }}</div>
-
-            <div class="flex gap-3 mt-6">
+            <!-- footer flutuante -->
+            <div class="px-6 py-4 border-t border-gray-100 dark:border-white/[0.07] shrink-0 flex gap-3">
               <button @click="modalFunc = false"
                 class="flex-1 h-11 rounded-2xl border border-gray-200 dark:border-white/10 text-gray-500 dark:text-white/60 text-sm font-black transition-all hover:bg-gray-50 dark:hover:bg-white/5">
                 Cancelar
@@ -332,6 +335,7 @@
                 {{ salvandoFunc ? 'Salvando...' : 'Salvar' }}
               </button>
             </div>
+
           </div>
         </div>
       </Transition>
@@ -341,18 +345,26 @@
     <Teleport to="body">
       <Transition name="fade">
         <div v-if="modalCat" class="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4" @click.self="modalCat = false">
-          <div class="bg-white dark:bg-neutral-900/90 backdrop-blur-2xl border border-gray-200 dark:border-white/[0.08] rounded-3xl p-6 w-full max-w-sm shadow-2xl">
-            <div class="flex items-center justify-between mb-5">
+          <div class="bg-white dark:bg-neutral-900/90 backdrop-blur-2xl border border-gray-200 dark:border-white/[0.08] rounded-3xl w-full max-w-sm shadow-2xl flex flex-col max-h-[90vh]">
+
+            <!-- header -->
+            <div class="flex items-center justify-between px-6 pt-6 pb-4 shrink-0">
               <h2 class="text-lg font-black text-gray-900 dark:text-white">{{ catForm.id ? 'Editar' : 'Nova' }} Categoria</h2>
               <button @click="modalCat = false" class="w-8 h-8 rounded-xl bg-gray-100 dark:bg-white/[0.06] hover:bg-red-950/40 hover:text-red-500 text-gray-500 dark:text-white/60 flex items-center justify-center transition-all shrink-0">
                 <X :size="15" />
               </button>
             </div>
-            <label for="cNome" class="block text-[10px] font-black uppercase tracking-widest text-gray-500 dark:text-white/40 mb-2">Nome *</label>
-            <input id="cNome" v-model="catForm.nome" type="text" placeholder="Ex: Bebidas"
-              class="w-full h-11 px-4 bg-gray-50 dark:bg-white/[0.06] border border-gray-200 dark:border-white/10 rounded-xl text-gray-900 dark:text-white text-sm outline-none focus:border-orange-500 transition-all placeholder:text-gray-400 dark:placeholder:text-white/25 mb-5" />
-            <div v-if="erroCat" class="mb-3 text-xs text-red-500 font-bold">{{ erroCat }}</div>
-            <div class="flex gap-3">
+
+            <!-- conteúdo rolável -->
+            <div class="flex-1 overflow-y-auto px-6 pb-2">
+              <label for="cNome" class="block text-[10px] font-black uppercase tracking-widest text-gray-500 dark:text-white/40 mb-2">Nome *</label>
+              <input id="cNome" v-model="catForm.nome" type="text" placeholder="Ex: Bebidas"
+                class="w-full h-11 px-4 bg-gray-50 dark:bg-white/[0.06] border border-gray-200 dark:border-white/10 rounded-xl text-gray-900 dark:text-white text-sm outline-none focus:border-orange-500 transition-all placeholder:text-gray-400 dark:placeholder:text-white/25" />
+              <div v-if="erroCat" class="mt-2 text-xs text-red-500 font-bold">{{ erroCat }}</div>
+            </div>
+
+            <!-- footer flutuante -->
+            <div class="px-6 py-4 border-t border-gray-100 dark:border-white/[0.07] shrink-0 flex gap-3">
               <button @click="modalCat = false"
                 class="flex-1 h-11 rounded-2xl border border-gray-200 dark:border-white/10 text-gray-500 dark:text-white/60 text-sm font-black hover:bg-gray-50 dark:hover:bg-white/5 transition-all">
                 Cancelar
@@ -362,6 +374,7 @@
                 {{ salvandoCat ? 'Salvando...' : 'Salvar' }}
               </button>
             </div>
+
           </div>
         </div>
       </Transition>
@@ -371,8 +384,10 @@
     <Teleport to="body">
       <Transition name="fade">
         <div v-if="modalPerfil" class="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4" @click.self="modalPerfil = false">
-          <div class="bg-white dark:bg-neutral-900/90 backdrop-blur-2xl border border-gray-200 dark:border-white/[0.08] rounded-3xl p-6 w-full max-w-md shadow-2xl max-h-[90vh] overflow-y-auto">
-            <div class="flex items-center justify-between mb-5">
+          <div class="bg-white dark:bg-neutral-900/90 backdrop-blur-2xl border border-gray-200 dark:border-white/[0.08] rounded-3xl w-full max-w-md shadow-2xl flex flex-col max-h-[90vh]">
+
+            <!-- header -->
+            <div class="flex items-center justify-between px-6 pt-6 pb-4 shrink-0">
               <h2 class="text-lg font-black text-gray-900 dark:text-white">
                 {{ perfilForm.id ? 'Editar Perfil' : 'Novo Perfil' }}
               </h2>
@@ -381,61 +396,65 @@
               </button>
             </div>
 
-            <div class="space-y-3 mb-5">
-              <div>
-                <label class="block text-[10px] font-black uppercase tracking-widest text-gray-500 dark:text-white/40 mb-1.5">Nome *</label>
-                <input v-model="perfilForm.nome" type="text" placeholder="Ex: Caixa Sênior"
-                  class="w-full h-11 px-4 bg-gray-50 dark:bg-white/[0.06] border border-gray-200 dark:border-white/10 rounded-xl text-gray-900 dark:text-white text-sm outline-none focus:border-orange-500 transition-all placeholder:text-gray-400 dark:placeholder:text-white/25" />
+            <!-- conteúdo rolável -->
+            <div class="flex-1 overflow-y-auto px-6 pb-2 space-y-5">
+              <div class="space-y-3">
+                <div>
+                  <label class="block text-[10px] font-black uppercase tracking-widest text-gray-500 dark:text-white/40 mb-1.5">Nome *</label>
+                  <input v-model="perfilForm.nome" type="text" placeholder="Ex: Caixa Sênior"
+                    class="w-full h-11 px-4 bg-gray-50 dark:bg-white/[0.06] border border-gray-200 dark:border-white/10 rounded-xl text-gray-900 dark:text-white text-sm outline-none focus:border-orange-500 transition-all placeholder:text-gray-400 dark:placeholder:text-white/25" />
+                </div>
+                <div>
+                  <label class="block text-[10px] font-black uppercase tracking-widest text-gray-500 dark:text-white/40 mb-1.5">Descrição</label>
+                  <input v-model="perfilForm.descricao" type="text" placeholder="Descrição opcional"
+                    class="w-full h-11 px-4 bg-gray-50 dark:bg-white/[0.06] border border-gray-200 dark:border-white/10 rounded-xl text-gray-900 dark:text-white text-sm outline-none focus:border-orange-500 transition-all placeholder:text-gray-400 dark:placeholder:text-white/25" />
+                </div>
               </div>
-              <div>
-                <label class="block text-[10px] font-black uppercase tracking-widest text-gray-500 dark:text-white/40 mb-1.5">Descrição</label>
-                <input v-model="perfilForm.descricao" type="text" placeholder="Descrição opcional"
-                  class="w-full h-11 px-4 bg-gray-50 dark:bg-white/[0.06] border border-gray-200 dark:border-white/10 rounded-xl text-gray-900 dark:text-white text-sm outline-none focus:border-orange-500 transition-all placeholder:text-gray-400 dark:placeholder:text-white/25" />
-              </div>
-            </div>
 
-            <!-- Modo de operação -->
-            <div class="mb-5">
-              <label class="block text-[10px] font-black uppercase tracking-widest text-gray-500 dark:text-white/40 mb-1.5">Modo de operação</label>
-              <p class="text-[11px] text-gray-400 dark:text-white/35 mb-2">Define quais módulos de venda este perfil acessa</p>
-              <div class="grid grid-cols-3 gap-2">
-                <button v-for="m in MODOS_VENDA" :key="m.value"
-                  type="button"
-                  @click="perfilForm.modo_venda = m.value"
-                  class="h-10 rounded-xl text-xs font-black border transition-all"
-                  :class="perfilForm.modo_venda === m.value
-                    ? 'bg-orange-500 border-orange-500 text-white'
-                    : 'bg-gray-50 dark:bg-white/[0.04] border-gray-200 dark:border-white/[0.08] text-gray-500 dark:text-white/40 hover:border-orange-400/50'">
-                  {{ m.label }}
-                </button>
-              </div>
-            </div>
-
-            <!-- Permissões agrupadas -->
-            <div class="space-y-4">
-              <div v-for="grupo in GRUPOS_PERMISSOES" :key="grupo.label">
-                <p class="text-[10px] font-black uppercase tracking-widest text-gray-400 dark:text-white/30 mb-2">{{ grupo.label }}</p>
-                <div class="space-y-1">
-                  <button v-for="item in grupo.itens" :key="item.key"
-                    @click="perfilForm.permissoes[item.key] = !perfilForm.permissoes[item.key]"
-                    class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl border transition-all"
-                    :class="perfilForm.permissoes[item.key]
-                      ? 'bg-orange-500/10 border-orange-500/30 text-gray-900 dark:text-white'
-                      : 'bg-gray-50 dark:bg-white/[0.03] border-gray-100 dark:border-white/[0.06] text-gray-500 dark:text-white/40 hover:bg-gray-100 dark:hover:bg-white/[0.06]'">
-                    <span class="text-xs font-bold">{{ item.label }}</span>
-                    <div class="w-8 h-4 rounded-full relative transition-colors shrink-0"
-                      :class="perfilForm.permissoes[item.key] ? 'bg-orange-500' : 'bg-gray-200 dark:bg-white/10'">
-                      <div class="absolute top-0.5 w-3 h-3 rounded-full bg-white shadow transition-all"
-                        :class="perfilForm.permissoes[item.key] ? 'left-4' : 'left-0.5'" />
-                    </div>
+              <!-- Modo de operação -->
+              <div>
+                <label class="block text-[10px] font-black uppercase tracking-widest text-gray-500 dark:text-white/40 mb-1.5">Modo de operação</label>
+                <p class="text-[11px] text-gray-400 dark:text-white/35 mb-2">Define quais módulos de venda este perfil acessa</p>
+                <div class="grid grid-cols-3 gap-2">
+                  <button v-for="m in MODOS_VENDA" :key="m.value"
+                    type="button"
+                    @click="perfilForm.modo_venda = m.value"
+                    class="h-10 rounded-xl text-xs font-black border transition-all"
+                    :class="perfilForm.modo_venda === m.value
+                      ? 'bg-orange-500 border-orange-500 text-white'
+                      : 'bg-gray-50 dark:bg-white/[0.04] border-gray-200 dark:border-white/[0.08] text-gray-500 dark:text-white/40 hover:border-orange-400/50'">
+                    {{ m.label }}
                   </button>
                 </div>
               </div>
+
+              <!-- Permissões agrupadas -->
+              <div class="space-y-4">
+                <div v-for="grupo in GRUPOS_PERMISSOES" :key="grupo.label">
+                  <p class="text-[10px] font-black uppercase tracking-widest text-gray-400 dark:text-white/30 mb-2">{{ grupo.label }}</p>
+                  <div class="space-y-1">
+                    <button v-for="item in grupo.itens" :key="item.key"
+                      @click="perfilForm.permissoes[item.key] = !perfilForm.permissoes[item.key]"
+                      class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl border transition-all"
+                      :class="perfilForm.permissoes[item.key]
+                        ? 'bg-orange-500/10 border-orange-500/30 text-gray-900 dark:text-white'
+                        : 'bg-gray-50 dark:bg-white/[0.03] border-gray-100 dark:border-white/[0.06] text-gray-500 dark:text-white/40 hover:bg-gray-100 dark:hover:bg-white/[0.06]'">
+                      <span class="text-xs font-bold">{{ item.label }}</span>
+                      <div class="w-8 h-4 rounded-full relative transition-colors shrink-0"
+                        :class="perfilForm.permissoes[item.key] ? 'bg-orange-500' : 'bg-gray-200 dark:bg-white/10'">
+                        <div class="absolute top-0.5 w-3 h-3 rounded-full bg-white shadow transition-all"
+                          :class="perfilForm.permissoes[item.key] ? 'left-4' : 'left-0.5'" />
+                      </div>
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <div v-if="erroPerfil" class="text-xs text-red-500 font-bold">{{ erroPerfil }}</div>
             </div>
 
-            <div v-if="erroPerfil" class="mt-3 text-xs text-red-500 font-bold">{{ erroPerfil }}</div>
-
-            <div class="flex gap-3 mt-6">
+            <!-- footer flutuante -->
+            <div class="px-6 py-4 border-t border-gray-100 dark:border-white/[0.07] shrink-0 flex gap-3">
               <button @click="modalPerfil = false"
                 class="flex-1 h-11 rounded-2xl border border-gray-200 dark:border-white/10 text-gray-500 dark:text-white/60 text-sm font-black hover:bg-gray-50 dark:hover:bg-white/5 transition-all">
                 Cancelar
@@ -445,6 +464,7 @@
                 {{ salvandoPerfil ? 'Salvando...' : 'Salvar' }}
               </button>
             </div>
+
           </div>
         </div>
       </Transition>
@@ -454,17 +474,25 @@
     <Teleport to="body">
       <Transition name="fade">
         <div v-if="modalMetodoAberto" class="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4" @click.self="modalMetodoAberto = false">
-          <div class="bg-white dark:bg-neutral-900/90 backdrop-blur-2xl border border-gray-200 dark:border-white/[0.08] rounded-3xl p-6 w-full max-w-sm shadow-2xl">
-            <div class="flex items-center justify-between mb-5">
+          <div class="bg-white dark:bg-neutral-900/90 backdrop-blur-2xl border border-gray-200 dark:border-white/[0.08] rounded-3xl w-full max-w-sm shadow-2xl flex flex-col max-h-[90vh]">
+
+            <!-- header -->
+            <div class="flex items-center justify-between px-6 pt-6 pb-4 shrink-0">
               <h2 class="text-lg font-black text-gray-900 dark:text-white">Novo Método de Pagamento</h2>
               <button @click="modalMetodoAberto = false" class="w-8 h-8 rounded-xl bg-gray-100 dark:bg-white/[0.06] hover:bg-red-950/40 hover:text-red-500 text-gray-500 dark:text-white/60 flex items-center justify-center transition-all shrink-0">
                 <X :size="15" />
               </button>
             </div>
-            <label for="mNome" class="block text-[10px] font-black uppercase tracking-widest text-gray-500 dark:text-white/40 mb-2">Nome *</label>
-            <input id="mNome" v-model="novoMetodo" type="text" placeholder="Ex: Pix"
-              class="w-full h-11 px-4 bg-gray-50 dark:bg-white/[0.06] border border-gray-200 dark:border-white/10 rounded-xl text-gray-900 dark:text-white text-sm outline-none focus:border-orange-500 transition-all placeholder:text-gray-400 dark:placeholder:text-white/25 mb-5" />
-            <div class="flex gap-3">
+
+            <!-- conteúdo rolável -->
+            <div class="flex-1 overflow-y-auto px-6 pb-2">
+              <label for="mNome" class="block text-[10px] font-black uppercase tracking-widest text-gray-500 dark:text-white/40 mb-2">Nome *</label>
+              <input id="mNome" v-model="novoMetodo" type="text" placeholder="Ex: Pix"
+                class="w-full h-11 px-4 bg-gray-50 dark:bg-white/[0.06] border border-gray-200 dark:border-white/10 rounded-xl text-gray-900 dark:text-white text-sm outline-none focus:border-orange-500 transition-all placeholder:text-gray-400 dark:placeholder:text-white/25" />
+            </div>
+
+            <!-- footer flutuante -->
+            <div class="px-6 py-4 border-t border-gray-100 dark:border-white/[0.07] shrink-0 flex gap-3">
               <button @click="modalMetodoAberto = false"
                 class="flex-1 h-11 rounded-2xl border border-gray-200 dark:border-white/10 text-gray-500 dark:text-white/60 text-sm font-black hover:bg-gray-50 dark:hover:bg-white/5 transition-all">
                 Cancelar
@@ -474,6 +502,7 @@
                 Criar
               </button>
             </div>
+
           </div>
         </div>
       </Transition>

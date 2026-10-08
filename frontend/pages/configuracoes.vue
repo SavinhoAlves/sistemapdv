@@ -298,9 +298,30 @@
                   </div>
                 </div>
 
-                <div v-if="form.impressora_tipo === 'windows'">
-                  <label for="imp-share" class="block text-[10px] font-black uppercase tracking-widest text-gray-500 dark:text-white/40 mb-2">Nome da impressora no Windows</label>
-                  <input id="imp-share" name="imp-share" v-model="form.impressora_host" type="text" placeholder="Ex: EPSON TM-T20 Receipt (como aparece em Impressoras e Scanners)"
+                <div v-if="form.impressora_tipo === 'windows'" class="space-y-2">
+                  <div class="flex items-center justify-between mb-1">
+                    <label class="block text-[10px] font-black uppercase tracking-widest text-gray-500 dark:text-white/40">Impressora instalada no Windows</label>
+                    <button @click="detectarImpressorasWindows" :disabled="detectandoImpressoras"
+                      class="h-7 px-3 rounded-lg bg-gray-100 dark:bg-white/[0.06] hover:bg-gray-200 dark:hover:bg-white/10 disabled:opacity-50 text-gray-600 dark:text-white/70 text-[10px] font-black transition-all flex items-center gap-1.5">
+                      <Loader2 v-if="detectandoImpressoras" :size="10" class="animate-spin" />
+                      <Search v-else :size="10" />
+                      {{ detectandoImpressoras ? 'Detectando...' : 'Detectar' }}
+                    </button>
+                  </div>
+                  <!-- Lista detectada -->
+                  <div v-if="impressorasDetectadas && impressorasInstaladas.length" class="flex flex-wrap gap-1.5">
+                    <button v-for="nome in impressorasInstaladas" :key="nome"
+                      @click="form.impressora_host = nome"
+                      class="h-7 px-3 rounded-lg border text-xs font-bold transition-all"
+                      :class="form.impressora_host === nome
+                        ? 'bg-orange-500 border-orange-500 text-white'
+                        : 'bg-gray-50 dark:bg-white/[0.04] border-gray-200 dark:border-white/10 text-gray-600 dark:text-white/60 hover:border-orange-400/50'">
+                      {{ nome }}
+                    </button>
+                  </div>
+                  <!-- Input manual -->
+                  <input id="imp-share" name="imp-share" v-model="form.impressora_host" type="text"
+                    :placeholder="impressorasDetectadas ? 'Ou digite manualmente' : 'Clique em Detectar ou digite o nome exato'"
                     class="w-full h-11 px-4 rounded-xl border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/[0.06] text-gray-900 dark:text-white text-sm outline-none focus:border-orange-500/70 transition-all placeholder:text-gray-400 dark:placeholder:text-white/25" />
                 </div>
 
@@ -481,9 +502,30 @@
                     </div>
 
                     <!-- Nome Windows (USB) -->
-                    <div v-if="imp.tipo === 'windows'">
-                      <label class="block text-[10px] font-black uppercase tracking-widest text-gray-500 dark:text-white/40 mb-2">Nome da impressora no Windows</label>
-                      <input v-model="imp.host" type="text" placeholder="Ex: EPSON TM-T20 Receipt"
+                    <div v-if="imp.tipo === 'windows'" class="space-y-2">
+                      <div class="flex items-center justify-between mb-1">
+                        <label class="block text-[10px] font-black uppercase tracking-widest text-gray-500 dark:text-white/40">Impressora instalada no Windows</label>
+                        <button @click="detectarImpressorasWindows" :disabled="detectandoImpressoras"
+                          class="h-7 px-3 rounded-lg bg-gray-100 dark:bg-white/[0.06] hover:bg-gray-200 dark:hover:bg-white/10 disabled:opacity-50 text-gray-600 dark:text-white/70 text-[10px] font-black transition-all flex items-center gap-1.5">
+                          <Loader2 v-if="detectandoImpressoras" :size="10" class="animate-spin" />
+                          <Search v-else :size="10" />
+                          {{ detectandoImpressoras ? 'Detectando...' : 'Detectar' }}
+                        </button>
+                      </div>
+                      <!-- Lista detectada -->
+                      <div v-if="impressorasDetectadas && impressorasInstaladas.length" class="flex flex-wrap gap-1.5">
+                        <button v-for="nome in impressorasInstaladas" :key="nome"
+                          @click="imp.host = nome"
+                          class="h-7 px-3 rounded-lg border text-xs font-bold transition-all"
+                          :class="imp.host === nome
+                            ? 'bg-indigo-500 border-indigo-500 text-white'
+                            : 'bg-gray-50 dark:bg-white/[0.04] border-gray-200 dark:border-white/10 text-gray-600 dark:text-white/60 hover:border-indigo-400/50'">
+                          {{ nome }}
+                        </button>
+                      </div>
+                      <!-- Input manual -->
+                      <input v-model="imp.host" type="text"
+                        :placeholder="impressorasDetectadas ? 'Ou digite manualmente' : 'Clique em Detectar ou digite o nome exato'"
                         class="w-full h-10 px-3 rounded-xl border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/[0.06] text-gray-900 dark:text-white text-sm outline-none focus:border-indigo-500/70 transition-all placeholder:text-gray-400 dark:placeholder:text-white/25" />
                     </div>
 
@@ -797,7 +839,7 @@
 import { ref, reactive, computed, watch, onMounted } from 'vue'
 import {
   ImageIcon, Upload, Trash2, Save, Loader2, UtensilsCrossed, Printer, FileText, Eye, EyeOff,
-  Minus, Plus, Plug, CreditCard, RefreshCw, CheckCircle, Ruler, ShieldCheck, ChevronDown, Settings
+  Minus, Plus, Plug, CreditCard, RefreshCw, CheckCircle, Ruler, ShieldCheck, ChevronDown, Settings, Search
 } from 'lucide-vue-next'
 import Navbar from '~/layouts/Navbar.vue'
 import Sidebar from '~/components/Sidebar.vue'
@@ -844,6 +886,24 @@ const impressoras          = ref<Impressora[]>([])
 const impressoraExpandida  = ref<string | null>(null)
 const salvandoImpressora   = ref<string | null>(null)
 const testandoImpressoraId = ref<string | null>(null)
+
+const impressorasInstaladas    = ref<string[]>([])
+const detectandoImpressoras    = ref(false)
+const impressorasDetectadas    = ref(false)
+
+async function detectarImpressorasWindows() {
+  detectandoImpressoras.value = true
+  try {
+    const data = await api.get<{ impressoras: string[] }>('/impressoras/instaladas')
+    impressorasInstaladas.value = data.impressoras
+    impressorasDetectadas.value = true
+    if (!data.impressoras.length) toastStore.error('Nenhuma impressora encontrada', 'Verifique se há impressoras instaladas no Windows.')
+  } catch {
+    toastStore.error('Erro ao detectar impressoras')
+  } finally {
+    detectandoImpressoras.value = false
+  }
+}
 
 function toggleExpandImpressora(id: string) {
   impressoraExpandida.value = impressoraExpandida.value === id ? null : id

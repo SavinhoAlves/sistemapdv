@@ -1,6 +1,7 @@
 import { Server } from 'socket.io'
 import type { FastifyInstance } from 'fastify'
 import { verifyAccessToken } from '../lib/jwt'
+import { verificarAcessoTenant } from '../middlewares/tenant.middleware'
 import {
   EVENTOS,
   salas,
@@ -51,13 +52,8 @@ export function initSocket(app: FastifyInstance): Server {
         const tenantId = socket.handshake.query.tenantId as string | undefined
         if (!tenantId) return next(new Error('tenantId obrigatório para modo cozinha_tv'))
         try {
-          const { prisma, semEscopoDeTenant } = await import('../lib/prisma')
-          const tenant = await semEscopoDeTenant(() =>
-            prisma.tenant.findUnique({ where: { id: tenantId }, select: { status: true } }),
-          )
-          if (!tenant || tenant.status !== 'ativo') {
-            return next(new Error('Tenant inválido ou suspenso'))
-          }
+          const acesso = await verificarAcessoTenant(tenantId)
+          if (!acesso.ok) return next(new Error('Tenant inválido, suspenso ou sem licença'))
         } catch {
           return next(new Error('Erro ao validar tenant'))
         }
@@ -70,6 +66,11 @@ export function initSocket(app: FastifyInstance): Server {
     try {
       const payload = verifyAccessToken(token)
       if (payload.type !== 'tenant') return next(new Error('Token não pertence a um tenant'))
+      // Mesma regra do requireTenant: suporte da plataforma entra mesmo com licença vencida
+      const acesso = await verificarAcessoTenant(payload.tenantId)
+      if (!acesso.ok && !(payload.suporte && 'licenca' in acesso)) {
+        return next(new Error('Tenant suspenso ou sem licença'))
+      }
       ;(socket as any).user = payload
       next()
     } catch {

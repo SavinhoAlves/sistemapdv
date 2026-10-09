@@ -498,6 +498,8 @@ export async function platformTenantsRoutes(app: FastifyInstance) {
       ? await prisma.licenca.update({ where: { id: existing.id }, data })
       : await prisma.licenca.create({ data: { tenantId: id, ...data } })
 
+    // Renovação/bloqueio vale na hora, sem esperar o TTL do cache de acesso
+    invalidateTenantCache(id)
     return reply.send(licenca)
   })
 }

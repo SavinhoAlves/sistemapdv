@@ -26,10 +26,11 @@ async function requireAdministrador(request: FastifyRequest, reply: FastifyReply
 }
 
 export async function suporteRoutes(app: FastifyInstance) {
+  // semLicenca: o restaurante com licença vencida ainda consegue pedir ajuda
   const preHandler = [requireTenant, requireAdministrador]
 
   // GET /api/suporte/tickets — tickets do restaurante logado
-  app.get('/tickets', { preHandler }, async (request, reply) => {
+  app.get('/tickets', { preHandler, config: { semLicenca: true } }, async (request, reply) => {
     const tickets = await prisma.ticketSuporte.findMany({
       where: { tenantId: request.tenantId! },
       orderBy: { createdAt: 'desc' },
@@ -43,7 +44,7 @@ export async function suporteRoutes(app: FastifyInstance) {
   })
 
   // POST /api/suporte/tickets — abre um ticket para o suporte da plataforma
-  app.post('/tickets', { preHandler }, async (request, reply) => {
+  app.post('/tickets', { preHandler, config: { semLicenca: true } }, async (request, reply) => {
     const parsed = novoTicket.safeParse(request.body)
     if (!parsed.success) {
       return reply.status(400).send({ error: parsed.error.issues[0]?.message ?? 'Dados inválidos' })

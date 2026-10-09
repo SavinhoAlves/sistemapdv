@@ -408,6 +408,13 @@ export async function platformTenantsRoutes(app: FastifyInstance) {
         },
         select: { id: true, nome: true, email: true, ativo: true },
       })
+      // Senha redefinida pelo suporte: derruba as sessões abertas com a senha antiga
+      if (senhaHash) {
+        await prisma.refreshToken.updateMany({
+          where: { usuarioId: existing.id, revokedAt: null },
+          data: { revokedAt: new Date() },
+        })
+      }
       return reply.send(updated)
     }
 

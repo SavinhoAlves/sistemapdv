@@ -39,6 +39,10 @@
             <p class="text-xs font-semibold text-white/80 truncate">{{ platformAuth.user?.nome }}</p>
             <p class="text-[10px] text-white/30 truncate">Super Admin</p>
           </div>
+          <button @click="modalSenha = true" title="Alterar minha senha"
+            class="size-7 rounded-lg flex items-center justify-center text-white/20 hover:text-violet-300 hover:bg-violet-500/10 transition-colors opacity-0 group-hover:opacity-100">
+            <UIcon name="i-lucide-key-round" class="size-3.5" />
+          </button>
           <button @click="handleLogout" title="Sair"
             class="size-7 rounded-lg flex items-center justify-center text-white/20 hover:text-red-400 hover:bg-red-500/10 transition-colors opacity-0 group-hover:opacity-100">
             <UIcon name="i-lucide-log-out" class="size-3.5" />
@@ -46,6 +50,8 @@
         </div>
       </div>
     </aside>
+
+    <PlatformChangePasswordModal v-model="modalSenha" />
 
     <!-- ══ ÁREA PRINCIPAL ══ -->
     <div class="flex-1 flex flex-col min-w-0">
@@ -58,6 +64,9 @@
           </div>
           <span class="text-sm font-bold text-white">Tickets</span>
         </div>
+        <button @click="modalSenha = true" title="Alterar minha senha" class="size-8 flex items-center justify-center rounded-xl text-white/30 hover:text-violet-300 hover:bg-violet-500/10 transition-colors ml-auto mr-1">
+          <UIcon name="i-lucide-key-round" class="size-4" />
+        </button>
         <button @click="handleLogout" class="size-8 flex items-center justify-center rounded-xl text-white/30 hover:text-red-400 hover:bg-red-500/10 transition-colors">
           <UIcon name="i-lucide-log-out" class="size-4" />
         </button>
@@ -282,6 +291,7 @@ interface Ticket   { id: string; tenantId: string; tipo: string; prioridade: str
 interface Stats    { abertos: number; emAndamento: number; resolvidos: number; urgentes: number }
 
 const platformAuth  = usePlatformAuthStore()
+const modalSenha        = ref(false)
 const runtimeConfig = useRuntimeConfig()
 const baseUrl       = computed(() => (runtimeConfig.public as any).apiUrl as string)
 

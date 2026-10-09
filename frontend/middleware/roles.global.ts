@@ -34,8 +34,8 @@ export default defineNuxtRouteMiddleware((to) => {
   const rotaBase = '/' + to.path.split('/')[1]
   const destino  = DESTINO_PADRAO[usuario.cargo] ?? '/mesas'
 
-  // Painel admin: exclusivo para cargo administrador
-  if (rotaBase === '/admin') {
+  // Painel admin e suporte: exclusivos para cargo administrador
+  if (rotaBase === '/admin' || rotaBase === '/suporte') {
     if (usuario.cargo !== 'administrador') return navigateTo(destino)
     return
   }

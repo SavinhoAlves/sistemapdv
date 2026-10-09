@@ -72,7 +72,7 @@
         </button>
       </header>
 
-      <main class="flex-1 px-6 lg:px-10 py-8 space-y-8 max-w-[1100px] w-full">
+      <main class="flex-1 px-6 lg:px-10 py-8 space-y-8 w-full">
 
         <!-- LOADING -->
         <div v-if="loading" class="flex items-center justify-center py-48">

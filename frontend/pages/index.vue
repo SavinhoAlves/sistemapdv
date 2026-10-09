@@ -2,7 +2,7 @@
   <div class="min-h-screen com-sidebar">
 
     <!-- HEADER -->
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 pb-6 flex items-end justify-between gap-4">
+    <div class="w-full px-4 sm:px-6 lg:px-8 pt-8 pb-6 flex items-end justify-between gap-4">
       <div>
         <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/[0.05] border border-white/[0.07] mb-3">
           <div class="w-1.5 h-1.5 rounded-full bg-orange-400 animate-pulse"></div>
@@ -24,7 +24,7 @@
       </button>
     </div>
 
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-10 space-y-5">
+    <div class="w-full px-4 sm:px-6 lg:px-8 pb-10 space-y-5">
 
       <!-- KPI CARDS -->
       <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">

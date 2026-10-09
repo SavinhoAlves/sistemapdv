@@ -95,7 +95,7 @@
     </div>
 
     <!-- ══ CONTEÚDO ══ -->
-    <main v-else-if="tenant" class="max-w-[1100px] w-full px-6 lg:px-10 py-8 space-y-6">
+    <main v-else-if="tenant" class="w-full px-6 lg:px-10 py-8 space-y-6">
 
       <!-- ─ BARRA SUPERIOR: voltar + ações ─ -->
       <div class="flex items-center gap-3">

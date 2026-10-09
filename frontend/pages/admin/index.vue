@@ -3,7 +3,7 @@
     <Sidebar />
     <Navbar />
 
-    <main class="p-6 max-w-5xl mx-auto">
+    <main class="p-6 w-full">
 
       <!-- HEADER -->
       <div class="flex items-center gap-3 mb-6">

@@ -3,7 +3,7 @@
     <Sidebar v-if="!quiosque" />
     <Navbar v-if="!quiosque" />
 
-    <main class="p-4 max-w-screen-2xl mx-auto">
+    <main class="p-4 w-full">
 
       <!-- BANNER OFFLINE -->
       <div v-if="semConexao"

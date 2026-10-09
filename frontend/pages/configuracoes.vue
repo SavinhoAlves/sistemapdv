@@ -3,7 +3,7 @@
     <Sidebar />
     <Navbar />
 
-    <main class="max-w-6xl mx-auto px-6 py-8">
+    <main class="w-full px-6 py-8">
 
       <!-- HEADER -->
       <div class="flex items-center gap-3 mb-7">
@@ -790,7 +790,7 @@
     <Transition name="float-bar">
       <div v-if="temMudancas"
         class="fixed bottom-0 left-0 right-0 z-40 border-t border-orange-500/20 bg-white/90 dark:bg-neutral-900/90 backdrop-blur-xl shadow-2xl shadow-black/20 float-bar-offset">
-        <div class="max-w-6xl mx-auto px-6 py-3 flex items-center justify-between gap-4">
+        <div class="w-full px-6 py-3 flex items-center justify-between gap-4">
           <p class="text-xs font-semibold text-gray-500 dark:text-white/50 hidden sm:block">
             Você tem alterações não salvas
           </p>

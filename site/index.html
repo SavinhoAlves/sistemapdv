@@ -340,11 +340,12 @@
     // ── Configuração do site ────────────────────────────────────────────────
     // Preencha antes de publicar. Sem número, o botão de WhatsApp some.
     var WHATSAPP = ''            // ex.: '5562999999999' (DDI + DDD + número, só dígitos)
-    var APP_URL  = 'https://app.restaurantepdv.com.br/login'
 
-    // Acessado pelo IP ou localhost (antes do domínio): o sistema está no mesmo host
-    var semDominio = /^(\d+\.){3}\d+$|^localhost$/.test(location.hostname)
-    var destino = semDominio ? '/login' : APP_URL
+    // Acessado pelo IP ou localhost (antes do domínio): o sistema está no mesmo host.
+    // Com domínio: app.<domínio>, no mesmo protocolo da página (http até existir o SSL).
+    var host = location.hostname.replace(/^www\./, '')
+    var semDominio = /^(\d+\.){3}\d+$|^localhost$/.test(host)
+    var destino = semDominio ? '/login' : location.protocol + '//app.' + host + '/login'
     document.querySelectorAll('.js-acessar').forEach(function (a) { a.href = destino })
 
     var zap = document.querySelectorAll('.js-whatsapp')

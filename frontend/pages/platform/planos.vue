@@ -1,11 +1,11 @@
 <template>
-  <PlatformShell ativo="planos" titulo="Planos e valores">
+  <PlatformShell ativo="planos" titulo="Planos">
 
-    <div class="pf-crumb">Sistema</div>
+    <div class="pf-crumb">Configuração</div>
     <div class="pf-head">
       <div>
-        <h1>Planos e valores</h1>
-        <p>Defina o que cada plano inclui e quanto custa por mês. Os recursos de cada restaurante seguem o plano dele.</p>
+        <h1>Planos</h1>
+        <p>Os pacotes que você vende. Cada restaurante recebe na hora os recursos do plano que contratou.</p>
       </div>
       <button class="pf-btn p" @click="abrir(null)"><Plus :size="18" /> Novo plano</button>
     </div>
@@ -13,18 +13,19 @@
     <div v-if="loading && !planos.length" class="pf-loading"><span class="pf-spin" /></div>
 
     <div v-else-if="erro" class="pf-card">
-      <div class="pf-empty"><b>Não foi possível carregar os planos</b><p>{{ erro }}</p><button class="pf-btn" @click="carregar">Tentar novamente</button></div>
+      <div class="pf-empty"><b>Não deu para carregar os planos</b><p>{{ erro }}</p><button class="pf-btn" @click="carregar">Tentar novamente</button></div>
     </div>
 
     <div v-else class="pf-plans">
       <article v-for="p in planos" :key="p.id" class="pf-pc" :class="{ inativo: !p.ativo }">
-        <div style="display:flex;align-items:center;gap:8px;justify-content:space-between">
+        <div class="pf-pc-topo">
+          <div style="display:flex;align-items:center;gap:8px;justify-content:space-between">
+            <span class="pf-bob">Plano</span>
+            <span v-if="!p.ativo" class="pf-pill mute"><i />Fora de venda</span>
+          </div>
           <h3>{{ p.nome }}</h3>
-          <span v-if="!p.ativo" class="pf-pill mute"><i />Inativo</span>
+          <div class="pf-pr">{{ moeda(p.valor) }} <small>por mês</small></div>
         </div>
-        <div class="pf-pr">{{ moeda(p.valor) }} <small>/ mês</small></div>
-        <div class="pf-use">{{ p.qtdRestaurantes }} {{ p.qtdRestaurantes === 1 ? 'restaurante usa' : 'restaurantes usam' }}</div>
-        <p v-if="p.descricao" class="pf-use" style="margin:0">{{ p.descricao }}</p>
         <ul>
           <li v-for="r in RECURSOS" :key="r.chave" :class="{ off: !p[r.chave] }">
             <span :style="{ color: p[r.chave] ? 'var(--pf-ok)' : 'var(--pf-muted)' }">
@@ -34,13 +35,15 @@
             <span v-if="p[r.chave] && !r.noSistema" class="pf-tag" title="Ainda não existe no PDV">em breve</span>
           </li>
         </ul>
+        <p v-if="p.descricao" class="pf-pc-desc">{{ p.descricao }}</p>
+        <div class="pf-use" style="margin-bottom:12px">{{ p.qtdRestaurantes ? `${p.qtdRestaurantes} ${p.qtdRestaurantes === 1 ? 'restaurante neste plano' : 'restaurantes neste plano'}` : 'Nenhum restaurante neste plano' }}</div>
         <button class="pf-btn" style="margin-top:auto" @click="abrir(p)">Editar plano</button>
       </article>
 
       <button class="pf-pc pf-pc-new" @click="abrir(null)">
         <Plus :size="28" />
         <b>Novo plano</b>
-        <small v-if="!planos.length">Crie o primeiro pacote para vender aos restaurantes</small>
+        <small>{{ planos.length ? 'Monte outro pacote de recursos' : 'Monte o primeiro pacote para vender' }}</small>
       </button>
     </div>
 
@@ -48,7 +51,7 @@
     <PlatformModal
       v-model="modal"
       :titulo="editando ? 'Editar plano' : 'Novo plano'"
-      subtitulo="Nome, valor e o que está incluído"
+      subtitulo="Nome, preço e os recursos que o restaurante recebe"
       pequena
     >
       <template #icone><Tag :size="18" /></template>
@@ -63,13 +66,13 @@
         </div>
         <div class="pf-fld">
           <label class="pf-lab" for="pl-desc">Descrição <small>(opcional)</small></label>
-          <input id="pl-desc" v-model="form.descricao" class="pf-inp" type="text" maxlength="300" placeholder="Para quem é este plano">
+          <input id="pl-desc" v-model="form.descricao" class="pf-inp" type="text" maxlength="300" placeholder="Ex.: para casas com equipe de salão">
         </div>
         <button type="submit" hidden />
       </form>
 
       <div class="pf-boxm">
-        <p class="pf-sub" style="margin:0">Inclui</p>
+        <p class="pf-sub" style="margin:0">Recursos do plano</p>
         <div>
           <div v-for="r in RECURSOS" :key="r.chave" class="pf-feat">
             <div>
@@ -79,14 +82,14 @@
             <button type="button" class="pf-sw" role="switch" :aria-checked="form[r.chave]" :aria-label="r.rotulo" @click="form[r.chave] = !form[r.chave]" />
           </div>
           <div class="pf-feat">
-            <div><b>Disponível para novos clientes</b><small>Planos inativos continuam valendo para quem já usa</small></div>
+            <div><b>À venda</b><small>Fora de venda, o plano some do cadastro, mas continua valendo para quem já tem</small></div>
             <button type="button" class="pf-sw" role="switch" :aria-checked="form.ativo" aria-label="Plano ativo" @click="form.ativo = !form.ativo" />
           </div>
         </div>
       </div>
 
       <div v-if="editando?.qtdRestaurantes" class="pf-note info">
-        Mudar os recursos atualiza na hora {{ editando.qtdRestaurantes === 1 ? 'o restaurante que usa' : `os ${editando.qtdRestaurantes} restaurantes que usam` }} este plano.
+        Ao salvar, {{ editando.qtdRestaurantes === 1 ? 'o restaurante deste plano recebe' : `os ${editando.qtdRestaurantes} restaurantes deste plano recebem` }} os recursos novos na hora.
       </div>
       <p v-if="msgErro" class="pf-err" role="alert">{{ msgErro }}</p>
 
@@ -110,7 +113,7 @@
     <PlatformConfirmDialog
       v-model="confirmarExclusao"
       :title="`Excluir o plano ${editando?.nome ?? ''}?`"
-      message="Nenhum restaurante usa este plano. Isso não pode ser desfeito."
+      message="Nenhum restaurante está neste plano. Depois de excluído, ele não volta."
       type="danger"
       @resolved="v => v && excluirPlano()"
     />

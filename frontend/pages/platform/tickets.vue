@@ -1,23 +1,23 @@
 <template>
-  <PlatformShell ativo="tickets" titulo="Tickets" :contagens="{ tickets: stats.abertos }">
+  <PlatformShell ativo="tickets" titulo="Chamados" :contagens="{ tickets: stats.abertos }">
 
-    <div class="pf-crumb">Operação</div>
+    <div class="pf-crumb">Atendimento</div>
     <div class="pf-head">
       <div>
-        <h1>Tickets</h1>
-        <p>Chamados de suporte abertos pelos restaurantes.</p>
+        <h1>Chamados</h1>
+        <p>Pedidos de ajuda dos restaurantes, do primeiro contato até a solução.</p>
       </div>
-      <button class="pf-btn p" @click="openCreate"><Plus :size="18" /> Novo ticket</button>
+      <button class="pf-btn p" @click="openCreate"><Plus :size="18" /> Abrir chamado</button>
     </div>
 
     <div v-if="loading" class="pf-loading"><span class="pf-spin" /></div>
 
     <template v-else>
       <div class="pf-strip">
-        <div class="pf-st"><small>Abertos</small><strong>{{ stats.abertos }}</strong><em>aguardando atendimento</em></div>
-        <div class="pf-st"><small>Em andamento</small><strong>{{ stats.emAndamento }}</strong><em>em atendimento</em></div>
-        <div class="pf-st"><small>Resolvidos</small><strong>{{ stats.resolvidos }}</strong><em>concluídos</em></div>
-        <div class="pf-st" :class="{ hot: stats.urgentes > 0 }"><small>Urgentes</small><strong>{{ stats.urgentes }}</strong><em>{{ stats.urgentes ? 'precisam de resposta já' : 'sem urgência' }}</em></div>
+        <div class="pf-st"><small>Abertos</small><strong>{{ stats.abertos }}</strong><em>esperando resposta</em></div>
+        <div class="pf-st"><small>Em andamento</small><strong>{{ stats.emAndamento }}</strong><em>com alguém cuidando</em></div>
+        <div class="pf-st"><small>Resolvidos</small><strong>{{ stats.resolvidos }}</strong><em>problema resolvido</em></div>
+        <div class="pf-st" :class="{ hot: stats.urgentes > 0 }"><small>Urgentes</small><strong>{{ stats.urgentes }}</strong><em>{{ stats.urgentes ? 'restaurante parado' : 'nenhum restaurante parado' }}</em></div>
       </div>
 
       <div class="pf-card">
@@ -27,18 +27,18 @@
               {{ f.label }}<em>{{ contar(f.value) }}</em>
             </button>
           </div>
-          <input v-model="busca" class="pf-inp pf-search" type="search" placeholder="Buscar por título ou restaurante" aria-label="Buscar ticket">
+          <input v-model="busca" class="pf-inp pf-search" type="search" placeholder="Buscar por título ou restaurante" aria-label="Buscar chamado">
         </div>
 
         <div v-if="!ticketsFiltrados.length" class="pf-empty" style="padding:56px 22px">
-          <b>{{ tickets.length ? 'Nenhum ticket neste filtro' : 'Tudo tranquilo por aqui' }}</b>
-          {{ tickets.length ? 'Tente outro filtro ou outra busca.' : 'Quando um restaurante abrir um chamado, ele aparece nesta lista.' }}
+          <b>{{ tickets.length ? 'Nenhum chamado neste filtro' : 'Nenhum chamado aberto' }}</b>
+          {{ tickets.length ? 'Tente outro filtro ou outra busca.' : 'Quando um restaurante pedir ajuda, o chamado aparece aqui.' }}
         </div>
 
         <div v-else class="pf-scroll">
           <table class="pf-table">
             <thead>
-              <tr><th>Chamado</th><th>Restaurante</th><th>Prioridade</th><th>Situação</th><th>Aberto em</th><th /></tr>
+              <tr><th>Assunto</th><th>Restaurante</th><th>Prioridade</th><th>Situação</th><th>Aberto em</th><th /></tr>
             </thead>
             <tbody>
               <tr v-for="t in ticketsFiltrados" :key="t.id" class="clicavel" tabindex="0" @click="openEdit(t)" @keydown.enter="openEdit(t)">
@@ -54,7 +54,7 @@
                 <td><span class="pf-pill" :class="statusTom(t.status)"><i />{{ statusLabel(t.status) }}</span></td>
                 <td style="white-space:nowrap">{{ formatDate(t.createdAt) }}</td>
                 <td class="act" @click.stop>
-                  <button class="pf-ib perigo" style="display:inline-grid" :aria-label="`Excluir ticket ${t.titulo}`" @click="pedirExclusao(t)">
+                  <button class="pf-ib perigo" style="display:inline-grid" :aria-label="`Excluir chamado ${t.titulo}`" @click="pedirExclusao(t)">
                     <Trash2 :size="16" />
                   </button>
                 </td>
@@ -71,7 +71,7 @@
         <div v-if="modalCriar" class="pf-portal pf-veu" @click.self="modalCriar = false">
           <form class="pf-modal" role="dialog" aria-modal="true" aria-labelledby="tk-novo" @submit.prevent="criarTicket">
             <div class="pf-modal-h">
-              <div><h2 id="tk-novo">Novo ticket</h2><small style="color:var(--pf-muted)">Registre um chamado de suporte</small></div>
+              <div><h2 id="tk-novo">Abrir chamado</h2><small style="color:var(--pf-muted)">Registre um pedido de ajuda de um restaurante</small></div>
               <button type="button" class="pf-ib" aria-label="Fechar" @click="modalCriar = false"><X :size="18" /></button>
             </div>
             <div class="pf-modal-b">
@@ -94,7 +94,7 @@
                   </div>
                   <div class="pf-fld full">
                     <label class="pf-lab" for="tk-tit">Título *</label>
-                    <input id="tk-tit" v-model="form.titulo" class="pf-inp" type="text" placeholder="Descreva o problema em poucas palavras" required>
+                    <input id="tk-tit" v-model="form.titulo" class="pf-inp" type="text" placeholder="Ex.: impressora da cozinha não imprime" required>
                   </div>
                   <div class="pf-fld full">
                     <label class="pf-lab" for="tk-desc">Descrição</label>
@@ -106,7 +106,7 @@
             <div class="pf-modal-f">
               <button type="button" class="pf-btn" @click="modalCriar = false">Cancelar</button>
               <button type="submit" class="pf-btn p" :disabled="saving || !form.tenantId || !form.titulo.trim()">
-                <Loader2 v-if="saving" :size="16" class="animate-spin" /> Criar ticket
+                <Loader2 v-if="saving" :size="16" class="animate-spin" /> Abrir chamado
               </button>
             </div>
           </form>
@@ -120,7 +120,7 @@
         <div v-if="modalEditar && ticketAtual" class="pf-portal pf-veu" @click.self="modalEditar = false">
           <form class="pf-modal" role="dialog" aria-modal="true" aria-labelledby="tk-edit" @submit.prevent="salvarTicket">
             <div class="pf-modal-h">
-              <div><h2 id="tk-edit">Atualizar ticket</h2><small style="color:var(--pf-muted)">{{ ticketAtual.tenant?.nome }} · aberto em {{ formatDate(ticketAtual.createdAt) }}</small></div>
+              <div><h2 id="tk-edit">Atualizar chamado</h2><small style="color:var(--pf-muted)">{{ ticketAtual.tenant?.nome }} · aberto em {{ formatDate(ticketAtual.createdAt) }}</small></div>
               <button type="button" class="pf-ib" aria-label="Fechar" @click="modalEditar = false"><X :size="18" /></button>
             </div>
             <div class="pf-modal-b">
@@ -162,8 +162,8 @@
           <div class="pf-modal sm" role="alertdialog" aria-modal="true" aria-labelledby="tk-del">
             <div class="pf-confirm">
               <span class="pf-ico bad" style="width:52px;height:52px;border-radius:16px"><Trash2 :size="22" /></span>
-              <h2 id="tk-del" style="font-size:20px">Excluir este ticket?</h2>
-              <p>“{{ excluindo.titulo }}” some da lista. Isso não pode ser desfeito.</p>
+              <h2 id="tk-del" style="font-size:20px">Excluir este chamado?</h2>
+              <p>“{{ excluindo.titulo }}” sai da lista de vez. Se o problema voltar, abra um chamado novo.</p>
             </div>
             <div class="pf-modal-f">
               <button class="pf-btn" @click="excluindo = null">Cancelar</button>

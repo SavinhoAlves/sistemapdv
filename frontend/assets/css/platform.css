@@ -1,5 +1,10 @@
 /* ═══════════════════════════════════════════════════════════════════════════
-   Plataforma (super admin) — design "Central · Restaurante PDV".
+   Plataforma (super admin) — Central do Restaurante PDV.
+
+   Identidade: a mesma linguagem do PDV do restaurante — a comanda. Faixa de
+   números é um "fechamento" em papel de bobina picotado, planos são comandas
+   com picote lateral, e todo número usa a fonte monoespaçada do sistema
+   (tokens.css: --fonte-texto / --fonte-numero), com dígitos tabulares.
 
    Tudo fica sob `.pf` para não vazar no PDV do restaurante, que segue
    tokens.css. O tema escuro usa o mesmo `html.dark` do resto do app.
@@ -11,16 +16,18 @@
   --pf-brand: #FF7A00; --pf-brand-d: #B85500; --pf-brand-soft: #FFEAD3; --pf-dark: #1E1E1E; --pf-dark-ink: #F7F4EE;
   --pf-ok: #12805C; --pf-ok-bg: #DAF3E8; --pf-bad: #C0262D; --pf-bad-bg: #FCE3E4; --pf-warn: #9A5800; --pf-warn-bg: #FFEFD0;
   --pf-info: #1F5FBF; --pf-info-bg: #DDE9FB;
+  /* Papel de bobina (fechamento, comandas de plano) */
+  --pf-paper: #FFFDF7; --pf-paper-ink: #1B1B18; --pf-paper-muted: #6A6757; --pf-paper-line: #D9CFB8;
   --pf-shadow: 0 1px 2px rgba(30,20,0,.05), 0 12px 30px rgba(30,20,0,.05);
 
   color: var(--pf-ink);
-  font: 400 15px/1.5 'DM Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  font: 400 15px/1.55 var(--fonte-texto);
 }
 .pf {
   min-height: 100dvh;
   background: var(--pf-bg);
   color: var(--pf-ink);
-  font: 400 15px/1.5 'DM Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  font: 400 15px/1.55 var(--fonte-texto);
   -webkit-font-smoothing: antialiased;
 }
 html.dark .pf, html.dark .pf-portal {
@@ -28,21 +35,26 @@ html.dark .pf, html.dark .pf-portal {
   --pf-brand-soft: #3A2411; --pf-brand-d: #FFB066; --pf-dark: #0A0908;
   --pf-ok: #4FD6A3; --pf-ok-bg: #12382B; --pf-bad: #FF8F94; --pf-bad-bg: #40181B; --pf-warn: #FFC266; --pf-warn-bg: #3D2A0A;
   --pf-info: #8DB8FF; --pf-info-bg: #172A47;
+  --pf-paper: #22201C; --pf-paper-ink: #F5F2EC; --pf-paper-muted: #A39E94; --pf-paper-line: #3A362F;
   --pf-shadow: 0 1px 2px rgba(0,0,0,.3), 0 12px 30px rgba(0,0,0,.25);
 }
-.pf :is(h1, h2, h3), .pf-portal :is(h1, h2, h3) { font-family: 'Bricolage Grotesque', system-ui, sans-serif; letter-spacing: -.02em; margin: 0; }
+.pf :is(h1, h2, h3), .pf-portal :is(h1, h2, h3) { font-family: var(--fonte-texto); font-weight: 700; letter-spacing: -.025em; margin: 0; }
+/* Números: monoespaçados e tabulares, como no cupom do PDV */
+.pf-num { font-family: var(--fonte-numero); font-variant-numeric: tabular-nums; letter-spacing: -.02em; }
+/* Rótulo de bobina: caixa alta pequena e espaçada, só para marcar seções do papel */
+.pf-bob { font-family: var(--fonte-numero); font-size: 11px; font-weight: 500; letter-spacing: .14em; text-transform: uppercase; color: var(--pf-muted); }
 :is(.pf, .pf-portal) button { font: inherit; color: inherit; cursor: pointer; }
 :is(.pf, .pf-portal) :is(button, a, input, select, textarea, [tabindex]):focus-visible { outline: 3px solid var(--pf-brand); outline-offset: 2px; }
 
 /* ── Moldura ── */
-.pf-shell { display: grid; grid-template-columns: 268px minmax(0, 1fr); min-height: 100dvh; }
+.pf-shell { display: grid; grid-template-columns: 288px minmax(0, 1fr); min-height: 100dvh; }
 .pf-rail { position: sticky; top: 0; height: 100dvh; padding: 14px; display: flex; }
 .pf-rail-in {
   width: 100%; display: flex; flex-direction: column; overflow-y: auto;
   background: var(--pf-card); border: 1px solid var(--pf-line); border-radius: 26px; padding: 16px 12px;
   box-shadow: 0 10px 30px rgba(30,20,0,.06);
 }
-.pf-logo { display: flex; align-items: center; gap: 10px; padding: 4px 8px 16px; font: 700 18px 'Bricolage Grotesque', sans-serif; color: var(--pf-ink); text-decoration: none; }
+.pf-logo { display: flex; align-items: center; gap: 10px; padding: 4px 8px 16px; font: 700 17px var(--fonte-texto); color: var(--pf-ink); text-decoration: none; }
 .pf-logo-m { width: 38px; height: 38px; border-radius: 12px; background: linear-gradient(145deg, #FF9B33, #FF7A00); color: #fff; display: grid; place-items: center; flex: none; }
 .pf-logo i { font-style: normal; color: var(--pf-brand); }
 .pf-grp { font-size: 12px; font-weight: 700; color: var(--pf-muted); padding: 0 12px; margin: 16px 0 6px; }
@@ -59,10 +71,10 @@ html.dark .pf, html.dark .pf-portal {
 .pf-nv.breve { opacity: .55; cursor: default; }
 .pf-nv.breve:hover { background: none; color: var(--pf-muted); }
 .pf-nv-txt { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.pf-nv .pf-breve { flex: none; font-size: 10px; font-weight: 700; padding: 1px 7px; border-radius: 999px; border: 1px solid var(--pf-line); color: var(--pf-muted); white-space: nowrap; }
+.pf-nv .pf-breve { flex: none; font-size: 9.5px; font-weight: 600; padding: 0 6px; border-radius: 999px; border: 1px solid var(--pf-line); color: var(--pf-muted); white-space: nowrap; }
 
 .pf-me { margin-top: auto; display: flex; align-items: center; gap: 10px; padding: 10px; border-radius: 14px; background: var(--pf-soft); }
-.pf-av0 { width: 36px; height: 36px; border-radius: 50%; background: var(--pf-brand); color: #1E1E1E; font: 800 15px 'Bricolage Grotesque', sans-serif; display: grid; place-items: center; flex: none; }
+.pf-av0 { width: 36px; height: 36px; border-radius: 50%; background: var(--pf-brand); color: #1E1E1E; font: 700 15px var(--fonte-texto); display: grid; place-items: center; flex: none; }
 .pf-me-info { min-width: 0; flex: 1; }
 .pf-me b { display: block; line-height: 1.2; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .pf-me small { color: var(--pf-muted); }
@@ -95,17 +107,30 @@ html.dark .pf, html.dark .pf-portal {
 .pf-btn.d { background: var(--pf-bad-bg); border-color: transparent; color: var(--pf-bad); }
 
 /* ── Faixa de números ── */
+/* Papel de bobina: borda picotada em cima e embaixo (meias-luas recortadas) */
 .pf-strip {
-  position: relative; overflow: hidden; display: grid; grid-template-columns: repeat(4, 1fr);
-  background: var(--pf-dark); color: var(--pf-dark-ink); border-radius: 24px; padding: 24px 6px; margin-bottom: 26px;
+  --furo: 7px;
+  position: relative;
+  display: grid; grid-template-columns: repeat(4, 1fr);
+  margin-bottom: 26px; padding: 22px 6px 24px;
+  background: var(--pf-paper); color: var(--pf-paper-ink);
+  border-radius: 6px;
+  box-shadow: 0 1px 0 var(--pf-line), 0 14px 30px rgba(30,20,0,.08);
+  -webkit-mask:
+    radial-gradient(circle var(--furo) at 50% 0, #0000 98%, #000) 50% 0 / calc(var(--furo) * 3) 51% repeat-x,
+    radial-gradient(circle var(--furo) at 50% 100%, #0000 98%, #000) 50% 100% / calc(var(--furo) * 3) 51% repeat-x;
+          mask:
+    radial-gradient(circle var(--furo) at 50% 0, #0000 98%, #000) 50% 0 / calc(var(--furo) * 3) 51% repeat-x,
+    radial-gradient(circle var(--furo) at 50% 100%, #0000 98%, #000) 50% 100% / calc(var(--furo) * 3) 51% repeat-x;
 }
-.pf-strip::after { content: ''; position: absolute; right: -90px; top: -120px; width: 300px; height: 300px; border-radius: 50%; background: radial-gradient(circle, rgba(255,122,0,.35), transparent 70%); pointer-events: none; }
-.pf-st { position: relative; z-index: 1; padding: 4px 24px; border-left: 2px dashed rgba(255,255,255,.16); min-width: 0; }
+.pf-st { position: relative; padding: 4px 24px; border-left: 1.5px dashed var(--pf-paper-line); min-width: 0; }
 .pf-st:first-child { border-left: 0; }
-.pf-st small { display: block; color: #B9B3A8; font-weight: 500; }
-.pf-st strong { display: block; margin-top: 2px; font: 800 clamp(24px, 2.6vw, 36px)/1.1 'Bricolage Grotesque', sans-serif; letter-spacing: -.03em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.pf-st.hot strong { color: #FF9B33; }
-.pf-st em { font-style: normal; color: #8F8A80; font-size: 13px; }
+.pf-st small { display: block; font-family: var(--fonte-numero); font-size: 11px; font-weight: 500; letter-spacing: .14em; text-transform: uppercase; color: var(--pf-paper-muted); }
+.pf-st strong { display: block; margin-top: 6px; font: 600 clamp(22px, 2.4vw, 32px)/1.1 var(--fonte-numero); font-variant-numeric: tabular-nums; letter-spacing: -.03em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* Alerta no fechamento: carimbo laranja, como valor em destaque no cupom */
+.pf-st.hot strong { color: var(--pf-brand-d); }
+.pf-st.hot small::after { content: ' ●'; color: var(--pf-brand); }
+.pf-st em { font-style: normal; color: var(--pf-paper-muted); font-size: 13px; }
 
 /* ── Cartões ── */
 .pf-card { background: var(--pf-card); border-radius: 22px; box-shadow: var(--pf-shadow); margin-bottom: 22px; overflow: hidden; }
@@ -136,7 +161,7 @@ html.dark .pf, html.dark .pf-portal {
 .pf-th-sort { background: none; border: 0; padding: 0; font-weight: 700; color: inherit; display: inline-flex; align-items: center; gap: 4px; }
 
 .pf-who { display: flex; align-items: center; gap: 12px; min-width: 0; }
-.pf-av { width: 42px; height: 42px; border-radius: 13px; background: var(--pf-brand-soft); color: var(--pf-brand-d); font: 800 15px 'Bricolage Grotesque', sans-serif; display: grid; place-items: center; flex: none; }
+.pf-av { width: 42px; height: 42px; border-radius: 13px; background: var(--pf-brand-soft); color: var(--pf-brand-d); font: 700 15px var(--fonte-texto); display: grid; place-items: center; flex: none; }
 .pf-who b { display: block; line-height: 1.25; }
 .pf-who small { color: var(--pf-muted); }
 
@@ -152,7 +177,7 @@ html.dark .pf, html.dark .pf-portal {
 .pf-tag { font-size: 12px; font-weight: 700; padding: 2px 9px; border-radius: 8px; background: var(--pf-soft); color: var(--pf-muted); }
 
 .pf-empty { padding: 44px 22px; text-align: center; color: var(--pf-muted); }
-.pf-empty b { display: block; color: var(--pf-ink); font: 700 19px 'Bricolage Grotesque', sans-serif; margin-bottom: 4px; }
+.pf-empty b { display: block; color: var(--pf-ink); font: 700 18px var(--fonte-texto); margin-bottom: 4px; }
 
 /* ── Lista de atenção ── */
 .pf-att { display: flex; align-items: center; gap: 14px; padding: 14px 22px; border-top: 1px solid var(--pf-line); color: inherit; text-decoration: none; }
@@ -212,16 +237,16 @@ html.dark .pf, html.dark .pf-portal {
 @media (max-width: 1100px) { .pf-grid-det { grid-template-columns: 1fr; } }
 
 .pf-big { display: flex; align-items: center; gap: 18px; background: var(--pf-dark); color: var(--pf-dark-ink); border-radius: 22px; padding: 20px; margin-bottom: 16px; }
-.pf-big .pf-big-n { font: 800 40px/1 'Bricolage Grotesque', sans-serif; min-width: 64px; text-align: center; }
+.pf-big .pf-big-n { font: 600 40px/1 var(--fonte-numero); font-variant-numeric: tabular-nums; min-width: 64px; text-align: center; }
 .pf-big .pf-big-n.ok { color: #4FD6A3; } .pf-big .pf-big-n.warn { color: #FFC266; } .pf-big .pf-big-n.bad { color: #FF8F94; }
 .pf-big small { color: #B9B3A8; display: block; }
-.pf-big b { font: 700 20px 'Bricolage Grotesque', sans-serif; display: block; }
+.pf-big b { font: 700 19px var(--fonte-texto); display: block; }
 
 .pf-kv { display: grid; grid-template-columns: auto 1fr; gap: 8px 14px; margin: 0; }
 .pf-kv dt { color: var(--pf-muted); }
 .pf-kv dd { margin: 0; text-align: right; font-weight: 600; word-break: break-word; }
 
-.pf-sub { font: 700 15px 'Bricolage Grotesque', sans-serif; margin: 0 0 10px; }
+.pf-sub { font: 700 15px var(--fonte-texto); margin: 0 0 10px; }
 .pf-opts { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
 .pf-o { height: 42px; border-radius: 12px; border: 1px solid var(--pf-line); background: var(--pf-card); font-weight: 700; }
 .pf-o:hover:not(:disabled) { border-color: var(--pf-brand); background: var(--pf-brand-soft); color: var(--pf-brand-d); }
@@ -305,15 +330,31 @@ select.pf-inp { appearance: auto; }
 
 /* ── Planos ── */
 .pf-plans { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 20px; }
-.pf-pc { background: var(--pf-card); border-radius: 22px; padding: 22px; box-shadow: var(--pf-shadow); display: flex; flex-direction: column; gap: 6px; }
-.pf-pc h3 { font-size: 20px; }
+.pf-pc {
+  --corte: 128px; /* furo na altura do tracejado: 20 (padding) + 94 (topo) + 6 (gap) + 8 (margem) */
+  position: relative;
+  display: flex; flex-direction: column; gap: 6px;
+  padding: 20px 22px 22px;
+  background: var(--pf-paper); color: var(--pf-paper-ink);
+  border-radius: 14px;
+  box-shadow: 0 1px 0 var(--pf-line), 0 14px 30px rgba(30,20,0,.08);
+  /* Furos laterais na altura do picote, como comanda destacável */
+  -webkit-mask: radial-gradient(circle 10px at 0 var(--corte), #0000 98%, #000) left / 51% 100% no-repeat,
+                radial-gradient(circle 10px at 100% var(--corte), #0000 98%, #000) right / 51% 100% no-repeat;
+          mask: radial-gradient(circle 10px at 0 var(--corte), #0000 98%, #000) left / 51% 100% no-repeat,
+                radial-gradient(circle 10px at 100% var(--corte), #0000 98%, #000) right / 51% 100% no-repeat;
+}
+.pf-pc h3 { font-size: 19px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pf-pc-topo { height: 94px; display: flex; flex-direction: column; gap: 4px; overflow: hidden; }
+.pf-pc-desc { margin: 0 0 10px; font-size: 14px; color: var(--pf-paper-muted); }
+.pf-pc .pf-use { color: var(--pf-paper-muted); }
 .pf-pc.inativo { opacity: .7; }
-.pf-pr { font: 800 34px/1.1 'Bricolage Grotesque', sans-serif; letter-spacing: -.03em; }
-.pf-pr small { font: 500 14px 'DM Sans', sans-serif; color: var(--pf-muted); letter-spacing: 0; }
+.pf-pr { font: 600 26px/1.1 var(--fonte-numero); font-variant-numeric: tabular-nums; letter-spacing: -.03em; white-space: nowrap; }
+.pf-pr small { font: 400 13px var(--fonte-texto); color: var(--pf-paper-muted); letter-spacing: 0; }
 .pf-use { color: var(--pf-muted); font-size: 14px; }
-.pf-pc ul { list-style: none; padding: 12px 0; margin: 8px 0 4px; border-top: 2px dashed var(--pf-line); display: grid; gap: 8px; }
+.pf-pc ul { list-style: none; padding: 14px 0 12px; margin: 8px 0 4px; border-top: 1.5px dashed var(--pf-paper-line); display: grid; gap: 8px; }
 .pf-pc li { display: flex; gap: 10px; align-items: center; }
-.pf-pc li.off { color: var(--pf-muted); text-decoration: line-through; opacity: .7; }
-.pf-pc-new { border: 2px dashed var(--pf-line); box-shadow: none; background: transparent; align-items: center; justify-content: center; text-align: center; color: var(--pf-muted); min-height: 300px; cursor: pointer; gap: 8px; }
+.pf-pc li.off { color: var(--pf-paper-muted); text-decoration: line-through; opacity: .75; }
+.pf-pc-new { -webkit-mask: none; mask: none; border: 2px dashed var(--pf-line); box-shadow: none; background: transparent; border-radius: 14px; align-items: center; justify-content: center; text-align: center; color: var(--pf-muted); min-height: 300px; cursor: pointer; gap: 8px; }
 .pf-pc-new:hover { border-color: var(--pf-brand); color: var(--pf-brand-d); }
 .pf-pc-new small { max-width: 22ch; }

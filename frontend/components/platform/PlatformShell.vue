@@ -57,7 +57,7 @@
       </aside>
 
       <main class="pf-main">
-        <div class="pf-top"><span>Central · {{ titulo }}</span></div>
+        <div class="pf-top"><span class="pf-bob">Central do Restaurante PDV · {{ titulo }}</span></div>
         <slot />
       </main>
     </div>
@@ -79,7 +79,7 @@ import { useThemeStore } from '~/stores/theme'
 /**
  * Moldura das páginas da plataforma: navegação agrupada à esquerda,
  * conteúdo à direita. Itens sem rota ainda não existem no backend e
- * aparecem como "Em breve" (Cobrança, Demonstrações, Avisos, Backups).
+ * aparecem como "Em breve" (Mensalidades, Testes, Avisos, Backups).
  */
 defineProps<{
   ativo: 'painel' | 'restaurantes' | 'tickets' | 'planos'
@@ -90,19 +90,19 @@ defineProps<{
 interface ItemNav { chave: string; rotulo: string; icone: Component; rota?: string }
 
 const NAV: { nome: string; itens: ItemNav[] }[] = [
-  { nome: 'Operação', itens: [
-    { chave: 'painel',       rotulo: 'Painel',        icone: LayoutDashboard, rota: '/platform' },
+  { nome: 'Clientes', itens: [
+    { chave: 'painel',       rotulo: 'Visão geral',   icone: LayoutDashboard, rota: '/platform' },
     { chave: 'restaurantes', rotulo: 'Restaurantes',  icone: Store,           rota: '/platform/restaurantes' },
-    { chave: 'cobranca',     rotulo: 'Cobrança',      icone: Wallet },
-    { chave: 'demos',        rotulo: 'Demonstrações', icone: FlaskConical },
-    { chave: 'tickets',      rotulo: 'Tickets',       icone: Ticket,          rota: '/platform/tickets' },
+    { chave: 'cobranca',     rotulo: 'Mensalidades',  icone: Wallet },
+    { chave: 'demos',        rotulo: 'Testes', icone: FlaskConical },
   ] },
-  { nome: 'Comunicação', itens: [
-    { chave: 'avisos', rotulo: 'Avisos em massa', icone: MessageCircle },
+  { nome: 'Atendimento', itens: [
+    { chave: 'tickets', rotulo: 'Chamados', icone: Ticket,        rota: '/platform/tickets' },
+    { chave: 'avisos',  rotulo: 'Avisos',   icone: MessageCircle },
   ] },
-  { nome: 'Sistema', itens: [
-    { chave: 'planos',  rotulo: 'Planos e valores', icone: Tag, rota: '/platform/planos' },
-    { chave: 'backups', rotulo: 'Backups',          icone: Database },
+  { nome: 'Configuração', itens: [
+    { chave: 'planos',  rotulo: 'Planos',  icone: Tag, rota: '/platform/planos' },
+    { chave: 'backups', rotulo: 'Backups', icone: Database },
   ] },
 ]
 

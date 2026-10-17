@@ -1,11 +1,11 @@
 <template>
-  <PlatformShell ativo="painel" titulo="Painel" :contagens="{ restaurantes: tenants.length }">
+  <PlatformShell ativo="painel" titulo="Visão geral" :contagens="{ restaurantes: tenants.length }">
 
-    <div class="pf-crumb">Operação</div>
+    <div class="pf-crumb">Clientes</div>
     <div class="pf-head">
       <div>
-        <h1>Painel</h1>
-        <p>O que precisa da sua atenção hoje e como a plataforma está indo.</p>
+        <h1>Visão geral</h1>
+        <p>Como estão os restaurantes que usam o sistema: licenças, receita e o que pede uma ação sua.</p>
       </div>
       <button class="pf-btn p" @click="modalNovo = true"><Plus :size="18" /> Novo restaurante</button>
     </div>
@@ -14,7 +14,7 @@
 
     <div v-else-if="erro" class="pf-card">
       <div class="pf-empty">
-        <b>Não foi possível carregar o painel</b>
+        <b>Não deu para carregar a visão geral</b>
         <p>{{ erro }}</p>
         <button class="pf-btn" @click="carregar">Tentar novamente</button>
       </div>
@@ -28,7 +28,7 @@
           <em>{{ dashboard?.totais?.ativos ?? 0 }} ativos<template v-if="dashboard?.totais?.suspensos"> · {{ dashboard.totais.suspensos }} suspensos</template></em>
         </div>
         <div class="pf-st">
-          <small>Receita mensal</small>
+          <small>Receita do mês</small>
           <strong>{{ moeda(dashboard?.financeiro?.mrr ?? 0) }}</strong>
           <em>{{ moeda(dashboard?.financeiro?.arr ?? 0) }} por ano</em>
         </div>
@@ -38,7 +38,7 @@
           <em>{{ dashboard?.licencas?.bloqueadas ? `${dashboard.licencas.bloqueadas} bloqueadas` : 'nenhuma bloqueada' }}</em>
         </div>
         <div class="pf-st" :class="{ hot: vencimentos > 0 }">
-          <small>Vencimentos</small>
+          <small>Licenças a vencer</small>
           <strong>{{ vencimentos }}</strong>
           <em>{{ dashboard?.licencas?.vencidas ? `${dashboard.licencas.vencidas} vencidas` : 'nos próximos 30 dias' }}</em>
         </div>
@@ -49,8 +49,8 @@
         <div class="pf-card">
           <div class="pf-card-h">
             <div>
-              <h2>Precisa de atenção</h2>
-              <p>{{ alertas.length ? `${alertas.length} ${alertas.length === 1 ? 'item' : 'itens'} para resolver` : 'Nada pendente' }}</p>
+              <h2>Pendências</h2>
+              <p>{{ alertas.length ? `${alertas.length} ${alertas.length === 1 ? 'restaurante pede' : 'restaurantes pedem'} uma ação` : 'Nenhum restaurante travado' }}</p>
             </div>
           </div>
           <template v-if="alertas.length">
@@ -63,14 +63,14 @@
               <span class="pf-btn s">Abrir</span>
             </NuxtLink>
           </template>
-          <div v-else class="pf-empty"><b>Tudo em dia</b>Nenhuma pendência no momento.</div>
+          <div v-else class="pf-empty"><b>Sem pendências</b>Licenças válidas e nenhum restaurante bloqueado.</div>
         </div>
 
         <!-- Receita e recursos -->
         <div>
           <div class="pf-card">
             <div class="pf-card-h">
-              <div><h2>Receita por plano</h2><p>Faturamento mensal recorrente</p></div>
+              <div><h2>Receita por plano</h2><p>Quanto os contratos de cada plano somam por mês</p></div>
             </div>
             <div v-if="porPlano.length" class="pf-pad" style="display:grid;gap:16px">
               <div v-for="p in porPlano" :key="p.plano">
@@ -81,12 +81,12 @@
                 <div class="pf-bar"><i :style="{ width: maxMrr ? `${(p.mrr / maxMrr) * 100}%` : '0%' }" /></div>
               </div>
             </div>
-            <div v-else class="pf-empty"><b>Nenhum contrato ativo</b>A receita aparece quando houver contratos.</div>
+            <div v-else class="pf-empty"><b>Sem contratos ativos</b>A receita aparece quando um restaurante assinar.</div>
           </div>
 
           <div class="pf-card">
             <div class="pf-card-h">
-              <div><h2>Recursos liberados</h2><p>Quantos restaurantes têm cada recurso</p></div>
+              <div><h2>Recursos em uso</h2><p>Quantos restaurantes têm cada recurso liberado</p></div>
             </div>
             <div class="pf-pad" style="display:grid;gap:16px">
               <div v-for="r in recursos" :key="r.rotulo">

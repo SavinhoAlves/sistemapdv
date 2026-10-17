@@ -195,7 +195,7 @@
                 </small>
               </div>
               <div v-if="tenant.plano" class="pf-note info" style="margin-bottom:6px">
-                Os recursos seguem o plano {{ tenant.plano.nome }}. Para mudar, troque o plano ou edite o plano em Planos e valores.
+                Os recursos vêm do plano {{ tenant.plano.nome }}. Para mudar, escolha outro plano acima ou edite o plano em Planos.
               </div>
               <div class="pf-feat">
                 <span class="pf-ico" :class="tenant.rfidDisponivel ? 'ok' : ''" style="background:var(--pf-soft)"><CreditCard :size="18" /></span>

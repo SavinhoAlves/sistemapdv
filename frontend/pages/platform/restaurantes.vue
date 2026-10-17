@@ -1,11 +1,11 @@
 <template>
   <PlatformShell ativo="restaurantes" titulo="Restaurantes" :contagens="{ restaurantes: tenants.length }">
 
-    <div class="pf-crumb">Operação</div>
+    <div class="pf-crumb">Clientes</div>
     <div class="pf-head">
       <div>
         <h1>Restaurantes</h1>
-        <p>Cadastre clientes, controle a licença e abra os detalhes de cada um.</p>
+        <p>Todos os restaurantes que usam o sistema. Abra um para ver licença, contrato, plano e acesso.</p>
       </div>
       <button class="pf-btn p" @click="abrirModal(null)"><Plus :size="18" /> Novo restaurante</button>
     </div>
@@ -35,14 +35,14 @@
       <div v-if="loading && !tenants.length" class="pf-loading"><span class="pf-spin" /></div>
 
       <div v-else-if="erro" class="pf-empty">
-        <b>Não foi possível carregar</b>
+        <b>Não deu para carregar os restaurantes</b>
         <p>{{ erro }}</p>
         <button class="pf-btn" @click="carregar">Tentar novamente</button>
       </div>
 
       <div v-else-if="!lista.length" class="pf-empty">
-        <b>Nenhum restaurante encontrado</b>
-        {{ busca ? `Nada corresponde a “${busca}”.` : 'Tente outro filtro ou cadastre um novo restaurante.' }}
+        <b>Nada por aqui</b>
+        {{ busca ? `Nenhum restaurante com “${busca}” no nome, login ou responsável.` : 'Nenhum restaurante neste filtro.' }}
       </div>
 
       <div v-else class="pf-scroll">
@@ -93,10 +93,10 @@
                     </button>
                     <div v-if="menuSuporte === t.id" class="pf-menu" @click.stop>
                       <button @click="suporte(t, 'visualizacao')">
-                        <Eye :size="16" /><span>Visualizar<small>Só leitura, sem alterar nada</small></span>
+                        <Eye :size="16" /><span>Só olhar<small>Vê o sistema do restaurante sem mexer em nada</small></span>
                       </button>
                       <button @click="suporte(t, 'auxiliar')">
-                        <MousePointer2 :size="16" /><span>Auxiliar<small>Pode fazer alterações</small></span>
+                        <MousePointer2 :size="16" /><span>Ajudar<small>Entra e pode fazer alterações por ele</small></span>
                       </button>
                     </div>
                   </div>

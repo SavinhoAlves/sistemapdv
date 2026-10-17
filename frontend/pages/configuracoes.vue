@@ -3,7 +3,7 @@
     <Sidebar />
     <Navbar />
 
-    <main class="max-w-6xl mx-auto px-6 py-8">
+    <main class="w-full px-6 py-8">
 
       <!-- HEADER -->
       <div class="flex items-center gap-3 mb-7">
@@ -298,9 +298,30 @@
                   </div>
                 </div>
 
-                <div v-if="form.impressora_tipo === 'windows'">
-                  <label for="imp-share" class="block text-[10px] font-black uppercase tracking-widest text-gray-500 dark:text-white/40 mb-2">Nome da impressora no Windows</label>
-                  <input id="imp-share" name="imp-share" v-model="form.impressora_host" type="text" placeholder="Ex: EPSON TM-T20 Receipt (como aparece em Impressoras e Scanners)"
+                <div v-if="form.impressora_tipo === 'windows'" class="space-y-2">
+                  <div class="flex items-center justify-between mb-1">
+                    <label class="block text-[10px] font-black uppercase tracking-widest text-gray-500 dark:text-white/40">Impressora instalada no Windows</label>
+                    <button @click="detectarImpressorasWindows" :disabled="detectandoImpressoras"
+                      class="h-7 px-3 rounded-lg bg-gray-100 dark:bg-white/[0.06] hover:bg-gray-200 dark:hover:bg-white/10 disabled:opacity-50 text-gray-600 dark:text-white/70 text-[10px] font-black transition-all flex items-center gap-1.5">
+                      <Loader2 v-if="detectandoImpressoras" :size="10" class="animate-spin" />
+                      <Search v-else :size="10" />
+                      {{ detectandoImpressoras ? 'Detectando...' : 'Detectar' }}
+                    </button>
+                  </div>
+                  <!-- Lista detectada -->
+                  <div v-if="impressorasDetectadas && impressorasInstaladas.length" class="flex flex-wrap gap-1.5">
+                    <button v-for="nome in impressorasInstaladas" :key="nome"
+                      @click="form.impressora_host = nome"
+                      class="h-7 px-3 rounded-lg border text-xs font-bold transition-all"
+                      :class="form.impressora_host === nome
+                        ? 'bg-orange-500 border-orange-500 text-white'
+                        : 'bg-gray-50 dark:bg-white/[0.04] border-gray-200 dark:border-white/10 text-gray-600 dark:text-white/60 hover:border-orange-400/50'">
+                      {{ nome }}
+                    </button>
+                  </div>
+                  <!-- Input manual -->
+                  <input id="imp-share" name="imp-share" v-model="form.impressora_host" type="text"
+                    :placeholder="impressorasDetectadas ? 'Ou digite manualmente' : 'Clique em Detectar ou digite o nome exato'"
                     class="w-full h-11 px-4 rounded-xl border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/[0.06] text-gray-900 dark:text-white text-sm outline-none focus:border-orange-500/70 transition-all placeholder:text-gray-400 dark:placeholder:text-white/25" />
                 </div>
 
@@ -481,9 +502,30 @@
                     </div>
 
                     <!-- Nome Windows (USB) -->
-                    <div v-if="imp.tipo === 'windows'">
-                      <label class="block text-[10px] font-black uppercase tracking-widest text-gray-500 dark:text-white/40 mb-2">Nome da impressora no Windows</label>
-                      <input v-model="imp.host" type="text" placeholder="Ex: EPSON TM-T20 Receipt"
+                    <div v-if="imp.tipo === 'windows'" class="space-y-2">
+                      <div class="flex items-center justify-between mb-1">
+                        <label class="block text-[10px] font-black uppercase tracking-widest text-gray-500 dark:text-white/40">Impressora instalada no Windows</label>
+                        <button @click="detectarImpressorasWindows" :disabled="detectandoImpressoras"
+                          class="h-7 px-3 rounded-lg bg-gray-100 dark:bg-white/[0.06] hover:bg-gray-200 dark:hover:bg-white/10 disabled:opacity-50 text-gray-600 dark:text-white/70 text-[10px] font-black transition-all flex items-center gap-1.5">
+                          <Loader2 v-if="detectandoImpressoras" :size="10" class="animate-spin" />
+                          <Search v-else :size="10" />
+                          {{ detectandoImpressoras ? 'Detectando...' : 'Detectar' }}
+                        </button>
+                      </div>
+                      <!-- Lista detectada -->
+                      <div v-if="impressorasDetectadas && impressorasInstaladas.length" class="flex flex-wrap gap-1.5">
+                        <button v-for="nome in impressorasInstaladas" :key="nome"
+                          @click="imp.host = nome"
+                          class="h-7 px-3 rounded-lg border text-xs font-bold transition-all"
+                          :class="imp.host === nome
+                            ? 'bg-indigo-500 border-indigo-500 text-white'
+                            : 'bg-gray-50 dark:bg-white/[0.04] border-gray-200 dark:border-white/10 text-gray-600 dark:text-white/60 hover:border-indigo-400/50'">
+                          {{ nome }}
+                        </button>
+                      </div>
+                      <!-- Input manual -->
+                      <input v-model="imp.host" type="text"
+                        :placeholder="impressorasDetectadas ? 'Ou digite manualmente' : 'Clique em Detectar ou digite o nome exato'"
                         class="w-full h-10 px-3 rounded-xl border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/[0.06] text-gray-900 dark:text-white text-sm outline-none focus:border-indigo-500/70 transition-all placeholder:text-gray-400 dark:placeholder:text-white/25" />
                     </div>
 
@@ -691,18 +733,8 @@
             </div>
           </div>
 
-          <!-- SALVAR -->
-          <div class="flex justify-end pb-8">
-            <button
-              @click="salvar"
-              :disabled="salvando"
-              class="h-12 px-8 rounded-2xl bg-orange-500 hover:bg-orange-400 disabled:opacity-50 text-white font-black text-sm transition-all active:scale-95 flex items-center gap-2"
-            >
-              <Loader2 v-if="salvando" :size="15" class="animate-spin" />
-              <Save v-else :size="15" />
-              {{ salvando ? 'Salvando…' : 'Salvar configurações' }}
-            </button>
-          </div>
+          <!-- espaço para a floating bar não cobrir o último card -->
+          <div class="pb-4" />
 
         </div>
 
@@ -753,19 +785,61 @@
       </div>
 
     </main>
+
+    <!-- ══ FLOATING SAVE BAR ══ -->
+    <Transition name="float-bar">
+      <div v-if="temMudancas"
+        class="fixed bottom-0 left-0 right-0 z-40 border-t border-orange-500/20 bg-white/90 dark:bg-neutral-900/90 backdrop-blur-xl shadow-2xl shadow-black/20 float-bar-offset">
+        <div class="w-full px-6 py-3 flex items-center justify-between gap-4">
+          <p class="text-xs font-semibold text-gray-500 dark:text-white/50 hidden sm:block">
+            Você tem alterações não salvas
+          </p>
+          <div class="flex items-center gap-2 ml-auto">
+            <button
+              @click="cancelar"
+              :disabled="salvando"
+              class="h-9 px-5 rounded-xl border border-gray-200 dark:border-white/10 text-gray-600 dark:text-white/60 text-sm font-black hover:bg-gray-50 dark:hover:bg-white/[0.06] transition-all disabled:opacity-40"
+            >
+              Cancelar
+            </button>
+            <button
+              @click="salvar"
+              :disabled="salvando"
+              class="h-9 px-6 rounded-xl bg-orange-500 hover:bg-orange-400 disabled:opacity-50 text-white text-sm font-black transition-all active:scale-95 flex items-center gap-2"
+            >
+              <Loader2 v-if="salvando" :size="13" class="animate-spin" />
+              <Save v-else :size="13" />
+              {{ salvando ? 'Salvando…' : 'Salvar' }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </Transition>
+
   </div>
 </template>
 
 <style scoped>
 .slide-down-mp-enter-active, .slide-down-mp-leave-active { transition: all 0.22s ease }
 .slide-down-mp-enter-from, .slide-down-mp-leave-to { opacity: 0; transform: translateY(-6px) }
+
+.float-bar-enter-active, .float-bar-leave-active { transition: all 0.22s ease }
+.float-bar-enter-from, .float-bar-leave-to { opacity: 0; transform: translateY(100%) }
+</style>
+
+<style>
+/* Espelha o recuo do com-sidebar para a floating bar ficar alinhada */
+@media (min-width: 640px) {
+  .float-bar-offset { padding-left: 3.5rem; }
+  html.sidebar-expandida .float-bar-offset { padding-left: 6rem; }
+}
 </style>
 
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted } from 'vue'
+import { ref, reactive, computed, watch, onMounted } from 'vue'
 import {
   ImageIcon, Upload, Trash2, Save, Loader2, UtensilsCrossed, Printer, FileText, Eye, EyeOff,
-  Minus, Plus, Plug, CreditCard, RefreshCw, CheckCircle, Ruler, ShieldCheck, ChevronDown, Settings
+  Minus, Plus, Plug, CreditCard, RefreshCw, CheckCircle, Ruler, ShieldCheck, ChevronDown, Settings, Search
 } from 'lucide-vue-next'
 import Navbar from '~/layouts/Navbar.vue'
 import Sidebar from '~/components/Sidebar.vue'
@@ -788,11 +862,48 @@ const salvando        = ref(false)
 const mostrarToken    = ref(false)
 const rfidDisponivel  = ref(false)
 
+// ══ DETECÇÃO DE MUDANÇAS ══
+const formInicial   = ref<Record<string, any>>({})
+const formCarregado = ref(false)
+
+const temMudancas = computed(() => {
+  if (!formCarregado.value) return false
+  return (Object.keys(form) as (keyof typeof form)[]).some(
+    k => (form as any)[k] !== formInicial.value[k]
+  )
+})
+
+function tirarSnapshot() {
+  formInicial.value = { ...form }
+}
+
+function cancelar() {
+  Object.assign(form, formInicial.value)
+}
+
 // ══ IMPRESSORAS MÚLTIPLAS ══
 const impressoras          = ref<Impressora[]>([])
 const impressoraExpandida  = ref<string | null>(null)
 const salvandoImpressora   = ref<string | null>(null)
 const testandoImpressoraId = ref<string | null>(null)
+
+const impressorasInstaladas    = ref<string[]>([])
+const detectandoImpressoras    = ref(false)
+const impressorasDetectadas    = ref(false)
+
+async function detectarImpressorasWindows() {
+  detectandoImpressoras.value = true
+  try {
+    const data = await api.get<{ impressoras: string[] }>('/impressoras/instaladas')
+    impressorasInstaladas.value = data.impressoras
+    impressorasDetectadas.value = true
+    if (!data.impressoras.length) toastStore.error('Nenhuma impressora encontrada', 'Verifique se há impressoras instaladas no Windows.')
+  } catch {
+    toastStore.error('Erro ao detectar impressoras')
+  } finally {
+    detectandoImpressoras.value = false
+  }
+}
 
 function toggleExpandImpressora(id: string) {
   impressoraExpandida.value = impressoraExpandida.value === id ? null : id
@@ -950,6 +1061,9 @@ onMounted(async () => {
   mp.device_id = mpStore.mp.device_id
 
   await carregarImpressoras()
+
+  tirarSnapshot()
+  formCarregado.value = true
 })
 
 async function buscarDispositivos() {
@@ -1031,6 +1145,7 @@ async function salvar() {
     mp.access_token = ''
     mpStore.carregado = false
     await mpStore.carregar()
+    tirarSnapshot()
     toastStore.success('Configurações salvas!')
   } catch (e: any) {
     toastStore.error('Erro ao salvar', e?.message)

@@ -18,29 +18,31 @@ import * as Service from './configuracoes.service'
  *   chamado no boot de toda tela.
  */
 
+// Frontend envia snake_case; aceita também camelCase para compatibilidade futura.
 const configBody = z.object({
-  nomeRestaurante: z.string().trim().min(1).max(80).optional(),
+  nome_restaurante: z.string().trim().min(1).max(80).optional(),
 
   // ~700 KB de imagem. Acima disso a impressora térmica não aproveita, e o
   // payload passa a pesar em toda leitura de configuração.
-  logoBase64: z.string().max(950_000, 'Logo acima de 700 KB').nullable().optional(),
-  logoTamanho: z.enum(['pequeno', 'medio', 'grande', 'custom']).optional(),
-  logoAlturaCustom: z.number().int().min(10).max(400).optional(),
+  logo_base64: z.string().max(950_000, 'Logo acima de 700 KB').nullable().optional(),
+  logo_tamanho: z.string().optional(),
+  logo_altura_custom: z.number().int().min(10).max(400).optional(),
 
-  mensagemFicha: z.string().max(300).optional(),
+  mensagem_ficha: z.string().max(300).optional(),
 
-  impressoraLargura: z.number().int().min(32).max(96).optional(),
-  impressoraCopias: z.number().int().min(1).max(5).optional(),
-  impressoraAutoImprimir: z.boolean().optional(),
-  impressoraTipo: z.enum(['navegador', 'rede', 'usb']).optional(),
-  impressoraHost: z.string().trim().max(120).optional(),
-  impressoraPorta: z.number().int().min(1).max(65535).optional(),
+  impressora_largura: z.number().int().min(32).max(96).optional(),
+  impressora_copias: z.number().int().min(1).max(5).optional(),
+  impressora_auto_imprimir: z.boolean().optional(),
+  // 'usb' é o valor legado no banco; 'windows' é o valor enviado pelo frontend atual
+  impressora_tipo: z.enum(['navegador', 'rede', 'windows', 'usb']).optional(),
+  impressora_host: z.string().trim().max(120).nullable().optional(),
+  impressora_porta: z.number().int().min(1).max(65535).optional(),
 
   // O teto real. Acima de 30% não é taxa de serviço, é erro de digitação.
-  taxaServicoPct: z.number().min(0).max(30, 'Taxa de serviço acima de 30%').optional(),
+  taxa_servico_pct: z.number().min(0).max(30, 'Taxa de serviço acima de 30%').optional(),
 
-  modoVenda: z.enum(['mesa', 'balcao', 'ambos']).optional(),
-  rfidAtivo: z.boolean().optional(),
+  modo_venda: z.string().optional(),
+  rfid_ativo: z.boolean().optional(),
 })
 
 export async function configuracoesRoutes(app: FastifyInstance) {
@@ -58,7 +60,23 @@ export async function configuracoesRoutes(app: FastifyInstance) {
       if (!body.success) {
         return reply.status(400).send({ error: body.error.issues[0]?.message ?? 'Dados inválidos' })
       }
-      return Service.atualizar(request.tenantId!, body.data)
+      const d = body.data
+      return Service.atualizar(request.tenantId!, {
+        nomeRestaurante:       d.nome_restaurante,
+        logoBase64:            d.logo_base64,
+        logoTamanho:           d.logo_tamanho,
+        logoAlturaCustom:      d.logo_altura_custom,
+        mensagemFicha:         d.mensagem_ficha,
+        impressoraLargura:     d.impressora_largura,
+        impressoraCopias:      d.impressora_copias,
+        impressoraAutoImprimir: d.impressora_auto_imprimir,
+        impressoraTipo:        d.impressora_tipo,
+        impressoraHost:        d.impressora_host,
+        impressoraPorta:       d.impressora_porta,
+        taxaServicoPct:        d.taxa_servico_pct,
+        modoVenda:             d.modo_venda,
+        rfidAtivo:             d.rfid_ativo,
+      })
     },
   )
 }

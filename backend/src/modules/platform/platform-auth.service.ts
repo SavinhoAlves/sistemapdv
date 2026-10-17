@@ -77,6 +77,26 @@ export async function platformRefresh(refreshTokenRaw: string) {
   return { accessToken: newAccessToken, refreshToken: newRefreshRaw }
 }
 
+export async function platformAlterarSenha(userId: string, senhaAtual: string, novaSenha: string) {
+  const user = await prisma.platformUser.findUnique({ where: { id: userId } })
+  if (!user || !user.ativo) throw new Error('Usuário inativo')
+
+  const senhaValida = await bcrypt.compare(senhaAtual, user.senhaHash)
+  if (!senhaValida) throw new Error('Senha atual incorreta')
+
+  await prisma.$transaction([
+    prisma.platformUser.update({
+      where: { id: user.id },
+      data: { senhaHash: await bcrypt.hash(novaSenha, 12) },
+    }),
+    // Encerra as sessões abertas em outros dispositivos
+    prisma.platformRefreshToken.updateMany({
+      where: { platformUserId: user.id, revokedAt: null },
+      data: { revokedAt: new Date() },
+    }),
+  ])
+}
+
 export async function platformLogout(refreshTokenRaw: string) {
   const tokenHash = hashRefreshToken(refreshTokenRaw)
   await prisma.platformRefreshToken.updateMany({

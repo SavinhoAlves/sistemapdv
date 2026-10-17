@@ -78,7 +78,8 @@ export const useConfigStore = defineStore('configuracoes', {
         this.impressora_largura       = Number(impressoraLargura)     || 80
         this.impressora_copias        = Number(impressoraCopias)      || 1
         this.impressora_auto_imprimir = Boolean(impressoraAutoImprimir)
-        this.impressora_tipo          = impressoraTipo                || 'navegador'
+        const tipoNorm = impressoraTipo === 'usb' ? 'windows' : impressoraTipo
+        this.impressora_tipo          = (['navegador','rede','windows'].includes(tipoNorm) ? tipoNorm : 'navegador') as 'navegador' | 'rede' | 'windows'
         this.impressora_host          = impressoraHost                || ''
         this.impressora_porta         = Number(impressoraPorta)       || 9100
         this.taxa_servico_pct         = Number(taxaServicoPct ?? 10)

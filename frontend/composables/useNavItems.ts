@@ -1,7 +1,7 @@
 import { computed } from 'vue'
 import {
   BarChart2, LayoutGrid, ShoppingCart, Package, Landmark,
-  FileText, ShieldCheck, Settings, ChefHat, Boxes
+  FileText, ShieldCheck, Settings, ChefHat, Boxes, LifeBuoy
 } from 'lucide-vue-next'
 import { useAuthStore } from '~/stores/auth'
 
@@ -42,7 +42,8 @@ export function useNavItems() {
       { rota: '/cozinha',       label: 'Cozinha',       icon: ChefHat      },
       { rota: '/relatorios',    label: 'Relatórios',    icon: FileText     },
       { rota: '/admin',         label: 'Admin',         icon: ShieldCheck  },
-      { rota: '/configuracoes', label: 'Configurações', icon: Settings     }
+      { rota: '/configuracoes', label: 'Configurações', icon: Settings     },
+      { rota: '/suporte',       label: 'Suporte',       icon: LifeBuoy     }
     ]
 
     // Com perfil atribuído: nav baseada nas permissões e modo de operação do perfil

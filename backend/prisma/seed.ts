@@ -17,11 +17,11 @@ async function main() {
       data: {
         nome: 'Super Admin',
         email: 'admin@pdv.local',
-        senhaHash: await bcrypt.hash('Savio1997*', 10),
+        senhaHash: await bcrypt.hash('SUA_SENHA', 10),
         role: 'SUPER_ADMIN',
       },
     })
-    console.log('Platform Admin criado: admin@pdv.local / Savio1997*')
+    console.log('Platform Admin criado: admin@pdv.local / SUA_SENHA')
   }
 
   // ── Tenant A — Restaurante Tarantela ──────────────────────────────────────
@@ -37,7 +37,7 @@ async function main() {
     })
 
     // Admin do Tenant A
-    const senhaHash = await bcrypt.hash('Savio1997*', 10)
+    const senhaHash = await bcrypt.hash('SUA_SENHA', 10)
     await prisma.usuario.create({
       data: {
         tenantId: tenantA.id,
@@ -102,7 +102,7 @@ async function main() {
     })
 
     console.log('Tenant A criado: Restaurante Tarantela (slug: tarantela)')
-    console.log('   Login: admin@tarantela.com / Savio1997*')
+    console.log('   Login: admin@tarantela.com / SUA_SENHA')
     console.log(`   Licença válida até: ${expiraA.toLocaleDateString('pt-BR')}`)
   }
 
@@ -118,7 +118,7 @@ async function main() {
       },
     })
 
-    const senhaHash = await bcrypt.hash('Savio1997*', 10)
+    const senhaHash = await bcrypt.hash('SUA_SENHA', 10)
     await prisma.usuario.create({
       data: {
         tenantId: tenantB.id,
@@ -176,7 +176,7 @@ async function main() {
     })
 
     console.log('Tenant B criado: Sabor Italiano (slug: sabor-italiano)')
-    console.log('   Login: admin@saboritaliano.com / Savio1997*')
+    console.log('   Login: admin@saboritaliano.com / SUA_SENHA')
     console.log(`   Licença válida até: ${expiraB.toLocaleDateString('pt-BR')}`)
   }
 

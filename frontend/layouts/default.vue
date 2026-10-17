@@ -57,7 +57,8 @@ const paginaExempta = computed(() =>
   route.path.startsWith('/admin') ||
   route.path.startsWith('/configuracoes') ||
   route.path.startsWith('/estoque') ||
-  route.path.startsWith('/relatorios')
+  route.path.startsWith('/relatorios') ||
+  route.path.startsWith('/suporte')
 )
 
 const mostrarBloqueio = computed(() =>

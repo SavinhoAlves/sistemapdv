@@ -21,13 +21,16 @@ import { impressaoRoutes } from './modules/impressao/impressao.routes'
 import { impressorasRoutes } from './modules/impressoras/impressoras.routes'
 import { vendasRoutes } from './modules/vendas/vendas.routes'
 import { integracoesRoutes } from './modules/integracoes/integracoes.routes'
+import { suporteRoutes } from './modules/suporte/suporte.routes'
 import { platformAuthRoutes } from './modules/platform/platform-auth.routes'
 import { platformTenantsRoutes } from './modules/platform/platform-tenants.routes'
 import { platformTicketsRoutes } from './modules/platform/platform-tickets.routes'
 
 export async function buildApp() {
   const app = Fastify({
-    logger: process.env.NODE_ENV !== 'production',
+    // Em produção registra só avisos e erros: sem isso o request.log.error do
+    // tratador de erros era descartado e todo 500 sumia sem deixar rastro.
+    logger: process.env.NODE_ENV !== 'production' ? true : { level: 'warn' },
     bodyLimit: 2 * 1024 * 1024, // 2MB (para logo base64)
   })
 
@@ -117,6 +120,7 @@ export async function buildApp() {
   await app.register(impressorasRoutes,   { prefix: '/api/impressoras' })
   await app.register(vendasRoutes,        { prefix: '/api/vendas' })
   await app.register(integracoesRoutes,   { prefix: '/api/integracoes' })
+  await app.register(suporteRoutes,       { prefix: '/api/suporte' })
   await app.register(platformTenantsRoutes, { prefix: '/api/platform/tenants' })
   await app.register(platformTicketsRoutes, { prefix: '/api/platform/tickets' })
 

@@ -42,6 +42,10 @@
             <p class="text-xs font-semibold text-white/80 truncate">{{ platformAuth.user?.nome }}</p>
             <p class="text-[10px] text-white/30 truncate">Super Admin</p>
           </div>
+          <button @click="modalSenha = true" title="Alterar minha senha"
+            class="size-7 rounded-lg flex items-center justify-center text-white/20 hover:text-violet-300 hover:bg-violet-500/10 transition-colors opacity-0 group-hover:opacity-100">
+            <UIcon name="i-lucide-key-round" class="size-3.5" />
+          </button>
           <button @click="handleLogout" title="Sair"
             class="size-7 rounded-lg flex items-center justify-center text-white/20 hover:text-red-400 hover:bg-red-500/10 transition-colors opacity-0 group-hover:opacity-100">
             <UIcon name="i-lucide-log-out" class="size-3.5" />
@@ -49,6 +53,8 @@
         </div>
       </div>
     </aside>
+
+    <PlatformChangePasswordModal v-model="modalSenha" />
 
     <!-- ══ ÁREA PRINCIPAL ══ -->
     <div class="flex-1 flex flex-col min-w-0">
@@ -61,6 +67,9 @@
           </div>
           <span class="text-sm font-bold text-white">Plataforma</span>
         </div>
+        <button @click="modalSenha = true" title="Alterar minha senha" class="size-8 flex items-center justify-center rounded-xl text-white/30 hover:text-violet-300 hover:bg-violet-500/10 transition-colors ml-auto mr-1">
+          <UIcon name="i-lucide-key-round" class="size-4" />
+        </button>
         <button @click="handleLogout" class="size-8 flex items-center justify-center rounded-xl text-white/30 hover:text-red-400 hover:bg-red-500/10 transition-colors">
           <UIcon name="i-lucide-log-out" class="size-4" />
         </button>
@@ -86,7 +95,7 @@
     </div>
 
     <!-- ══ CONTEÚDO ══ -->
-    <main v-else-if="tenant" class="max-w-[1100px] w-full px-6 lg:px-10 py-8 space-y-6">
+    <main v-else-if="tenant" class="w-full px-6 lg:px-10 py-8 space-y-6">
 
       <!-- ─ BARRA SUPERIOR: voltar + ações ─ -->
       <div class="flex items-center gap-3">
@@ -776,9 +785,10 @@ interface Tenant {
   licencas: Licenca[]; contratos: Contrato[]
 }
 
-const route        = useRoute()
-const platformAuth = usePlatformAuthStore()
-const runtimeConfig = useRuntimeConfig()
+const route             = useRoute()
+const platformAuth      = usePlatformAuthStore()
+const modalSenha        = ref(false)
+const { platformFetch } = usePlatformFetch()
 
 const tenant         = ref<Tenant | null>(null)
 const loading        = ref(false)
@@ -863,7 +873,6 @@ const periodos = [
   { label: '1 ano', dias: 365  },
 ]
 
-const baseUrl       = computed(() => (runtimeConfig.public as any).apiUrl as string)
 const licencaAtual  = computed(() => tenant.value?.licencas?.[0] ?? null)
 const contratoAtual = computed(() => tenant.value?.contratos?.[0] ?? null)
 
@@ -930,15 +939,6 @@ function formatDate(d: string | null | undefined) { if (!d) return '—'; return
 function formatCurrency(v: string | number) { return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(v)) }
 function showToast(type: 'success' | 'error', text: string) { toastMsg.type = type; toastMsg.text = text; setTimeout(() => { toastMsg.text = '' }, 3000) }
 
-async function platformFetch<T>(path: string, options: RequestInit = {}): Promise<T> {
-  const resp = await fetch(`${baseUrl.value}/api${path}`, {
-    ...options, headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${platformAuth.token}`, ...((options.headers as any) || {}) },
-  })
-  if (resp.status === 401) { platformAuth.logout(); navigateTo('/platform/login'); throw new Error('Sessão expirada') }
-  const data = await resp.json()
-  if (!resp.ok) throw new Error(data.error || `Erro ${resp.status}`)
-  return data as T
-}
 
 async function carregar() {
   loading.value = true; erro.value = ''

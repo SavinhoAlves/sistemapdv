@@ -1,4 +1,5 @@
 import { prisma, semEscopoDeTenant } from '../lib/prisma'
+import { invalidateTenantCache } from '../middlewares/tenant.middleware'
 
 const INTERVALO_MS = 60 * 60 * 1000 // 1 hora
 
@@ -24,6 +25,7 @@ async function verificarLicencasSemEscopo(): Promise<void> {
       where: { id: licenca.id },
       data: { status: 'bloqueado' },
     })
+    invalidateTenantCache(licenca.tenantId)
     console.log(
       `[Scheduler] Bloqueada por vencimento: ${licenca.tenant.nome} (${licenca.tenant.slug}) — venceu em ${licenca.dataVencimento?.toISOString()}`
     )
@@ -44,6 +46,7 @@ async function verificarLicencasSemEscopo(): Promise<void> {
       where: { id: licenca.id },
       data: { status: 'bloqueado' },
     })
+    invalidateTenantCache(licenca.tenantId)
     console.log(
       `[Scheduler] Bloqueada por status do tenant: ${licenca.tenant.nome} (${licenca.tenant.slug}) — status: ${licenca.tenant.status}`
     )

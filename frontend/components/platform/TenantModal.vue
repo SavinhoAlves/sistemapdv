@@ -81,10 +81,16 @@
         <div class="pf-boxm">
           <div class="pf-fld">
             <span class="pf-lab">Plano *</span>
-            <div class="pf-chips">
-              <button v-for="p in planosPredef" :key="p" type="button" class="pf-fc" :aria-pressed="contratoForm.plano === p" @click="contratoForm.plano = p">{{ p }}</button>
+            <div v-if="planosAtivos.length" class="pf-rotas">
+              <button v-for="pl in planosAtivos" :key="pl.id" type="button" :class="{ sel: planoId === pl.id }" @click="escolherPlano(pl)">
+                <span>{{ pl.nome }} · {{ moedaBR(pl.valor) }}/mês</span>
+                <small>{{ resumoRecursos(pl) }}</small>
+              </button>
             </div>
-            <input v-model="contratoForm.plano" class="pf-inp" placeholder="Ou escreva o nome do plano" aria-label="Nome do plano">
+            <small v-else style="color:var(--pf-muted)">
+              Nenhum plano criado. Os recursos ficam manuais. <NuxtLink to="/platform/planos" style="color:var(--pf-brand-d)">Criar planos</NuxtLink>
+            </small>
+            <input v-if="!planosAtivos.length" v-model="contratoForm.plano" class="pf-inp" placeholder="Nome do plano no contrato" aria-label="Nome do plano">
           </div>
           <div class="pf-form">
             <div class="pf-fld"><label class="pf-lab" for="tm-valor">Valor mensal (R$)</label><input id="tm-valor" v-model="contratoForm.valor" class="pf-inp" type="number" min="0" step="0.01" placeholder="0,00"></div>
@@ -125,7 +131,8 @@
           <div class="pf-fld full"><label class="pf-lab" for="te-obs">Observações</label><textarea id="te-obs" v-model="form.observacoes" class="pf-inp" rows="2" placeholder="Anotações internas" /></div>
         </div>
       </div>
-      <div class="pf-boxm">
+      <div v-if="tenant?.plano" class="pf-note info">Os recursos deste restaurante seguem o plano {{ tenant.plano.nome }}.</div>
+      <div v-else class="pf-boxm">
         <p class="pf-sub" style="margin:0">Recursos</p>
         <div>
           <div v-for="feat in features" :key="feat.key" class="pf-feat">
@@ -218,6 +225,7 @@
 
 <script setup lang="ts">
 import { Store, Check, Eye, EyeOff, Loader2 } from 'lucide-vue-next'
+import { usePlanos, RECURSOS, type Plano } from '~/composables/usePlanos'
 interface Licenca  { id: string; status: string; dataAtivacao: string | null; dataVencimento: string | null; createdAt: string }
 interface Contrato { id: string; plano: string; valor: string | null; ciclo: string; status: string; dataInicio?: string | null; dataFim?: string | null }
 interface Tenant {
@@ -225,6 +233,7 @@ interface Tenant {
   responsavel: string | null; cpfResponsavel: string | null; telefone: string | null
   endereco: string | null; cidade: string | null; uf: string | null; observacoes: string | null
   status: string; rfidDisponivel: boolean; vendaMobilePermitida: boolean; createdAt: string
+  plano?: { id: string; nome: string } | null
   licencas: Licenca[]; contratos: Contrato[]
 }
 
@@ -275,6 +284,22 @@ const features = [
   { key: 'rfidDisponivel',       label: 'RFID',               desc: 'Autenticação por cartão (feature paga)',  color: 'violet', onIcon: 'i-lucide-check' },
 ]
 const planosPredef = ['Básico', 'Profissional', 'Enterprise']
+
+// Planos criados em Planos e valores; no cadastro, escolher um define o plano
+// do restaurante (os recursos passam a seguir o plano) e o nome do contrato.
+const { planos, carregar: carregarPlanos } = usePlanos()
+const planosAtivos = computed(() => planos.value.filter(pl => pl.ativo))
+const planoId = ref<string | null>(null)
+const moedaBR = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+function resumoRecursos(pl: Plano) {
+  const r = RECURSOS.filter(x => pl[x.chave]).map(x => x.rotulo)
+  return r.length ? r.join(', ') : 'Sem recursos extras'
+}
+function escolherPlano(pl: Plano) {
+  planoId.value = pl.id
+  contratoForm.plano = pl.nome
+  contratoForm.valor = String(pl.valor)
+}
 const ciclos = [
   { value: 'mensal', label: 'Mensal' }, { value: 'trimestral', label: 'Trim.' },
   { value: 'semestral', label: 'Semes.' }, { value: 'anual', label: 'Anual' },
@@ -283,6 +308,8 @@ const ciclos = [
 // ── Watch: popula/reseta ao abrir ─────────────────────────────────────────────
 watch(() => props.modelValue, (open) => {
   if (!open) return
+  planoId.value = null
+  carregarPlanos()
   erroModal.value = ''
   abaAtiva.value = 'dados'
   passo.value = 0
@@ -357,6 +384,7 @@ async function salvar() {
   salvando.value = true
   try {
     if (!isEdit.value) {
+      if (planosAtivos.value.length && !planoId.value) { erroModal.value = 'Escolha o plano do restaurante'; return }
       if (!contratoForm.plano.trim()) { erroModal.value = 'Selecione o plano do contrato'; return }
       const payload = {
         nome: form.nome, slug: form.slug, cnpj: form.cnpj || null, cpfResponsavel: form.cpfResponsavel || null,
@@ -365,6 +393,7 @@ async function salvar() {
         vendaMobilePermitida: form.vendaMobilePermitida, rfidDisponivel: form.rfidDisponivel,
         contrato: { plano: contratoForm.plano.trim(), valor: parseValor(contratoForm.valor), ciclo: contratoForm.ciclo, dataInicio: contratoForm.dataInicio || null, dataFim: contratoForm.dataFim || null, status: contratoForm.status },
         adminEmail: adminForm.email.trim(), adminSenha: adminForm.senha,
+        planoId: planoId.value,
       }
       const created = await platformFetch<any>('/platform/tenants', { method: 'POST', body: JSON.stringify(payload) })
       fechar()

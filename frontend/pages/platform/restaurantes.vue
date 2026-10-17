@@ -78,7 +78,7 @@
                   </div>
                 </div>
               </td>
-              <td>{{ t.contratos?.[0]?.plano || '—' }}</td>
+              <td>{{ nomePlano(t) || '—' }}</td>
               <td><span class="pf-pill" :class="licencaPill(t)[1]"><i />{{ licencaPill(t)[0] }}</span></td>
               <td><span class="pf-pill" :class="statusPill(t)[1]"><i />{{ statusPill(t)[0] }}</span></td>
               <td class="act" @click.stop>
@@ -133,7 +133,7 @@ import { ref, reactive, computed, onMounted, onUnmounted } from 'vue'
 import { Plus, Monitor, ChevronDown, ChevronUp, ChevronsUpDown, Eye, MousePointer2 } from 'lucide-vue-next'
 import { usePlatformAuthStore } from '~/stores/platformAuth'
 import {
-  usePlatformTenants, licencaPill, statusPill, iniciais,
+  usePlatformTenants, licencaPill, statusPill, iniciais, nomePlano,
   type Tenant, type ChaveStatus,
 } from '~/composables/usePlatformTenants'
 
@@ -171,7 +171,7 @@ const contar = (f: 'todos' | ChaveStatus) =>
 const lista = computed(() => {
   const q = busca.value.trim().toLowerCase()
   const chave = (t: Tenant) =>
-    ordem.col === 'nome' ? t.nome : ordem.col === 'plano' ? (t.contratos?.[0]?.plano ?? '') : licencaPill(t)[0]
+    ordem.col === 'nome' ? t.nome : ordem.col === 'plano' ? nomePlano(t) : licencaPill(t)[0]
   return tenants.value
     .filter(t => filtro.value === 'todos' || statusPill(t)[2] === filtro.value)
     .filter(t => !q || [t.nome, t.slug, t.responsavel ?? ''].some(v => v.toLowerCase().includes(q)))

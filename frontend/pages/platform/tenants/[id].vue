@@ -179,18 +179,33 @@
         <div>
           <div class="pf-card">
             <div class="pf-card-h">
-              <div><h2>Recursos</h2><p>O que este restaurante pode usar</p></div>
+              <div><h2>Plano e recursos</h2><p>O que este restaurante pode usar</p></div>
             </div>
             <div class="pf-pad">
+              <div class="pf-fld" style="margin-bottom:14px">
+                <label class="pf-lab" for="det-plano">Plano</label>
+                <select id="det-plano" class="pf-inp" :value="tenant.planoId ?? ''" :disabled="trocandoPlano" @change="trocarPlano(($event.target as HTMLSelectElement).value)">
+                  <option value="">Sem plano (recursos manuais)</option>
+                  <option v-for="pl in planosDisponiveis" :key="pl.id" :value="pl.id">
+                    {{ pl.nome }} · {{ formatCurrency(String(pl.valor)) }}/mês{{ pl.ativo ? '' : ' (inativo)' }}
+                  </option>
+                </select>
+                <small v-if="!planos.length" style="color:var(--pf-muted)">
+                  Nenhum plano criado ainda. <NuxtLink to="/platform/planos" style="color:var(--pf-brand-d)">Criar planos</NuxtLink>
+                </small>
+              </div>
+              <div v-if="tenant.plano" class="pf-note info" style="margin-bottom:6px">
+                Os recursos seguem o plano {{ tenant.plano.nome }}. Para mudar, troque o plano ou edite o plano em Planos e valores.
+              </div>
               <div class="pf-feat">
                 <span class="pf-ico" :class="tenant.rfidDisponivel ? 'ok' : ''" style="background:var(--pf-soft)"><CreditCard :size="18" /></span>
                 <div><b>RFID</b><small>Login e identificação por crachá</small></div>
-                <button class="pf-sw" role="switch" :aria-checked="tenant.rfidDisponivel" aria-label="RFID" :disabled="togglingRfid" @click="toggleRfid" />
+                <button class="pf-sw" role="switch" :aria-checked="tenant.rfidDisponivel" aria-label="RFID" :disabled="togglingRfid || !!tenant.plano" @click="toggleRfid" />
               </div>
               <div class="pf-feat">
                 <span class="pf-ico" style="background:var(--pf-soft)"><Smartphone :size="18" /></span>
                 <div><b>Venda pelo celular</b><small>Acesso via QR Code</small></div>
-                <button class="pf-sw" role="switch" :aria-checked="tenant.vendaMobilePermitida" aria-label="Venda pelo celular" :disabled="togglingMobile" @click="toggleMobile" />
+                <button class="pf-sw" role="switch" :aria-checked="tenant.vendaMobilePermitida" aria-label="Venda pelo celular" :disabled="togglingMobile || !!tenant.plano" @click="toggleMobile" />
               </div>
             </div>
           </div>
@@ -250,7 +265,7 @@
                     <div class="pf-fld full"><label class="pf-lab" for="f-obs">Observações</label><textarea id="f-obs" v-model="form.observacoes" class="pf-inp" rows="2" /></div>
                   </div>
                 </div>
-                <div class="pf-boxm">
+                <div v-if="!tenant?.plano" class="pf-boxm">
                   <p class="pf-sub" style="margin:0">Recursos</p>
                   <div>
                     <div class="pf-feat">
@@ -391,6 +406,7 @@ import {
   Eye, EyeOff, Printer, Share2, ShieldCheck, Lock,
 } from 'lucide-vue-next'
 import { usePlatformAuthStore } from '~/stores/platformAuth'
+import { usePlanos } from '~/composables/usePlanos'
 
 definePageMeta({ layout: false })
 
@@ -400,12 +416,35 @@ interface Tenant {
   id: string; nome: string; slug: string; cnpj: string | null; contato: string | null
   responsavel: string | null; telefone: string | null; endereco: string | null; observacoes: string | null
   status: string; rfidDisponivel: boolean; vendaMobilePermitida: boolean; createdAt: string
+  planoId: string | null; plano: { id: string; nome: string; valor: string | number } | null
   licencas: Licenca[]; contratos: Contrato[]
 }
 
 const route             = useRoute()
 const platformAuth      = usePlatformAuthStore()
 const { platformFetch } = usePlatformFetch()
+const { planos, carregar: carregarPlanos } = usePlanos()
+
+// Planos ativos + o plano atual (mesmo se inativo, para continuar aparecendo)
+const planosDisponiveis = computed(() => planos.value.filter(pl => pl.ativo || pl.id === tenant.value?.planoId))
+const trocandoPlano = ref(false)
+
+async function trocarPlano(planoId: string) {
+  if (!tenant.value || trocandoPlano.value) return
+  trocandoPlano.value = true
+  try {
+    const r = await platformFetch<{ planoId: string | null; rfidDisponivel: boolean; vendaMobilePermitida: boolean; plano: Tenant['plano'] }>(
+      `/platform/tenants/${tenant.value.id}/plano`,
+      { method: 'PATCH', body: JSON.stringify({ planoId: planoId || null }) },
+    )
+    Object.assign(tenant.value, r)
+    showToast('success', r.plano ? `Plano ${r.plano.nome} aplicado` : 'Plano removido; recursos agora são manuais')
+  } catch (e: any) {
+    showToast('error', e?.message || 'Não foi possível trocar o plano')
+  } finally {
+    trocandoPlano.value = false
+  }
+}
 
 const tenant         = ref<Tenant | null>(null)
 const loading        = ref(false)
@@ -1171,6 +1210,7 @@ onMounted(() => {
   platformAuth.restore()
   if (!platformAuth.isAuthenticated) { navigateTo('/platform/login'); return }
   carregar()
+  carregarPlanos()
 })
 </script>
 

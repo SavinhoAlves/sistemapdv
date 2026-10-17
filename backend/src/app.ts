@@ -25,6 +25,7 @@ import { suporteRoutes } from './modules/suporte/suporte.routes'
 import { platformAuthRoutes } from './modules/platform/platform-auth.routes'
 import { platformTenantsRoutes } from './modules/platform/platform-tenants.routes'
 import { platformTicketsRoutes } from './modules/platform/platform-tickets.routes'
+import { platformPlanosRoutes } from './modules/platform/platform-planos.routes'
 
 export async function buildApp() {
   const app = Fastify({
@@ -123,6 +124,7 @@ export async function buildApp() {
   await app.register(suporteRoutes,       { prefix: '/api/suporte' })
   await app.register(platformTenantsRoutes, { prefix: '/api/platform/tenants' })
   await app.register(platformTicketsRoutes, { prefix: '/api/platform/tickets' })
+  await app.register(platformPlanosRoutes,  { prefix: '/api/platform/planos' })
 
   // Health check
   app.get('/health', { config: { public: true } }, async () => ({ ok: true }))

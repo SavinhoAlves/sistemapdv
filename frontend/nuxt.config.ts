@@ -14,6 +14,9 @@ export default defineNuxtConfig({
     families: {
       Sora: [300, 400, 500, 600, 700, 800, 900],
       'JetBrains Mono': [400, 500],
+      // Tela de login (design 'Entrar · RestaurantePDV')
+      'Bricolage Grotesque': [600, 700],
+      'DM Sans': [400, 500, 600],
     },
   },
 

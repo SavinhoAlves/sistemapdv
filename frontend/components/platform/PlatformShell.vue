@@ -79,10 +79,10 @@ import { useThemeStore } from '~/stores/theme'
 /**
  * Moldura das páginas da plataforma: navegação agrupada à esquerda,
  * conteúdo à direita. Itens sem rota ainda não existem no backend e
- * aparecem como "Em breve" (Mensalidades, Testes, Avisos, Backups).
+ * aparecem como "Em breve" (Testes, Avisos, Backups).
  */
 defineProps<{
-  ativo: 'painel' | 'restaurantes' | 'tickets' | 'planos'
+  ativo: 'painel' | 'restaurantes' | 'tickets' | 'planos' | 'cobranca'
   titulo: string
   contagens?: Partial<Record<string, number>>
 }>()
@@ -93,7 +93,7 @@ const NAV: { nome: string; itens: ItemNav[] }[] = [
   { nome: 'Clientes', itens: [
     { chave: 'painel',       rotulo: 'Visão geral',   icone: LayoutDashboard, rota: '/platform' },
     { chave: 'restaurantes', rotulo: 'Restaurantes',  icone: Store,           rota: '/platform/restaurantes' },
-    { chave: 'cobranca',     rotulo: 'Mensalidades',  icone: Wallet },
+    { chave: 'cobranca',     rotulo: 'Mensalidades',  icone: Wallet,          rota: '/platform/mensalidades' },
     { chave: 'demos',        rotulo: 'Testes', icone: FlaskConical },
   ] },
   { nome: 'Atendimento', itens: [

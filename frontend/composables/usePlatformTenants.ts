@@ -18,7 +18,7 @@ export interface Dashboard {
   totais:     { tenants: number; ativos: number; suspensos: number }
   licencas:   { ativas: number; pendentes: number; bloqueadas: number; vencendo: number; vencidas: number }
   financeiro: { mrr: number; arr: number; porPlano: { plano: string; count: number; mrr: number }[] }
-  alertas:    { tenantId: string; nome: string; tipo: string; dias?: number }[]
+  alertas:    { tenantId: string; nome: string; tipo: string; dias?: number; valor?: number }[]
 }
 
 /** [rótulo, tom] — tom vira a classe da pílula (ok | warn | bad | info | mute). */

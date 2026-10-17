@@ -4,6 +4,7 @@ import { prisma } from '../../lib/prisma'
 import { signAccessToken } from '../../lib/jwt'
 import bcrypt from 'bcryptjs'
 import { recursosDoPlano } from './platform-planos.routes'
+import { competenciaAtual, situacao, valorMensal } from './platform-cobranca.routes'
 
 function slugify(s: string) {
   return s
@@ -32,16 +33,20 @@ export async function platformTenantsRoutes(app: FastifyInstance) {
           select: { status: true, dataVencimento: true } },
         contratos: { orderBy: { createdAt: 'desc' }, take: 1,
           select: { plano: true, valor: true, ciclo: true, status: true } },
+        cobrancaDiaVencimento: true, cobrancaValor: true, cobrancaIsento: true,
+        plano: { select: { valor: true } },
+        pagamentosMensalidade: { where: { competencia: competenciaAtual() }, take: 1, select: { id: true } },
       },
     })
 
     const agora   = new Date()
+    const compAtual = competenciaAtual(agora)
     const em30d   = new Date(agora.getTime() + 30 * 86_400_000)
     const em7d    = new Date(agora.getTime() +  7 * 86_400_000)
 
     let mrr = 0
     const porPlano: Record<string, { count: number; mrr: number }> = {}
-    const alertas: { tenantId: string; nome: string; tipo: string; dias?: number }[] = []
+    const alertas: { tenantId: string; nome: string; tipo: string; dias?: number; valor?: number }[] = []
 
     let licAtivas = 0, licPendentes = 0, licBloqueadas = 0, licVencendo30 = 0, licVencidas = 0
 
@@ -71,6 +76,13 @@ export async function platformTenantsRoutes(app: FastifyInstance) {
         }
       }
 
+      // Mensalidade do mês vencida sem pagamento
+      const { valor } = valorMensal(t)
+      const sit = situacao(t.cobrancaIsento, t.pagamentosMensalidade.length > 0, compAtual, t.cobrancaDiaVencimento, agora, valor)
+      if (sit === 'atrasado' && valor > 0) {
+        alertas.push({ tenantId: t.id, nome: t.nome, tipo: 'mensalidade_atrasada', dias: agora.getDate() - t.cobrancaDiaVencimento, valor })
+      }
+
       if (con?.status === 'ativo' && con.valor) {
         const mrrTenant = Number(con.valor) * (FATOR_MRR[con.ciclo] ?? 1)
         mrr += mrrTenant
@@ -80,8 +92,8 @@ export async function platformTenantsRoutes(app: FastifyInstance) {
       }
     }
 
-    // Ordena alertas: vencidas > críticas (≤7d) > vencendo > inadimplentes
-    const prioridade: Record<string, number> = { licenca_vencida: 0, licenca_critica: 1, licenca_vencendo: 2, inadimplente: 3 }
+    // Ordena alertas: vencidas > críticas (≤7d) > mensalidade atrasada > vencendo > licença bloqueada
+    const prioridade: Record<string, number> = { licenca_vencida: 0, licenca_critica: 1, mensalidade_atrasada: 2, licenca_vencendo: 3, inadimplente: 4 }
     alertas.sort((a, b) => (prioridade[a.tipo] ?? 9) - (prioridade[b.tipo] ?? 9))
 
     return reply.send({

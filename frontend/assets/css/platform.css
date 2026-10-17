@@ -358,3 +358,7 @@ select.pf-inp { appearance: auto; }
 .pf-pc-new { -webkit-mask: none; mask: none; border: 2px dashed var(--pf-line); box-shadow: none; background: transparent; border-radius: 14px; align-items: center; justify-content: center; text-align: center; color: var(--pf-muted); min-height: 300px; cursor: pointer; gap: 8px; }
 .pf-pc-new:hover { border-color: var(--pf-brand); color: var(--pf-brand-d); }
 .pf-pc-new small { max-width: 22ch; }
+
+/* ── Mensalidades: seletor de mês ── */
+.pf-mes { display: flex; align-items: center; gap: 8px; }
+.pf-mes-nome { min-width: 170px; text-align: center; font-weight: 700; font-size: 16px; }

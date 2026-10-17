@@ -54,7 +54,7 @@
             </div>
           </div>
           <template v-if="alertas.length">
-            <NuxtLink v-for="a in alertas" :key="a.tenantId + a.tipo" :to="`/platform/tenants/${a.tenantId}`" class="pf-att">
+            <NuxtLink v-for="a in alertas" :key="a.tenantId + a.tipo" :to="(a as any).link ?? `/platform/tenants/${a.tenantId}`" class="pf-att">
               <span class="pf-ico" :class="a.tom"><component :is="a.icone" :size="20" /></span>
               <div>
                 <b>{{ a.titulo }}</b>
@@ -108,7 +108,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, type Component } from 'vue'
-import { Plus, AlertTriangle, Clock, Wallet, CreditCard, Smartphone } from 'lucide-vue-next'
+import { Plus, AlertTriangle, Clock, Wallet, CreditCard, Smartphone, Lock } from 'lucide-vue-next'
 import { usePlatformAuthStore } from '~/stores/platformAuth'
 import { usePlatformTenants, moeda } from '~/composables/usePlatformTenants'
 
@@ -133,7 +133,10 @@ const alertas = computed(() => (dashboard.value?.alertas ?? []).map(a => {
     return { ...a, tom: 'bad', icone: AlertTriangle as Component, titulo: `Licença de ${a.nome} venceu`, detalhe: 'O restaurante não consegue abrir o caixa' }
   if (a.tipo === 'licenca_critica' || a.tipo === 'licenca_vencendo')
     return { ...a, tom: a.tipo === 'licenca_critica' ? 'bad' : 'warn', icone: Clock as Component, titulo: `Licença de ${a.nome} vence em ${a.dias} ${a.dias === 1 ? 'dia' : 'dias'}`, detalhe: 'Renove para evitar o bloqueio' }
-  return { ...a, tom: 'bad', icone: Wallet as Component, titulo: `${a.nome} está inadimplente`, detalhe: 'Verifique o contrato e a cobrança' }
+  if (a.tipo === 'mensalidade_atrasada')
+    return { ...a, tom: 'bad', icone: Wallet as Component, titulo: `Mensalidade de ${a.nome} atrasada`, detalhe: `${moeda(a.valor ?? 0)} · venceu há ${a.dias} ${a.dias === 1 ? 'dia' : 'dias'}`, link: '/platform/mensalidades' }
+  // 'inadimplente' no backend = licença bloqueada
+  return { ...a, tom: 'bad', icone: Lock as Component, titulo: `Licença de ${a.nome} bloqueada`, detalhe: 'O restaurante não consegue entrar no sistema' }
 }))
 
 onMounted(() => {

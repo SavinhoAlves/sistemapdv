@@ -1,53 +1,33 @@
 <template>
-  <UModal :model-value="modelValue" @update:model-value="fechar"
-    :ui="{ width: 'max-w-sm', background: 'bg-[#0e0d18]', ring: 'ring-1 ring-white/[0.09]', rounded: 'rounded-2xl' }">
-    <UCard :ui="{ background: 'bg-transparent', ring: '', divide: 'divide-white/[0.07]', header: { padding: 'px-5 py-4' }, body: { padding: 'p-5' }, footer: { padding: 'px-5 pb-5 pt-0' } }">
-
-      <template #header>
-        <div class="flex items-center justify-between">
-          <div class="flex items-center gap-3">
-            <div class="size-9 rounded-xl bg-gradient-to-br from-violet-600 to-violet-900 flex items-center justify-center shrink-0 shadow-lg shadow-violet-900/40">
-              <UIcon name="i-lucide-key-round" class="text-white size-4" />
-            </div>
-            <div>
-              <h2 class="text-sm font-bold text-white">Alterar minha senha</h2>
-              <p class="text-white/30 text-[10px]">Você será desconectado ao concluir</p>
-            </div>
-          </div>
-          <button @click="fechar" class="size-7 rounded-xl flex items-center justify-center text-white/30 hover:text-white hover:bg-white/[0.06] transition-colors">
-            <UIcon name="i-lucide-x" class="size-3.5" />
-          </button>
-        </div>
-      </template>
-
-      <form class="space-y-3" @submit.prevent="salvar">
-        <div>
-          <label class="label-field">Senha atual</label>
-          <UInput v-model="form.senhaAtual" type="password" autocomplete="current-password" size="sm" :ui="{ rounded: 'rounded-xl' }" class="input-dark" />
-        </div>
-        <div>
-          <label class="label-field">Nova senha <span class="normal-case font-normal text-white/20">(mín. 8 caracteres)</span></label>
-          <UInput v-model="form.novaSenha" type="password" autocomplete="new-password" size="sm" :ui="{ rounded: 'rounded-xl' }" class="input-dark" />
-        </div>
-        <div>
-          <label class="label-field">Confirmar nova senha</label>
-          <UInput v-model="form.confirmar" type="password" autocomplete="new-password" size="sm" :ui="{ rounded: 'rounded-xl' }" class="input-dark" />
-        </div>
-        <p v-if="erro" class="text-[11px] text-red-400">{{ erro }}</p>
-        <button type="submit" class="hidden" />
-      </form>
-
-      <template #footer>
-        <div class="flex gap-2">
-          <UButton color="gray" variant="ghost" block :ui="{ rounded: 'rounded-xl', font: 'font-semibold text-sm' }" @click="fechar">Cancelar</UButton>
-          <UButton color="violet" block :loading="salvando" :ui="{ rounded: 'rounded-xl', font: 'font-semibold text-sm' }" @click="salvar">Salvar</UButton>
-        </div>
-      </template>
-    </UCard>
-  </UModal>
+  <PlatformModal :model-value="modelValue" titulo="Alterar minha senha" subtitulo="Você será desconectado ao concluir" pequena @update:model-value="fechar">
+    <template #icone><KeyRound :size="18" /></template>
+    <form class="pf-boxm" @submit.prevent="salvar">
+      <div class="pf-fld">
+        <label class="pf-lab" for="cp-atual">Senha atual</label>
+        <input id="cp-atual" v-model="form.senhaAtual" class="pf-inp" type="password" autocomplete="current-password">
+      </div>
+      <div class="pf-fld">
+        <label class="pf-lab" for="cp-nova">Nova senha <small>(mínimo 8 caracteres)</small></label>
+        <input id="cp-nova" v-model="form.novaSenha" class="pf-inp" type="password" autocomplete="new-password">
+      </div>
+      <div class="pf-fld">
+        <label class="pf-lab" for="cp-conf">Confirmar nova senha</label>
+        <input id="cp-conf" v-model="form.confirmar" class="pf-inp" type="password" autocomplete="new-password" :aria-invalid="!!form.confirmar && form.confirmar !== form.novaSenha">
+      </div>
+      <p v-if="erro" class="pf-err" role="alert">{{ erro }}</p>
+      <button type="submit" hidden />
+    </form>
+    <template #rodape>
+      <button class="pf-btn" @click="fechar">Cancelar</button>
+      <button class="pf-btn p" :disabled="salvando" @click="salvar">
+        <Loader2 v-if="salvando" :size="16" class="animate-spin" /> Salvar
+      </button>
+    </template>
+  </PlatformModal>
 </template>
 
 <script setup lang="ts">
+import { KeyRound, Loader2 } from 'lucide-vue-next'
 import { usePlatformAuthStore } from '~/stores/platformAuth'
 
 const props = defineProps<{ modelValue: boolean }>()
@@ -91,9 +71,3 @@ async function salvar() {
   }
 }
 </script>
-
-<style scoped>
-.label-field { display: block; margin-bottom: 0.375rem; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: rgba(255,255,255,0.3); }
-.input-dark :deep(input) { background: rgba(255,255,255,0.04); border-color: rgba(255,255,255,0.08); color: rgba(255,255,255,0.85); }
-.input-dark :deep(input):focus { border-color: rgba(139,92,246,0.5); background: rgba(255,255,255,0.06); }
-</style>

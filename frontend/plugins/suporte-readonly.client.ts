@@ -1,4 +1,7 @@
 import { useAuthStore } from '~/stores/auth'
+// Import direto do Nuxt UI: em plugins o auto-import (e o '#imports') pode
+// ainda não ter o useToast na partida a frio, e isso derrubava o app com 500.
+import { useToast } from '#ui/composables/useToast'
 
 const MUTATING = new Set(['POST', 'PUT', 'PATCH', 'DELETE'])
 

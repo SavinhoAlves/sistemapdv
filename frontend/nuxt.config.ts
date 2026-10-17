@@ -15,7 +15,7 @@ export default defineNuxtConfig({
       Sora: [300, 400, 500, 600, 700, 800, 900],
       'JetBrains Mono': [400, 500],
       // Tela de login (design 'Entrar · RestaurantePDV')
-      'Bricolage Grotesque': [600, 700],
+      'Bricolage Grotesque': [600, 700, 800],
       'DM Sans': [400, 500, 600],
     },
   },
@@ -52,7 +52,7 @@ export default defineNuxtConfig({
     }
   },
 
-  css: ['~/assets/css/tokens.css', '~/assets/css/main.css', '~/assets/css/auth.css'],
+  css: ['~/assets/css/tokens.css', '~/assets/css/main.css', '~/assets/css/auth.css', '~/assets/css/platform.css'],
 
   ssr: false, // SPA mode para LAN
 

@@ -1,287 +1,184 @@
 <template>
-  <div class="min-h-dvh bg-[#0b0b12] flex">
+  <PlatformShell ativo="tickets" titulo="Tickets" :contagens="{ tickets: stats.abertos }">
 
-    <!-- ══ SIDEBAR ══ -->
-    <aside class="hidden lg:flex flex-col w-60 shrink-0 border-r border-white/[0.06] sticky top-0 h-screen" style="background:#0e0d18">
-      <div class="h-16 px-5 flex items-center gap-3 border-b border-white/[0.06] shrink-0">
-        <div class="size-8 rounded-xl bg-gradient-to-br from-violet-600 to-violet-900 flex items-center justify-center shadow-lg shadow-violet-900/60 shrink-0">
-          <UIcon name="i-lucide-globe" class="text-white size-4" />
-        </div>
-        <div>
-          <p class="text-sm font-bold text-white leading-none tracking-tight">Plataforma</p>
-          <p class="text-[9px] font-semibold uppercase tracking-widest text-white/30 mt-0.5">PDV Central</p>
-        </div>
+    <div class="pf-crumb">Operação</div>
+    <div class="pf-head">
+      <div>
+        <h1>Tickets</h1>
+        <p>Chamados de suporte abertos pelos restaurantes.</p>
       </div>
-
-      <nav class="flex-1 px-3 py-5 space-y-1">
-        <p class="text-[9px] font-bold uppercase tracking-widest text-white/20 px-3 mb-3">Menu</p>
-        <NuxtLink to="/platform" class="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-white/[0.04] transition-colors">
-          <div class="size-8 rounded-xl bg-white/[0.05] flex items-center justify-center shrink-0">
-            <UIcon name="i-lucide-store" class="text-white/40 size-3.5" />
-          </div>
-          <span class="text-sm font-medium text-white/50 flex-1 truncate">Restaurantes</span>
-        </NuxtLink>
-        <div class="nav-active flex items-center gap-3 px-3 py-2.5 rounded-xl">
-          <div class="size-8 rounded-xl bg-gradient-to-br from-violet-600 to-violet-900 flex items-center justify-center shrink-0 shadow-md shadow-violet-900/50">
-            <UIcon name="i-lucide-ticket" class="text-white size-3.5" />
-          </div>
-          <span class="text-sm font-semibold text-white flex-1 truncate">Tickets</span>
-          <span v-if="stats.abertos" class="text-[11px] font-bold text-violet-300 tabular-nums bg-violet-500/20 px-1.5 py-0.5 rounded-lg shrink-0">{{ stats.abertos }}</span>
-        </div>
-      </nav>
-
-      <div class="px-3 py-4 border-t border-white/[0.06] shrink-0">
-        <div class="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-white/[0.04] transition-colors group">
-          <div class="size-8 rounded-xl bg-gradient-to-br from-violet-700 to-violet-900 flex items-center justify-center shrink-0">
-            <span class="text-[11px] font-black text-white">{{ (platformAuth.user?.nome || 'SA')[0] }}</span>
-          </div>
-          <div class="flex-1 min-w-0">
-            <p class="text-xs font-semibold text-white/80 truncate">{{ platformAuth.user?.nome }}</p>
-            <p class="text-[10px] text-white/30 truncate">Super Admin</p>
-          </div>
-          <button @click="modalSenha = true" title="Alterar minha senha"
-            class="size-7 rounded-lg flex items-center justify-center text-white/20 hover:text-violet-300 hover:bg-violet-500/10 transition-colors opacity-0 group-hover:opacity-100">
-            <UIcon name="i-lucide-key-round" class="size-3.5" />
-          </button>
-          <button @click="handleLogout" title="Sair"
-            class="size-7 rounded-lg flex items-center justify-center text-white/20 hover:text-red-400 hover:bg-red-500/10 transition-colors opacity-0 group-hover:opacity-100">
-            <UIcon name="i-lucide-log-out" class="size-3.5" />
-          </button>
-        </div>
-      </div>
-    </aside>
-
-    <PlatformChangePasswordModal v-model="modalSenha" />
-
-    <!-- ══ ÁREA PRINCIPAL ══ -->
-    <div class="flex-1 flex flex-col min-w-0">
-
-      <!-- Topbar mobile -->
-      <header class="lg:hidden sticky top-0 z-30 h-14 flex items-center justify-between px-4 border-b border-white/[0.06] shrink-0 bg-[#0b0b12]/90 backdrop-blur-xl">
-        <div class="flex items-center gap-2.5">
-          <div class="size-7 rounded-xl bg-gradient-to-br from-violet-600 to-violet-900 flex items-center justify-center">
-            <UIcon name="i-lucide-globe" class="text-white size-3.5" />
-          </div>
-          <span class="text-sm font-bold text-white">Tickets</span>
-        </div>
-        <button @click="modalSenha = true" title="Alterar minha senha" class="size-8 flex items-center justify-center rounded-xl text-white/30 hover:text-violet-300 hover:bg-violet-500/10 transition-colors ml-auto mr-1">
-          <UIcon name="i-lucide-key-round" class="size-4" />
-        </button>
-        <button @click="handleLogout" class="size-8 flex items-center justify-center rounded-xl text-white/30 hover:text-red-400 hover:bg-red-500/10 transition-colors">
-          <UIcon name="i-lucide-log-out" class="size-4" />
-        </button>
-      </header>
-
-      <main class="flex-1 px-6 lg:px-10 py-8 space-y-8 w-full">
-
-        <!-- LOADING -->
-        <div v-if="loading" class="flex items-center justify-center py-48">
-          <div class="flex flex-col items-center gap-4">
-            <div class="size-12 rounded-2xl bg-gradient-to-br from-violet-600 to-violet-900 flex items-center justify-center shadow-xl shadow-violet-900/40">
-              <UIcon name="i-lucide-loader-2" class="animate-spin text-white size-5" />
-            </div>
-            <p class="text-[11px] font-semibold uppercase tracking-widest text-white/25">Carregando tickets</p>
-          </div>
-        </div>
-
-        <template v-else>
-
-          <!-- HEADER -->
-          <div class="flex items-start justify-between gap-4">
-            <div>
-              <h1 class="text-2xl font-black text-white tracking-tight">Tickets de Suporte</h1>
-              <p class="text-sm text-white/30 mt-0.5">Chamados de todos os restaurantes</p>
-            </div>
-            <UButton
-              color="violet" icon="i-lucide-plus" size="sm"
-              :ui="{ rounded: 'rounded-xl', font: 'font-bold' }"
-              @click="openCreate"
-            >
-              Novo ticket
-            </UButton>
-          </div>
-
-          <!-- STATS -->
-          <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            <div v-for="s in statCards" :key="s.label" class="rounded-2xl border p-4 space-y-2" :class="s.bg">
-              <div class="flex items-center justify-between">
-                <p class="text-[11px] font-bold uppercase tracking-widest" :class="s.label_color">{{ s.label }}</p>
-                <div class="size-7 rounded-xl flex items-center justify-center" :class="s.icon_bg">
-                  <UIcon :name="s.icon" class="size-3.5" :class="s.icon_color" />
-                </div>
-              </div>
-              <p class="text-3xl font-black" :class="s.value_color">{{ s.value }}</p>
-            </div>
-          </div>
-
-          <!-- FILTROS -->
-          <div class="flex flex-wrap gap-3 items-center">
-            <div class="flex bg-white/[0.04] border border-white/[0.08] rounded-xl p-1 gap-1">
-              <button v-for="f in statusFiltros" :key="f.value"
-                @click="filtroStatus = f.value"
-                class="px-3 py-1.5 rounded-lg text-xs font-bold transition-all"
-                :class="filtroStatus === f.value
-                  ? 'bg-violet-600 text-white shadow-sm shadow-violet-900/50'
-                  : 'text-white/40 hover:text-white/60'"
-              >{{ f.label }}</button>
-            </div>
-
-            <UInput
-              v-model="busca"
-              placeholder="Buscar por título ou restaurante..."
-              icon="i-lucide-search"
-              size="sm"
-              :ui="{ rounded: 'rounded-xl', base: 'bg-white/[0.04] border-white/[0.08] text-white placeholder-white/20' }"
-              class="flex-1 min-w-[200px] max-w-xs"
-            />
-
-            <span class="text-[11px] text-white/25 ml-auto tabular-nums">{{ ticketsFiltrados.length }} resultado(s)</span>
-          </div>
-
-          <!-- LISTA DE TICKETS -->
-          <div v-if="ticketsFiltrados.length === 0" class="text-center py-20">
-            <div class="size-14 rounded-2xl bg-white/[0.03] border border-white/[0.06] flex items-center justify-center mx-auto mb-4">
-              <UIcon name="i-lucide-ticket" class="size-6 text-white/15" />
-            </div>
-            <p class="text-white/20 text-sm font-medium">Nenhum ticket encontrado</p>
-          </div>
-
-          <div v-else class="space-y-2">
-            <div
-              v-for="t in ticketsFiltrados" :key="t.id"
-              class="group flex items-start gap-4 p-4 rounded-2xl border border-white/[0.06] hover:border-white/[0.10] hover:bg-white/[0.02] transition-all cursor-pointer"
-              @click="openEdit(t)"
-            >
-              <!-- Prioridade -->
-              <div class="mt-0.5 size-2.5 rounded-full shrink-0 mt-2" :class="prioridadeColor(t.prioridade)" />
-
-              <!-- Conteúdo -->
-              <div class="flex-1 min-w-0 space-y-1">
-                <div class="flex items-center gap-2 flex-wrap">
-                  <p class="text-sm font-semibold text-white truncate">{{ t.titulo }}</p>
-                  <UBadge :color="tipoCor(t.tipo)" variant="soft" size="xs">{{ tipoLabel(t.tipo) }}</UBadge>
-                </div>
-                <p class="text-[11px] text-white/30">
-                  <span class="font-semibold text-white/50">{{ t.tenant?.nome ?? '—' }}</span>
-                  · {{ formatDate(t.createdAt) }}
-                </p>
-                <p v-if="t.descricao" class="text-xs text-white/25 line-clamp-1">{{ t.descricao }}</p>
-              </div>
-
-              <!-- Status + ações -->
-              <div class="flex items-center gap-2 shrink-0">
-                <UBadge :color="statusCor(t.status)" variant="soft" size="sm" class="capitalize">
-                  {{ statusLabel(t.status) }}
-                </UBadge>
-                <button
-                  class="size-7 rounded-lg flex items-center justify-center text-white/15 hover:text-red-400 hover:bg-red-500/10 transition-colors opacity-0 group-hover:opacity-100"
-                  @click.stop="deletarTicket(t.id)"
-                  title="Excluir"
-                >
-                  <UIcon name="i-lucide-trash-2" class="size-3.5" />
-                </button>
-              </div>
-            </div>
-          </div>
-
-        </template>
-      </main>
+      <button class="pf-btn p" @click="openCreate"><Plus :size="18" /> Novo ticket</button>
     </div>
 
-    <!-- ══ MODAL CRIAR ══ -->
-    <UModal v-model="modalCriar" :ui="{ base: 'bg-[#13121e] border border-white/[0.08]', rounded: 'rounded-2xl' }">
-      <UCard :ui="{ base: 'bg-transparent', ring: '', divide: 'divide-white/[0.06]', header: { padding: 'px-6 pt-6 pb-4' }, body: { padding: 'px-6 pb-6' } }">
-        <template #header>
-          <div class="flex items-center justify-between">
-            <h3 class="text-base font-black text-white">Novo Ticket</h3>
-            <UButton icon="i-lucide-x" color="gray" variant="ghost" size="xs" :ui="{ rounded: 'rounded-xl' }" @click="modalCriar = false" />
-          </div>
-        </template>
+    <div v-if="loading" class="pf-loading"><span class="pf-spin" /></div>
 
-        <form @submit.prevent="criarTicket" class="space-y-4">
-          <UFormGroup label="Restaurante" required>
-            <USelect
-              v-model="form.tenantId"
-              :options="tenantOpts"
-              value-attribute="value"
-              option-attribute="label"
-              placeholder="Selecione..."
-              size="sm"
-              :ui="{ base: 'bg-white/[0.05] border-white/[0.08] text-white', rounded: 'rounded-xl' }"
-              required
-            />
-          </UFormGroup>
-          <div class="grid grid-cols-2 gap-3">
-            <UFormGroup label="Tipo" required>
-              <USelect v-model="form.tipo" :options="tipoOpts" size="sm" :ui="{ base: 'bg-white/[0.05] border-white/[0.08] text-white', rounded: 'rounded-xl' }" />
-            </UFormGroup>
-            <UFormGroup label="Prioridade" required>
-              <USelect v-model="form.prioridade" :options="prioridadeOpts" size="sm" :ui="{ base: 'bg-white/[0.05] border-white/[0.08] text-white', rounded: 'rounded-xl' }" />
-            </UFormGroup>
-          </div>
-          <UFormGroup label="Título" required>
-            <UInput v-model="form.titulo" placeholder="Descreva o problema brevemente..." size="sm" :ui="{ base: 'bg-white/[0.05] border-white/[0.08] text-white placeholder-white/20', rounded: 'rounded-xl' }" required />
-          </UFormGroup>
-          <UFormGroup label="Descrição">
-            <UTextarea v-model="form.descricao" placeholder="Detalhes adicionais..." :rows="3" size="sm" :ui="{ base: 'bg-white/[0.05] border-white/[0.08] text-white placeholder-white/20', rounded: 'rounded-xl' }" />
-          </UFormGroup>
+    <template v-else>
+      <div class="pf-strip">
+        <div class="pf-st"><small>Abertos</small><strong>{{ stats.abertos }}</strong><em>aguardando atendimento</em></div>
+        <div class="pf-st"><small>Em andamento</small><strong>{{ stats.emAndamento }}</strong><em>em atendimento</em></div>
+        <div class="pf-st"><small>Resolvidos</small><strong>{{ stats.resolvidos }}</strong><em>concluídos</em></div>
+        <div class="pf-st" :class="{ hot: stats.urgentes > 0 }"><small>Urgentes</small><strong>{{ stats.urgentes }}</strong><em>{{ stats.urgentes ? 'precisam de resposta já' : 'sem urgência' }}</em></div>
+      </div>
 
-          <div class="flex justify-end gap-2 pt-2">
-            <UButton type="button" color="gray" variant="ghost" size="sm" :ui="{ rounded: 'rounded-xl' }" @click="modalCriar = false">Cancelar</UButton>
-            <UButton type="submit" color="violet" size="sm" :loading="saving" :ui="{ rounded: 'rounded-xl', font: 'font-bold' }">Criar ticket</UButton>
+      <div class="pf-card">
+        <div class="pf-tool">
+          <div class="pf-chips" role="group" aria-label="Filtrar por situação">
+            <button v-for="f in statusFiltros" :key="f.value" class="pf-fc" :aria-pressed="filtroStatus === f.value" @click="filtroStatus = f.value">
+              {{ f.label }}<em>{{ contar(f.value) }}</em>
+            </button>
           </div>
-        </form>
-      </UCard>
-    </UModal>
+          <input v-model="busca" class="pf-inp pf-search" type="search" placeholder="Buscar por título ou restaurante" aria-label="Buscar ticket">
+        </div>
 
-    <!-- ══ MODAL EDITAR ══ -->
-    <UModal v-model="modalEditar" :ui="{ base: 'bg-[#13121e] border border-white/[0.08]', rounded: 'rounded-2xl' }">
-      <UCard :ui="{ base: 'bg-transparent', ring: '', divide: 'divide-white/[0.06]', header: { padding: 'px-6 pt-6 pb-4' }, body: { padding: 'px-6 pb-6' } }">
-        <template #header>
-          <div class="flex items-center justify-between">
-            <div>
-              <h3 class="text-base font-black text-white">Atualizar Ticket</h3>
-              <p v-if="ticketAtual" class="text-[11px] text-white/30 mt-0.5 truncate max-w-[280px]">{{ ticketAtual.tenant?.nome }}</p>
+        <div v-if="!ticketsFiltrados.length" class="pf-empty" style="padding:56px 22px">
+          <b>{{ tickets.length ? 'Nenhum ticket neste filtro' : 'Tudo tranquilo por aqui' }}</b>
+          {{ tickets.length ? 'Tente outro filtro ou outra busca.' : 'Quando um restaurante abrir um chamado, ele aparece nesta lista.' }}
+        </div>
+
+        <div v-else class="pf-scroll">
+          <table class="pf-table">
+            <thead>
+              <tr><th>Chamado</th><th>Restaurante</th><th>Prioridade</th><th>Situação</th><th>Aberto em</th><th /></tr>
+            </thead>
+            <tbody>
+              <tr v-for="t in ticketsFiltrados" :key="t.id" class="clicavel" tabindex="0" @click="openEdit(t)" @keydown.enter="openEdit(t)">
+                <td style="max-width:360px">
+                  <b style="display:block">{{ t.titulo }}</b>
+                  <small style="color:var(--pf-muted)">
+                    <span class="pf-tag">{{ tipoLabel(t.tipo) }}</span>
+                    <template v-if="t.descricao"> {{ t.descricao.length > 70 ? t.descricao.slice(0, 70) + '…' : t.descricao }}</template>
+                  </small>
+                </td>
+                <td>{{ t.tenant?.nome ?? '—' }}</td>
+                <td><span class="pf-pill" :class="prioridadeTom(t.prioridade)"><i />{{ prioridadeLabel(t.prioridade) }}</span></td>
+                <td><span class="pf-pill" :class="statusTom(t.status)"><i />{{ statusLabel(t.status) }}</span></td>
+                <td style="white-space:nowrap">{{ formatDate(t.createdAt) }}</td>
+                <td class="act" @click.stop>
+                  <button class="pf-ib perigo" style="display:inline-grid" :aria-label="`Excluir ticket ${t.titulo}`" @click="pedirExclusao(t)">
+                    <Trash2 :size="16" />
+                  </button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </template>
+
+    <!-- ══ NOVO TICKET ══ -->
+    <Teleport to="body">
+      <Transition name="fade">
+        <div v-if="modalCriar" class="pf-portal pf-veu" @click.self="modalCriar = false">
+          <form class="pf-modal" role="dialog" aria-modal="true" aria-labelledby="tk-novo" @submit.prevent="criarTicket">
+            <div class="pf-modal-h">
+              <div><h2 id="tk-novo">Novo ticket</h2><small style="color:var(--pf-muted)">Registre um chamado de suporte</small></div>
+              <button type="button" class="pf-ib" aria-label="Fechar" @click="modalCriar = false"><X :size="18" /></button>
             </div>
-            <UButton icon="i-lucide-x" color="gray" variant="ghost" size="xs" :ui="{ rounded: 'rounded-xl' }" @click="modalEditar = false" />
-          </div>
-        </template>
+            <div class="pf-modal-b">
+              <div class="pf-boxm">
+                <div class="pf-form">
+                  <div class="pf-fld full">
+                    <label class="pf-lab" for="tk-rest">Restaurante *</label>
+                    <select id="tk-rest" v-model="form.tenantId" class="pf-inp" required>
+                      <option value="" disabled>Selecione…</option>
+                      <option v-for="o in tenantOpts" :key="o.value" :value="o.value">{{ o.label }}</option>
+                    </select>
+                  </div>
+                  <div class="pf-fld">
+                    <label class="pf-lab" for="tk-tipo">Tipo</label>
+                    <select id="tk-tipo" v-model="form.tipo" class="pf-inp"><option v-for="o in tipoOpts" :key="o.value" :value="o.value">{{ o.label }}</option></select>
+                  </div>
+                  <div class="pf-fld">
+                    <label class="pf-lab" for="tk-prio">Prioridade</label>
+                    <select id="tk-prio" v-model="form.prioridade" class="pf-inp"><option v-for="o in prioridadeOpts" :key="o.value" :value="o.value">{{ o.label }}</option></select>
+                  </div>
+                  <div class="pf-fld full">
+                    <label class="pf-lab" for="tk-tit">Título *</label>
+                    <input id="tk-tit" v-model="form.titulo" class="pf-inp" type="text" placeholder="Descreva o problema em poucas palavras" required>
+                  </div>
+                  <div class="pf-fld full">
+                    <label class="pf-lab" for="tk-desc">Descrição</label>
+                    <textarea id="tk-desc" v-model="form.descricao" class="pf-inp" rows="3" placeholder="Detalhes que ajudam no atendimento" />
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="pf-modal-f">
+              <button type="button" class="pf-btn" @click="modalCriar = false">Cancelar</button>
+              <button type="submit" class="pf-btn p" :disabled="saving || !form.tenantId || !form.titulo.trim()">
+                <Loader2 v-if="saving" :size="16" class="animate-spin" /> Criar ticket
+              </button>
+            </div>
+          </form>
+        </div>
+      </Transition>
+    </Teleport>
 
-        <form v-if="ticketAtual" @submit.prevent="salvarTicket" class="space-y-4">
-          <UFormGroup label="Título">
-            <UInput v-model="formEdit.titulo" size="sm" :ui="{ base: 'bg-white/[0.05] border-white/[0.08] text-white', rounded: 'rounded-xl' }" />
-          </UFormGroup>
-          <div class="grid grid-cols-3 gap-3">
-            <UFormGroup label="Status">
-              <USelect v-model="formEdit.status" :options="statusOpts" size="sm" :ui="{ base: 'bg-white/[0.05] border-white/[0.08] text-white', rounded: 'rounded-xl' }" />
-            </UFormGroup>
-            <UFormGroup label="Prioridade">
-              <USelect v-model="formEdit.prioridade" :options="prioridadeOpts" size="sm" :ui="{ base: 'bg-white/[0.05] border-white/[0.08] text-white', rounded: 'rounded-xl' }" />
-            </UFormGroup>
-            <UFormGroup label="Tipo">
-              <USelect v-model="formEdit.tipo" :options="tipoOpts" size="sm" :ui="{ base: 'bg-white/[0.05] border-white/[0.08] text-white', rounded: 'rounded-xl' }" />
-            </UFormGroup>
-          </div>
-          <UFormGroup label="Descrição">
-            <UTextarea v-model="formEdit.descricao" :rows="3" size="sm" :ui="{ base: 'bg-white/[0.05] border-white/[0.08] text-white placeholder-white/20', rounded: 'rounded-xl' }" />
-          </UFormGroup>
-          <UFormGroup label="Resolução">
-            <UTextarea v-model="formEdit.resolucao" placeholder="Descreva a solução aplicada..." :rows="3" size="sm" :ui="{ base: 'bg-white/[0.05] border-white/[0.08] text-white placeholder-white/20', rounded: 'rounded-xl' }" />
-          </UFormGroup>
+    <!-- ══ ATUALIZAR TICKET ══ -->
+    <Teleport to="body">
+      <Transition name="fade">
+        <div v-if="modalEditar && ticketAtual" class="pf-portal pf-veu" @click.self="modalEditar = false">
+          <form class="pf-modal" role="dialog" aria-modal="true" aria-labelledby="tk-edit" @submit.prevent="salvarTicket">
+            <div class="pf-modal-h">
+              <div><h2 id="tk-edit">Atualizar ticket</h2><small style="color:var(--pf-muted)">{{ ticketAtual.tenant?.nome }} · aberto em {{ formatDate(ticketAtual.createdAt) }}</small></div>
+              <button type="button" class="pf-ib" aria-label="Fechar" @click="modalEditar = false"><X :size="18" /></button>
+            </div>
+            <div class="pf-modal-b">
+              <div class="pf-boxm">
+                <div class="pf-fld">
+                  <span class="pf-lab">Situação</span>
+                  <div class="pf-seg">
+                    <button v-for="o in statusOpts" :key="o.value" type="button" :class="[statusTom(o.value), { sel: formEdit.status === o.value }]" @click="formEdit.status = o.value">{{ o.label }}</button>
+                  </div>
+                </div>
+                <div class="pf-form">
+                  <div class="pf-fld full"><label class="pf-lab" for="te-tit">Título</label><input id="te-tit" v-model="formEdit.titulo" class="pf-inp" type="text"></div>
+                  <div class="pf-fld">
+                    <label class="pf-lab" for="te-prio">Prioridade</label>
+                    <select id="te-prio" v-model="formEdit.prioridade" class="pf-inp"><option v-for="o in prioridadeOpts" :key="o.value" :value="o.value">{{ o.label }}</option></select>
+                  </div>
+                  <div class="pf-fld">
+                    <label class="pf-lab" for="te-tipo">Tipo</label>
+                    <select id="te-tipo" v-model="formEdit.tipo" class="pf-inp"><option v-for="o in tipoOpts" :key="o.value" :value="o.value">{{ o.label }}</option></select>
+                  </div>
+                  <div class="pf-fld full"><label class="pf-lab" for="te-desc">Descrição</label><textarea id="te-desc" v-model="formEdit.descricao" class="pf-inp" rows="3" /></div>
+                  <div class="pf-fld full"><label class="pf-lab" for="te-res">Resolução</label><textarea id="te-res" v-model="formEdit.resolucao" class="pf-inp" rows="3" placeholder="O que foi feito para resolver" /></div>
+                </div>
+              </div>
+            </div>
+            <div class="pf-modal-f">
+              <button type="button" class="pf-btn" @click="modalEditar = false">Cancelar</button>
+              <button type="submit" class="pf-btn p" :disabled="saving"><Loader2 v-if="saving" :size="16" class="animate-spin" /> Salvar</button>
+            </div>
+          </form>
+        </div>
+      </Transition>
+    </Teleport>
 
-          <div class="flex justify-end gap-2 pt-2">
-            <UButton type="button" color="gray" variant="ghost" size="sm" :ui="{ rounded: 'rounded-xl' }" @click="modalEditar = false">Cancelar</UButton>
-            <UButton type="submit" color="violet" size="sm" :loading="saving" :ui="{ rounded: 'rounded-xl', font: 'font-bold' }">Salvar</UButton>
+    <!-- ══ EXCLUIR ══ -->
+    <Teleport to="body">
+      <Transition name="fade">
+        <div v-if="excluindo" class="pf-portal pf-veu" style="align-items:center" @click.self="excluindo = null">
+          <div class="pf-modal sm" role="alertdialog" aria-modal="true" aria-labelledby="tk-del">
+            <div class="pf-confirm">
+              <span class="pf-ico bad" style="width:52px;height:52px;border-radius:16px"><Trash2 :size="22" /></span>
+              <h2 id="tk-del" style="font-size:20px">Excluir este ticket?</h2>
+              <p>“{{ excluindo.titulo }}” some da lista. Isso não pode ser desfeito.</p>
+            </div>
+            <div class="pf-modal-f">
+              <button class="pf-btn" @click="excluindo = null">Cancelar</button>
+              <button class="pf-btn d" :disabled="saving" @click="confirmarExclusao">Excluir</button>
+            </div>
           </div>
-        </form>
-      </UCard>
-    </UModal>
-
-  </div>
+        </div>
+      </Transition>
+    </Teleport>
+  </PlatformShell>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, reactive, onMounted } from 'vue'
+import { Plus, X, Trash2, Loader2 } from 'lucide-vue-next'
 import { usePlatformAuthStore } from '~/stores/platformAuth'
 
 definePageMeta({ layout: false })
@@ -291,7 +188,6 @@ interface Ticket   { id: string; tenantId: string; tipo: string; prioridade: str
 interface Stats    { abertos: number; emAndamento: number; resolvidos: number; urgentes: number }
 
 const platformAuth  = usePlatformAuthStore()
-const modalSenha        = ref(false)
 const runtimeConfig = useRuntimeConfig()
 const baseUrl       = computed(() => (runtimeConfig.public as any).apiUrl as string)
 
@@ -305,23 +201,26 @@ const busca        = ref('')
 const modalCriar   = ref(false)
 const modalEditar  = ref(false)
 const ticketAtual  = ref<Ticket | null>(null)
+const excluindo    = ref<Ticket | null>(null)
 
 const form = reactive({ tenantId: '', tipo: 'bug', prioridade: 'media', titulo: '', descricao: '' })
 const formEdit = reactive({ titulo: '', tipo: '', prioridade: '', status: '', descricao: '', resolucao: '' })
 
 const statusFiltros = [
-  { value: 'todos',       label: 'Todos' },
-  { value: 'aberto',      label: 'Abertos' },
+  { value: 'todos',        label: 'Todos' },
+  { value: 'aberto',       label: 'Abertos' },
   { value: 'em_andamento', label: 'Em andamento' },
-  { value: 'resolvido',   label: 'Resolvidos' },
-  { value: 'fechado',     label: 'Fechados' },
+  { value: 'resolvido',    label: 'Resolvidos' },
+  { value: 'fechado',      label: 'Fechados' },
 ]
 
-const tipoOpts      = ['bug', 'instalacao', 'sync', 'cobranca', 'outro'].map(v => ({ label: tipoLabel(v), value: v }))
-const prioridadeOpts = ['baixa', 'media', 'alta', 'urgente'].map(v => ({ label: v.charAt(0).toUpperCase() + v.slice(1), value: v }))
-const statusOpts    = ['aberto', 'em_andamento', 'resolvido', 'fechado'].map(v => ({ label: statusLabel(v), value: v }))
+const tipoOpts       = ['bug', 'instalacao', 'sync', 'cobranca', 'outro'].map(v => ({ label: tipoLabel(v), value: v }))
+const prioridadeOpts = ['baixa', 'media', 'alta', 'urgente'].map(v => ({ label: prioridadeLabel(v), value: v }))
+const statusOpts     = ['aberto', 'em_andamento', 'resolvido', 'fechado'].map(v => ({ label: statusLabel(v), value: v }))
 
 const tenantOpts = computed(() => tenants.value.map(t => ({ label: t.nome, value: t.id })))
+
+const contar = (s: string) => (s === 'todos' ? tickets.value.length : tickets.value.filter(t => t.status === s).length)
 
 const ticketsFiltrados = computed(() => {
   let list = tickets.value
@@ -332,13 +231,6 @@ const ticketsFiltrados = computed(() => {
   }
   return list
 })
-
-const statCards = computed(() => [
-  { label: 'Abertos',      value: stats.value.abertos,      icon: 'i-lucide-inbox',      bg: 'bg-blue-500/[0.05] border-blue-500/20',    label_color: 'text-blue-400/60',   icon_bg: 'bg-blue-500/10',   icon_color: 'text-blue-400',   value_color: 'text-blue-300' },
-  { label: 'Em andamento', value: stats.value.emAndamento,  icon: 'i-lucide-loader-2',   bg: 'bg-amber-500/[0.05] border-amber-500/20',  label_color: 'text-amber-400/60',  icon_bg: 'bg-amber-500/10',  icon_color: 'text-amber-400',  value_color: 'text-amber-300' },
-  { label: 'Resolvidos',   value: stats.value.resolvidos,   icon: 'i-lucide-check-circle', bg: 'bg-emerald-500/[0.05] border-emerald-500/20', label_color: 'text-emerald-400/60', icon_bg: 'bg-emerald-500/10', icon_color: 'text-emerald-400', value_color: 'text-emerald-300' },
-  { label: 'Urgentes',     value: stats.value.urgentes,     icon: 'i-lucide-alert-triangle', bg: 'bg-red-500/[0.05] border-red-500/20',   label_color: 'text-red-400/60',   icon_bg: 'bg-red-500/10',   icon_color: 'text-red-400',   value_color: 'text-red-300' },
-])
 
 function authHeaders() {
   return { Authorization: `Bearer ${platformAuth.token}`, 'Content-Type': 'application/json' }
@@ -394,41 +286,38 @@ async function salvarTicket() {
   } finally { saving.value = false }
 }
 
-async function deletarTicket(id: string) {
-  if (!confirm('Excluir este ticket?')) return
-  await fetch(`${baseUrl.value}/api/platform/tickets/${id}`, { method: 'DELETE', headers: authHeaders() })
-  await fetchAll()
-}
+function pedirExclusao(t: Ticket) { excluindo.value = t }
 
-async function handleLogout() {
+async function confirmarExclusao() {
+  if (!excluindo.value) return
+  saving.value = true
   try {
-    await fetch(`${baseUrl.value}/api/platform/auth/logout`, { method: 'POST', headers: authHeaders() })
-  } finally {
-    platformAuth.clear()
-    navigateTo('/platform/login')
-  }
+    // Sem Content-Type: o Fastify recusa DELETE com JSON declarado e corpo vazio
+    const res = await fetch(`${baseUrl.value}/api/platform/tickets/${excluindo.value.id}`, {
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${platformAuth.token}` },
+    })
+    if (!res.ok) return
+    excluindo.value = null
+    await fetchAll()
+  } finally { saving.value = false }
 }
 
-function prioridadeColor(p: string) {
-  return { urgente: 'bg-red-500', alta: 'bg-amber-500', media: 'bg-blue-500', baixa: 'bg-white/20' }[p] ?? 'bg-white/20'
+function prioridadeTom(p: string) {
+  return ({ urgente: 'bad', alta: 'warn', media: 'info', baixa: 'mute' } as Record<string, string>)[p] ?? 'mute'
 }
-
-function statusCor(s: string): string {
-  return { aberto: 'blue', em_andamento: 'amber', resolvido: 'green', fechado: 'gray' }[s] ?? 'gray'
+function prioridadeLabel(p: string) {
+  return ({ urgente: 'Urgente', alta: 'Alta', media: 'Média', baixa: 'Baixa' } as Record<string, string>)[p] ?? p
 }
-
+function statusTom(s: string) {
+  return ({ aberto: 'info', em_andamento: 'warn', resolvido: 'ok', fechado: 'mute' } as Record<string, string>)[s] ?? 'mute'
+}
 function statusLabel(s: string) {
-  return { aberto: 'Aberto', em_andamento: 'Em andamento', resolvido: 'Resolvido', fechado: 'Fechado' }[s] ?? s
+  return ({ aberto: 'Aberto', em_andamento: 'Em andamento', resolvido: 'Resolvido', fechado: 'Fechado' } as Record<string, string>)[s] ?? s
 }
-
-function tipoCor(t: string): string {
-  return { bug: 'red', instalacao: 'violet', sync: 'cyan', cobranca: 'amber', outro: 'gray' }[t] ?? 'gray'
-}
-
 function tipoLabel(t: string) {
-  return { bug: 'Bug', instalacao: 'Instalação', sync: 'Sync', cobranca: 'Cobrança', outro: 'Outro' }[t] ?? t
+  return ({ bug: 'Bug', instalacao: 'Instalação', sync: 'Sincronização', cobranca: 'Cobrança', outro: 'Outro' } as Record<string, string>)[t] ?? t
 }
-
 function formatDate(d: string) {
   return new Date(d).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' })
 }
@@ -441,5 +330,6 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.nav-active { background: rgba(124, 58, 237, 0.12); }
+.fade-enter-active, .fade-leave-active { transition: opacity .15s; }
+.fade-enter-from, .fade-leave-to { opacity: 0; }
 </style>

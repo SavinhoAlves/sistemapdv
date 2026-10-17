@@ -4,26 +4,38 @@
 
       <!-- ══ PAINEL — comanda animada (desktop) ══ -->
       <aside class="lg-panel" aria-hidden="true">
-        <div class="lg-stage">
-          <div class="lg-board">
-            <div class="lg-board-head"><strong>Pedidos de agora</strong><span>{{ contagemPedidos }}</span></div>
-            <div
-              v-for="p in pedidos"
-              :key="p.id"
-              class="lg-order"
-              :class="{ enter: p.entrando, leaving: p.saindo }"
-              :style="p.atraso ? { animationDelay: p.atraso } : undefined"
-            >
-              <div class="lg-tbl">{{ p.tbl }}</div>
-              <div class="lg-info"><b>{{ p.nome }}</b><small>{{ p.itens }}</small></div>
-              <span class="lg-badge" :class="[ESTADOS[p.s][0], { pop: p.pop }]">{{ ESTADOS[p.s][1] }}</span>
-            </div>
-          </div>
-          <div class="lg-chip">Conta fechada<b>R$ 207,00</b></div>
+        <div class="lg-marca">
+          <span class="lg-marca-ic"><UtensilsCrossed :size="18" /></span>
+          Restaurante PDV
         </div>
+
+        <!-- Comanda impressa linha a linha, como sai na bobina do caixa -->
+        <div class="lg-stage">
+          <div class="lg-cupom" :class="{ fechada: comanda.fechada }">
+            <div class="lg-cupom-topo">
+              <span>{{ comanda.mesa }}</span>
+              <span>{{ comanda.hora }}</span>
+            </div>
+            <div class="lg-cupom-itens">
+              <div v-for="(it, i) in comanda.itens.slice(0, comanda.linhas)" :key="comanda.id + '-' + i" class="lg-cupom-linha">
+                <span>{{ it[0] }}×</span>
+                <span>{{ it[1] }}</span>
+                <span>{{ reais(it[0] * it[2]) }}</span>
+              </div>
+              <div v-if="comanda.linhas < comanda.itens.length" class="lg-cupom-cursor"><i /></div>
+            </div>
+            <div class="lg-cupom-soma">
+              <div><span>Subtotal</span><span>{{ reais(subtotal) }}</span></div>
+              <div><span>Serviço 10%</span><span>{{ reais(subtotal * 0.1) }}</span></div>
+              <div class="lg-cupom-total"><span>Total</span><span>{{ reais(subtotal * 1.1) }}</span></div>
+            </div>
+            <span v-if="comanda.fechada" class="lg-carimbo">Paga</span>
+          </div>
+        </div>
+
         <div>
-          <h2>Abra o caixa e comece o atendimento.</h2>
-          <p class="lg-lead">Mesas, cozinha e caixa no mesmo lugar para a sua equipe atender mais rápido.</p>
+          <h2>Do pedido na mesa à conta paga.</h2>
+          <p class="lg-lead">O que o garçom lança chega na cozinha e fecha no caixa, sem comanda de papel perdida.</p>
         </div>
       </aside>
 
@@ -41,13 +53,13 @@
 
         <div class="lg-card">
           <div class="lg-logo">
-            <span class="lg-logo-mark"><UtensilsCrossed :size="44" :stroke-width="2" /></span>
+            <span class="lg-logo-mark"><UtensilsCrossed :size="30" :stroke-width="2" /></span>
             <span>Restaurante <i class="lg-pdv">PDV</i></span>
           </div>
 
-          <h1>Bem-vindo de volta</h1>
+          <h1>Entrar no sistema</h1>
           <p class="lg-sub">
-            {{ modo === 'rfid' ? 'Aproxime seu crachá do leitor para entrar.' : 'Entre com seu e-mail e senha para abrir o caixa.' }}
+            {{ modo === 'rfid' ? 'Encoste o crachá no leitor para começar o turno.' : 'Use o e-mail e a senha que o gerente cadastrou para você.' }}
           </p>
 
           <p v-if="msg.text" class="lg-msg" :class="`lg-msg--${msg.type}`" role="alert">
@@ -138,7 +150,7 @@
                   name="senha"
                   :type="showPass ? 'text' : 'password'"
                   autocomplete="current-password"
-                  placeholder="Digite sua senha"
+                  placeholder="Sua senha"
                   :aria-invalid="invalido === 'senha' || undefined"
                   @keyup="verificarCaps"
                   @blur="capsLock = false"
@@ -167,7 +179,7 @@
             </button>
           </form>
 
-          <p class="lg-foot">Problemas para acessar? Fale com o gerente da loja.</p>
+          <p class="lg-foot">Esqueceu a senha? O gerente do restaurante pode criar uma nova para você.</p>
         </div>
       </main>
     </div>
@@ -327,55 +339,33 @@ function falhar(texto: string, campo: 'email' | 'senha' | null) {
 function showMsg(type: 'error' | 'success', text: string) { msg.type = type; msg.text = text }
 function hideMsg() { msg.text = ''; invalido.value = null }
 
-// ── Comanda animada do painel ───────────────────────────────────────────
-const ESTADOS = [['b-wait', 'Na fila'], ['b-prep', 'Preparando'], ['b-ok', 'Pronto']] as const
+// ── Comanda do painel: imprime uma linha por vez, fecha e passa à próxima ──
+type Item = [number, string, number] // quantidade, produto, preço unitário
 
-interface PedidoDemo { id: number; tbl: string; nome: string; itens: string; s: 0 | 1 | 2; entrando: boolean; saindo: boolean; pop: boolean; atraso?: string }
-
-const POOL: [string, string, string][] = [
-  ['9', 'Mesa 9', '1 feijoada, 2 refrigerantes'],
-  ['3', 'Mesa 3', '2 pizzas grandes'],
-  ['B2', 'Balcão 2', '1 marmita'],
-  ['7', 'Mesa 7', '4 pratos executivos'],
-  ['15', 'Mesa 15', '1 picanha, 1 salada'],
+const EXEMPLOS: { mesa: string; hora: string; itens: Item[] }[] = [
+  { mesa: 'Mesa 07', hora: '12:41', itens: [[2, 'Parmegiana de frango', 46.9], [1, 'Arroz à grega', 12], [2, 'Suco de laranja', 9.5], [1, 'Pudim de leite', 14]] },
+  { mesa: 'Balcão 3', hora: '13:05', itens: [[1, 'Prato executivo', 32.9], [1, 'Refrigerante lata', 7], [1, 'Café expresso', 6.5]] },
+  { mesa: 'Mesa 14', hora: '20:18', itens: [[1, 'Pizza margherita', 64], [1, 'Pizza calabresa', 62], [3, 'Cerveja long neck', 13], [1, 'Petit gâteau', 24]] },
 ]
 
-let seq = 0
-let proximo = 0
-const novo = (tbl: string, nome: string, itens: string, s: 0 | 1 | 2, atraso?: string): PedidoDemo =>
-  ({ id: ++seq, tbl, nome, itens, s, entrando: true, saindo: false, pop: false, atraso })
-
-const pedidos = ref<PedidoDemo[]>([
-  novo('12', 'Mesa 12', '2 risotos, 1 salmão', 1, '500ms'),
-  novo('4', 'Mesa 4', '3 sucos, 1 sobremesa', 2, '680ms'),
-  novo('B7', 'Balcão 7', '1 prato executivo', 0, '860ms'),
-])
-
-const contagemPedidos = computed(() => {
-  const n = pedidos.value.filter(p => !p.saindo).length
-  return `${n} ${n === 1 ? 'aberto' : 'abertos'}`
-})
-
-function avancar(p: PedidoDemo) {
-  p.s = (p.s + 1) as 0 | 1 | 2
-  p.pop = false
-  requestAnimationFrame(() => { p.pop = true })
+let seqComanda = 0
+function novaComanda(i: number) {
+  const ex = EXEMPLOS[i % EXEMPLOS.length]
+  return { id: ++seqComanda, ...ex, linhas: 1, fechada: false }
 }
+const indice  = ref(0)
+const comanda = ref(novaComanda(0))
+const subtotal = computed(() => comanda.value.itens.slice(0, comanda.value.linhas).reduce((t, it) => t + it[0] * it[2], 0))
+const reais = (v: number) => v.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 
+let pausa = 0
 function tick() {
-  const vivos = pedidos.value.filter(p => !p.saindo)
-  const pronto = vivos.find(p => p.s === 2)
-  if (pronto) {
-    pronto.saindo = true
-    setTimeout(() => {
-      pedidos.value = pedidos.value.filter(p => p.id !== pronto.id)
-      const [tbl, nome, itens] = POOL[proximo++ % POOL.length]
-      pedidos.value.push(novo(tbl, nome, itens, 0))
-    }, 900)
-    return
-  }
-  const alvo = vivos.find(p => p.s === 1) ?? vivos.find(p => p.s === 0)
-  if (alvo) avancar(alvo)
+  const c = comanda.value
+  if (pausa > 0) { pausa--; return }
+  if (c.linhas < c.itens.length) { c.linhas++; return }
+  if (!c.fechada) { c.fechada = true; pausa = 2; return }
+  indice.value++
+  comanda.value = novaComanda(indice.value)
 }
 
 let animTimer: ReturnType<typeof setInterval> | null = null
@@ -389,8 +379,10 @@ onMounted(async () => {
   if (rfidAtivo.value) setModo('rfid')
   else nextTick(() => emailRef.value?.focus())
 
-  if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-    animTimer = setInterval(() => { if (!document.hidden) tick() }, 2400)
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    comanda.value.linhas = comanda.value.itens.length
+  } else {
+    animTimer = setInterval(() => { if (!document.hidden) tick() }, 1100)
   }
 })
 
@@ -415,59 +407,65 @@ onUnmounted(() => {
   min-height: 100dvh;
   background: var(--bg);
   color: var(--ink);
-  font: 400 16px/1.5 'DM Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  font: 400 16px/1.55 var(--fonte-texto);
   -webkit-font-smoothing: antialiased;
 }
 html.dark .lg {
   --bg: #1A0E07; --surface: #27160C; --ink: #FFEFE2; --muted: #CBA68D; --line: #4D2F1D; --soft: #33200F;
   --brand: #FF8A3D; --brand-ink: #2A1000; --brand-hover: #FFA566; --focus: #FFA566; --danger: #FF8A80; --ok: #7EDC9A;
 }
-.lg h1, .lg h2 { font-family: 'Bricolage Grotesque', system-ui, sans-serif; letter-spacing: -.02em; margin: 0; }
+.lg h1, .lg h2 { font-family: var(--fonte-texto); font-weight: 700; letter-spacing: -.03em; margin: 0; }
 
 .lg-page { display: grid; grid-template-columns: 1.1fr 1fr; min-height: 100dvh; padding: 14px; gap: 14px; }
 
-/* ── Painel ── */
+/* ── Painel ──
+   Laranja chapado da marca, sem brilhos. Em cima, a comanda do PDV: papel de
+   bobina picotado, itens e valores em fonte monoespaçada, carimbo de paga. */
 .lg-panel {
-  position: relative; border-radius: 28px; background: var(--hero); color: var(--hero-ink);
-  padding: 40px 44px; display: flex; flex-direction: column; justify-content: space-between;
-  overflow: hidden; isolation: isolate;
+  position: relative; border-radius: 24px; background: var(--hero); color: var(--hero-ink);
+  padding: 36px 44px 40px; display: flex; flex-direction: column; justify-content: space-between; gap: 24px;
+  overflow: hidden;
+  /* trama de linhas de bobina, bem discreta */
+  background-image: repeating-linear-gradient(0deg, rgba(0,0,0,.035) 0 1px, transparent 1px 28px);
 }
-.lg-panel::before, .lg-panel::after { content: ''; position: absolute; border-radius: 50%; z-index: -1; }
-.lg-panel::before { width: 520px; height: 520px; right: -160px; bottom: -200px; background: radial-gradient(circle, rgba(255,226,170,.85), transparent 68%); }
-.lg-panel::after  { width: 380px; height: 380px; left: -140px; top: -120px; background: radial-gradient(circle, rgba(255,255,255,.35), transparent 70%); }
-.lg-panel h2 { font-size: clamp(30px, 3.4vw, 46px); line-height: 1.06; max-width: 14ch; margin-bottom: 12px; }
-.lg-lead { margin: 0; max-width: 40ch; color: rgba(42,16,0,.85); font-size: 17px; }
+.lg-marca { display: flex; align-items: center; gap: 10px; font: 700 16px var(--fonte-texto); color: #1E1E1E; }
+.lg-marca-ic { width: 36px; height: 36px; border-radius: 10px; background: #1E1E1E; color: var(--hero); display: grid; place-items: center; }
+.lg-panel h2 { font-size: clamp(28px, 3vw, 42px); line-height: 1.08; max-width: 15ch; margin-bottom: 12px; }
+.lg-lead { margin: 0; max-width: 42ch; color: rgba(30,20,10,.82); font-size: 16px; }
 
-.lg-stage { position: relative; display: flex; justify-content: center; padding: 28px 0; flex: 1; align-items: center; }
-.lg-board {
-  width: 340px; background: var(--paper); color: var(--paper-ink); border-radius: 20px; padding: 18px;
-  box-shadow: 0 30px 60px rgba(90,30,0,.32); transform: rotate(-2deg);
-  animation: lg-rise .8s cubic-bezier(.2,.8,.2,1) both;
+.lg-stage { flex: 1; display: grid; place-items: center; padding: 8px 0; }
+.lg-cupom {
+  --furo: 7px;
+  position: relative; width: min(340px, 100%);
+  padding: 22px 22px 24px;
+  background: var(--paper); color: var(--paper-ink);
+  font: 400 14px/1.6 var(--fonte-numero); font-variant-numeric: tabular-nums;
+  box-shadow: 0 24px 50px rgba(90,30,0,.28);
+  -webkit-mask:
+    radial-gradient(circle var(--furo) at 50% 0, #0000 98%, #000) 50% 0 / calc(var(--furo) * 3) 51% repeat-x,
+    radial-gradient(circle var(--furo) at 50% 100%, #0000 98%, #000) 50% 100% / calc(var(--furo) * 3) 51% repeat-x;
+          mask:
+    radial-gradient(circle var(--furo) at 50% 0, #0000 98%, #000) 50% 0 / calc(var(--furo) * 3) 51% repeat-x,
+    radial-gradient(circle var(--furo) at 50% 100%, #0000 98%, #000) 50% 100% / calc(var(--furo) * 3) 51% repeat-x;
 }
-.lg-board-head { display: flex; justify-content: space-between; align-items: baseline; padding: 2px 4px 12px; border-bottom: 2px dashed #D9CFB8; }
-.lg-board-head strong { font: 700 18px 'Bricolage Grotesque', sans-serif; }
-.lg-board-head span { font-size: 13px; color: #6A6757; }
-.lg-order { display: flex; align-items: center; gap: 12px; padding: 12px 4px; border-bottom: 1px solid #EEE6D3; overflow: hidden; max-height: 100px; }
-.lg-order:last-child { border-bottom: 0; }
-.lg-tbl { width: 46px; height: 46px; border-radius: 12px; display: grid; place-items: center; font: 700 18px 'Bricolage Grotesque', sans-serif; background: #FFE3CC; color: #8A2F05; flex: none; }
-.lg-info { flex: 1; min-width: 0; font-size: 15px; }
-.lg-info b { display: block; font-weight: 600; }
-.lg-info small { color: #6A6757; font-size: 13px; }
-.lg-badge { font-size: 12.5px; font-weight: 600; padding: 5px 11px; border-radius: 999px; white-space: nowrap; transition: background .3s, color .3s; }
-.b-prep { background: #FFE3CC; color: #8A2F05; }
-.b-ok   { background: #D5F0DC; color: #14602B; }
-.b-wait { background: #EEE9DC; color: #5A5646; }
-.lg-badge.b-prep::before { content: ''; display: inline-block; width: 7px; height: 7px; margin-right: 6px; border-radius: 50%; background: currentColor; animation: lg-blink 1s ease-in-out infinite; }
-.lg-chip { position: absolute; right: 6%; bottom: 2px; background: #2A1000; color: #FFEFE2; border-radius: 14px; padding: 10px 16px; font-size: 14px; box-shadow: 0 16px 30px rgba(60,20,0,.3); transform: rotate(3deg); }
-.lg-chip b { display: block; font: 700 18px 'Bricolage Grotesque', sans-serif; color: #FFB366; }
-.enter   { animation: lg-slide-in .5s cubic-bezier(.2,.8,.2,1) both; }
-.leaving { animation: lg-slide-out .45s ease-in both; }
-.pop     { animation: lg-pop .4s cubic-bezier(.2,.8,.2,1); }
-@keyframes lg-rise { from { opacity: 0; transform: translateY(30px) rotate(-2deg); } to { opacity: 1; transform: rotate(-2deg); } }
-@keyframes lg-slide-in { from { opacity: 0; transform: translateX(40px); max-height: 0; padding-top: 0; padding-bottom: 0; } to { opacity: 1; transform: none; max-height: 100px; } }
-@keyframes lg-slide-out { from { opacity: 1; max-height: 100px; } 60% { opacity: 0; transform: translateX(-50px); max-height: 100px; } to { opacity: 0; transform: translateX(-50px); max-height: 0; padding-top: 0; padding-bottom: 0; border-width: 0; } }
-@keyframes lg-pop { 0% { transform: scale(.8); } 60% { transform: scale(1.12); } 100% { transform: scale(1); } }
-@keyframes lg-blink { 50% { opacity: .25; } }
+.lg-cupom-topo { display: flex; justify-content: space-between; padding-bottom: 10px; border-bottom: 1.5px dashed #D9CFB8; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; font-size: 12px; }
+.lg-cupom-itens { min-height: 128px; padding: 10px 0; }
+.lg-cupom-linha { display: grid; grid-template-columns: 2.4em 1fr auto; gap: 8px; animation: lg-imprime .35s ease-out both; }
+.lg-cupom-linha > :last-child { text-align: right; }
+.lg-cupom-cursor i { display: inline-block; width: 9px; height: 15px; background: #1B1B18; vertical-align: middle; animation: lg-pisca 1s steps(1) infinite; }
+.lg-cupom-soma { border-top: 1.5px dashed #D9CFB8; padding-top: 10px; display: grid; gap: 2px; }
+.lg-cupom-soma > div { display: flex; justify-content: space-between; color: #6A6757; }
+.lg-cupom-soma .lg-cupom-total { color: #1B1B18; font-weight: 700; font-size: 17px; margin-top: 4px; }
+.lg-carimbo {
+  position: absolute; right: 18px; top: 46%;
+  padding: 4px 14px; border: 2.5px solid #12805C; border-radius: 8px;
+  color: #12805C; font: 700 20px var(--fonte-numero); letter-spacing: .18em; text-transform: uppercase;
+  transform: rotate(-12deg); opacity: .9;
+  animation: lg-carimba .3s cubic-bezier(.2,.8,.2,1) both;
+}
+@keyframes lg-imprime { from { opacity: 0; transform: translateY(-4px); clip-path: inset(0 100% 0 0); } to { opacity: 1; transform: none; clip-path: inset(0 0 0 0); } }
+@keyframes lg-pisca { 50% { opacity: 0; } }
+@keyframes lg-carimba { from { opacity: 0; transform: rotate(-12deg) scale(1.6); } to { opacity: .9; transform: rotate(-12deg) scale(1); } }
 
 /* ── Formulário ── */
 .lg-form-side { position: relative; display: flex; align-items: center; justify-content: center; padding: 32px 24px; }
@@ -478,8 +476,8 @@ html.dark .lg {
 .lg-theme:hover { background: var(--soft); }
 .lg-card { width: 100%; max-width: 404px; }
 
-.lg-logo { display: flex; flex-direction: column; align-items: center; gap: 16px; margin-bottom: 34px; font: 700 32px/1 'Bricolage Grotesque', sans-serif; text-align: center; }
-.lg-logo-mark { width: 84px; height: 84px; border-radius: 24px; background: linear-gradient(145deg, #FF9B33, #FF7A00); color: #fff; display: grid; place-items: center; box-shadow: 0 6px 16px rgba(255,122,0,.35); }
+.lg-logo { display: flex; flex-direction: column; align-items: center; gap: 16px; margin-bottom: 34px; font: 700 28px/1.1 var(--fonte-texto); letter-spacing: -.03em; text-align: center; }
+.lg-logo-mark { width: 64px; height: 64px; border-radius: 18px; background: var(--brand); color: var(--brand-ink); display: grid; place-items: center; }
 .lg-pdv { color: #FF7A00; font-style: normal; }
 
 .lg-card h1 { font-size: 22px; line-height: 1.2; margin-bottom: 6px; text-align: center; }
@@ -521,7 +519,7 @@ html.dark .lg {
 
 .lg-btn {
   width: 100%; height: 56px; margin-top: 6px; border: 0; border-radius: 14px; background: var(--brand); color: var(--brand-ink);
-  font: 600 17px 'DM Sans', sans-serif; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px;
+  font: 600 16px var(--fonte-texto); cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px;
   box-shadow: 0 10px 22px color-mix(in srgb, var(--brand) 32%, transparent);
   transition: background .15s, transform .05s, box-shadow .15s;
 }
@@ -563,6 +561,6 @@ html.dark .lg {
   .lg-panel { display: none; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .lg-board, .enter, .leaving, .pop, .lg-badge::before, .lg-rfid-ondas i { animation: none !important; }
+  .lg-cupom-linha, .lg-cupom-cursor i, .lg-carimbo, .lg-rfid-ondas i { animation: none !important; }
 }
 </style>

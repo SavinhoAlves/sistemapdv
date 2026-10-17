@@ -13,7 +13,7 @@ export default defineNuxtConfig({
     inject: true,
     families: {
       Sora: [300, 400, 500, 600, 700, 800, 900],
-      'JetBrains Mono': [400, 500],
+      'JetBrains Mono': [400, 500, 600, 700],
     },
   },
 
@@ -49,7 +49,7 @@ export default defineNuxtConfig({
     }
   },
 
-  css: ['~/assets/css/tokens.css', '~/assets/css/main.css'],
+  css: ['~/assets/css/tokens.css', '~/assets/css/main.css', '~/assets/css/auth.css', '~/assets/css/platform.css'],
 
   ssr: false, // SPA mode para LAN
 

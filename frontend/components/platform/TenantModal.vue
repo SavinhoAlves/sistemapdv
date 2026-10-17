@@ -1,348 +1,231 @@
 <template>
-  <UModal :model-value="modelValue" @update:model-value="fechar"
-    :ui="{ container: 'items-start pt-8', width: 'max-w-2xl', background: 'bg-[#0e0d18]', ring: 'ring-1 ring-white/[0.09]', rounded: 'rounded-2xl' }">
-    <UCard :ui="{ background: 'bg-transparent', ring: '', divide: 'divide-white/[0.07]', header: { padding: 'px-5 py-4' }, body: { padding: 'p-0' }, footer: { padding: 'px-5 pb-5 pt-3' } }">
+  <PlatformModal
+    :model-value="modelValue"
+    :titulo="isEdit ? 'Editar restaurante' : 'Novo restaurante'"
+    :subtitulo="isEdit ? form.slug : 'Preencha os dados para cadastrar e gerar o contrato'"
+    @update:model-value="fechar"
+  >
+    <template #icone><Store :size="18" /></template>
 
-      <template #header>
-        <div class="flex items-center justify-between">
-          <div class="flex items-center gap-3">
-            <div class="size-9 rounded-xl bg-gradient-to-br from-violet-600 to-violet-900 flex items-center justify-center shrink-0 shadow-lg shadow-violet-900/40">
-              <UIcon name="i-lucide-file-text" class="text-white size-4" />
+    <!-- Abas (edição) -->
+    <div v-if="isEdit" class="pf-chips" role="tablist">
+      <button v-for="aba in abas" :key="aba.id" class="pf-fc" role="tab" :aria-pressed="abaAtiva === aba.id" :aria-selected="abaAtiva === aba.id" @click="abaAtiva = aba.id">
+        {{ aba.label }}
+      </button>
+    </div>
+
+    <!-- Passos (cadastro) -->
+    <ol v-else class="pf-steps">
+      <li v-for="(s, i) in passos" :key="s.id" :class="{ feito: passo > i, atual: passo === i }">
+        <span class="pf-step-n"><Check v-if="passo > i" :size="14" /><template v-else>{{ i + 1 }}</template></span>
+        {{ s.label }}
+      </li>
+    </ol>
+
+    <!-- ════ CADASTRO ════ -->
+    <template v-if="!isEdit">
+      <!-- Passo 1: estabelecimento -->
+      <div v-if="passo === 0" class="pf-boxm">
+        <div class="pf-form">
+          <div class="pf-fld full"><label class="pf-lab" for="tm-nome">Nome do restaurante *</label><input id="tm-nome" v-model="form.nome" class="pf-inp" placeholder="Ex.: Restaurante Tarantela" @input="autoSlug"></div>
+          <div class="pf-fld">
+            <label class="pf-lab" for="tm-slug">Login (identificador) *</label>
+            <input id="tm-slug" v-model="form.slug" class="pf-inp" placeholder="ex.: tarantela">
+            <small style="color:var(--pf-muted)">Usado para entrar no sistema</small>
+          </div>
+          <div class="pf-fld"><label class="pf-lab" for="tm-cnpj">CNPJ ou CPF</label><input id="tm-cnpj" v-model="form.cnpj" class="pf-inp" placeholder="00.000.000/0001-00"></div>
+          <div class="pf-fld"><label class="pf-lab" for="tm-email">E-mail</label><input id="tm-email" v-model="form.contato" class="pf-inp" type="email" placeholder="contato@restaurante.com"></div>
+          <div class="pf-fld"><label class="pf-lab" for="tm-tel">Telefone</label><input id="tm-tel" v-model="form.telefone" class="pf-inp" placeholder="(62) 9 9999-9999"></div>
+          <div class="pf-fld"><label class="pf-lab" for="tm-resp">Responsável</label><input id="tm-resp" v-model="form.responsavel" class="pf-inp" placeholder="Nome completo"></div>
+          <div class="pf-fld"><label class="pf-lab" for="tm-cpfr">CPF do responsável</label><input id="tm-cpfr" v-model="form.cpfResponsavel" class="pf-inp" placeholder="000.000.000-00"></div>
+          <div class="pf-fld full"><label class="pf-lab" for="tm-end">Endereço (rua, nº, bairro)</label><input id="tm-end" v-model="form.endereco" class="pf-inp" placeholder="Rua das Flores, 123, Centro"></div>
+          <div class="pf-fld"><label class="pf-lab" for="tm-cid">Cidade</label><input id="tm-cid" v-model="form.cidade" class="pf-inp" placeholder="Goiânia"></div>
+          <div class="pf-fld"><label class="pf-lab" for="tm-uf">UF</label><input id="tm-uf" v-model="form.uf" class="pf-inp" maxlength="2" placeholder="GO" style="text-transform:uppercase"></div>
+        </div>
+      </div>
+
+      <!-- Passo 2: acesso do administrador -->
+      <template v-else-if="passo === 1">
+        <div class="pf-note info">Credenciais que o cliente usa para entrar no sistema. Dá para alterar depois.</div>
+        <div class="pf-boxm">
+          <div class="pf-form">
+            <div class="pf-fld full"><label class="pf-lab" for="tm-aemail">E-mail de acesso *</label><input id="tm-aemail" v-model="adminForm.email" class="pf-inp" type="email" placeholder="admin@restaurante.com" autocomplete="off"></div>
+            <div class="pf-fld">
+              <label class="pf-lab" for="tm-asenha">Senha inicial * <small>(mínimo 6)</small></label>
+              <div class="pf-pass">
+                <input id="tm-asenha" v-model="adminForm.senha" class="pf-inp" :type="mostrarSenha ? 'text' : 'password'" placeholder="••••••••" autocomplete="new-password">
+                <button type="button" :aria-label="mostrarSenha ? 'Ocultar senha' : 'Mostrar senha'" @click="mostrarSenha = !mostrarSenha">
+                  <EyeOff v-if="mostrarSenha" :size="16" /><Eye v-else :size="16" />
+                </button>
+              </div>
             </div>
-            <div>
-              <h2 class="text-sm font-bold text-white text-balance">{{ isEdit ? 'Editar restaurante' : 'Cadastrar novo cliente' }}</h2>
-              <p class="text-white/30 text-[10px]">{{ isEdit ? form.slug : 'Preencha os dados para gerar o contrato automaticamente' }}</p>
+            <div class="pf-fld">
+              <label class="pf-lab" for="tm-asenha2">Confirmar senha *</label>
+              <input
+                id="tm-asenha2"
+                v-model="adminForm.senhaConfirm"
+                class="pf-inp"
+                :type="mostrarSenha ? 'text' : 'password'"
+                placeholder="••••••••"
+                autocomplete="new-password"
+                :aria-invalid="!!adminForm.senhaConfirm && adminForm.senhaConfirm !== adminForm.senha"
+              >
             </div>
           </div>
-          <button @click="fechar" class="size-7 rounded-xl flex items-center justify-center text-white/30 hover:text-white hover:bg-white/[0.06] transition-colors">
-            <UIcon name="i-lucide-x" class="size-3.5" />
-          </button>
         </div>
       </template>
 
-      <!-- ── TABS (edição) ── -->
-      <div v-if="isEdit" class="flex gap-1 px-5 pt-4 border-b border-white/[0.05] pb-3">
-        <UButton v-for="aba in abas" :key="aba.id"
-          :icon="aba.icon"
-          :color="abaAtiva === aba.id ? 'violet' : 'gray'"
-          :variant="abaAtiva === aba.id ? 'solid' : 'ghost'"
-          size="xs" :ui="{ rounded: 'rounded-xl', font: 'font-semibold text-[11px]' }"
-          @click="abaAtiva = aba.id">{{ aba.label }}</UButton>
-      </div>
-
-      <!-- ── STEPPER (criação) ── -->
-      <div v-else class="flex items-center gap-0 px-5 pt-5 pb-4 border-b border-white/[0.05]">
-        <template v-for="(s, i) in passos" :key="s.id">
-          <div class="flex items-center gap-2 min-w-0">
-            <div :class="['size-6 rounded-full flex items-center justify-center text-[11px] font-black shrink-0 transition-colors',
-              passo > i ? 'bg-violet-600 text-white' : passo === i ? 'bg-violet-600/20 border border-violet-500/50 text-violet-400' : 'bg-white/[0.06] text-white/25']">
-              <UIcon v-if="passo > i" name="i-lucide-check" class="size-3" />
-              <span v-else>{{ i + 1 }}</span>
+      <!-- Passo 3: contrato -->
+      <template v-else>
+        <div class="pf-note info">O contrato de prestação de serviços é gerado ao cadastrar e fica pronto para imprimir e assinar.</div>
+        <div class="pf-boxm">
+          <div class="pf-fld">
+            <span class="pf-lab">Plano *</span>
+            <div v-if="planosAtivos.length" class="pf-rotas">
+              <button v-for="pl in planosAtivos" :key="pl.id" type="button" :class="{ sel: planoId === pl.id }" @click="escolherPlano(pl)">
+                <span>{{ pl.nome }} · {{ moedaBR(pl.valor) }}/mês</span>
+                <small>{{ resumoRecursos(pl) }}</small>
+              </button>
             </div>
-            <span :class="['text-xs font-semibold truncate transition-colors', passo === i ? 'text-white/80' : passo > i ? 'text-violet-400' : 'text-white/25']">{{ s.label }}</span>
+            <small v-else style="color:var(--pf-muted)">
+              Nenhum plano criado. Os recursos ficam manuais. <NuxtLink to="/platform/planos" style="color:var(--pf-brand-d)">Criar planos</NuxtLink>
+            </small>
+            <input v-if="!planosAtivos.length" v-model="contratoForm.plano" class="pf-inp" placeholder="Nome do plano no contrato" aria-label="Nome do plano">
           </div>
-          <div v-if="i < passos.length - 1" class="flex-1 h-px mx-3 transition-colors" :class="passo > i ? 'bg-violet-600/50' : 'bg-white/[0.07]'" />
-        </template>
-      </div>
-
-      <!-- ════ CRIAÇÃO — passos ════ -->
-      <div v-if="!isEdit" class="p-5 space-y-4 max-h-[62vh] overflow-y-auto">
-
-        <!-- Passo 1: Estabelecimento -->
-        <template v-if="passo === 0">
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div class="sm:col-span-2">
-              <label class="label-field">Nome do restaurante / comércio *</label>
-              <UInput v-model="form.nome" @input="autoSlug" placeholder="Ex: Restaurante Tarantela" size="sm" :ui="{ rounded: 'rounded-xl' }" class="input-dark" />
-            </div>
-            <div>
-              <label class="label-field">Identificador (slug) *</label>
-              <UInput v-model="form.slug" placeholder="ex: tarantela" size="sm" :ui="{ rounded: 'rounded-xl', base: 'font-mono text-xs' }" class="input-dark" />
-              <p class="text-[10px] text-white/20 mt-1">Usado na URL do sistema</p>
-            </div>
-            <div>
-              <label class="label-field">CNPJ ou CPF</label>
-              <UInput v-model="form.cnpj" placeholder="00.000.000/0001-00" size="sm" :ui="{ rounded: 'rounded-xl', base: 'font-mono text-xs' }" class="input-dark" />
-            </div>
-            <div>
-              <label class="label-field">E-mail</label>
-              <UInput v-model="form.contato" type="email" placeholder="contato@restaurante.com" size="sm" :ui="{ rounded: 'rounded-xl' }" class="input-dark" />
-            </div>
-            <div>
-              <label class="label-field">Telefone</label>
-              <UInput v-model="form.telefone" placeholder="(62) 9 9999-9999" size="sm" :ui="{ rounded: 'rounded-xl' }" class="input-dark" />
-            </div>
-            <div>
-              <label class="label-field">Nome do responsável</label>
-              <UInput v-model="form.responsavel" placeholder="Nome completo" size="sm" :ui="{ rounded: 'rounded-xl' }" class="input-dark" />
-            </div>
-            <div>
-              <label class="label-field">CPF do responsável</label>
-              <UInput v-model="form.cpfResponsavel" placeholder="000.000.000-00" size="sm" :ui="{ rounded: 'rounded-xl', base: 'font-mono text-xs' }" class="input-dark" />
-            </div>
-            <div class="sm:col-span-2">
-              <label class="label-field">Logradouro (rua, número, bairro)</label>
-              <UInput v-model="form.endereco" placeholder="Rua das Flores, 123, Centro" size="sm" :ui="{ rounded: 'rounded-xl' }" class="input-dark" />
-            </div>
-            <div>
-              <label class="label-field">Cidade</label>
-              <UInput v-model="form.cidade" placeholder="Goiânia" size="sm" :ui="{ rounded: 'rounded-xl' }" class="input-dark" />
-            </div>
-            <div>
-              <label class="label-field">UF</label>
-              <UInput v-model="form.uf" placeholder="GO" maxlength="2" size="sm" :ui="{ rounded: 'rounded-xl', base: 'uppercase font-mono' }" class="input-dark" />
-            </div>
-          </div>
-        </template>
-
-        <!-- Passo 2: Acesso admin -->
-        <template v-else-if="passo === 1">
-          <div class="p-3 rounded-xl bg-rose-500/[0.05] border border-rose-500/10 text-[11px] text-rose-300/60 leading-relaxed">
-            Defina as credenciais que o cliente usará para acessar o sistema. O e-mail e a senha podem ser alterados posteriormente.
-          </div>
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div class="sm:col-span-2">
-              <label class="label-field">E-mail de acesso *</label>
-              <UInput v-model="adminForm.email" type="email" placeholder="admin@restaurante.com" size="sm" :ui="{ rounded: 'rounded-xl' }" class="input-dark" autocomplete="off" />
-            </div>
-            <div>
-              <label class="label-field">Senha inicial * <span class="text-white/20 normal-case font-normal">(mín. 6 caracteres)</span></label>
-              <UInput v-model="adminForm.senha" :type="mostrarSenha ? 'text' : 'password'" placeholder="••••••••" size="sm" :ui="{ rounded: 'rounded-xl' }" class="input-dark" autocomplete="new-password"
-                :trailing-icon="mostrarSenha ? 'i-lucide-eye-off' : 'i-lucide-eye'"
-                @click:trailing="mostrarSenha = !mostrarSenha" />
-            </div>
-            <div>
-              <label class="label-field">Confirmar senha *</label>
-              <UInput v-model="adminForm.senhaConfirm" :type="mostrarSenha ? 'text' : 'password'" placeholder="••••••••" size="sm"
-                :ui="{ rounded: 'rounded-xl', icon: { trailing: { color: adminForm.senhaConfirm && adminForm.senhaConfirm !== adminForm.senha ? 'text-red-400' : 'text-emerald-400' } } }"
-                :trailing-icon="adminForm.senhaConfirm ? (adminForm.senhaConfirm === adminForm.senha ? 'i-lucide-check-circle-2' : 'i-lucide-x-circle') : undefined"
-                class="input-dark" autocomplete="new-password" />
-            </div>
-          </div>
-        </template>
-
-        <!-- Passo 3: Contrato -->
-        <template v-else>
-          <div class="p-3 rounded-xl bg-indigo-500/[0.05] border border-indigo-500/10 text-[11px] text-indigo-300/60 leading-relaxed">
-            Um <strong class="text-indigo-300">Contrato de Prestação de Serviços</strong> será gerado automaticamente e ficará disponível para impressão e assinatura.
-          </div>
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div class="sm:col-span-2">
-              <label class="label-field">Plano *</label>
-              <div class="flex gap-1.5 mb-2 flex-wrap">
-                <UButton v-for="p in planosPredef" :key="p"
-                  :color="contratoForm.plano === p ? 'violet' : 'gray'"
-                  :variant="contratoForm.plano === p ? 'solid' : 'ghost'"
-                  size="xs" :ui="{ rounded: 'rounded-xl', font: 'font-semibold text-xs' }"
-                  @click="contratoForm.plano = p">{{ p }}</UButton>
-              </div>
-              <UInput v-model="contratoForm.plano" placeholder="Ou escreva o nome..." size="sm" :ui="{ rounded: 'rounded-xl' }" class="input-dark" />
-            </div>
-            <div>
-              <label class="label-field">Valor mensal (R$)</label>
-              <UInput v-model="contratoForm.valor" type="number" min="0" step="0.01" placeholder="0,00" size="sm" :ui="{ rounded: 'rounded-xl' }" class="input-dark" />
-            </div>
-            <div>
-              <label class="label-field">Ciclo de cobrança</label>
-              <div class="grid grid-cols-4 gap-1.5">
-                <UButton v-for="c in ciclos" :key="c.value"
-                  :color="contratoForm.ciclo === c.value ? 'violet' : 'gray'"
-                  :variant="contratoForm.ciclo === c.value ? 'solid' : 'ghost'"
-                  size="xs" :ui="{ rounded: 'rounded-xl', font: 'font-semibold text-xs' }"
-                  @click="contratoForm.ciclo = c.value as any">{{ c.label }}</UButton>
+          <div class="pf-form">
+            <div class="pf-fld"><label class="pf-lab" for="tm-valor">Valor mensal (R$)</label><input id="tm-valor" v-model="contratoForm.valor" class="pf-inp" type="number" min="0" step="0.01" placeholder="0,00"></div>
+            <div class="pf-fld">
+              <span class="pf-lab">Ciclo de cobrança</span>
+              <div class="pf-chips">
+                <button v-for="c in ciclos" :key="c.value" type="button" class="pf-fc" :aria-pressed="contratoForm.ciclo === c.value" @click="contratoForm.ciclo = c.value as any">{{ c.label }}</button>
               </div>
             </div>
-            <div>
-              <label class="label-field">Início do contrato</label>
-              <UInput v-model="contratoForm.dataInicio" type="date" size="sm" :ui="{ rounded: 'rounded-xl' }" class="input-dark" />
-            </div>
-            <div>
-              <label class="label-field">Fim do contrato (opcional)</label>
-              <UInput v-model="contratoForm.dataFim" type="date" size="sm" :ui="{ rounded: 'rounded-xl' }" class="input-dark" />
-            </div>
-            <div class="sm:col-span-2">
-              <label class="label-field">Status do contrato</label>
-              <div class="flex gap-1.5 mt-0.5">
-                <UButton :color="contratoForm.status === 'trial' ? 'amber' : 'gray'" :variant="contratoForm.status === 'trial' ? 'soft' : 'ghost'" size="sm" class="flex-1" :ui="{ rounded: 'rounded-xl', font: 'font-semibold text-xs' }" @click="contratoForm.status = 'trial'">Ag. assinatura</UButton>
-                <UButton :color="contratoForm.status === 'ativo' ? 'green' : 'gray'" :variant="contratoForm.status === 'ativo' ? 'soft' : 'ghost'" size="sm" class="flex-1" :ui="{ rounded: 'rounded-xl', font: 'font-semibold text-xs' }" @click="contratoForm.status = 'ativo'">Assinado</UButton>
+            <div class="pf-fld"><label class="pf-lab" for="tm-ini">Início do contrato</label><input id="tm-ini" v-model="contratoForm.dataInicio" class="pf-inp" type="date"></div>
+            <div class="pf-fld"><label class="pf-lab" for="tm-fim">Fim (opcional)</label><input id="tm-fim" v-model="contratoForm.dataFim" class="pf-inp" type="date"></div>
+            <div class="pf-fld full">
+              <span class="pf-lab">Situação do contrato</span>
+              <div class="pf-seg">
+                <button type="button" class="warn" :class="{ sel: contratoForm.status === 'trial' }" @click="contratoForm.status = 'trial'">Ag. assinatura</button>
+                <button type="button" class="ok" :class="{ sel: contratoForm.status === 'ativo' }" @click="contratoForm.status = 'ativo'">Assinado</button>
               </div>
             </div>
-          </div>
-        </template>
-      </div>
-
-      <!-- ════ EDIÇÃO — abas ════ -->
-      <div v-else-if="abaAtiva === 'dados'" class="p-5 space-y-4">
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <div class="sm:col-span-2">
-            <label class="label-field">Nome do restaurante *</label>
-            <UInput v-model="form.nome" @input="autoSlug" placeholder="Ex: Restaurante Tarantela" size="sm" :ui="{ rounded: 'rounded-xl' }" class="input-dark" />
-          </div>
-          <div>
-            <label class="label-field">Identificador *</label>
-            <UInput v-model="form.slug" placeholder="ex: tarantela" size="sm" :ui="{ rounded: 'rounded-xl', base: 'font-mono text-xs' }" class="input-dark" />
-            <p class="text-[10px] text-white/20 mt-1">Usado na URL do sistema</p>
-          </div>
-          <div>
-            <label class="label-field">CNPJ ou CPF</label>
-            <UInput v-model="form.cnpj" placeholder="00.000.000/0001-00" size="sm" :ui="{ rounded: 'rounded-xl', base: 'font-mono text-xs' }" class="input-dark" />
-          </div>
-          <div>
-            <label class="label-field">Nome do responsável</label>
-            <UInput v-model="form.responsavel" placeholder="Nome do responsável" size="sm" :ui="{ rounded: 'rounded-xl' }" class="input-dark" />
-          </div>
-          <div>
-            <label class="label-field">CPF do responsável</label>
-            <UInput v-model="form.cpfResponsavel" placeholder="000.000.000-00" size="sm" :ui="{ rounded: 'rounded-xl', base: 'font-mono text-xs' }" class="input-dark" />
-          </div>
-          <div>
-            <label class="label-field">E-mail</label>
-            <UInput v-model="form.contato" type="email" placeholder="contato@restaurante.com" size="sm" :ui="{ rounded: 'rounded-xl' }" class="input-dark" />
-          </div>
-          <div>
-            <label class="label-field">Telefone</label>
-            <UInput v-model="form.telefone" placeholder="(62) 9 9999-9999" size="sm" :ui="{ rounded: 'rounded-xl' }" class="input-dark" />
-          </div>
-          <div>
-            <label class="label-field">Endereço (rua, nº, bairro)</label>
-            <UInput v-model="form.endereco" placeholder="Rua das Flores, 123, Centro" size="sm" :ui="{ rounded: 'rounded-xl' }" class="input-dark" />
-          </div>
-          <div>
-            <label class="label-field">Cidade</label>
-            <UInput v-model="form.cidade" placeholder="Goiânia" size="sm" :ui="{ rounded: 'rounded-xl' }" class="input-dark" />
-          </div>
-          <div>
-            <label class="label-field">UF</label>
-            <UInput v-model="form.uf" placeholder="GO" maxlength="2" size="sm" :ui="{ rounded: 'rounded-xl', base: 'uppercase font-mono' }" class="input-dark" />
-          </div>
-          <div class="sm:col-span-2">
-            <label class="label-field">Observações</label>
-            <UTextarea v-model="form.observacoes" placeholder="Anotações internas..." :rows="2" size="sm" :ui="{ rounded: 'rounded-xl' }" class="input-dark" />
           </div>
         </div>
-        <div class="border-t border-white/[0.06] pt-4 space-y-3">
-          <p class="text-[10px] font-bold uppercase tracking-widest text-white/25">Features</p>
-          <div v-for="feat in features" :key="feat.key" class="flex items-center justify-between">
-            <div>
-              <p class="text-sm font-semibold text-white/80">{{ feat.label }}</p>
-              <p class="text-[11px] text-white/25">{{ feat.desc }}</p>
-            </div>
-            <UToggle
-              :model-value="(form as any)[feat.key]"
-              :on-icon="feat.onIcon"
-              :color="feat.color as any"
-              @update:model-value="(v: boolean) => (form as any)[feat.key] = v"
+      </template>
+    </template>
+
+    <!-- ════ EDIÇÃO: dados ════ -->
+    <template v-else-if="abaAtiva === 'dados'">
+      <div class="pf-boxm">
+        <div class="pf-form">
+          <div class="pf-fld full"><label class="pf-lab" for="te-nome">Nome do restaurante *</label><input id="te-nome" v-model="form.nome" class="pf-inp" placeholder="Ex.: Restaurante Tarantela" @input="autoSlug"></div>
+          <div class="pf-fld"><label class="pf-lab" for="te-slug">Login (identificador) *</label><input id="te-slug" v-model="form.slug" class="pf-inp" placeholder="ex.: tarantela"></div>
+          <div class="pf-fld"><label class="pf-lab" for="te-cnpj">CNPJ ou CPF</label><input id="te-cnpj" v-model="form.cnpj" class="pf-inp" placeholder="00.000.000/0001-00"></div>
+          <div class="pf-fld"><label class="pf-lab" for="te-resp">Responsável</label><input id="te-resp" v-model="form.responsavel" class="pf-inp"></div>
+          <div class="pf-fld"><label class="pf-lab" for="te-cpfr">CPF do responsável</label><input id="te-cpfr" v-model="form.cpfResponsavel" class="pf-inp" placeholder="000.000.000-00"></div>
+          <div class="pf-fld"><label class="pf-lab" for="te-email">E-mail</label><input id="te-email" v-model="form.contato" class="pf-inp" type="email"></div>
+          <div class="pf-fld"><label class="pf-lab" for="te-tel">Telefone</label><input id="te-tel" v-model="form.telefone" class="pf-inp"></div>
+          <div class="pf-fld full"><label class="pf-lab" for="te-end">Endereço (rua, nº, bairro)</label><input id="te-end" v-model="form.endereco" class="pf-inp"></div>
+          <div class="pf-fld"><label class="pf-lab" for="te-cid">Cidade</label><input id="te-cid" v-model="form.cidade" class="pf-inp"></div>
+          <div class="pf-fld"><label class="pf-lab" for="te-uf">UF</label><input id="te-uf" v-model="form.uf" class="pf-inp" maxlength="2" style="text-transform:uppercase"></div>
+          <div class="pf-fld full"><label class="pf-lab" for="te-obs">Observações</label><textarea id="te-obs" v-model="form.observacoes" class="pf-inp" rows="2" placeholder="Anotações internas" /></div>
+        </div>
+      </div>
+      <div v-if="tenant?.plano" class="pf-note info">Os recursos deste restaurante seguem o plano {{ tenant.plano.nome }}.</div>
+      <div v-else class="pf-boxm">
+        <p class="pf-sub" style="margin:0">Recursos</p>
+        <div>
+          <div v-for="feat in features" :key="feat.key" class="pf-feat">
+            <div><b>{{ feat.label }}</b><small>{{ feat.desc }}</small></div>
+            <button
+              type="button"
+              class="pf-sw"
+              role="switch"
+              :aria-checked="!!(form as any)[feat.key]"
+              :aria-label="feat.label"
+              @click="(form as any)[feat.key] = !(form as any)[feat.key]"
             />
           </div>
         </div>
       </div>
+    </template>
 
-      <div v-else-if="abaAtiva === 'licenca'" class="p-5">
-        <div class="space-y-4">
-          <div>
-            <label class="label-field mb-2">Status</label>
-            <div class="flex gap-2">
-              <UButton v-for="s in licencaStatuses" :key="s.value"
-                :color="licencaForm.status === s.value ? s.color : 'gray'"
-                :variant="licencaForm.status === s.value ? 'soft' : 'ghost'"
-                size="sm" class="flex-1" :ui="{ rounded: 'rounded-xl', font: 'font-semibold text-xs' }"
-                @click="licencaForm.status = s.value">{{ s.label }}</UButton>
-            </div>
-          </div>
-          <div class="grid grid-cols-2 gap-3">
-            <div>
-              <label class="label-field">Ativação</label>
-              <UInput v-model="licencaForm.dataAtivacao" type="date" size="sm" :ui="{ rounded: 'rounded-xl' }" class="input-dark" />
-            </div>
-            <div>
-              <label class="label-field">Vencimento</label>
-              <UInput v-model="licencaForm.dataVencimento" type="date" size="sm" :ui="{ rounded: 'rounded-xl' }" class="input-dark" />
-            </div>
-          </div>
-          <div v-if="licencaAtual" class="text-[10px] text-white/25 pt-1">Criada em {{ formatDate(licencaAtual.createdAt) }}</div>
+    <!-- ════ EDIÇÃO: licença ════ -->
+    <div v-else-if="abaAtiva === 'licenca'" class="pf-boxm">
+      <div class="pf-fld">
+        <span class="pf-lab">Situação</span>
+        <div class="pf-seg">
+          <button
+            v-for="s in licencaStatuses"
+            :key="s.value"
+            type="button"
+            :class="[{ green: 'ok', amber: 'warn', red: 'bad' }[s.color], { sel: licencaForm.status === s.value }]"
+            @click="licencaForm.status = s.value"
+          >{{ s.label }}</button>
         </div>
       </div>
-
-      <div v-else-if="abaAtiva === 'contrato'" class="p-5 space-y-4">
-        <div>
-          <label class="label-field">Plano *</label>
-          <div class="flex gap-1.5 mb-2 flex-wrap">
-            <UButton v-for="p in planosPredef" :key="p"
-              :color="contratoForm.plano === p ? 'violet' : 'gray'"
-              :variant="contratoForm.plano === p ? 'solid' : 'ghost'"
-              size="xs" :ui="{ rounded: 'rounded-xl', font: 'font-semibold text-xs' }"
-              @click="contratoForm.plano = p">{{ p }}</UButton>
-          </div>
-          <UInput v-model="contratoForm.plano" placeholder="Ou escreva o nome do plano..." size="sm" :ui="{ rounded: 'rounded-xl' }" class="input-dark" />
-        </div>
-        <div class="grid grid-cols-2 gap-3">
-          <div>
-            <label class="label-field">Valor (R$)</label>
-            <UInput v-model="contratoForm.valor" type="number" min="0" step="0.01" placeholder="0,00" size="sm" :ui="{ rounded: 'rounded-xl' }" class="input-dark" />
-          </div>
-          <div>
-            <label class="label-field">Status</label>
-            <div class="flex gap-1.5 mt-0.5">
-              <UButton :color="contratoForm.status === 'trial' ? 'amber' : 'gray'" :variant="contratoForm.status === 'trial' ? 'soft' : 'ghost'" size="sm" class="flex-1" :ui="{ rounded: 'rounded-xl', font: 'font-semibold text-xs' }" @click="contratoForm.status = 'trial'">Ag. assinatura</UButton>
-              <UButton :color="contratoForm.status === 'ativo' ? 'green' : 'gray'" :variant="contratoForm.status === 'ativo' ? 'soft' : 'ghost'" size="sm" class="flex-1" :ui="{ rounded: 'rounded-xl', font: 'font-semibold text-xs' }" @click="contratoForm.status = 'ativo'">Assinado</UButton>
-            </div>
-          </div>
-        </div>
-        <div>
-          <label class="label-field">Ciclo de cobrança</label>
-          <div class="grid grid-cols-4 gap-1.5">
-            <UButton v-for="c in ciclos" :key="c.value"
-              :color="contratoForm.ciclo === c.value ? 'violet' : 'gray'"
-              :variant="contratoForm.ciclo === c.value ? 'solid' : 'ghost'"
-              size="xs" :ui="{ rounded: 'rounded-xl', font: 'font-semibold text-xs' }"
-              @click="contratoForm.ciclo = c.value as any">{{ c.label }}</UButton>
-          </div>
-        </div>
-        <div class="grid grid-cols-2 gap-3">
-          <div>
-            <label class="label-field">Início</label>
-            <UInput v-model="contratoForm.dataInicio" type="date" size="sm" :ui="{ rounded: 'rounded-xl' }" class="input-dark" />
-          </div>
-          <div>
-            <label class="label-field">Fim (opcional)</label>
-            <UInput v-model="contratoForm.dataFim" type="date" size="sm" :ui="{ rounded: 'rounded-xl' }" class="input-dark" />
-          </div>
-        </div>
+      <div class="pf-form">
+        <div class="pf-fld"><label class="pf-lab" for="tl-at">Ativação</label><input id="tl-at" v-model="licencaForm.dataAtivacao" class="pf-inp" type="date"></div>
+        <div class="pf-fld"><label class="pf-lab" for="tl-ve">Vencimento</label><input id="tl-ve" v-model="licencaForm.dataVencimento" class="pf-inp" type="date"></div>
       </div>
+      <small v-if="licencaAtual" style="color:var(--pf-muted)">Criada em {{ formatDate(licencaAtual.createdAt) }}</small>
+    </div>
 
-      <UAlert v-if="erroModal" color="red" :description="erroModal" variant="soft" class="mx-5 mb-1" />
-
-      <template #footer>
-        <div class="flex gap-2">
-          <!-- Criação: navegação por passos -->
-          <template v-if="!isEdit">
-            <UButton v-if="passo > 0" color="gray" variant="ghost" :ui="{ rounded: 'rounded-xl', font: 'font-semibold' }" @click="passo--">
-              Voltar
-            </UButton>
-            <UButton color="gray" variant="ghost" :ui="{ rounded: 'rounded-xl', font: 'font-semibold' }" @click="fechar" :class="passo === 0 ? 'flex-1' : ''">
-              Cancelar
-            </UButton>
-            <UButton v-if="passo < passos.length - 1" color="violet" block :ui="{ rounded: 'rounded-xl', font: 'font-semibold' }" @click="avancar">
-              Próximo
-            </UButton>
-            <UButton v-else color="violet" block :loading="salvando" :ui="{ rounded: 'rounded-xl', font: 'font-semibold' }" @click="salvar">
-              {{ salvando ? 'Salvando...' : 'Cadastrar e gerar contrato' }}
-            </UButton>
-          </template>
-          <!-- Edição: salvar direto -->
-          <template v-else>
-            <UButton color="gray" variant="ghost" block :ui="{ rounded: 'rounded-xl', font: 'font-semibold' }" @click="fechar">Cancelar</UButton>
-            <UButton color="violet" block :loading="salvando" :ui="{ rounded: 'rounded-xl', font: 'font-semibold' }" @click="salvar">
-              {{ salvando ? 'Salvando...' : 'Salvar alterações' }}
-            </UButton>
-          </template>
+    <!-- ════ EDIÇÃO: contrato ════ -->
+    <div v-else-if="abaAtiva === 'contrato'" class="pf-boxm">
+      <div class="pf-fld">
+        <span class="pf-lab">Plano *</span>
+        <div class="pf-chips">
+          <button v-for="p in planosPredef" :key="p" type="button" class="pf-fc" :aria-pressed="contratoForm.plano === p" @click="contratoForm.plano = p">{{ p }}</button>
         </div>
+        <input v-model="contratoForm.plano" class="pf-inp" placeholder="Ou escreva o nome do plano" aria-label="Nome do plano">
+      </div>
+      <div class="pf-form">
+        <div class="pf-fld"><label class="pf-lab" for="tc-valor">Valor (R$)</label><input id="tc-valor" v-model="contratoForm.valor" class="pf-inp" type="number" min="0" step="0.01" placeholder="0,00"></div>
+        <div class="pf-fld">
+          <span class="pf-lab">Situação</span>
+          <div class="pf-seg">
+            <button type="button" class="warn" :class="{ sel: contratoForm.status === 'trial' }" @click="contratoForm.status = 'trial'">Ag. assinatura</button>
+            <button type="button" class="ok" :class="{ sel: contratoForm.status === 'ativo' }" @click="contratoForm.status = 'ativo'">Assinado</button>
+          </div>
+        </div>
+        <div class="pf-fld full">
+          <span class="pf-lab">Ciclo de cobrança</span>
+          <div class="pf-chips">
+            <button v-for="c in ciclos" :key="c.value" type="button" class="pf-fc" :aria-pressed="contratoForm.ciclo === c.value" @click="contratoForm.ciclo = c.value as any">{{ c.label }}</button>
+          </div>
+        </div>
+        <div class="pf-fld"><label class="pf-lab" for="tc-ini">Início</label><input id="tc-ini" v-model="contratoForm.dataInicio" class="pf-inp" type="date"></div>
+        <div class="pf-fld"><label class="pf-lab" for="tc-fim">Fim (opcional)</label><input id="tc-fim" v-model="contratoForm.dataFim" class="pf-inp" type="date"></div>
+      </div>
+    </div>
+
+    <p v-if="erroModal" class="pf-err" role="alert">{{ erroModal }}</p>
+
+    <template #rodape>
+      <template v-if="!isEdit">
+        <button v-if="passo > 0" class="pf-btn" @click="passo--">Voltar</button>
+        <button class="pf-btn" @click="fechar">Cancelar</button>
+        <button v-if="passo < passos.length - 1" class="pf-btn p" @click="avancar">Próximo</button>
+        <button v-else class="pf-btn p" :disabled="salvando" @click="salvar">
+          <Loader2 v-if="salvando" :size="16" class="animate-spin" />
+          {{ salvando ? 'Salvando…' : 'Cadastrar e gerar contrato' }}
+        </button>
       </template>
-    </UCard>
-  </UModal>
+      <template v-else>
+        <button class="pf-btn" @click="fechar">Cancelar</button>
+        <button class="pf-btn p" :disabled="salvando" @click="salvar">
+          <Loader2 v-if="salvando" :size="16" class="animate-spin" />
+          {{ salvando ? 'Salvando…' : 'Salvar alterações' }}
+        </button>
+      </template>
+    </template>
+  </PlatformModal>
 </template>
 
 <script setup lang="ts">
+import { Store, Check, Eye, EyeOff, Loader2 } from 'lucide-vue-next'
+import { usePlanos, RECURSOS, type Plano } from '~/composables/usePlanos'
 interface Licenca  { id: string; status: string; dataAtivacao: string | null; dataVencimento: string | null; createdAt: string }
 interface Contrato { id: string; plano: string; valor: string | null; ciclo: string; status: string; dataInicio?: string | null; dataFim?: string | null }
 interface Tenant {
@@ -350,6 +233,7 @@ interface Tenant {
   responsavel: string | null; cpfResponsavel: string | null; telefone: string | null
   endereco: string | null; cidade: string | null; uf: string | null; observacoes: string | null
   status: string; rfidDisponivel: boolean; vendaMobilePermitida: boolean; createdAt: string
+  plano?: { id: string; nome: string } | null
   licencas: Licenca[]; contratos: Contrato[]
 }
 
@@ -400,6 +284,22 @@ const features = [
   { key: 'rfidDisponivel',       label: 'RFID',               desc: 'Autenticação por cartão (feature paga)',  color: 'violet', onIcon: 'i-lucide-check' },
 ]
 const planosPredef = ['Básico', 'Profissional', 'Enterprise']
+
+// Planos criados em Planos e valores; no cadastro, escolher um define o plano
+// do restaurante (os recursos passam a seguir o plano) e o nome do contrato.
+const { planos, carregar: carregarPlanos } = usePlanos()
+const planosAtivos = computed(() => planos.value.filter(pl => pl.ativo))
+const planoId = ref<string | null>(null)
+const moedaBR = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+function resumoRecursos(pl: Plano) {
+  const r = RECURSOS.filter(x => pl[x.chave]).map(x => x.rotulo)
+  return r.length ? r.join(', ') : 'Sem recursos extras'
+}
+function escolherPlano(pl: Plano) {
+  planoId.value = pl.id
+  contratoForm.plano = pl.nome
+  contratoForm.valor = String(pl.valor)
+}
 const ciclos = [
   { value: 'mensal', label: 'Mensal' }, { value: 'trimestral', label: 'Trim.' },
   { value: 'semestral', label: 'Semes.' }, { value: 'anual', label: 'Anual' },
@@ -408,6 +308,8 @@ const ciclos = [
 // ── Watch: popula/reseta ao abrir ─────────────────────────────────────────────
 watch(() => props.modelValue, (open) => {
   if (!open) return
+  planoId.value = null
+  carregarPlanos()
   erroModal.value = ''
   abaAtiva.value = 'dados'
   passo.value = 0
@@ -482,6 +384,7 @@ async function salvar() {
   salvando.value = true
   try {
     if (!isEdit.value) {
+      if (planosAtivos.value.length && !planoId.value) { erroModal.value = 'Escolha o plano do restaurante'; return }
       if (!contratoForm.plano.trim()) { erroModal.value = 'Selecione o plano do contrato'; return }
       const payload = {
         nome: form.nome, slug: form.slug, cnpj: form.cnpj || null, cpfResponsavel: form.cpfResponsavel || null,
@@ -490,6 +393,7 @@ async function salvar() {
         vendaMobilePermitida: form.vendaMobilePermitida, rfidDisponivel: form.rfidDisponivel,
         contrato: { plano: contratoForm.plano.trim(), valor: parseValor(contratoForm.valor), ciclo: contratoForm.ciclo, dataInicio: contratoForm.dataInicio || null, dataFim: contratoForm.dataFim || null, status: contratoForm.status },
         adminEmail: adminForm.email.trim(), adminSenha: adminForm.senha,
+        planoId: planoId.value,
       }
       const created = await platformFetch<any>('/platform/tenants', { method: 'POST', body: JSON.stringify(payload) })
       fechar()
@@ -519,10 +423,3 @@ async function salvar() {
   }
 }
 </script>
-
-<style scoped>
-.label-field { display: block; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; color: rgba(255,255,255,0.30); margin-bottom: 6px; }
-.input-dark :deep(input), .input-dark :deep(textarea) { background: rgba(255,255,255,0.04); border-color: rgba(255,255,255,0.08); color: rgba(255,255,255,0.85); }
-.input-dark :deep(input)::placeholder, .input-dark :deep(textarea)::placeholder { color: rgba(255,255,255,0.18); }
-.input-dark :deep(input):focus, .input-dark :deep(textarea):focus { border-color: rgba(139,92,246,0.5); background: rgba(255,255,255,0.06); }
-</style>

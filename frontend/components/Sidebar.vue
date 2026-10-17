@@ -1,77 +1,39 @@
 <template>
   <!-- Overlay: fecha sidebar ao clicar fora (só quando expandida) -->
-  <div
-    v-if="expandida"
-    class="fixed inset-0 z-30"
-    @click="expandida = false"
-  />
+  <div v-if="expandida" class="fixed inset-0 z-30 bg-black/40" @click="expandida = false" />
 
   <aside
-    class="hidden sm:flex fixed left-0 flex-col
-           bg-white dark:bg-[#0e0d14]
-           border-r border-gray-200 dark:border-white/[0.06]
-           transition-all duration-200 overflow-hidden"
-    :class="[expandida ? 'w-52' : 'w-14', 'z-40']"
+    class="sb hidden sm:flex fixed left-0 flex-col z-40"
+    :class="expandida ? 'w-56' : 'w-16'"
     :style="{ top: authStore.modoSuporte ? '2.5rem' : '0', height: authStore.modoSuporte ? 'calc(100vh - 2.5rem)' : '100vh' }"
   >
     <!-- LOGO (clique expande/recolhe) -->
-    <button
-      @click="expandida = !expandida"
-      class="h-14 w-full flex items-center gap-2.5 px-3 shrink-0 border-b border-gray-200 dark:border-white/[0.06] hover:bg-gray-100 dark:hover:bg-white/[0.04] transition-colors"
-      :title="expandida ? 'Recolher menu' : 'Expandir menu'"
-    >
-      <div class="w-8 h-8 rounded-xl bg-gradient-to-br from-orange-500 to-orange-700 shadow-md shadow-orange-900/50 flex items-center justify-center shrink-0">
-        <UtensilsCrossed :size="14" class="text-white" />
-      </div>
-      <div class="overflow-hidden transition-opacity duration-200" :class="expandida ? 'opacity-100' : 'opacity-0'">
-        <span class="text-sm font-black text-gray-900 dark:text-white tracking-tight whitespace-nowrap">
-          Restaurante <span class="text-orange-500 dark:text-orange-400">PDV</span>
-        </span>
-      </div>
+    <button class="sb__logo" @click="expandida = !expandida" :title="expandida ? 'Recolher menu' : 'Expandir menu'">
+      <span class="sb__marca"><UtensilsCrossed :size="16" /></span>
+      <span class="sb__texto" :class="{ oculto: !expandida }">Restaurante PDV</span>
     </button>
 
     <!-- NAVEGAÇÃO -->
-    <nav class="flex-1 py-3 px-2 space-y-0.5 overflow-y-auto overflow-x-hidden">
+    <nav class="flex-1 py-3 px-2 space-y-1 overflow-y-auto overflow-x-hidden">
       <button
         v-for="item in navItems"
         :key="item.rota"
-        @click="navegar(item.rota)"
-        class="w-full flex items-center h-10 rounded-xl transition-all whitespace-nowrap"
-        :class="[
-          expandida ? 'gap-3 px-2' : 'justify-center',
-          isAtivo(item.rota) ? 'bg-orange-500/[0.10]' : 'hover:bg-gray-100 dark:hover:bg-white/[0.05]'
-        ]"
+        class="sb__item"
+        :class="{ ativo: isAtivo(item.rota), aberto: expandida }"
+        :aria-current="isAtivo(item.rota) ? 'page' : undefined"
         :title="item.label"
+        @click="navegar(item.rota)"
       >
-        <div
-          class="size-8 rounded-xl flex items-center justify-center shrink-0 transition-all duration-150"
-          :class="isAtivo(item.rota) ? 'bg-gradient-to-br from-orange-500 to-orange-700 shadow-sm shadow-orange-900/50' : ''"
-        >
-          <component :is="item.icon" :size="15" :stroke-width="2.2"
-            :class="isAtivo(item.rota) ? 'text-white' : 'text-gray-400 dark:text-white/35'" />
-        </div>
-        <span
-          class="text-xs font-bold truncate transition-opacity duration-200 flex-1 text-left"
-          :class="[expandida ? 'opacity-100' : 'opacity-0 w-0', isAtivo(item.rota) ? 'text-gray-900 dark:text-white' : 'text-gray-500 dark:text-white/40']"
-        >{{ item.label }}</span>
+        <component :is="item.icon" :size="18" :stroke-width="2" class="shrink-0" />
+        <span class="sb__texto" :class="{ oculto: !expandida }">{{ item.label }}</span>
       </button>
     </nav>
 
     <!-- RODAPÉ: SAIR -->
-    <div class="p-2 border-t border-gray-200 dark:border-white/[0.06] shrink-0">
-      <button
-        @click="authStore.logout()"
-        class="w-full flex items-center h-10 rounded-xl text-xs font-bold transition-all whitespace-nowrap hover:bg-red-50 dark:hover:bg-red-950/40"
-        :class="expandida ? 'gap-3 px-2' : 'justify-center'"
-        title="Sair"
-      >
-        <div class="size-8 rounded-xl flex items-center justify-center shrink-0">
-          <LogOut :size="15" :stroke-width="2.2" class="text-red-400/60 group-hover:text-red-300" />
-        </div>
-        <span
-          class="text-red-400/60 truncate transition-opacity duration-200"
-          :class="expandida ? 'opacity-100' : 'opacity-0 w-0'"
-        >Sair</span>
+    <div class="p-2 border-t shrink-0" style="border-color: var(--linha)">
+      <button class="sb__item sb__item--sair" :class="{ aberto: expandida }" title="Sair" @click="authStore.logout()">
+        <LogOut :size="18" :stroke-width="2" class="shrink-0" />
+        <span class="sb__texto" :class="{ oculto: !expandida }">Sair</span>
       </button>
     </div>
   </aside>
@@ -105,3 +67,59 @@ function navegar(rota: string) {
   router.push(rota)
 }
 </script>
+
+<style scoped>
+/* Sidebar sobre tokens: superfície sólida, seleção indicada por barra +
+   superfície elevada — o laranja fica só na marca e na barra do item ativo. */
+.sb {
+  background: var(--sup-painel);
+  border-right: 1px solid var(--linha);
+  transition: width var(--tempo-folha) var(--curva);
+  overflow: hidden;
+}
+.sb__logo {
+  height: 56px; width: 100%;
+  display: flex; align-items: center; gap: var(--e-3);
+  padding: 0 var(--e-3);
+  flex-shrink: 0;
+  border-bottom: 1px solid var(--linha);
+  color: var(--txt);
+  font-weight: 700;
+}
+.sb__logo:hover { background: var(--sup-elevado); }
+.sb__marca {
+  width: 40px; height: 40px; flex-shrink: 0;
+  display: grid; place-items: center;
+  border-radius: var(--r-controle);
+  background: var(--acao); color: #fff;
+}
+.sb__texto {
+  white-space: nowrap;
+  font-size: var(--t-micro);
+  transition: opacity var(--tempo-folha) var(--curva);
+}
+.sb__texto.oculto { opacity: 0; width: 0; overflow: hidden; }
+
+.sb__item {
+  position: relative;
+  width: 100%;
+  min-height: var(--toque-min);
+  display: flex; align-items: center; justify-content: center; gap: var(--e-3);
+  border-radius: var(--r-controle);
+  color: var(--txt-2);
+  font-weight: 500;
+  transition: background-color var(--tempo-toque) var(--curva), color var(--tempo-toque) var(--curva);
+}
+.sb__item.aberto { justify-content: flex-start; padding: 0 var(--e-3); }
+.sb__item:hover  { background: var(--sup-elevado); color: var(--txt); }
+.sb__item.ativo  { background: var(--sup-elevado); color: var(--txt); font-weight: 600; }
+.sb__item.ativo::before {
+  content: '';
+  position: absolute; left: -8px; top: 10px; bottom: 10px;
+  width: 3px; border-radius: 0 3px 3px 0;
+  background: var(--acao);
+}
+.sb__item:focus-visible { outline: 2px solid var(--acao); outline-offset: -2px; }
+.sb__item--sair       { color: var(--txt-3); }
+.sb__item--sair:hover { color: var(--st-atencao); background: var(--st-atencao-bg); }
+</style>

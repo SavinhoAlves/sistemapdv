@@ -15,21 +15,10 @@
   }
 
   /* ── Dark mode (padrão) ── */
+  /* Fundo sólido vindo dos tokens — o claro/escuro troca via html.light */
   body {
-    background:
-      radial-gradient(ellipse 70% 50% at 10% 5%, rgba(249,115,22,0.06) 0%, transparent 55%),
-      radial-gradient(ellipse 50% 40% at 90% 95%, rgba(249,115,22,0.03) 0%, transparent 45%),
-      #0b0b12;
-    color: white;
-  }
-
-  /* ── Light mode ── */
-  html:not(.dark) body {
-    background:
-      radial-gradient(ellipse 70% 50% at 10% 5%, rgba(249,115,22,0.05) 0%, transparent 55%),
-      radial-gradient(ellipse 50% 40% at 90% 95%, rgba(249,115,22,0.03) 0%, transparent 45%),
-      #f8fafc;
-    color: #111827;
+    background: var(--sup-fundo);
+    color: var(--txt);
   }
 
   ::selection {
@@ -252,11 +241,9 @@ html.dark select.input {
 /* ── Sidebar: recuo do conteúdo ────────────────────────────── */
 @media (min-width: 640px) {
   .com-sidebar {
-    padding-left: 3.5rem; /* w-14 colapsada */
-    transition: padding-left 0.2s ease;
-  }
-  html.sidebar-expandida .com-sidebar {
-    padding-left: 6rem;  /*w-52 expandida */
+    /* w-16 colapsada; expandida ela sobrepõe o conteúdo (com overlay),
+       então o recuo não muda e a tela não "pula" ao abrir o menu */
+    padding-left: 4rem;
   }
 
   /* index.vue fica dentro do <slot> do default.vue, ambos têm com-sidebar;

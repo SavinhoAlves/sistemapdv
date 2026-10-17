@@ -18,53 +18,27 @@ import { computed } from 'vue'
  *   4. Quem atende e desde quando?           → rodapé
  */
 
-interface Comanda {
-  id: string
-  numero: number
-  nome: string
-  cliente: string | null
-  status: 'aberta' | 'fechando' | 'fechada'
-  garcom: { id: string; nome: string } | null
-  total: number
-  pago: number
-  restante: number
-  qtd_itens: number
-  qtd_prontos: number
-  qtd_na_cozinha: number
-  aberta_em: string | null
-  ultimo_lancamento_em: string | null
-}
+import { Plus } from 'lucide-vue-next'
+import { chaveEstado, minutosDesde, duracao, LIMITE_PARADA_MIN, type ComandaResumo as Comanda } from '~/composables/useEstadoComanda'
 
 const props = withDefaults(
   defineProps<{
     comanda: Comanda
     selecionada?: boolean
+    /** Mostra o botão "Lançar produtos" no rodapé do card. */
+    podeVender?: boolean
     /** Minutos sem lançamento a partir dos quais a comanda vira alerta. */
     limiteParadaMin?: number
   }>(),
-  { selecionada: false, limiteParadaMin: 45 },
+  { selecionada: false, podeVender: false, limiteParadaMin: LIMITE_PARADA_MIN },
 )
 
-defineEmits<{ (e: 'abrir', comanda: Comanda): void }>()
+defineEmits<{ (e: 'abrir', comanda: Comanda): void; (e: 'vender', comanda: Comanda): void }>()
 
 const moeda = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' })
 
-const minutosAbertos = computed(() => {
-  if (!props.comanda.aberta_em) return 0
-  return Math.floor((Date.now() - new Date(props.comanda.aberta_em).getTime()) / 60000)
-})
-
-const minutosParada = computed(() => {
-  const ref = props.comanda.ultimo_lancamento_em ?? props.comanda.aberta_em
-  if (!ref) return 0
-  return Math.floor((Date.now() - new Date(ref).getTime()) / 60000)
-})
-
-function duracao(min: number) {
-  if (min < 60) return `${min}min`
-  const h = Math.floor(min / 60)
-  return `${h}h${String(min % 60).padStart(2, '0')}`
-}
+const minutosAbertos = computed(() => minutosDesde(props.comanda.aberta_em))
+const minutosParada  = computed(() => minutosDesde(props.comanda.ultimo_lancamento_em ?? props.comanda.aberta_em))
 
 /**
  * Um estado por comanda, escolhido pela urgência. Prato pronto esperando
@@ -72,31 +46,22 @@ function duracao(min: number) {
  */
 const estado = computed(() => {
   const c = props.comanda
-  if (c.qtd_prontos > 0) {
-    return {
-      chave: 'pronto',
-      selo: c.qtd_prontos === 1 ? '1 pronto para entregar' : `${c.qtd_prontos} prontos para entregar`,
-    }
-  }
-  if (c.status === 'fechando') {
-    return {
-      chave: 'conta',
-      selo: c.pago > 0 ? `Pago ${moeda.format(c.pago)} de ${moeda.format(c.total)}` : 'Conta pedida',
-    }
-  }
-  if (c.qtd_na_cozinha > 0) {
-    return { chave: 'cozinha', selo: `${c.qtd_na_cozinha} na cozinha` }
-  }
-  if (minutosParada.value >= props.limiteParadaMin) {
-    return { chave: 'atencao', selo: `Sem lançamento há ${duracao(minutosParada.value)}` }
-  }
-  return { chave: 'parado', selo: null }
+  const chave = chaveEstado(c, props.limiteParadaMin)
+  const selo = {
+    pronto:  c.qtd_prontos === 1 ? '1 pronto para entregar' : `${c.qtd_prontos} prontos para entregar`,
+    conta:   c.pago > 0 ? `Pago ${moeda.format(c.pago)} de ${moeda.format(c.total)}` : 'Conta pedida',
+    cozinha: `${c.qtd_na_cozinha} na cozinha`,
+    atencao: `Sem lançamento há ${duracao(minutosParada.value)}`,
+    parado:  null,
+  }[chave]
+  return { chave, selo }
 })
 
 const vazia = computed(() => props.comanda.qtd_itens === 0)
 </script>
 
 <template>
+  <div class="comanda-wrap" :class="{ 'comanda-wrap--sel': selecionada }">
   <button
     type="button"
     class="comanda"
@@ -129,13 +94,57 @@ const vazia = computed(() => props.comanda.qtd_itens === 0)
       <!-- Rodapé: quem e desde quando -->
       <span class="comanda__pe">
         <span class="comanda__garcom">{{ comanda.garcom?.nome ?? 'Sem garçom' }}</span>
-        <span class="comanda__tempo pdv-valor">{{ duracao(minutosAbertos) }}</span>
+        <span class="comanda__tempo pdv-valor">{{ comanda.aberta_em ? duracao(minutosAbertos) : '—' }}</span>
       </span>
     </span>
   </button>
+
+  <!-- Atalho direto para vender: abre o cardápio da mesa sem passar pelo painel -->
+  <button
+    v-if="podeVender"
+    type="button"
+    class="comanda__vender"
+    :disabled="comanda.status === 'fechando'"
+    :title="comanda.status === 'fechando' ? 'Conta pedida — reabra a mesa para lançar' : 'Lançar produtos'"
+    @click="$emit('vender', comanda)"
+  >
+    <Plus :size="16" stroke-width="2.5" />
+    Lançar produtos
+  </button>
+  </div>
 </template>
 
 <style scoped>
+/* Card = área de abrir (painel) + faixa de ação (vender). Dois botões irmãos,
+   nunca um dentro do outro. */
+.comanda-wrap {
+  display: flex;
+  flex-direction: column;
+  background: var(--sup-cartao);
+  border: 1px solid var(--linha);
+  border-radius: var(--r-cartao);
+  box-shadow: var(--sombra-cartao);
+  overflow: hidden;
+}
+.comanda-wrap--sel { border-color: var(--linha-forte); }
+.comanda-wrap .comanda { border: none; border-radius: 0; box-shadow: none; }
+
+.comanda__vender {
+  min-height: var(--toque-min);
+  display: flex; align-items: center; justify-content: center; gap: var(--e-2);
+  border-top: 1px solid var(--linha);
+  background: transparent;
+  color: var(--acao);
+  font-size: var(--t-micro);
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color var(--tempo-toque) var(--curva), color var(--tempo-toque) var(--curva);
+}
+.comanda__vender:hover:not(:disabled)  { background: var(--acao); color: var(--acao-txt); }
+.comanda__vender:active:not(:disabled) { background: var(--acao-press); color: var(--acao-txt); }
+.comanda__vender:disabled { color: var(--txt-3); cursor: not-allowed; }
+.comanda__vender:focus-visible { outline: 2px solid var(--acao); outline-offset: -2px; }
+
 .comanda {
   display: flex;
   gap: var(--e-3);

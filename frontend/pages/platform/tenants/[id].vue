@@ -1,748 +1,363 @@
 <template>
-  <div class="min-h-dvh bg-[#0b0b12] flex">
+  <PlatformShell ativo="restaurantes" :titulo="tenant?.nome || 'Restaurante'">
 
-    <!-- ══ SIDEBAR ══ -->
-    <aside class="hidden lg:flex flex-col w-60 shrink-0 border-r border-white/[0.06] sticky top-0 h-screen" style="background:#0e0d18">
+    <NuxtLink to="/platform/restaurantes" class="pf-back"><ArrowLeft :size="16" /> Restaurantes</NuxtLink>
 
-      <!-- Brand -->
-      <div class="h-16 px-5 flex items-center gap-3 border-b border-white/[0.06] shrink-0">
-        <div class="size-8 rounded-xl bg-gradient-to-br from-violet-600 to-violet-900 flex items-center justify-center shadow-lg shadow-violet-900/60 shrink-0">
-          <UIcon name="i-lucide-globe" class="text-white size-4" />
+    <div v-if="loading" class="pf-loading"><span class="pf-spin" /></div>
+
+    <div v-else-if="erro" class="pf-card">
+      <div class="pf-empty">
+        <b>{{ erro }}</b>
+        <NuxtLink to="/platform/restaurantes" class="pf-btn" style="margin-top:12px">Voltar para a lista</NuxtLink>
+      </div>
+    </div>
+
+    <template v-else-if="tenant">
+      <!-- Cabeçalho -->
+      <div class="pf-head">
+        <div class="pf-hero">
+          <span class="pf-av">{{ tenant.nome.slice(0, 2).toUpperCase() }}</span>
+          <div>
+            <h1 style="font-size:clamp(26px,3.4vw,38px)">{{ tenant.nome }}</h1>
+            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:6px">
+              <span class="pf-pill" :class="tenant.status === 'ativo' ? 'ok' : 'warn'"><i />{{ tenant.status === 'ativo' ? 'Ativo' : 'Suspenso' }}</span>
+              <span class="pf-tag">{{ tenant.slug }}</span>
+              <span style="color:var(--pf-muted);font-size:14px">Cliente desde {{ formatDate(tenant.createdAt) }}</span>
+            </div>
+          </div>
         </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button class="pf-btn" @click="abrirModalDados"><Pencil :size="16" /> Editar dados</button>
+          <button class="pf-btn" :class="tenant.status === 'ativo' ? 'd' : 'k'" @click="toggleStatus">
+            {{ tenant.status === 'ativo' ? 'Suspender' : 'Reativar' }}
+          </button>
+        </div>
+      </div>
+
+      <div class="pf-grid-det">
+        <!-- ── Coluna principal ── -->
         <div>
-          <p class="text-sm font-bold text-white leading-none tracking-tight">Plataforma</p>
-          <p class="text-[9px] font-semibold uppercase tracking-widest text-white/30 mt-0.5">PDV Central</p>
-        </div>
-      </div>
-
-      <!-- Nav -->
-      <nav class="flex-1 px-3 py-5 space-y-1">
-        <p class="text-[9px] font-bold uppercase tracking-widest text-white/20 px-3 mb-3">Menu</p>
-        <NuxtLink to="/platform" class="nav-active flex items-center gap-3 px-3 py-2.5 rounded-xl">
-          <div class="size-8 rounded-xl bg-gradient-to-br from-violet-600 to-violet-900 flex items-center justify-center shrink-0 shadow-md shadow-violet-900/50">
-            <UIcon name="i-lucide-store" class="text-white size-3.5" />
-          </div>
-          <span class="text-sm font-semibold text-white flex-1 truncate">Restaurantes</span>
-        </NuxtLink>
-        <NuxtLink to="/platform/tickets" class="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-white/[0.04] transition-colors">
-          <div class="size-8 rounded-xl bg-white/[0.05] flex items-center justify-center shrink-0">
-            <UIcon name="i-lucide-ticket" class="text-white/40 size-3.5" />
-          </div>
-          <span class="text-sm font-medium text-white/50 flex-1 truncate">Tickets</span>
-        </NuxtLink>
-      </nav>
-
-      <!-- User -->
-      <div class="px-3 py-4 border-t border-white/[0.06] shrink-0">
-        <div class="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-white/[0.04] transition-colors group">
-          <div class="size-8 rounded-xl bg-gradient-to-br from-violet-700 to-violet-900 flex items-center justify-center shrink-0">
-            <span class="text-[11px] font-black text-white">{{ (platformAuth.user?.nome || 'SA')[0] }}</span>
-          </div>
-          <div class="flex-1 min-w-0">
-            <p class="text-xs font-semibold text-white/80 truncate">{{ platformAuth.user?.nome }}</p>
-            <p class="text-[10px] text-white/30 truncate">Super Admin</p>
-          </div>
-          <button @click="modalSenha = true" title="Alterar minha senha"
-            class="size-7 rounded-lg flex items-center justify-center text-white/20 hover:text-violet-300 hover:bg-violet-500/10 transition-colors opacity-0 group-hover:opacity-100">
-            <UIcon name="i-lucide-key-round" class="size-3.5" />
-          </button>
-          <button @click="handleLogout" title="Sair"
-            class="size-7 rounded-lg flex items-center justify-center text-white/20 hover:text-red-400 hover:bg-red-500/10 transition-colors opacity-0 group-hover:opacity-100">
-            <UIcon name="i-lucide-log-out" class="size-3.5" />
-          </button>
-        </div>
-      </div>
-    </aside>
-
-    <PlatformChangePasswordModal v-model="modalSenha" />
-
-    <!-- ══ ÁREA PRINCIPAL ══ -->
-    <div class="flex-1 flex flex-col min-w-0">
-
-      <!-- Topbar mobile -->
-      <header class="lg:hidden sticky top-0 z-30 h-14 flex items-center justify-between px-4 border-b border-white/[0.06] shrink-0 bg-[#0b0b12]/90 backdrop-blur-xl">
-        <div class="flex items-center gap-2.5">
-          <div class="size-7 rounded-xl bg-gradient-to-br from-violet-600 to-violet-900 flex items-center justify-center">
-            <UIcon name="i-lucide-globe" class="text-white size-3.5" />
-          </div>
-          <span class="text-sm font-bold text-white">Plataforma</span>
-        </div>
-        <button @click="modalSenha = true" title="Alterar minha senha" class="size-8 flex items-center justify-center rounded-xl text-white/30 hover:text-violet-300 hover:bg-violet-500/10 transition-colors ml-auto mr-1">
-          <UIcon name="i-lucide-key-round" class="size-4" />
-        </button>
-        <button @click="handleLogout" class="size-8 flex items-center justify-center rounded-xl text-white/30 hover:text-red-400 hover:bg-red-500/10 transition-colors">
-          <UIcon name="i-lucide-log-out" class="size-4" />
-        </button>
-      </header>
-
-    <!-- ══ LOADING ══ -->
-    <div v-if="loading" class="flex items-center justify-center py-48">
-      <div class="flex flex-col items-center gap-3">
-        <Loader2 :size="24" class="animate-spin text-violet-500" />
-        <p class="text-white/30 text-xs font-bold">Carregando...</p>
-      </div>
-    </div>
-
-    <!-- ══ ERRO ══ -->
-    <div v-else-if="erro" class="px-6 lg:px-10 py-24 text-center">
-      <div class="w-14 h-14 rounded-2xl bg-red-500/10 border border-red-500/15 flex items-center justify-center mx-auto mb-4">
-        <AlertCircle :size="22" class="text-red-400" />
-      </div>
-      <p class="text-white font-black text-base mb-3">{{ erro }}</p>
-      <NuxtLink to="/platform" class="text-violet-400 text-sm font-bold hover:text-violet-300 transition-colors inline-flex items-center gap-1.5">
-        <ArrowLeft :size="13" /> Voltar para a lista
-      </NuxtLink>
-    </div>
-
-    <!-- ══ CONTEÚDO ══ -->
-    <main v-else-if="tenant" class="w-full px-6 lg:px-10 py-8 space-y-6">
-
-      <!-- ─ BARRA SUPERIOR: voltar + ações ─ -->
-      <div class="flex items-center gap-3">
-        <NuxtLink to="/platform"
-          class="inline-flex items-center gap-1.5 h-8 px-3 rounded-xl bg-white/[0.04] hover:bg-white/[0.07] border border-white/[0.06] text-white/35 hover:text-white/60 text-xs font-black transition-all">
-          <ArrowLeft :size="12" /> Voltar
-        </NuxtLink>
-        <div class="flex-1" />
-        <button @click="abrirModalDados"
-          class="h-8 px-3.5 rounded-xl bg-white/[0.05] hover:bg-white/[0.09] border border-white/[0.07] text-white/55 text-xs font-black transition-all flex items-center gap-1.5">
-          <Pencil :size="11" /> Editar dados
-        </button>
-        <button @click="toggleStatus"
-          class="h-8 px-3.5 rounded-xl border text-xs font-black transition-all flex items-center gap-1.5"
-          :class="tenant.status === 'ativo'
-            ? 'bg-red-500/10 border-red-500/20 text-red-400 hover:bg-red-500/15'
-            : 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400 hover:bg-emerald-500/15'">
-          <ToggleRight v-if="tenant.status === 'ativo'" :size="11" />
-          <ToggleLeft  v-else :size="11" />
-          {{ tenant.status === 'ativo' ? 'Suspender' : 'Reativar' }}
-        </button>
-      </div>
-
-      <!-- ─ HERO DO TENANT ─ -->
-      <div class="flex items-center gap-4 px-5 py-4 rounded-2xl border border-white/[0.06] bg-white/[0.015]">
-        <div class="w-11 h-11 rounded-xl flex items-center justify-center shrink-0 text-lg font-black select-none"
-          :class="avatarColor(tenant.nome)">
-          {{ tenant.nome[0].toUpperCase() }}
-        </div>
-        <div class="flex-1 min-w-0">
-          <div class="flex items-center gap-2 flex-wrap">
-            <h1 class="text-base font-black text-white tracking-tight">{{ tenant.nome }}</h1>
-            <span class="text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-wide" :class="statusBadge(tenant.status)">
-              {{ tenant.status }}
-            </span>
-          </div>
-          <p class="text-white/25 text-[10px] font-mono mt-0.5">{{ tenant.slug }}</p>
-        </div>
-        <!-- Feature pills -->
-        <div class="hidden sm:flex items-center gap-1.5 shrink-0">
-          <span class="inline-flex items-center gap-1 text-[10px] font-black px-2.5 py-1 rounded-lg transition-all"
-            :class="tenant.rfidDisponivel ? 'bg-violet-500/10 text-violet-400 border border-violet-500/15' : 'bg-white/[0.03] text-white/15 border border-white/[0.05]'">
-            <CreditCard :size="9" /> RFID
-          </span>
-          <span class="inline-flex items-center gap-1 text-[10px] font-black px-2.5 py-1 rounded-lg transition-all"
-            :class="tenant.vendaMobilePermitida ? 'bg-sky-500/10 text-sky-400 border border-sky-500/15' : 'bg-white/[0.03] text-white/15 border border-white/[0.05]'">
-            <Smartphone :size="9" /> Celular
-          </span>
-          <span v-if="licencaAtual" class="inline-flex items-center gap-1 text-[10px] font-black px-2.5 py-1 rounded-lg border"
-            :class="licencaBadge(licencaAtual.status)">
-            <KeyRound :size="9" /> {{ licencaStatusLabel }}
-          </span>
-        </div>
-        <!-- Cadastro -->
-        <p class="hidden lg:block text-[10px] text-white/15 font-mono shrink-0">{{ formatDate(tenant.createdAt) }}</p>
-      </div>
-
-      <!-- ─ GRID PRINCIPAL ─ -->
-      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-
-        <!-- LICENÇA (col 1-2) -->
-        <section class="lg:col-span-2 rounded-2xl border bg-white/[0.015] flex flex-col"
-          :class="licencaAtual?.status === 'pendente' ? 'border-amber-500/20' : licencaAtual?.status === 'bloqueado' ? 'border-red-500/20' : 'border-white/[0.06]'">
-
-          <!-- Cabeçalho da seção -->
-          <div class="flex items-center justify-between px-5 pt-5 pb-4 border-b border-white/[0.05]">
-            <div class="flex items-center gap-2">
-              <KeyRound :size="12" class="text-white/30" />
-              <h2 class="text-[10px] font-black text-white/40 uppercase tracking-widest">Licença</h2>
+          <!-- Licença -->
+          <div class="pf-card">
+            <div class="pf-card-h">
+              <div><h2>Licença</h2><p>Sem licença ativa o restaurante não abre o caixa</p></div>
+              <button v-if="licencaAtual" class="pf-btn s pf-r" @click="abrirModalLicenca"><Pencil :size="14" /> Editar datas</button>
             </div>
-            <button v-if="licencaAtual" @click="abrirModalLicenca"
-              class="text-[10px] text-white/20 hover:text-violet-400 transition-colors font-bold flex items-center gap-1">
-              <Pencil :size="9" /> Editar datas
-            </button>
-          </div>
+            <div class="pf-pad">
+              <div v-if="!licencaAtual" class="pf-empty" style="padding:20px 0"><b>Nenhuma licença registrada</b>Gere um contrato para criar a licença.</div>
+              <template v-else>
+                <div class="pf-big">
+                  <div class="pf-big-n" :class="licencaTom">{{ diasRestantes === null ? '∞' : Math.max(0, diasRestantes) }}</div>
+                  <div>
+                    <small>Licença</small>
+                    <b>{{ licencaStatusLabel }}</b>
+                    <small>{{ licencaLabel }}</small>
+                  </div>
+                </div>
 
-          <div v-if="!licencaAtual" class="flex-1 flex flex-col items-center justify-center gap-2 py-10">
-            <KeyRound :size="22" class="text-white/10" />
-            <p class="text-white/20 text-sm">Nenhuma licença registrada</p>
-          </div>
+                <dl class="pf-kv" style="margin-bottom:18px">
+                  <dt>Ativação</dt><dd>{{ formatDate(licencaAtual.dataAtivacao) }}</dd>
+                  <dt>Vencimento</dt><dd>{{ formatDate(licencaAtual.dataVencimento) }}</dd>
+                </dl>
 
-          <div v-else class="p-5 flex flex-col gap-4 flex-1">
-
-            <!-- Status + dias restantes -->
-            <div class="flex items-center gap-4 p-4 rounded-xl" :class="licencaBgBlock">
-              <div class="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" :class="licencaIconBlock">
-                <KeyRound :size="17" :class="licencaIconColor" />
-              </div>
-              <div class="flex-1 min-w-0">
-                <p class="text-sm font-black" :class="licencaIconColor">{{ licencaStatusLabel }}</p>
-                <p class="text-[11px] text-white/35 mt-0.5 truncate">{{ licencaLabel }}</p>
-              </div>
-              <div v-if="diasRestantes !== null" class="text-right shrink-0">
-                <p class="text-2xl font-black tabular-nums"
-                  :class="diasRestantes < 0 ? 'text-red-400' : diasRestantes <= 7 ? 'text-amber-400' : licencaIconColor">
-                  {{ diasRestantes < 0 ? 0 : diasRestantes }}
-                </p>
-                <p class="text-[9px] font-bold uppercase tracking-widest text-white/20">dias</p>
-              </div>
-            </div>
-
-            <!-- Datas de ativação / vencimento -->
-            <div class="grid grid-cols-2 gap-2">
-              <div class="p-3 rounded-xl bg-white/[0.03] border border-white/[0.04]">
-                <p class="text-[9px] font-black uppercase tracking-widest text-white/20 mb-1">Ativação</p>
-                <p class="text-xs font-bold text-white/60">{{ formatDate(licencaAtual.dataAtivacao) }}</p>
-              </div>
-              <div class="p-3 rounded-xl bg-white/[0.03] border border-white/[0.04]">
-                <p class="text-[9px] font-black uppercase tracking-widest text-white/20 mb-1">Vencimento</p>
-                <p class="text-xs font-bold" :class="diasRestantes !== null && diasRestantes <= 7 ? 'text-amber-400' : 'text-white/60'">
-                  {{ formatDate(licencaAtual.dataVencimento) }}
-                </p>
-              </div>
-            </div>
-
-            <!-- Controles de período -->
-            <div class="space-y-2">
-              <p class="text-[9px] font-black uppercase tracking-widest text-white/20">
-                {{ licencaAtual.status === 'ativado' && diasRestantes !== null && diasRestantes > 0 ? 'Estender' : 'Ativar' }} licença
-              </p>
-              <!-- Presets + Permanente -->
-              <div class="grid grid-cols-5 gap-1.5">
-                <button v-for="periodo in periodos" :key="periodo.label"
-                  @click="ativarPeriodo(periodo.dias)" :disabled="ativandoLicenca"
-                  class="h-9 rounded-xl border text-xs font-black transition-all disabled:opacity-40 flex items-center justify-center"
-                  :class="licencaAtual.status === 'ativado' && diasRestantes !== null && diasRestantes > 0
-                    ? 'bg-sky-500/10 border-sky-500/20 text-sky-400 hover:bg-sky-500/18'
-                    : 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400 hover:bg-emerald-500/18'">
-                  <Loader2 v-if="ativandoLicenca" :size="12" class="animate-spin" />
-                  <template v-else>{{ periodo.label }}</template>
-                </button>
-                <button @click="ativarPeriodo(99 * 365)" :disabled="ativandoLicenca"
-                  class="h-9 rounded-xl border text-xs font-black transition-all disabled:opacity-40 flex items-center justify-center bg-violet-500/10 border-violet-500/20 text-violet-400 hover:bg-violet-500/18">
-                  <Loader2 v-if="ativandoLicenca" :size="12" class="animate-spin" />
-                  <template v-else>Ilimitado</template>
-                </button>
-              </div>
-              <!-- Dias personalizados -->
-              <div class="flex gap-2">
-                <input v-model="diasCustomCard" type="number" min="1" placeholder="Número de dias personalizado…"
-                  class="flex-1 h-9 rounded-xl border border-white/[0.07] bg-white/[0.03] text-white/65 text-xs px-3 outline-none placeholder:text-white/15 focus:border-sky-500/35 transition-colors"
-                  @keydown.enter="diasCustomCard && ativarPeriodo(Number(diasCustomCard))" />
-                <button
-                  @click="diasCustomCard && ativarPeriodo(Number(diasCustomCard))"
-                  :disabled="ativandoLicenca || !diasCustomCard"
-                  class="h-9 px-4 rounded-xl border border-sky-500/20 bg-sky-500/10 text-sky-400 text-xs font-black hover:bg-sky-500/18 transition-all disabled:opacity-40 shrink-0">
-                  Aplicar
-                </button>
-              </div>
-            </div>
-
-          </div>
-        </section>
-
-        <!-- COLUNA DIREITA: dados + features -->
-        <div class="flex flex-col gap-4">
-
-          <!-- DADOS CADASTRAIS -->
-          <section class="rounded-2xl border border-white/[0.06] bg-white/[0.015]">
-            <div class="flex items-center justify-between px-5 pt-4 pb-3 border-b border-white/[0.05]">
-              <div class="flex items-center gap-2">
-                <Building2 :size="11" class="text-white/30" />
-                <h2 class="text-[10px] font-black text-white/40 uppercase tracking-widest">Dados</h2>
-              </div>
-              <button @click="abrirModalDados"
-                class="text-[10px] text-white/20 hover:text-violet-400 transition-colors font-bold flex items-center gap-1">
-                <Pencil :size="9" /> Editar
-              </button>
-            </div>
-            <dl class="p-4 space-y-2.5">
-              <template v-for="campo in dadosCadastrais" :key="campo.label">
-                <div v-if="campo.valor" class="flex gap-2 items-baseline">
-                  <dt class="text-[9px] text-white/20 font-black w-18 shrink-0 uppercase tracking-wide">{{ campo.label }}</dt>
-                  <dd class="text-[11px] text-white/60 font-medium break-all leading-tight min-w-0" :class="campo.mono ? 'font-mono text-white/45' : ''">
-                    {{ campo.valor }}
-                  </dd>
+                <p class="pf-sub">{{ licencaAtual.status === 'ativado' && diasRestantes !== null && diasRestantes > 0 ? 'Estender licença' : 'Ativar licença' }}</p>
+                <div class="pf-opts" style="margin-bottom:10px">
+                  <button v-for="periodo in periodos" :key="periodo.label" class="pf-o" :disabled="ativandoLicenca" @click="ativarPeriodo(periodo.dias)">
+                    {{ periodo.label }}
+                  </button>
+                  <button class="pf-o" :disabled="ativandoLicenca" @click="ativarPeriodo(99 * 365)">Ilimitado</button>
+                </div>
+                <div class="pf-row">
+                  <input
+                    v-model="diasCustomCard"
+                    class="pf-inp"
+                    type="number"
+                    min="1"
+                    placeholder="Outro prazo, em dias"
+                    aria-label="Prazo personalizado em dias"
+                    @keydown.enter="diasCustomCard && ativarPeriodo(Number(diasCustomCard))"
+                  >
+                  <button class="pf-btn k" :disabled="ativandoLicenca || !diasCustomCard" @click="diasCustomCard && ativarPeriodo(Number(diasCustomCard))">
+                    <Loader2 v-if="ativandoLicenca" :size="16" class="animate-spin" /> Aplicar
+                  </button>
                 </div>
               </template>
-              <p v-if="dadosCadastrais.every(c => !c.valor)" class="text-[11px] text-white/15 italic">Nenhum dado preenchido</p>
-            </dl>
-          </section>
-
-          <!-- FEATURES -->
-          <section class="rounded-2xl border border-white/[0.06] bg-white/[0.015]">
-            <div class="flex items-center gap-2 px-5 pt-4 pb-3 border-b border-white/[0.05]">
-              <Zap :size="11" class="text-white/30" />
-              <h2 class="text-[10px] font-black text-white/40 uppercase tracking-widest">Features</h2>
-            </div>
-            <div class="p-4 space-y-2">
-              <!-- RFID -->
-              <div class="flex items-center justify-between py-2 px-3 rounded-xl border transition-all"
-                :class="tenant.rfidDisponivel ? 'bg-violet-500/[0.05] border-violet-500/12' : 'bg-white/[0.02] border-white/[0.04]'">
-                <div class="flex items-center gap-2">
-                  <CreditCard :size="13" :class="tenant.rfidDisponivel ? 'text-violet-400' : 'text-white/20'" />
-                  <div>
-                    <p class="text-xs font-bold text-white/75">RFID</p>
-                    <p class="text-[10px] text-white/25">Autenticação por cartão</p>
-                  </div>
-                </div>
-                <button @click="toggleRfid" :disabled="togglingRfid"
-                  class="w-8 h-[18px] rounded-full transition-all relative shrink-0 disabled:opacity-50"
-                  :class="tenant.rfidDisponivel ? 'bg-violet-500' : 'bg-white/[0.10]'">
-                  <span class="absolute top-0.5 w-3.5 h-3.5 rounded-full bg-white shadow transition-all"
-                    :class="tenant.rfidDisponivel ? 'left-[17px]' : 'left-0.5'" />
-                </button>
-              </div>
-              <!-- Mobile -->
-              <div class="flex items-center justify-between py-2 px-3 rounded-xl border transition-all"
-                :class="tenant.vendaMobilePermitida ? 'bg-sky-500/[0.05] border-sky-500/12' : 'bg-white/[0.02] border-white/[0.04]'">
-                <div class="flex items-center gap-2">
-                  <Smartphone :size="13" :class="tenant.vendaMobilePermitida ? 'text-sky-400' : 'text-white/20'" />
-                  <div>
-                    <p class="text-xs font-bold text-white/75">Venda pelo Celular</p>
-                    <p class="text-[10px] text-white/25">Acesso via QR Code</p>
-                  </div>
-                </div>
-                <button @click="toggleMobile" :disabled="togglingMobile"
-                  class="w-8 h-[18px] rounded-full transition-all relative shrink-0 disabled:opacity-50"
-                  :class="tenant.vendaMobilePermitida ? 'bg-sky-500' : 'bg-white/[0.10]'">
-                  <span class="absolute top-0.5 w-3.5 h-3.5 rounded-full bg-white shadow transition-all"
-                    :class="tenant.vendaMobilePermitida ? 'left-[17px]' : 'left-0.5'" />
-                </button>
-              </div>
-            </div>
-          </section>
-
-        </div>
-      </div>
-
-      <!-- ─ CONTRATO (largura total) ─ -->
-      <section class="rounded-2xl border border-white/[0.06] bg-white/[0.015]">
-        <div class="flex items-center justify-between px-5 pt-4 pb-3 border-b border-white/[0.05]">
-          <div class="flex items-center gap-2.5">
-            <FileText :size="11" class="text-white/30" />
-            <h2 class="text-[10px] font-black text-white/40 uppercase tracking-widest">Contrato</h2>
-            <span v-if="contratoAtual" class="text-[9px] font-black px-2 py-0.5 rounded-full"
-              :class="{
-                'bg-emerald-500/15 text-emerald-400': contratoAtual.status === 'ativo',
-                'bg-amber-500/15 text-amber-400':   contratoAtual.status === 'trial',
-                'bg-red-500/15 text-red-400':       contratoAtual.status === 'suspenso' || contratoAtual.status === 'cancelado',
-              }">
-              {{ contratoAtual.status === 'ativo' ? 'Assinado' : contratoAtual.status === 'trial' ? 'Ag. assinatura' : contratoAtual.status === 'cancelado' ? 'Rescindido' : 'Suspenso' }}
-            </span>
-          </div>
-          <button @click="abrirModalContrato"
-            class="text-[10px] text-white/20 hover:text-indigo-400 transition-colors font-bold flex items-center gap-1">
-            <Pencil :size="9" /> {{ contratoAtual ? 'Editar dados' : 'Criar contrato' }}
-          </button>
-        </div>
-
-        <!-- Sem contrato -->
-        <div v-if="!contratoAtual" class="flex items-center gap-5 px-5 py-6">
-          <div class="w-12 h-12 rounded-xl bg-indigo-500/[0.06] border border-indigo-500/10 flex items-center justify-center shrink-0">
-            <FileText :size="20" class="text-indigo-400/40" />
-          </div>
-          <div class="flex-1">
-            <p class="text-sm font-bold text-white/40">Nenhum contrato gerado</p>
-            <p class="text-[11px] text-white/20 mt-0.5">Gere um contrato de prestação de serviços em PDF, pronto para impressão e assinatura pelas partes.</p>
-          </div>
-          <button @click="abrirModalContrato"
-            class="h-9 px-4 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 text-xs font-black hover:bg-indigo-500/18 transition-all shrink-0 flex items-center gap-1.5">
-            <FileText :size="12" /> Gerar contrato
-          </button>
-        </div>
-
-        <!-- Com contrato -->
-        <div v-else class="p-5 space-y-4">
-
-          <!-- Documento card -->
-          <div class="flex items-center gap-4 p-4 rounded-xl bg-indigo-500/[0.04] border border-indigo-500/10">
-            <div class="size-10 rounded-xl bg-gradient-to-br from-indigo-600 to-indigo-900 shadow-md shadow-indigo-900/50 flex items-center justify-center shrink-0">
-              <FileText :size="16" class="text-white" />
-            </div>
-            <div class="flex-1 min-w-0">
-              <p class="text-xs font-black text-indigo-300 leading-tight">Contrato de Prestação de Serviços — Plano {{ contratoAtual.plano }}</p>
-              <p class="text-[10px] text-white/30 mt-0.5 font-mono">
-                Vigência: {{ formatDate(contratoAtual.dataInicio) }} → {{ contratoAtual.dataFim ? formatDate(contratoAtual.dataFim) : 'Indeterminado' }}
-                <span v-if="contratoAtual.valor"> · {{ formatCurrency(contratoAtual.valor) }}/{{ contratoAtual.ciclo }}</span>
-              </p>
             </div>
           </div>
 
-          <!-- Ações PDF — destaque principal -->
-          <div class="grid grid-cols-3 gap-2">
-            <button @click="visualizarContrato"
-              class="h-10 rounded-xl bg-indigo-500/10 hover:bg-indigo-500/18 border border-indigo-500/20 text-indigo-400 text-xs font-black transition-all flex items-center justify-center gap-2">
-              <Eye :size="13" /> Visualizar PDF
-            </button>
-            <button @click="imprimirContrato"
-              class="h-10 rounded-xl bg-white/[0.04] hover:bg-white/[0.07] border border-white/[0.07] text-white/50 hover:text-white/80 text-xs font-black transition-all flex items-center justify-center gap-2">
-              <Printer :size="13" /> Imprimir
-            </button>
-            <button @click="compartilharContrato"
-              class="h-10 rounded-xl bg-white/[0.04] hover:bg-white/[0.07] border border-white/[0.07] text-white/50 hover:text-white/80 text-xs font-black transition-all flex items-center justify-center gap-2">
-              <Share2 :size="13" /> Compartilhar
-            </button>
-          </div>
-        </div>
-      </section>
-
-      <!-- ─ ACESSO DO ADMINISTRADOR (largura total) ─ -->
-      <section class="rounded-2xl border border-white/[0.06] bg-white/[0.015]">
-        <div class="flex items-center justify-between px-5 pt-4 pb-3 border-b border-white/[0.05]">
-          <div class="flex items-center gap-2.5">
-            <UserCog :size="11" class="text-white/30" />
-            <h2 class="text-[10px] font-black text-white/40 uppercase tracking-widest">Acesso do administrador</h2>
-          </div>
-          <span v-if="adminAtual" class="text-[9px] font-black px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400">Configurado</span>
-          <span v-else class="text-[9px] font-black px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-400">Sem acesso</span>
-        </div>
-
-        <div class="p-5 space-y-4">
-          <!-- Aviso sem admin -->
-          <div v-if="!adminAtual" class="flex items-start gap-3 p-3 rounded-xl bg-amber-500/[0.07] border border-amber-500/15 text-[11px] text-amber-300/80">
-            <Lock :size="13" class="mt-0.5 shrink-0 text-amber-400" />
-            Nenhum administrador configurado. Defina as credenciais abaixo para que o cliente consiga acessar o sistema e para que o suporte remoto funcione.
-          </div>
-
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div class="sm:col-span-2">
-              <label class="text-[10px] font-bold text-white/30 uppercase tracking-wider block mb-1.5">Nome do administrador</label>
-              <input v-model="adminForm.nome" type="text" placeholder="Ex: João Silva"
-                class="w-full h-9 px-3 rounded-xl bg-white/[0.04] border border-white/[0.08] text-white/80 text-xs placeholder-white/20 outline-none focus:border-indigo-500/40 transition-colors" />
-            </div>
-            <div class="sm:col-span-2">
-              <label class="text-[10px] font-bold text-white/30 uppercase tracking-wider block mb-1.5">E-mail de acesso</label>
-              <input v-model="adminForm.email" type="email" placeholder="admin@restaurante.com" autocomplete="off"
-                class="w-full h-9 px-3 rounded-xl bg-white/[0.04] border border-white/[0.08] text-white/80 text-xs placeholder-white/20 outline-none focus:border-indigo-500/40 transition-colors" />
-            </div>
-            <div>
-              <label class="text-[10px] font-bold text-white/30 uppercase tracking-wider block mb-1.5">
-                Nova senha <span class="normal-case font-normal text-white/20">{{ adminAtual ? '(deixe em branco para manter)' : '* mín. 6 caracteres' }}</span>
-              </label>
-              <div class="relative">
-                <input v-model="adminForm.senha" :type="mostrarSenha ? 'text' : 'password'" placeholder="••••••••" autocomplete="new-password"
-                  class="w-full h-9 px-3 pr-9 rounded-xl bg-white/[0.04] border border-white/[0.08] text-white/80 text-xs placeholder-white/20 outline-none focus:border-indigo-500/40 transition-colors" />
-                <button type="button" @click="mostrarSenha = !mostrarSenha"
-                  class="absolute right-2.5 top-1/2 -translate-y-1/2 text-white/25 hover:text-white/60 transition-colors">
-                  <Eye :size="13" />
-                </button>
-              </div>
-            </div>
-            <div>
-              <label class="text-[10px] font-bold text-white/30 uppercase tracking-wider block mb-1.5">Confirmar senha</label>
-              <input v-model="adminForm.senhaConfirm" :type="mostrarSenha ? 'text' : 'password'" placeholder="••••••••" autocomplete="new-password"
-                :class="['w-full h-9 px-3 rounded-xl bg-white/[0.04] border text-white/80 text-xs placeholder-white/20 outline-none transition-colors',
-                  adminForm.senhaConfirm && adminForm.senhaConfirm !== adminForm.senha ? 'border-red-500/40 focus:border-red-500/60' : 'border-white/[0.08] focus:border-indigo-500/40']" />
-            </div>
-          </div>
-
-          <div v-if="erroAdmin" class="text-xs text-red-400 font-bold">{{ erroAdmin }}</div>
-          <div v-if="sucessoAdmin" class="text-xs text-emerald-400 font-bold flex items-center gap-1.5">
-            <CheckCircle2 :size="12" /> {{ sucessoAdmin }}
-          </div>
-
-          <div class="flex items-center justify-between pt-1">
-            <p v-if="adminAtual" class="text-[10px] text-white/20">
-              Login atual: <span class="text-white/40 font-mono">{{ adminAtual.email }}</span>
-            </p>
-            <button @click="salvarAdmin" :disabled="salvandoAdmin"
-              class="ml-auto h-9 px-5 rounded-xl bg-indigo-500/15 hover:bg-indigo-500/25 border border-indigo-500/25 text-indigo-400 text-xs font-black transition-all flex items-center gap-2 disabled:opacity-50">
-              <Loader2 v-if="salvandoAdmin" :size="12" class="animate-spin" />
-              <ShieldCheck v-else :size="12" />
-              {{ adminAtual ? 'Atualizar credenciais' : 'Criar administrador' }}
-            </button>
-          </div>
-        </div>
-      </section>
-
-    </main>
-
-    </div><!-- /flex-1 área principal -->
-
-    <!-- ══ MODAL EDITAR ══ -->
-    <Teleport to="body">
-      <Transition name="fade">
-        <div v-if="modalAberto"
-          class="fixed inset-0 z-50 flex items-start justify-center p-4 pt-12 overflow-y-auto"
-          style="background: rgba(0,0,0,0.75); backdrop-filter: blur(4px);"
-          @click.self="fecharModal">
-          <div class="bg-[#111118] border border-white/[0.09] rounded-2xl w-full max-w-xl shadow-2xl overflow-hidden">
-            <div class="flex items-center justify-between px-5 py-4 border-b border-white/[0.07]">
-              <div class="flex items-center gap-3">
-                <div class="w-8 h-8 rounded-xl flex items-center justify-center shrink-0"
-                  :class="modalModo === 'licenca' ? 'bg-sky-500/10' : modalModo === 'contrato' ? 'bg-indigo-500/10' : 'bg-violet-500/10'">
-                  <component :is="modalModo === 'licenca' ? KeyRound : modalModo === 'contrato' ? FileText : Building2" :size="14"
-                    :class="modalModo === 'licenca' ? 'text-sky-400' : modalModo === 'contrato' ? 'text-indigo-400' : 'text-violet-400'" />
-                </div>
-                <h2 class="text-sm font-black text-white">{{ modalModo === 'licenca' ? 'Editar licença' : modalModo === 'contrato' ? (contratoAtual ? 'Dados do contrato' : 'Gerar contrato') : 'Editar dados' }}</h2>
-              </div>
-              <button @click="fecharModal"
-                class="w-7 h-7 rounded-xl bg-white/[0.05] hover:bg-red-500/15 hover:text-red-400 text-white/30 flex items-center justify-center transition-all">
-                <X :size="13" />
+          <!-- Contrato -->
+          <div class="pf-card">
+            <div class="pf-card-h">
+              <div><h2>Contrato</h2><p>Contrato de prestação de serviços em PDF</p></div>
+              <span v-if="contratoAtual" class="pf-pill" :class="contratoTom(contratoAtual.status)"><i />{{ contratoRotulo(contratoAtual.status) }}</span>
+              <button class="pf-btn s" :class="{ 'pf-r': !contratoAtual }" @click="abrirModalContrato">
+                <Pencil :size="14" /> {{ contratoAtual ? 'Editar' : 'Gerar contrato' }}
               </button>
             </div>
-
-            <!-- MODO DADOS -->
-            <div v-if="modalModo === 'dados'" class="p-5 space-y-4">
-              <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div class="sm:col-span-2">
-                  <label class="label-field">Nome *</label>
-                  <input v-model="form.nome" type="text" class="input-field" />
-                </div>
-                <div>
-                  <label class="label-field">Identificador</label>
-                  <input v-model="form.slug" type="text" class="input-field font-mono text-xs" />
-                </div>
-                <div>
-                  <label class="label-field">CNPJ ou CPF</label>
-                  <input v-model="form.cnpj" type="text" class="input-field font-mono text-xs" placeholder="00.000.000/0001-00" />
-                </div>
-                <div>
-                  <label class="label-field">Responsável</label>
-                  <input v-model="form.responsavel" type="text" class="input-field" />
-                </div>
-                <div>
-                  <label class="label-field">CPF do responsável</label>
-                  <input v-model="form.cpfResponsavel" type="text" class="input-field font-mono text-xs" placeholder="000.000.000-00" />
-                </div>
-                <div>
-                  <label class="label-field">E-mail</label>
-                  <input v-model="form.contato" type="email" class="input-field" />
-                </div>
-                <div>
-                  <label class="label-field">Telefone</label>
-                  <input v-model="form.telefone" type="text" class="input-field" />
-                </div>
-                <div>
-                  <label class="label-field">Endereço (rua, nº, bairro)</label>
-                  <input v-model="form.endereco" type="text" class="input-field" placeholder="Rua das Flores, 123, Centro" />
-                </div>
-                <div>
-                  <label class="label-field">Cidade</label>
-                  <input v-model="form.cidade" type="text" class="input-field" />
-                </div>
-                <div>
-                  <label class="label-field">UF</label>
-                  <input v-model="form.uf" type="text" maxlength="2" class="input-field font-mono uppercase" placeholder="GO" />
-                </div>
-                <div class="sm:col-span-2">
-                  <label class="label-field">Observações</label>
-                  <textarea v-model="form.observacoes" rows="2" class="input-field resize-none"></textarea>
-                </div>
+            <div class="pf-pad">
+              <div v-if="!contratoAtual" class="pf-empty" style="padding:20px 0">
+                <b>Nenhum contrato gerado</b>
+                Gere o contrato pronto para imprimir e assinar.
               </div>
-              <div class="border-t border-white/[0.06] pt-4 space-y-3">
-                <p class="text-[10px] font-black uppercase tracking-widest text-white/25">Features</p>
-                <div class="flex items-center justify-between">
-                  <div>
-                    <p class="text-sm font-bold text-white/80">Venda pelo Celular</p>
-                    <p class="text-[11px] text-white/25">Acesso via QR Code</p>
+              <template v-else>
+                <div class="pf-doc">
+                  <span class="pf-ico ok"><FileText :size="20" /></span>
+                  <div style="min-width:0">
+                    <b>Plano {{ contratoAtual.plano }}</b>
+                    <small style="display:block;color:var(--pf-muted)">
+                      {{ formatDate(contratoAtual.dataInicio) }} até {{ contratoAtual.dataFim ? formatDate(contratoAtual.dataFim) : 'prazo indeterminado' }}
+                      <template v-if="contratoAtual.valor"> · {{ formatCurrency(contratoAtual.valor) }} / {{ contratoAtual.ciclo }}</template>
+                    </small>
                   </div>
-                  <button @click="form.vendaMobilePermitida = !form.vendaMobilePermitida"
-                    class="w-10 h-5 rounded-full transition-all relative shrink-0"
-                    :class="form.vendaMobilePermitida ? 'bg-sky-500' : 'bg-white/[0.08]'">
-                    <span class="absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-all"
-                      :class="form.vendaMobilePermitida ? 'left-[22px]' : 'left-0.5'" />
-                  </button>
                 </div>
-                <div class="flex items-center justify-between">
-                  <div>
-                    <p class="text-sm font-bold text-white/80">RFID</p>
-                    <p class="text-[11px] text-white/25">Autenticação por cartão</p>
-                  </div>
-                  <button @click="form.rfidDisponivel = !form.rfidDisponivel"
-                    class="w-10 h-5 rounded-full transition-all relative shrink-0"
-                    :class="form.rfidDisponivel ? 'bg-violet-500' : 'bg-white/[0.08]'">
-                    <span class="absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-all"
-                      :class="form.rfidDisponivel ? 'left-[22px]' : 'left-0.5'" />
-                  </button>
+                <div class="pf-acts">
+                  <button class="pf-btn s k" @click="visualizarContrato"><Eye :size="16" /> Ver PDF</button>
+                  <button class="pf-btn s" @click="imprimirContrato"><Printer :size="16" /> Imprimir</button>
+                  <button class="pf-btn s" @click="compartilharContrato"><Share2 :size="16" /> Compartilhar</button>
                 </div>
-              </div>
+              </template>
             </div>
+          </div>
 
-            <!-- MODO CONTRATO -->
-            <div v-else-if="modalModo === 'contrato'" class="p-5 space-y-4">
-              <!-- Aviso documento jurídico -->
-              <div class="flex items-start gap-3 p-3 rounded-xl bg-indigo-500/[0.06] border border-indigo-500/15">
-                <FileText :size="13" class="text-indigo-400/70 mt-0.5 shrink-0" />
-                <p class="text-[11px] text-indigo-300/70 leading-relaxed">Esses dados serão usados para gerar o <strong class="text-indigo-300">Contrato de Prestação de Serviços</strong> em PDF — pronto para impressão e assinatura pelas partes.</p>
+          <!-- Administrador -->
+          <div class="pf-card">
+            <div class="pf-card-h">
+              <div><h2>Acesso do administrador</h2><p>Login de quem gerencia o restaurante</p></div>
+              <span class="pf-pill pf-r" :class="adminAtual ? 'ok' : 'warn'"><i />{{ adminAtual ? 'Configurado' : 'Sem acesso' }}</span>
+            </div>
+            <div class="pf-pad" style="display:grid;gap:14px">
+              <div v-if="!adminAtual" class="pf-note warn">
+                <Lock :size="18" style="flex:none;margin-top:1px" />
+                Nenhum administrador configurado. Sem ele, o cliente não entra no sistema e o suporte remoto não funciona.
               </div>
-              <div class="grid grid-cols-2 gap-3">
-                <div class="col-span-2">
-                  <label class="label-field">Plano *</label>
-                  <select v-model="planoOpcao" class="input-field" @change="onPlanoOpcaoChange">
-                    <option value="Básico">Básico</option>
-                    <option value="Profissional">Profissional</option>
-                    <option value="Enterprise">Enterprise</option>
-                    <option value="personalizado">Personalizado…</option>
-                  </select>
-                  <input v-if="planoOpcao === 'personalizado'" v-model="contratoForm.plano"
-                    type="text" placeholder="Nome do plano" class="input-field mt-2" />
+              <div class="pf-form">
+                <div class="pf-fld full">
+                  <label class="pf-lab" for="adm-nome">Nome do administrador</label>
+                  <input id="adm-nome" v-model="adminForm.nome" class="pf-inp" type="text" placeholder="Ex.: João Silva">
                 </div>
-                <div>
-                  <label class="label-field">Valor (R$)</label>
-                  <input v-model="contratoForm.valor" type="number" min="0" step="0.01" placeholder="0,00" class="input-field" />
+                <div class="pf-fld full">
+                  <label class="pf-lab" for="adm-email">E-mail de acesso</label>
+                  <input id="adm-email" v-model="adminForm.email" class="pf-inp" type="email" placeholder="admin@restaurante.com" autocomplete="off">
                 </div>
-                <div>
-                  <label class="label-field">Ciclo</label>
-                  <select v-model="contratoForm.ciclo" class="input-field">
-                    <option value="mensal">Mensal</option>
-                    <option value="trimestral">Trimestral</option>
-                    <option value="semestral">Semestral</option>
-                    <option value="anual">Anual</option>
-                  </select>
-                </div>
-                <div>
-                  <label class="label-field">Data início</label>
-                  <input v-model="contratoForm.dataInicio" type="date" class="input-field" />
-                </div>
-                <div>
-                  <label class="label-field">Data fim</label>
-                  <input v-model="contratoForm.dataFim" type="date" class="input-field" />
-                </div>
-                <div class="col-span-2">
-                  <label class="label-field mb-2">Status</label>
-                  <div class="flex gap-2">
-                    <button v-for="s in contratoStatuses" :key="s.value" @click="contratoForm.status = s.value"
-                      class="flex-1 h-9 rounded-xl text-xs font-black border transition-all"
-                      :class="contratoForm.status === s.value ? s.activeClass : 'bg-white/[0.03] border-white/[0.07] text-white/30 hover:bg-white/[0.05]'">
-                      {{ s.label }}
+                <div class="pf-fld">
+                  <label class="pf-lab" for="adm-senha">Nova senha <small>{{ adminAtual ? '(em branco mantém a atual)' : '(mínimo 6 caracteres)' }}</small></label>
+                  <div class="pf-pass">
+                    <input id="adm-senha" v-model="adminForm.senha" class="pf-inp" :type="mostrarSenha ? 'text' : 'password'" placeholder="••••••••" autocomplete="new-password">
+                    <button type="button" :aria-label="mostrarSenha ? 'Ocultar senha' : 'Mostrar senha'" @click="mostrarSenha = !mostrarSenha">
+                      <EyeOff v-if="mostrarSenha" :size="16" /><Eye v-else :size="16" />
                     </button>
                   </div>
                 </div>
-              </div>
-
-              <!-- VALIDADE DA LICENÇA -->
-              <div class="pt-4 border-t border-white/[0.06] space-y-3">
-                <div class="flex items-center gap-2">
-                  <KeyRound :size="11" class="text-sky-400" />
-                  <p class="text-[10px] font-black uppercase tracking-widest text-white/40">Validade da licença</p>
-                </div>
-                <!-- Atalhos rápidos -->
-                <div class="grid grid-cols-5 gap-2">
-                  <button v-for="p in periodos" :key="p.label" @click="setLicPeriodo(p.dias)"
-                    class="h-9 rounded-xl border text-xs font-black transition-all"
-                    :class="diasCustomModal === String(p.dias) ? 'bg-sky-500/25 border-sky-500/50 text-sky-300' : 'bg-sky-500/10 border-sky-500/20 text-sky-400 hover:bg-sky-500/20'">
-                    {{ p.label }}
-                  </button>
-                  <button @click="setLicPermanente"
-                    class="h-9 rounded-xl border text-xs font-black transition-all"
-                    :class="contratoForm.licVencimento === '2099-12-31' ? 'bg-violet-500/25 border-violet-500/50 text-violet-300' : 'bg-violet-500/10 border-violet-500/20 text-violet-400 hover:bg-violet-500/20'">
-                    Ilimitado
-                  </button>
-                </div>
-                <!-- Dias personalizados -->
-                <div class="flex gap-2">
-                  <input v-model="diasCustomModal" type="number" min="1" placeholder="Qtd. de dias…"
-                    class="input-field flex-1"
-                    @keydown.enter="aplicarDiasCustomModal" />
-                  <button @click="aplicarDiasCustomModal"
-                    class="h-10 px-4 rounded-xl bg-sky-500/15 border border-sky-500/25 text-sky-400 text-xs font-black hover:bg-sky-500/25 transition-all shrink-0">
-                    Aplicar
-                  </button>
-                </div>
-                <!-- Datas manuais -->
-                <div class="grid grid-cols-2 gap-3">
-                  <div>
-                    <label class="label-field">Ativação</label>
-                    <input v-model="contratoForm.licAtivacao" type="date" class="input-field" />
-                  </div>
-                  <div>
-                    <label class="label-field">Vencimento</label>
-                    <input v-model="contratoForm.licVencimento" type="date" class="input-field" />
-                  </div>
-                </div>
-                <p class="text-[10px] text-white/20">
-                  Se o vencimento for preenchido, a licença é ativada automaticamente ao salvar.
-                </p>
-              </div>
-            </div>
-
-            <!-- MODO LICENÇA -->
-            <div v-else-if="modalModo === 'licenca'" class="p-5 space-y-4">
-              <div>
-                <label class="label-field mb-2">Status</label>
-                <div class="flex gap-2">
-                  <button v-for="s in licencaStatuses" :key="s.value" @click="licencaForm.status = s.value"
-                    class="flex-1 h-9 rounded-xl text-xs font-black border transition-all"
-                    :class="licencaForm.status === s.value ? s.activeClass : 'bg-white/[0.03] border-white/[0.07] text-white/30 hover:bg-white/[0.05]'">
-                    {{ s.label }}
-                  </button>
+                <div class="pf-fld">
+                  <label class="pf-lab" for="adm-senha2">Confirmar senha</label>
+                  <input
+                    id="adm-senha2"
+                    v-model="adminForm.senhaConfirm"
+                    class="pf-inp"
+                    :type="mostrarSenha ? 'text' : 'password'"
+                    placeholder="••••••••"
+                    autocomplete="new-password"
+                    :aria-invalid="!!adminForm.senhaConfirm && adminForm.senhaConfirm !== adminForm.senha"
+                  >
                 </div>
               </div>
-              <div class="grid grid-cols-2 gap-3">
-                <div>
-                  <label class="label-field">Ativação</label>
-                  <input v-model="licencaForm.dataAtivacao" type="date" class="input-field" />
-                </div>
-                <div>
-                  <label class="label-field">Vencimento</label>
-                  <input v-model="licencaForm.dataVencimento" type="date" class="input-field" />
-                </div>
+              <p v-if="erroAdmin" class="pf-err">{{ erroAdmin }}</p>
+              <p v-if="sucessoAdmin" class="pf-ok-msg"><CheckCircle2 :size="16" /> {{ sucessoAdmin }}</p>
+              <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+                <small v-if="adminAtual" style="color:var(--pf-muted)">Login atual: <b style="color:var(--pf-ink)">{{ adminAtual.email }}</b></small>
+                <button class="pf-btn p" style="margin-left:auto" :disabled="salvandoAdmin" @click="salvarAdmin">
+                  <Loader2 v-if="salvandoAdmin" :size="16" class="animate-spin" />
+                  <ShieldCheck v-else :size="16" />
+                  {{ adminAtual ? 'Atualizar acesso' : 'Criar administrador' }}
+                </button>
               </div>
-            </div>
-
-            <div v-if="erroModal" class="mx-5 mb-1 text-xs text-red-400 font-bold">{{ erroModal }}</div>
-
-            <div class="flex gap-2 p-5 pt-3 border-t border-white/[0.06]">
-              <button @click="fecharModal"
-                class="flex-1 h-10 rounded-xl border border-white/[0.08] text-white/40 text-sm font-black hover:bg-white/[0.04] transition-all">
-                Cancelar
-              </button>
-              <button @click="salvar" :disabled="salvando"
-                class="flex-1 h-10 rounded-xl bg-violet-600 hover:bg-violet-500 disabled:opacity-40 active:scale-[0.98] text-white text-sm font-black transition-all flex items-center justify-center gap-2">
-                <Loader2 v-if="salvando" :size="13" class="animate-spin" />
-                {{ salvando ? 'Salvando...' : 'Salvar' }}
-              </button>
             </div>
           </div>
         </div>
-      </Transition>
-    </Teleport>
 
-    <!-- ══ CONFIRM DIALOG ══ -->
+        <!-- ── Coluna lateral ── -->
+        <div>
+          <div class="pf-card">
+            <div class="pf-card-h">
+              <div><h2>Plano e recursos</h2><p>O que este restaurante pode usar</p></div>
+            </div>
+            <div class="pf-pad">
+              <div class="pf-fld" style="margin-bottom:14px">
+                <label class="pf-lab" for="det-plano">Plano</label>
+                <select id="det-plano" class="pf-inp" :value="tenant.planoId ?? ''" :disabled="trocandoPlano" @change="trocarPlano(($event.target as HTMLSelectElement).value)">
+                  <option value="">Sem plano (recursos manuais)</option>
+                  <option v-for="pl in planosDisponiveis" :key="pl.id" :value="pl.id">
+                    {{ pl.nome }} · {{ formatCurrency(String(pl.valor)) }}/mês{{ pl.ativo ? '' : ' (inativo)' }}
+                  </option>
+                </select>
+                <small v-if="!planos.length" style="color:var(--pf-muted)">
+                  Nenhum plano criado ainda. <NuxtLink to="/platform/planos" style="color:var(--pf-brand-d)">Criar planos</NuxtLink>
+                </small>
+              </div>
+              <div v-if="tenant.plano" class="pf-note info" style="margin-bottom:6px">
+                Os recursos vêm do plano {{ tenant.plano.nome }}. Para mudar, escolha outro plano acima ou edite o plano em Planos.
+              </div>
+              <div class="pf-feat">
+                <span class="pf-ico" :class="tenant.rfidDisponivel ? 'ok' : ''" style="background:var(--pf-soft)"><CreditCard :size="18" /></span>
+                <div><b>RFID</b><small>Login e identificação por crachá</small></div>
+                <button class="pf-sw" role="switch" :aria-checked="tenant.rfidDisponivel" aria-label="RFID" :disabled="togglingRfid || !!tenant.plano" @click="toggleRfid" />
+              </div>
+              <div class="pf-feat">
+                <span class="pf-ico" style="background:var(--pf-soft)"><Smartphone :size="18" /></span>
+                <div><b>Venda pelo celular</b><small>Acesso via QR Code</small></div>
+                <button class="pf-sw" role="switch" :aria-checked="tenant.vendaMobilePermitida" aria-label="Venda pelo celular" :disabled="togglingMobile || !!tenant.plano" @click="toggleMobile" />
+              </div>
+            </div>
+          </div>
+
+          <div class="pf-card">
+            <div class="pf-card-h">
+              <div><h2>Dados</h2><p>Cadastro do restaurante</p></div>
+              <button class="pf-btn s pf-r" @click="abrirModalDados"><Pencil :size="14" /> Editar</button>
+            </div>
+            <div class="pf-pad">
+              <dl v-if="dadosCadastrais.some(c => c.valor)" class="pf-kv">
+                <template v-for="campo in dadosCadastrais" :key="campo.label">
+                  <template v-if="campo.valor">
+                    <dt>{{ campo.label }}</dt>
+                    <dd>{{ campo.valor }}</dd>
+                  </template>
+                </template>
+              </dl>
+              <p v-else style="color:var(--pf-muted);margin:0">Nenhum dado preenchido.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </template>
+
+    <!-- ══ JANELA DE EDIÇÃO ══ -->
     <Teleport to="body">
       <Transition name="fade">
-        <div v-if="confirmDialog.show"
-          class="fixed inset-0 z-[70] flex items-center justify-center p-4"
-          style="background: rgba(0,0,0,0.72); backdrop-filter: blur(6px);"
-          @click.self="confirmDialog.resolve?.(false); confirmDialog.show = false">
-          <div class="bg-[#111118] border border-white/[0.09] rounded-2xl w-full max-w-xs shadow-2xl">
-            <div class="p-6 flex flex-col items-center text-center gap-4">
-              <div class="w-12 h-12 rounded-2xl flex items-center justify-center border"
-                :class="confirmDialog.type === 'danger'
-                  ? 'bg-red-500/10 border-red-500/20'
-                  : 'bg-emerald-500/10 border-emerald-500/20'">
-                <AlertTriangle v-if="confirmDialog.type === 'danger'" :size="20" class="text-red-400" />
-                <CheckCircle2  v-else :size="20" class="text-emerald-400" />
-              </div>
+        <div v-if="modalAberto" class="pf-portal pf-veu" @click.self="fecharModal">
+          <div class="pf-modal" role="dialog" aria-modal="true" aria-labelledby="pf-modal-titulo">
+            <div class="pf-modal-h">
+              <span class="pf-av" style="width:42px;height:42px">
+                <component :is="modalModo === 'licenca' ? KeyRound : modalModo === 'contrato' ? FileText : Building2" :size="18" />
+              </span>
               <div>
-                <h3 class="text-sm font-black text-white leading-tight">{{ confirmDialog.title }}</h3>
-                <p class="text-[12px] text-white/35 mt-1.5 leading-relaxed">{{ confirmDialog.message }}</p>
+                <h2 id="pf-modal-titulo">{{ modalModo === 'licenca' ? 'Editar licença' : modalModo === 'contrato' ? (contratoAtual ? 'Dados do contrato' : 'Gerar contrato') : 'Editar dados' }}</h2>
+                <small style="color:var(--pf-muted)">{{ tenant?.nome }}</small>
               </div>
+              <button class="pf-ib" aria-label="Fechar" @click="fecharModal"><X :size="18" /></button>
             </div>
-            <div class="flex gap-2 px-5 pb-5">
-              <button
-                @click="confirmDialog.resolve?.(false); confirmDialog.show = false"
-                class="flex-1 h-10 rounded-xl border border-white/[0.08] text-white/45 text-xs font-black hover:bg-white/[0.05] transition-all">
-                Cancelar
-              </button>
-              <button
-                @click="confirmDialog.resolve?.(true); confirmDialog.show = false"
-                class="flex-1 h-10 rounded-xl text-xs font-black transition-all"
-                :class="confirmDialog.type === 'danger'
-                  ? 'bg-red-500 hover:bg-red-400 text-white'
-                  : 'bg-emerald-500 hover:bg-emerald-400 text-white'">
-                Confirmar
+
+            <div class="pf-modal-b">
+              <!-- DADOS -->
+              <template v-if="modalModo === 'dados'">
+                <div class="pf-boxm">
+                  <div class="pf-form">
+                    <div class="pf-fld full"><label class="pf-lab" for="f-nome">Nome *</label><input id="f-nome" v-model="form.nome" class="pf-inp" type="text"></div>
+                    <div class="pf-fld"><label class="pf-lab" for="f-slug">Login (identificador)</label><input id="f-slug" v-model="form.slug" class="pf-inp" type="text"></div>
+                    <div class="pf-fld"><label class="pf-lab" for="f-cnpj">CNPJ ou CPF</label><input id="f-cnpj" v-model="form.cnpj" class="pf-inp" type="text" placeholder="00.000.000/0001-00"></div>
+                    <div class="pf-fld"><label class="pf-lab" for="f-resp">Responsável</label><input id="f-resp" v-model="form.responsavel" class="pf-inp" type="text"></div>
+                    <div class="pf-fld"><label class="pf-lab" for="f-cpfr">CPF do responsável</label><input id="f-cpfr" v-model="form.cpfResponsavel" class="pf-inp" type="text" placeholder="000.000.000-00"></div>
+                    <div class="pf-fld"><label class="pf-lab" for="f-email">E-mail</label><input id="f-email" v-model="form.contato" class="pf-inp" type="email"></div>
+                    <div class="pf-fld"><label class="pf-lab" for="f-tel">Telefone</label><input id="f-tel" v-model="form.telefone" class="pf-inp" type="text"></div>
+                    <div class="pf-fld full"><label class="pf-lab" for="f-end">Endereço (rua, nº, bairro)</label><input id="f-end" v-model="form.endereco" class="pf-inp" type="text" placeholder="Rua das Flores, 123, Centro"></div>
+                    <div class="pf-fld"><label class="pf-lab" for="f-cid">Cidade</label><input id="f-cid" v-model="form.cidade" class="pf-inp" type="text"></div>
+                    <div class="pf-fld"><label class="pf-lab" for="f-uf">UF</label><input id="f-uf" v-model="form.uf" class="pf-inp" type="text" maxlength="2" placeholder="GO" style="text-transform:uppercase"></div>
+                    <div class="pf-fld full"><label class="pf-lab" for="f-obs">Observações</label><textarea id="f-obs" v-model="form.observacoes" class="pf-inp" rows="2" /></div>
+                  </div>
+                </div>
+                <div v-if="!tenant?.plano" class="pf-boxm">
+                  <p class="pf-sub" style="margin:0">Recursos</p>
+                  <div>
+                    <div class="pf-feat">
+                      <div><b>Venda pelo celular</b><small>Acesso via QR Code</small></div>
+                      <button class="pf-sw" role="switch" :aria-checked="form.vendaMobilePermitida" aria-label="Venda pelo celular" @click="form.vendaMobilePermitida = !form.vendaMobilePermitida" />
+                    </div>
+                    <div class="pf-feat">
+                      <div><b>RFID</b><small>Login e identificação por crachá</small></div>
+                      <button class="pf-sw" role="switch" :aria-checked="form.rfidDisponivel" aria-label="RFID" @click="form.rfidDisponivel = !form.rfidDisponivel" />
+                    </div>
+                  </div>
+                </div>
+              </template>
+
+              <!-- CONTRATO -->
+              <template v-else-if="modalModo === 'contrato'">
+                <div class="pf-note info">
+                  <FileText :size="18" style="flex:none;margin-top:1px" />
+                  Estes dados geram o contrato de prestação de serviços em PDF, pronto para imprimir e assinar.
+                </div>
+                <div class="pf-boxm">
+                  <div class="pf-form">
+                    <div class="pf-fld full">
+                      <label class="pf-lab" for="c-plano">Plano *</label>
+                      <select id="c-plano" v-model="planoOpcao" class="pf-inp" @change="onPlanoOpcaoChange">
+                        <option value="Básico">Básico</option>
+                        <option value="Profissional">Profissional</option>
+                        <option value="Enterprise">Enterprise</option>
+                        <option value="personalizado">Personalizado…</option>
+                      </select>
+                      <input v-if="planoOpcao === 'personalizado'" v-model="contratoForm.plano" class="pf-inp" type="text" placeholder="Nome do plano" aria-label="Nome do plano">
+                    </div>
+                    <div class="pf-fld"><label class="pf-lab" for="c-valor">Valor (R$)</label><input id="c-valor" v-model="contratoForm.valor" class="pf-inp" type="number" min="0" step="0.01" placeholder="0,00"></div>
+                    <div class="pf-fld">
+                      <label class="pf-lab" for="c-ciclo">Ciclo</label>
+                      <select id="c-ciclo" v-model="contratoForm.ciclo" class="pf-inp">
+                        <option value="mensal">Mensal</option>
+                        <option value="trimestral">Trimestral</option>
+                        <option value="semestral">Semestral</option>
+                        <option value="anual">Anual</option>
+                      </select>
+                    </div>
+                    <div class="pf-fld"><label class="pf-lab" for="c-ini">Início</label><input id="c-ini" v-model="contratoForm.dataInicio" class="pf-inp" type="date"></div>
+                    <div class="pf-fld"><label class="pf-lab" for="c-fim">Fim</label><input id="c-fim" v-model="contratoForm.dataFim" class="pf-inp" type="date"></div>
+                    <div class="pf-fld full">
+                      <span class="pf-lab">Situação</span>
+                      <div class="pf-seg">
+                        <button v-for="s in contratoStatuses" :key="s.value" :class="[s.tom, { sel: contratoForm.status === s.value }]" @click="contratoForm.status = s.value">{{ s.label }}</button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div class="pf-boxm">
+                  <p class="pf-sub" style="margin:0">Validade da licença</p>
+                  <div class="pf-opts">
+                    <button v-for="p in periodos" :key="p.label" class="pf-o" :class="{ sel: diasCustomModal === String(p.dias) }" @click="setLicPeriodo(p.dias)">{{ p.label }}</button>
+                    <button class="pf-o" :class="{ sel: contratoForm.licVencimento === '2099-12-31' }" @click="setLicPermanente">Ilimitado</button>
+                  </div>
+                  <div class="pf-row">
+                    <input v-model="diasCustomModal" class="pf-inp" type="number" min="1" placeholder="Outro prazo, em dias" aria-label="Prazo da licença em dias" @keydown.enter="aplicarDiasCustomModal">
+                    <button class="pf-btn k" @click="aplicarDiasCustomModal">Aplicar</button>
+                  </div>
+                  <div class="pf-form">
+                    <div class="pf-fld"><label class="pf-lab" for="c-lat">Ativação</label><input id="c-lat" v-model="contratoForm.licAtivacao" class="pf-inp" type="date"></div>
+                    <div class="pf-fld"><label class="pf-lab" for="c-lve">Vencimento</label><input id="c-lve" v-model="contratoForm.licVencimento" class="pf-inp" type="date"></div>
+                  </div>
+                  <small style="color:var(--pf-muted)">Com o vencimento preenchido, a licença é ativada ao salvar.</small>
+                </div>
+              </template>
+
+              <!-- LICENÇA -->
+              <div v-else-if="modalModo === 'licenca'" class="pf-boxm">
+                <div class="pf-fld">
+                  <span class="pf-lab">Situação</span>
+                  <div class="pf-seg">
+                    <button v-for="s in licencaStatuses" :key="s.value" :class="[s.tom, { sel: licencaForm.status === s.value }]" @click="licencaForm.status = s.value">{{ s.label }}</button>
+                  </div>
+                </div>
+                <div class="pf-form">
+                  <div class="pf-fld"><label class="pf-lab" for="l-at">Ativação</label><input id="l-at" v-model="licencaForm.dataAtivacao" class="pf-inp" type="date"></div>
+                  <div class="pf-fld"><label class="pf-lab" for="l-ve">Vencimento</label><input id="l-ve" v-model="licencaForm.dataVencimento" class="pf-inp" type="date"></div>
+                </div>
+              </div>
+
+              <p v-if="erroModal" class="pf-err">{{ erroModal }}</p>
+            </div>
+
+            <div class="pf-modal-f">
+              <button class="pf-btn" @click="fecharModal">Cancelar</button>
+              <button class="pf-btn p" :disabled="salvando" @click="salvar">
+                <Loader2 v-if="salvando" :size="16" class="animate-spin" />
+                {{ salvando ? 'Salvando…' : 'Salvar' }}
               </button>
             </div>
           </div>
@@ -750,19 +365,37 @@
       </Transition>
     </Teleport>
 
-    <!-- Toast -->
+    <!-- ══ CONFIRMAÇÃO ══ -->
+    <Teleport to="body">
+      <Transition name="fade">
+        <div v-if="confirmDialog.show" class="pf-portal pf-veu" style="align-items:center;z-index:70" @click.self="confirmDialog.resolve?.(false); confirmDialog.show = false">
+          <div class="pf-modal sm" role="alertdialog" aria-modal="true">
+            <div class="pf-confirm">
+              <span class="pf-ico" :class="confirmDialog.type === 'danger' ? 'bad' : 'ok'" style="width:52px;height:52px;border-radius:16px">
+                <AlertTriangle v-if="confirmDialog.type === 'danger'" :size="22" />
+                <CheckCircle2 v-else :size="22" />
+              </span>
+              <h2 style="font-size:20px">{{ confirmDialog.title }}</h2>
+              <p>{{ confirmDialog.message }}</p>
+            </div>
+            <div class="pf-modal-f">
+              <button class="pf-btn" @click="confirmDialog.resolve?.(false); confirmDialog.show = false">Cancelar</button>
+              <button class="pf-btn" :class="confirmDialog.type === 'danger' ? 'd' : 'p'" @click="confirmDialog.resolve?.(true); confirmDialog.show = false">Confirmar</button>
+            </div>
+          </div>
+        </div>
+      </Transition>
+    </Teleport>
+
+    <!-- Aviso -->
     <Transition name="toast">
-      <div v-if="toastMsg.text"
-        class="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2.5 px-4 py-2.5 rounded-xl text-sm font-bold shadow-2xl border"
-        :class="toastMsg.type === 'success'
-          ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-300 backdrop-blur-xl'
-          : 'bg-red-500/10 border-red-500/20 text-red-300 backdrop-blur-xl'">
-        <CheckCircle2 v-if="toastMsg.type === 'success'" :size="14" />
-        <AlertCircle  v-else :size="14" />
+      <div v-if="toastMsg.text" class="pf-toast" :class="toastMsg.type === 'success' ? 'ok' : 'bad'" role="status">
+        <CheckCircle2 v-if="toastMsg.type === 'success'" :size="18" />
+        <AlertCircle v-else :size="18" />
         {{ toastMsg.text }}
       </div>
     </Transition>
-  </div>
+  </PlatformShell>
 </template>
 
 <script setup lang="ts">
@@ -770,9 +403,10 @@ import { ref, computed, reactive, onMounted } from 'vue'
 import {
   ArrowLeft, Building2, CreditCard, Smartphone,
   Loader2, AlertCircle, AlertTriangle, CheckCircle2, Pencil, X, FileText, KeyRound,
-  Zap, ToggleRight, ToggleLeft, Eye, Printer, Share2, ShieldCheck, Lock, UserCog,
+  Eye, EyeOff, Printer, Share2, ShieldCheck, Lock,
 } from 'lucide-vue-next'
 import { usePlatformAuthStore } from '~/stores/platformAuth'
+import { usePlanos } from '~/composables/usePlanos'
 
 definePageMeta({ layout: false })
 
@@ -782,13 +416,35 @@ interface Tenant {
   id: string; nome: string; slug: string; cnpj: string | null; contato: string | null
   responsavel: string | null; telefone: string | null; endereco: string | null; observacoes: string | null
   status: string; rfidDisponivel: boolean; vendaMobilePermitida: boolean; createdAt: string
+  planoId: string | null; plano: { id: string; nome: string; valor: string | number } | null
   licencas: Licenca[]; contratos: Contrato[]
 }
 
 const route             = useRoute()
 const platformAuth      = usePlatformAuthStore()
-const modalSenha        = ref(false)
 const { platformFetch } = usePlatformFetch()
+const { planos, carregar: carregarPlanos } = usePlanos()
+
+// Planos ativos + o plano atual (mesmo se inativo, para continuar aparecendo)
+const planosDisponiveis = computed(() => planos.value.filter(pl => pl.ativo || pl.id === tenant.value?.planoId))
+const trocandoPlano = ref(false)
+
+async function trocarPlano(planoId: string) {
+  if (!tenant.value || trocandoPlano.value) return
+  trocandoPlano.value = true
+  try {
+    const r = await platformFetch<{ planoId: string | null; rfidDisponivel: boolean; vendaMobilePermitida: boolean; plano: Tenant['plano'] }>(
+      `/platform/tenants/${tenant.value.id}/plano`,
+      { method: 'PATCH', body: JSON.stringify({ planoId: planoId || null }) },
+    )
+    Object.assign(tenant.value, r)
+    showToast('success', r.plano ? `Plano ${r.plano.nome} aplicado` : 'Plano removido; recursos agora são manuais')
+  } catch (e: any) {
+    showToast('error', e?.message || 'Não foi possível trocar o plano')
+  } finally {
+    trocandoPlano.value = false
+  }
+}
 
 const tenant         = ref<Tenant | null>(null)
 const loading        = ref(false)
@@ -855,16 +511,16 @@ async function salvarAdmin() {
 const form = reactive({ nome: '', slug: '', cnpj: '', cpfResponsavel: '', responsavel: '', contato: '', telefone: '', endereco: '', cidade: '', uf: '', observacoes: '', vendaMobilePermitida: true, rfidDisponivel: false })
 const licencaForm = reactive({ status: 'pendente', dataAtivacao: '', dataVencimento: '' })
 const licencaStatuses = [
-  { value: 'ativado',   label: 'Ativada',   activeClass: 'bg-emerald-500/15 border-emerald-500/30 text-emerald-400' },
-  { value: 'pendente',  label: 'Pendente',  activeClass: 'bg-amber-500/15  border-amber-500/30  text-amber-400'  },
-  { value: 'bloqueado', label: 'Bloqueada', activeClass: 'bg-red-500/15    border-red-500/30    text-red-400'    },
+  { value: 'ativado',   label: 'Ativada',   tom: 'ok' },
+  { value: 'pendente',  label: 'Pendente',  tom: 'warn' },
+  { value: 'bloqueado', label: 'Bloqueada', tom: 'bad' },
 ]
 const contratoForm = reactive({ plano: '', valor: '', ciclo: 'mensal', dataInicio: '', dataFim: '', status: 'trial', licAtivacao: '', licVencimento: '' })
 const contratoStatuses = [
-  { value: 'ativo',     label: 'Assinado',             activeClass: 'bg-emerald-500/15 border-emerald-500/30 text-emerald-400' },
-  { value: 'trial',     label: 'Ag. assinatura',        activeClass: 'bg-amber-500/15   border-amber-500/30   text-amber-400'   },
-  { value: 'suspenso',  label: 'Suspenso',              activeClass: 'bg-red-500/15     border-red-500/30     text-red-400'     },
-  { value: 'cancelado', label: 'Rescindido',            activeClass: 'bg-red-500/20     border-red-500/40     text-red-300'     },
+  { value: 'ativo',     label: 'Assinado',       tom: 'ok' },
+  { value: 'trial',     label: 'Ag. assinatura', tom: 'warn' },
+  { value: 'suspenso',  label: 'Suspenso',       tom: 'bad' },
+  { value: 'cancelado', label: 'Rescindido',     tom: 'bad' },
 ]
 const periodos = [
   { label: '30d',   dias: 30   },
@@ -876,19 +532,12 @@ const periodos = [
 const licencaAtual  = computed(() => tenant.value?.licencas?.[0] ?? null)
 const contratoAtual = computed(() => tenant.value?.contratos?.[0] ?? null)
 
-const AVATAR_COLORS = [
-  'bg-violet-500/20 text-violet-300', 'bg-sky-500/20 text-sky-300',
-  'bg-emerald-500/20 text-emerald-300', 'bg-amber-500/20 text-amber-300',
-  'bg-rose-500/20 text-rose-300', 'bg-indigo-500/20 text-indigo-300',
-  'bg-teal-500/20 text-teal-300', 'bg-orange-500/20 text-orange-300',
-]
 const AVATAR_GLOWS = [
   'rgba(124,58,237,0.07)', 'rgba(14,165,233,0.07)',
   'rgba(16,185,129,0.07)', 'rgba(245,158,11,0.07)',
   'rgba(244,63,94,0.07)',  'rgba(99,102,241,0.07)',
   'rgba(20,184,166,0.07)', 'rgba(249,115,22,0.07)',
 ]
-function avatarColor(nome: string) { return AVATAR_COLORS[nome.charCodeAt(0) % AVATAR_COLORS.length] }
 const avatarGlow = computed(() => {
   if (!tenant.value) return ''
   const idx = tenant.value.nome.charCodeAt(0) % AVATAR_GLOWS.length
@@ -917,9 +566,16 @@ const licencaLabel = computed(() => {
   if (lic.status === 'pendente') return 'Aguardando ativação'
   return 'Licença bloqueada'
 })
-const licencaBgBlock    = computed(() => licencaAtual.value?.status === 'ativado' ? 'bg-emerald-500/[0.07]' : licencaAtual.value?.status === 'pendente' ? 'bg-amber-500/[0.07]' : 'bg-red-500/[0.07]')
-const licencaIconBlock  = computed(() => licencaAtual.value?.status === 'ativado' ? 'bg-emerald-500/15' : licencaAtual.value?.status === 'pendente' ? 'bg-amber-500/15' : 'bg-red-500/15')
-const licencaIconColor  = computed(() => licencaAtual.value?.status === 'ativado' ? 'text-emerald-400' : licencaAtual.value?.status === 'pendente' ? 'text-amber-400' : 'text-red-400')
+const licencaTom = computed<'ok' | 'warn' | 'bad'>(() => {
+  const st = licencaAtual.value?.status
+  if (st !== 'ativado') return st === 'pendente' ? 'warn' : 'bad'
+  if (diasRestantes.value !== null && diasRestantes.value < 0) return 'bad'
+  if (diasRestantes.value !== null && diasRestantes.value <= 7) return 'warn'
+  return 'ok'
+})
+
+const contratoTom = (s: string) => contratoStatuses.find(c => c.value === s)?.tom ?? 'mute'
+const contratoRotulo = (s: string) => contratoStatuses.find(c => c.value === s)?.label ?? s
 
 const dadosCadastrais = computed(() => [
   { label: 'CNPJ / CPF',       valor: tenant.value?.cnpj,                          mono: true  },
@@ -932,8 +588,6 @@ const dadosCadastrais = computed(() => [
   { label: 'Observações',      valor: tenant.value?.observacoes,                   mono: false },
 ])
 
-function statusBadge(s: string) { return s === 'ativo' ? 'bg-emerald-500/15 text-emerald-400' : s === 'suspenso' ? 'bg-amber-500/15 text-amber-400' : 'bg-red-500/15 text-red-400' }
-function licencaBadge(s: string) { return s === 'ativado' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : s === 'pendente' ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20' : 'bg-red-500/10 text-red-400 border border-red-500/20' }
 function contratoStatusBadge(s: string) { return s === 'ativo' ? 'bg-emerald-500/15 text-emerald-400' : s === 'trial' ? 'bg-sky-500/15 text-sky-400' : s === 'suspenso' ? 'bg-amber-500/15 text-amber-400' : 'bg-red-500/15 text-red-400' }
 function formatDate(d: string | null | undefined) { if (!d) return '—'; return new Date(d).toLocaleDateString('pt-BR') }
 function formatCurrency(v: string | number) { return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(v)) }
@@ -1119,11 +773,6 @@ async function toggleStatus() {
   } catch (e: any) { showToast('error', e?.message || 'Erro') }
 }
 
-async function handleLogout() {
-  const rt = localStorage.getItem('platform_refresh_token')
-  if (rt) { try { await platformFetch('/platform/auth/logout', { method: 'POST', body: JSON.stringify({ refreshToken: rt }) }) } catch {} }
-  platformAuth.logout(); navigateTo('/platform/login')
-}
 
 // ── GERAÇÃO DE CONTRATO PDF ──────────────────────────────────────────────────
 
@@ -1561,19 +1210,13 @@ onMounted(() => {
   platformAuth.restore()
   if (!platformAuth.isAuthenticated) { navigateTo('/platform/login'); return }
   carregar()
+  carregarPlanos()
 })
 </script>
 
 <style scoped>
-.label-field { @apply block text-[10px] font-black uppercase tracking-widest text-white/30 mb-1.5; }
-.input-field  { @apply w-full h-10 px-3.5 bg-white/[0.04] border border-white/[0.08] rounded-xl text-white text-sm placeholder:text-white/20 focus:outline-none focus:border-violet-500/50 focus:bg-white/[0.06] transition-all; }
-textarea.input-field { @apply h-auto py-2.5; }
-/* Select precisa de bg sólido — browser nativo pode ignorar bg transparente */
-select.input-field { background-color: #16161f; color-scheme: dark; }
-select.input-field option { background-color: #14141f; color: white; }
 .fade-enter-active, .fade-leave-active { transition: opacity .15s; }
 .fade-enter-from, .fade-leave-to { opacity: 0; }
-.toast-enter-active, .toast-leave-active { transition: all 0.2s ease; }
+.toast-enter-active, .toast-leave-active { transition: opacity .2s ease, transform .2s ease; }
 .toast-enter-from, .toast-leave-to { opacity: 0; transform: translateX(-50%) translateY(8px); }
-.nav-active { @apply bg-white/[0.06]; }
 </style>

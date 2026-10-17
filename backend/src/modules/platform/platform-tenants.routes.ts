@@ -3,6 +3,8 @@ import { requirePlatform, invalidateTenantCache } from '../../middlewares/tenant
 import { prisma } from '../../lib/prisma'
 import { signAccessToken } from '../../lib/jwt'
 import bcrypt from 'bcryptjs'
+import { recursosDoPlano } from './platform-planos.routes'
+import { competenciaAtual, situacao, valorMensal } from './platform-cobranca.routes'
 
 function slugify(s: string) {
   return s
@@ -31,16 +33,20 @@ export async function platformTenantsRoutes(app: FastifyInstance) {
           select: { status: true, dataVencimento: true } },
         contratos: { orderBy: { createdAt: 'desc' }, take: 1,
           select: { plano: true, valor: true, ciclo: true, status: true } },
+        cobrancaDiaVencimento: true, cobrancaValor: true, cobrancaIsento: true,
+        plano: { select: { valor: true } },
+        pagamentosMensalidade: { where: { competencia: competenciaAtual() }, take: 1, select: { id: true } },
       },
     })
 
     const agora   = new Date()
+    const compAtual = competenciaAtual(agora)
     const em30d   = new Date(agora.getTime() + 30 * 86_400_000)
     const em7d    = new Date(agora.getTime() +  7 * 86_400_000)
 
     let mrr = 0
     const porPlano: Record<string, { count: number; mrr: number }> = {}
-    const alertas: { tenantId: string; nome: string; tipo: string; dias?: number }[] = []
+    const alertas: { tenantId: string; nome: string; tipo: string; dias?: number; valor?: number }[] = []
 
     let licAtivas = 0, licPendentes = 0, licBloqueadas = 0, licVencendo30 = 0, licVencidas = 0
 
@@ -70,6 +76,13 @@ export async function platformTenantsRoutes(app: FastifyInstance) {
         }
       }
 
+      // Mensalidade do mês vencida sem pagamento
+      const { valor } = valorMensal(t)
+      const sit = situacao(t.cobrancaIsento, t.pagamentosMensalidade.length > 0, compAtual, t.cobrancaDiaVencimento, agora, valor)
+      if (sit === 'atrasado' && valor > 0) {
+        alertas.push({ tenantId: t.id, nome: t.nome, tipo: 'mensalidade_atrasada', dias: agora.getDate() - t.cobrancaDiaVencimento, valor })
+      }
+
       if (con?.status === 'ativo' && con.valor) {
         const mrrTenant = Number(con.valor) * (FATOR_MRR[con.ciclo] ?? 1)
         mrr += mrrTenant
@@ -79,8 +92,8 @@ export async function platformTenantsRoutes(app: FastifyInstance) {
       }
     }
 
-    // Ordena alertas: vencidas > críticas (≤7d) > vencendo > inadimplentes
-    const prioridade: Record<string, number> = { licenca_vencida: 0, licenca_critica: 1, licenca_vencendo: 2, inadimplente: 3 }
+    // Ordena alertas: vencidas > críticas (≤7d) > mensalidade atrasada > vencendo > licença bloqueada
+    const prioridade: Record<string, number> = { licenca_vencida: 0, licenca_critica: 1, mensalidade_atrasada: 2, licenca_vencendo: 3, inadimplente: 4 }
     alertas.sort((a, b) => (prioridade[a.tipo] ?? 9) - (prioridade[b.tipo] ?? 9))
 
     return reply.send({
@@ -116,6 +129,8 @@ export async function platformTenantsRoutes(app: FastifyInstance) {
         status: true,
         rfidDisponivel: true,
         vendaMobilePermitida: true,
+        planoId: true,
+        plano: { select: { id: true, nome: true, valor: true } },
         createdAt: true,
         licencas: {
           orderBy: { createdAt: 'desc' },
@@ -151,6 +166,8 @@ export async function platformTenantsRoutes(app: FastifyInstance) {
         status: true,
         rfidDisponivel: true,
         vendaMobilePermitida: true,
+        planoId: true,
+        plano: { select: { id: true, nome: true, valor: true } },
         createdAt: true,
         licencas: {
           orderBy: { createdAt: 'desc' },
@@ -169,7 +186,12 @@ export async function platformTenantsRoutes(app: FastifyInstance) {
   // POST / — criar tenant (+ licença pendente automática + contrato opcional)
   app.post('/', { preHandler: requirePlatform }, async (request, reply) => {
     const body = request.body as any
-    const { nome, slug, cnpj, cpfResponsavel, responsavel, contato, telefone, endereco, cidade, uf, observacoes, vendaMobilePermitida, rfidDisponivel, contrato, adminEmail, adminSenha } = body
+    const { nome, slug, cnpj, cpfResponsavel, responsavel, contato, telefone, endereco, cidade, uf, observacoes, vendaMobilePermitida, rfidDisponivel, contrato, adminEmail, adminSenha, planoId } = body
+
+    const plano = typeof planoId === 'string' && planoId
+      ? await prisma.plano.findUnique({ where: { id: planoId } })
+      : null
+    if (planoId && !plano) return reply.status(400).send({ error: 'Plano não encontrado' })
 
     if (typeof nome !== 'string' || !nome.trim()) return reply.status(400).send({ error: 'Nome é obrigatório' })
     if (typeof adminEmail !== 'string' || !adminEmail.trim()) return reply.status(400).send({ error: 'E-mail do administrador é obrigatório' })
@@ -193,8 +215,9 @@ export async function platformTenantsRoutes(app: FastifyInstance) {
             cidade:               typeof cidade === 'string' ? cidade.trim() || null : null,
             uf:                   typeof uf === 'string' ? uf.trim().toUpperCase() || null : null,
             observacoes:          typeof observacoes === 'string' ? observacoes.trim() || null : null,
-            vendaMobilePermitida: vendaMobilePermitida ?? true,
-            rfidDisponivel:       rfidDisponivel ?? false,
+            ...(plano
+              ? { planoId: plano.id, ...recursosDoPlano(plano) }
+              : { vendaMobilePermitida: vendaMobilePermitida ?? true, rfidDisponivel: rfidDisponivel ?? false }),
           },
         })
         await tx.licenca.create({ data: { tenantId: t.id, status: 'pendente' } })
@@ -242,6 +265,11 @@ export async function platformTenantsRoutes(app: FastifyInstance) {
 
     if (typeof nome !== 'string' || !nome.trim()) return reply.status(400).send({ error: 'Nome é obrigatório' })
 
+    // Com plano, RFID e celular seguem o plano: ignorar o que vier do formulário
+    const atual = await prisma.tenant.findUnique({ where: { id }, select: { planoId: true } })
+    if (!atual) return reply.status(404).send({ error: 'Tenant não encontrado' })
+    const recursosManuais = !atual.planoId
+
     try {
       const tenant = await prisma.tenant.update({
         where: { id },
@@ -257,8 +285,8 @@ export async function platformTenantsRoutes(app: FastifyInstance) {
           cidade:               typeof cidade === 'string' ? cidade.trim() || null : null,
           uf:                   typeof uf === 'string' ? uf.trim().toUpperCase() || null : null,
           observacoes:          typeof observacoes === 'string' ? observacoes.trim() || null : null,
-          ...(vendaMobilePermitida !== undefined ? { vendaMobilePermitida } : {}),
-          ...(rfidDisponivel !== undefined ? { rfidDisponivel } : {}),
+          ...(recursosManuais && vendaMobilePermitida !== undefined ? { vendaMobilePermitida } : {}),
+          ...(recursosManuais && rfidDisponivel !== undefined ? { rfidDisponivel } : {}),
         },
       })
       return reply.send(tenant)
@@ -303,6 +331,11 @@ export async function platformTenantsRoutes(app: FastifyInstance) {
     if (typeof disponivel !== 'boolean') {
       return reply.status(400).send({ error: '"disponivel" deve ser boolean' })
     }
+    const atual = await prisma.tenant.findUnique({ where: { id }, select: { plano: { select: { nome: true } } } })
+    if (!atual) return reply.status(404).send({ error: 'Tenant não encontrado' })
+    if (atual.plano) {
+      return reply.status(409).send({ error: `O RFID é definido pelo plano ${atual.plano.nome}. Troque o plano ou edite os recursos dele.` })
+    }
     try {
       const tenant = await prisma.tenant.update({
         where: { id },
@@ -324,12 +357,41 @@ export async function platformTenantsRoutes(app: FastifyInstance) {
     if (typeof permitida !== 'boolean') {
       return reply.status(400).send({ error: '"permitida" deve ser boolean' })
     }
+    const atual = await prisma.tenant.findUnique({ where: { id }, select: { plano: { select: { nome: true } } } })
+    if (!atual) return reply.status(404).send({ error: 'Tenant não encontrado' })
+    if (atual.plano) {
+      return reply.status(409).send({ error: `A venda pelo celular é definido pelo plano ${atual.plano.nome}. Troque o plano ou edite os recursos dele.` })
+    }
     try {
       const tenant = await prisma.tenant.update({
         where: { id },
         data: { vendaMobilePermitida: permitida },
         select: { id: true, nome: true, slug: true, vendaMobilePermitida: true },
       })
+      return reply.send(tenant)
+    } catch (err: any) {
+      if (err.code === 'P2025') return reply.status(404).send({ error: 'Tenant não encontrado' })
+      throw err
+    }
+  })
+
+  // PATCH /:id/plano — troca o plano; os recursos passam a seguir o plano novo.
+  // planoId null tira o plano e mantém os recursos como estão (viram manuais).
+  app.patch('/:id/plano', { preHandler: requirePlatform }, async (request, reply) => {
+    const { id } = request.params as { id: string }
+    const { planoId } = (request.body ?? {}) as { planoId?: string | null }
+    if (planoId !== null && typeof planoId !== 'string') {
+      return reply.status(400).send({ error: '"planoId" deve ser o id do plano ou null' })
+    }
+    const plano = planoId ? await prisma.plano.findUnique({ where: { id: planoId } }) : null
+    if (planoId && !plano) return reply.status(400).send({ error: 'Plano não encontrado' })
+    try {
+      const tenant = await prisma.tenant.update({
+        where: { id },
+        data: plano ? { planoId: plano.id, ...recursosDoPlano(plano) } : { planoId: null },
+        select: { id: true, planoId: true, rfidDisponivel: true, vendaMobilePermitida: true, plano: { select: { id: true, nome: true, valor: true } } },
+      })
+      invalidateTenantCache(id)
       return reply.send(tenant)
     } catch (err: any) {
       if (err.code === 'P2025') return reply.status(404).send({ error: 'Tenant não encontrado' })

@@ -9,7 +9,8 @@ export function usePlatformFetch() {
     const resp = await fetch(`${baseUrl.value}/api${path}`, {
       ...options,
       headers: {
-        'Content-Type': 'application/json',
+        // Só com corpo: o Fastify recusa DELETE com JSON declarado e corpo vazio
+        ...(options.body ? { 'Content-Type': 'application/json' } : {}),
         Authorization: `Bearer ${platformAuth.token}`,
         ...((options.headers as any) || {}),
       },

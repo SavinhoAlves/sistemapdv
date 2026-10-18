@@ -459,7 +459,7 @@ const labelCargo = computed(() =>
 const { navItems } = useNavItems()
 
 function isAtivo(rota: string) {
-  if (rota === '/') return route.path === '/'
+  if (rota === '/') return route.path === '/' || route.path === '/painel'
   return route.path.startsWith(rota)
 }
 

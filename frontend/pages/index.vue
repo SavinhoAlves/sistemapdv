@@ -181,6 +181,11 @@ import { useCaixaStore } from '~/stores/caixa'
 import { useApi } from '~/services/api'
 import { useSocket } from '~/services/socket'
 
+// Na VPS, o "/" exato do endereço do sistema entrega o site de acesso (Nginx).
+// /painel abre este mesmo painel quando a página é recarregada; o site manda
+// para cá quem já está logado.
+definePageMeta({ alias: ['/painel'] })
+
 const router     = useRouter()
 const authStore  = useAuthStore()
 const caixaStore = useCaixaStore()

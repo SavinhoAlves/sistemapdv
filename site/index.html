@@ -239,11 +239,22 @@ footer .wrap{display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px}
   // Preencha antes de publicar. Sem número, o botão de WhatsApp some.
   var WHATSAPP = ''            // ex.: '5562999999999' (DDI + DDD + número, só dígitos)
 
-  // Acessado pelo IP ou localhost (antes do domínio): o sistema está no mesmo host.
-  // Com domínio: app.<domínio>, no mesmo protocolo da página (http até existir o SSL).
+  // Pelo IP, localhost ou app.<domínio>, o sistema está no mesmo endereço:
+  // o Nginx entrega este site só no "/" exato e o resto é o sistema.
+  // No domínio principal: app.<domínio>, no mesmo protocolo da página.
   var host = location.hostname.replace(/^www\./, '')
-  var semDominio = /^(\d+\.){3}\d+$|^localhost$/.test(host)
-  var destino = semDominio ? '/login' : location.protocol + '//app.' + host + '/login'
+  var mesmoEndereco = /^(\d+\.){3}\d+$|^localhost$|^app\./.test(host)
+  var destino = mesmoEndereco ? '/login' : location.protocol + '//app.' + host + '/login'
+
+  // Mesmo endereço do sistema e já logado (ou abrindo acesso de suporte):
+  // vai direto para o painel em vez de mostrar o site.
+  if (mesmoEndereco) {
+    try {
+      if (localStorage.getItem('auth_token') || localStorage.getItem('suporte_pending_token') || localStorage.getItem('suporte_token')) {
+        location.replace('/painel')
+      }
+    } catch (e) {}
+  }
   document.querySelectorAll('.js-acessar').forEach(function (a) { a.href = destino })
 
   var zap = document.querySelectorAll('.js-whatsapp')

@@ -5,6 +5,7 @@ const ROTAS_PUBLICAS = ['/login', '/ativacao', '/logout', '/admin/login', '/m', 
 // Permissão mínima exigida por rota (undefined = rota desconhecida; null = qualquer autenticado)
 const PERMISSAO_POR_ROTA: Record<string, string | null> = {
   '/':              null,
+  '/painel':        null,  // mesmo painel do '/', usado ao recarregar na VPS
   '/mesas':         'adicionarPedido',
   '/vendas':        'adicionarPedido',
   '/caixa':         'gerenciarCaixa',

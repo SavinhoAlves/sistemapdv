@@ -1,362 +1,318 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>RestaurantePDV — Sistema para restaurantes</title>
-  <meta name="description" content="Mesas, comandas, cozinha, caixa e estoque em um só sistema. O RestaurantePDV funciona no computador, no tablet e no celular do garçom.">
-  <meta name="theme-color" content="#0b0b0f">
-  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23f97316'/%3E%3Cpath d='M11 7v8a3 3 0 0 0 2 2.8V25h2v-7.2a3 3 0 0 0 2-2.8V7h-1.5v6h-1V7h-1.5v6h-1V7zM21 7c-1.7 1.3-2.5 3.5-2.5 6v4H20v8h2V7z' fill='white'/%3E%3C/svg%3E">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&display=swap" rel="stylesheet">
-  <style>
-    :root {
-      --bg: #0b0b0f;
-      --bg-alt: #111117;
-      --card: rgba(255,255,255,0.04);
-      --borda: rgba(255,255,255,0.08);
-      --texto: #f4f4f5;
-      --suave: rgba(244,244,245,0.6);
-      --fraco: rgba(244,244,245,0.38);
-      --laranja: #f97316;
-      --laranja-forte: #ea580c;
-      --raio: 18px;
-    }
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    html { scroll-behavior: smooth; }
-    body {
-      font-family: 'Sora', system-ui, sans-serif;
-      background: var(--bg);
-      color: var(--texto);
-      line-height: 1.6;
-      -webkit-font-smoothing: antialiased;
-    }
-    a { color: inherit; text-decoration: none; }
-    .container { width: 100%; max-width: 1180px; margin: 0 auto; padding: 0 20px; }
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>RestaurantePDV · Sistema de vendas para restaurantes</title>
+<meta name="description" content="Mesas, comandas, cozinha e caixa no mesmo sistema. O RestaurantePDV funciona no computador, no tablet e no celular do garçom.">
+<meta name="theme-color" content="#FF7A00">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23f97316'/%3E%3Cpath d='M11 7v8a3 3 0 0 0 2 2.8V25h2v-7.2a3 3 0 0 0 2-2.8V7h-1.5v6h-1V7h-1.5v6h-1V7zM21 7c-1.7 1.3-2.5 3.5-2.5 6v4H20v8h2V7z' fill='white'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@600;700&family=Sora:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#FFF4EA; --surface:#FFFFFF; --ink:#2A1608; --muted:#7A5C48; --line:#F0D6C0;
+  --brand:#D9480F; --brand-ink:#FFFFFF; --brand-hover:#B93C0A; --focus:#EA580C;
+  --hero:#FF7A00; --hero-ink:#1E1E1E; --deep:#1E1E1E; --deep-ink:#FFEFE2;
+  --paper:#FFFDF7; --paper-ink:#1B1B18;
+  box-sizing:border-box; padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#1A0E07; --surface:#27160C; --ink:#FFEFE2; --muted:#CBA68D; --line:#4D2F1D;
+    --brand:#FF8A3D; --brand-ink:#2A1000; --brand-hover:#FFA566; --focus:#FFA566; --deep:#120A05;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#1A0E07; --surface:#27160C; --ink:#FFEFE2; --muted:#CBA68D; --line:#4D2F1D;
+  --brand:#FF8A3D; --brand-ink:#2A1000; --brand-hover:#FFA566; --focus:#FFA566; --deep:#120A05;
+}
+*,*::before,*::after{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--ink);font:400 17px/1.55 "Sora",system-ui,-apple-system,"Segoe UI",sans-serif;-webkit-font-smoothing:antialiased}
+a{color:inherit}
+.wrap{width:min(1120px,100% - 48px);margin:0 auto}
+h1,h2,h3{font-family:"Sora",system-ui,sans-serif;letter-spacing:-.03em;margin:0}
 
-    /* ── Topo ── */
-    header {
-      position: sticky; top: 0; z-index: 10;
-      background: rgba(11,11,15,0.8);
-      backdrop-filter: blur(14px);
-      border-bottom: 1px solid var(--borda);
-    }
-    .topo { height: 64px; display: flex; align-items: center; justify-content: space-between; gap: 16px; }
-    .marca { display: flex; align-items: center; gap: 10px; font-weight: 800; letter-spacing: -0.02em; }
-    .marca-icone {
-      width: 32px; height: 32px; border-radius: 9px; background: var(--laranja);
-      display: grid; place-items: center; flex-shrink: 0;
-    }
-    .marca span { color: var(--laranja); }
-    nav.links { display: flex; gap: 28px; font-size: 14px; color: var(--suave); }
-    nav.links a:hover { color: var(--texto); }
+.btn{display:inline-flex;align-items:center;justify-content:center;height:52px;padding:0 26px;border-radius:12px;background:var(--brand);color:var(--brand-ink);font:600 16px "Sora",sans-serif;text-decoration:none;transition:background .15s,transform .05s}
+.btn:hover{background:var(--brand-hover)}
+.btn:active{transform:scale(.99)}
+.btn.small{height:42px;padding:0 18px;font-size:15px}
+.btn.ghost{background:transparent;color:var(--hero-ink);border:2px solid var(--hero-ink)}
+.btn.ghost:hover{background:rgba(42,16,0,.08)}
+.btn.dark{background:var(--hero-ink);color:#FFEFE2}
+.btn.dark:hover{background:#000}
+a:focus-visible,.btn:focus-visible{outline:3px solid var(--focus);outline-offset:3px;border-radius:8px}
 
-    .botao {
-      display: inline-flex; align-items: center; justify-content: center; gap: 8px;
-      height: 44px; padding: 0 22px; border-radius: 12px;
-      font-weight: 700; font-size: 14px; white-space: nowrap;
-      transition: background .15s, transform .15s, border-color .15s;
-    }
-    .botao:active { transform: translateY(1px); }
-    .botao-principal { background: var(--laranja); color: #fff; box-shadow: 0 8px 28px -8px rgba(249,115,22,0.6); }
-    .botao-principal:hover { background: var(--laranja-forte); }
-    .botao-secundario { border: 1px solid var(--borda); color: var(--texto); }
-    .botao-secundario:hover { border-color: rgba(255,255,255,0.25); }
-    .botao-pequeno { height: 38px; padding: 0 16px; font-size: 13px; }
+/* Hero */
+.hero{background:var(--hero);color:var(--hero-ink);position:relative;overflow:hidden}
+.hero::before{content:"";position:absolute;inset:0;background:
+  radial-gradient(60% 60% at 90% 100%,rgba(255,214,150,.6),transparent 70%);pointer-events:none}
+.hero .wrap{position:relative;z-index:1}
+.hero-bg{position:absolute;inset:0;overflow:hidden;pointer-events:none}
+.hero-video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:.6;mix-blend-mode:overlay}
+.scene{position:absolute;inset:0;width:100%;height:100%;transition:opacity .6s}
+.hero.has-video .scene{opacity:0}
+.fl{animation:flt 9s ease-in-out infinite alternate;transform-box:fill-box;transform-origin:center}
+.fl.b{animation-duration:12s;animation-delay:-4s}.fl.c{animation-duration:10s;animation-delay:-7s}
+.spin{animation:spin 80s linear infinite;transform-box:fill-box;transform-origin:center}
+.steam{animation:steam 5s ease-in infinite;transform-box:fill-box}
+.steam.b{animation-delay:-1.7s}.steam.c{animation-delay:-3.3s}
+@keyframes flt{from{transform:translateY(-14px) rotate(-5deg)}to{transform:translateY(14px) rotate(6deg)}}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes steam{0%{transform:translateY(30px);opacity:0}30%{opacity:.55}100%{transform:translateY(-70px);opacity:0}}
+nav{position:relative;display:flex;align-items:center;justify-content:space-between;padding:22px 0}
+.logo{display:flex;align-items:center;gap:12px;font:700 21px/1 "Sora",sans-serif;letter-spacing:-.02em;text-decoration:none}
+.logo-mark{width:40px;height:40px;border-radius:12px;background:#fff;color:#FF7A00;display:grid;place-items:center;box-shadow:0 8px 20px rgba(90,30,0,.22)}
+.logo{color:#fff}
+.logo .pdv{color:#1E1E1E;font-style:normal}
+nav .links{display:flex;align-items:center;gap:28px;font-weight:500}
+nav .links a.t{display:inline-flex;align-items:center;height:42px;padding:0 18px;border-radius:999px;text-decoration:none;transition:background .2s,color .2s,transform .2s}
+nav .links a.t:hover{background:#1E1E1E;color:#fff;transform:translateY(-1px)}
+nav .links a.t:active{transform:none}
+.hero-grid{position:relative;display:grid;grid-template-columns:1.1fr 1fr;gap:56px;align-items:center;padding:56px 0 96px}
+.hero h1{font-size:clamp(38px,5.4vw,66px);line-height:1.04;max-width:14ch}
+.hero p.lead{font-size:19px;max-width:44ch;margin:20px 0 32px;color:rgba(42,16,0,.88)}
+.cta-row{display:flex;flex-wrap:wrap;gap:14px}
 
-    /* ── Hero ── */
-    .hero { position: relative; padding: 96px 0 88px; overflow: hidden; }
-    .hero::before {
-      content: ''; position: absolute; inset: -40% -10% auto; height: 620px;
-      background: radial-gradient(ellipse at center, rgba(249,115,22,0.20), transparent 62%);
-      pointer-events: none;
-    }
-    .hero .container { position: relative; display: grid; grid-template-columns: 1.05fr 0.95fr; gap: 56px; align-items: center; }
-    .selo {
-      display: inline-flex; align-items: center; gap: 8px; margin-bottom: 22px;
-      font-size: 12px; font-weight: 600; color: var(--laranja);
-      background: rgba(249,115,22,0.1); border: 1px solid rgba(249,115,22,0.25);
-      padding: 6px 12px; border-radius: 999px;
-    }
-    h1 { font-size: clamp(34px, 5vw, 56px); line-height: 1.08; letter-spacing: -0.035em; font-weight: 800; }
-    h1 em { font-style: normal; color: var(--laranja); }
-    .hero p.sub { margin-top: 20px; font-size: 17px; color: var(--suave); max-width: 520px; }
-    .hero .acoes { margin-top: 34px; display: flex; gap: 12px; flex-wrap: wrap; }
-    .hero .nota { margin-top: 18px; font-size: 12px; color: var(--fraco); }
+/* Quadro de pedidos */
+.board{background:var(--paper);color:var(--paper-ink);border-radius:18px;padding:20px;box-shadow:0 30px 60px rgba(60,20,0,.3);transform:rotate(2deg);animation:rise .8s cubic-bezier(.2,.8,.2,1) both}
+.board-head{display:flex;justify-content:space-between;align-items:baseline;padding:2px 4px 14px;border-bottom:2px dashed #D9CFB8}
+.board-head strong{font:700 19px "Sora",sans-serif}
+.board-head span{font:600 12px "JetBrains Mono",monospace;color:#6A6757;font-variant-numeric:tabular-nums}
+.order{display:flex;align-items:center;gap:14px;padding:14px 4px;border-bottom:1px solid #EEE6D3}
+.order:last-child{border-bottom:0}
+.order .tbl{width:52px;height:52px;border-radius:12px;display:grid;place-items:center;font:700 18px "JetBrains Mono",monospace;font-variant-numeric:tabular-nums;background:#FFE3CC;color:#8A2F05;flex:none}
+.order .info{flex:1;min-width:0}
+.order .info b{display:block;font-weight:600}
+.order .info small{color:#6A6757}
+.badge{font-size:13px;font-weight:600;padding:5px 12px;border-radius:999px;white-space:nowrap}
+.b-prep{background:#FFE3CC;color:#8A2F05}
+.b-ok{background:#D5F0DC;color:#14602B}
+.b-wait{background:#EEE9DC;color:#5A5646}
+@keyframes rise{from{opacity:0;transform:translateY(30px) rotate(2deg)}to{opacity:1;transform:rotate(2deg)}}
+.order{overflow:hidden;max-height:100px}
+.order.enter{animation:slideIn .5s cubic-bezier(.2,.8,.2,1) both}
+.order.leaving{animation:slideOut .45s ease-in both}
+.badge{transition:background .3s,color .3s}
+.badge.pop{animation:pop .4s cubic-bezier(.2,.8,.2,1)}
+.badge.b-prep::before{content:"";display:inline-block;width:7px;height:7px;margin-right:6px;border-radius:50%;background:currentColor;animation:blink 1s ease-in-out infinite}
+@keyframes slideIn{from{opacity:0;transform:translateX(40px);max-height:0;padding-top:0;padding-bottom:0}to{opacity:1;transform:none;max-height:100px}}
+@keyframes slideOut{from{opacity:1;transform:none;max-height:100px}60%{opacity:0;transform:translateX(-50px);max-height:100px}to{opacity:0;transform:translateX(-50px);max-height:0;padding-top:0;padding-bottom:0;border-width:0}}
+@keyframes pop{0%{transform:scale(.8)}60%{transform:scale(1.12)}100%{transform:scale(1)}}
+@keyframes blink{50%{opacity:.25}}
 
-    /* Prévia do sistema (ilustração em CSS) */
-    .previa {
-      background: var(--bg-alt); border: 1px solid var(--borda); border-radius: 20px;
-      padding: 16px; box-shadow: 0 30px 80px -30px rgba(0,0,0,0.8);
-    }
-    .previa-barra { display: flex; gap: 6px; margin-bottom: 14px; }
-    .previa-barra i { width: 9px; height: 9px; border-radius: 50%; background: rgba(255,255,255,0.12); }
-    .previa-kpis { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 12px; }
-    .kpi { background: var(--card); border: 1px solid var(--borda); border-radius: 12px; padding: 12px; }
-    .kpi small { display: block; font-size: 10px; text-transform: uppercase; letter-spacing: .08em; color: var(--fraco); }
-    .kpi strong { font-size: 18px; }
-    .previa-mesas { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
-    .mesa {
-      aspect-ratio: 1; border-radius: 12px; display: grid; place-items: center;
-      font-size: 13px; font-weight: 700; border: 1px solid var(--borda); background: var(--card); color: var(--fraco);
-    }
-    .mesa.ocupada { background: rgba(249,115,22,0.14); border-color: rgba(249,115,22,0.4); color: #fdba74; }
-    .mesa.conta { background: rgba(34,197,94,0.12); border-color: rgba(34,197,94,0.35); color: #86efac; }
+/* Recursos */
+.section{padding:96px 0}
+.section-head{max-width:620px;margin-bottom:48px}
+.section-head h2{font-size:clamp(30px,4vw,44px);line-height:1.1}
+.section-head p{color:var(--muted);margin:14px 0 0;font-size:18px}
+.features{display:grid;grid-template-columns:1fr 1fr;gap:0 64px}
+.feature{display:flex;gap:18px;padding:28px 0;border-top:1.5px solid var(--line)}
+.feature .ic{flex:none;width:48px;height:48px;border-radius:12px;background:var(--brand);color:var(--brand-ink);display:grid;place-items:center}
+.feature h3{font-size:21px;margin-bottom:6px}
+.feature p{margin:0;color:var(--muted)}
 
-    /* ── Seções ── */
-    section { padding: 88px 0; }
-    section.alt { background: var(--bg-alt); border-top: 1px solid var(--borda); border-bottom: 1px solid var(--borda); }
-    .titulo-secao { text-align: center; max-width: 640px; margin: 0 auto 52px; }
-    .titulo-secao h2 { font-size: clamp(26px, 3.4vw, 38px); letter-spacing: -0.03em; line-height: 1.15; }
-    .titulo-secao p { margin-top: 12px; color: var(--suave); }
+/* Faixa final */
+.final{background:var(--deep);color:var(--deep-ink);padding:88px 0}
+.final .wrap{display:flex;align-items:center;justify-content:space-between;gap:32px;flex-wrap:wrap}
+.final h2{font-size:clamp(28px,3.6vw,42px);line-height:1.1;max-width:18ch}
+.final p{margin:12px 0 0;color:rgba(255,239,226,.75);max-width:42ch}
+.final .btn{background:#F97316;color:#2A1000}
+.final .btn:hover{background:#FFA566}
+.final .btn.whats{background:transparent;color:var(--deep-ink);border:2px solid rgba(255,239,226,.5)}
+.final .btn.whats:hover{background:rgba(255,239,226,.08)}
+footer{background:var(--deep);color:rgba(255,239,226,.6);border-top:1px solid rgba(255,239,226,.12);padding:22px 0;font-size:14px}
+footer .wrap{display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px}
 
-    .grade { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
-    .card {
-      background: var(--card); border: 1px solid var(--borda); border-radius: var(--raio);
-      padding: 26px; transition: border-color .2s;
-    }
-    .card:hover { border-color: rgba(249,115,22,0.35); }
-    .card .ic {
-      width: 42px; height: 42px; border-radius: 12px; display: grid; place-items: center;
-      background: rgba(249,115,22,0.12); color: var(--laranja); margin-bottom: 18px;
-    }
-    .card h3 { font-size: 17px; margin-bottom: 6px; letter-spacing: -0.01em; }
-    .card p { font-size: 14px; color: var(--suave); }
-
-    .passos { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; counter-reset: passo; }
-    .passo { position: relative; padding: 26px; border-radius: var(--raio); border: 1px solid var(--borda); }
-    .passo::before {
-      counter-increment: passo; content: counter(passo);
-      display: grid; place-items: center; width: 34px; height: 34px; border-radius: 10px;
-      background: var(--laranja); color: #fff; font-weight: 800; margin-bottom: 16px;
-    }
-    .passo h3 { font-size: 16px; margin-bottom: 6px; }
-    .passo p { font-size: 14px; color: var(--suave); }
-
-    .faq { max-width: 760px; margin: 0 auto; display: grid; gap: 10px; }
-    details { border: 1px solid var(--borda); border-radius: 14px; background: var(--card); padding: 18px 20px; }
-    summary { cursor: pointer; font-weight: 600; list-style: none; display: flex; justify-content: space-between; gap: 16px; }
-    summary::-webkit-details-marker { display: none; }
-    summary::after { content: '+'; color: var(--laranja); font-weight: 800; }
-    details[open] summary::after { content: '–'; }
-    details p { margin-top: 10px; font-size: 14px; color: var(--suave); }
-
-    .cta-final {
-      text-align: center; border-radius: 24px; padding: 64px 24px;
-      background: linear-gradient(135deg, rgba(249,115,22,0.18), rgba(249,115,22,0.04));
-      border: 1px solid rgba(249,115,22,0.3);
-    }
-    .cta-final h2 { font-size: clamp(26px, 3.4vw, 36px); letter-spacing: -0.03em; }
-    .cta-final p { margin: 12px auto 28px; color: var(--suave); max-width: 520px; }
-    .cta-final .acoes { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
-
-    footer { padding: 36px 0; border-top: 1px solid var(--borda); font-size: 13px; color: var(--fraco); }
-    footer .container { display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
-
-    /* ── Responsivo ── */
-    @media (max-width: 900px) {
-      nav.links { display: none; }
-      .hero { padding: 64px 0 56px; }
-      .hero .container { grid-template-columns: 1fr; gap: 44px; }
-      .previa { width: 100%; max-width: 520px; margin: 0 auto; }
-      .grade, .passos { grid-template-columns: 1fr 1fr; }
-    }
-    @media (max-width: 600px) {
-      .grade, .passos { grid-template-columns: 1fr; }
-      section { padding: 64px 0; }
-      .hero .acoes .botao { flex: 1; }
-      .topo .botao-secundario { display: none; }
-    }
-  </style>
+@media (max-width:860px){
+  .hero-grid{grid-template-columns:1fr;gap:40px;padding:32px 0 72px}
+  .board{transform:none;animation:none}
+  nav .links a.t{display:none}
+  .features{grid-template-columns:1fr}
+  .section{padding:72px 0}
+}
+@media (prefers-reduced-motion:reduce){.board,.order,.badge,.badge::before,.scene *{animation:none!important}html{scroll-behavior:auto}}
+</style>
 </head>
 <body>
 
-  <header>
-    <div class="container topo">
-      <a href="#" class="marca" aria-label="RestaurantePDV">
-        <span class="marca-icone">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2"/><path d="M7 2v20"/><path d="M21 15V2a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7"/></svg>
-        </span>
-        <b>Restaurante<span>PDV</span></b>
+<header class="hero">
+  <div class="hero-bg" aria-hidden="true">
+    <video class="hero-video" autoplay muted loop playsinline preload="auto"><source src="media/hero.mp4" type="video/mp4"></video>
+    <svg class="scene" viewBox="0 0 1200 700" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
+      <defs><pattern id="dots" width="34" height="34" patternUnits="userSpaceOnUse"><circle cx="2" cy="2" r="1.6" fill="#fff" opacity=".28"/></pattern></defs>
+      <rect width="1200" height="700" fill="url(#dots)"/>
+      <circle cx="930" cy="350" r="300" fill="rgba(255,255,255,.09)"/>
+      <circle cx="930" cy="350" r="230" fill="rgba(255,255,255,.10)"/>
+      <circle class="spin" cx="930" cy="350" r="340" fill="none" stroke="#fff" stroke-opacity=".4" stroke-width="2" stroke-dasharray="4 16"/>
+      <circle cx="930" cy="350" r="160" fill="none" stroke="#fff" stroke-opacity=".3" stroke-width="2"/>
+      <g fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round"><path class="steam" d="M610 520c-18-24 18-40 0-64s18-40 0-64" stroke-opacity=".5"/><path class="steam b" d="M650 540c-18-24 18-40 0-64s18-40 0-64" stroke-opacity=".4"/><path class="steam c" d="M690 520c-18-24 18-40 0-64s18-40 0-64" stroke-opacity=".5"/></g>
+      <g class="fl"><circle cx="1090" cy="130" r="38" fill="#E23D28"/><circle cx="1078" cy="118" r="9" fill="#fff" opacity=".3"/><path d="M1090 94c-14-12-28-8-34-2 12 2 20 8 34 2 14 6 22 0 34-2-6-6-20-10-34 2z" fill="#2E8B3D"/></g>
+      <g class="fl b"><circle cx="760" cy="590" r="44" fill="#FFE066"/><circle cx="760" cy="590" r="36" fill="#FFF3B0"/><g stroke="#FFD23F" stroke-width="3"><path d="M760 554v72M724 590h72M734 564l52 52M786 564l-52 52"/></g></g>
+      <g class="fl c"><path d="M1060 560c40-10 90 0 110 40-40-4-70 0-110-20-14-8-14-16 0-20z" fill="#C0262D"/><path d="M1060 560c-10-8-12-18-6-26" stroke="#2E8B3D" stroke-width="6" stroke-linecap="round" fill="none"/></g>
+      <g class="fl b"><path d="M560 120c30-30 70-20 80 10-30 20-70 20-80-10z" fill="#2E8B3D" opacity=".85"/><path d="M570 124c20-4 44-10 62-8" stroke="#9BE0A4" stroke-width="3" fill="none"/></g>
+      <g class="fl c"><circle cx="1160" cy="380" r="22" fill="#1E1E1E" opacity=".85"/><circle cx="1160" cy="380" r="14" fill="#FF7A00"/></g>
+    </svg>
+  </div>
+  <div class="wrap">
+    <nav aria-label="Principal">
+      <a class="logo" href="#">
+        <span class="logo-mark"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m16 2-2.3 2.3a3 3 0 0 0 0 4.2l1.8 1.8a3 3 0 0 0 4.2 0L22 8"/><path d="M15 15 3.3 3.3a4.2 4.2 0 0 0 0 6l7.3 7.3c.7.7 2 .7 2.8 0L15 15Zm0 0 7 7"/><path d="m2.1 21.8 6.4-6.3"/><path d="m19 5-7 7"/></svg></span>
+        <span>Restaurante <i class="pdv">PDV</i></span>
       </a>
-      <nav class="links" aria-label="Seções">
-        <a href="#recursos">Recursos</a>
-        <a href="#como-funciona">Como funciona</a>
-        <a href="#duvidas">Dúvidas</a>
-      </nav>
-      <div style="display:flex; gap:8px">
-        <a class="botao botao-secundario botao-pequeno js-contato" href="#contato">Fale conosco</a>
-        <a class="botao botao-principal botao-pequeno js-acessar" href="/login">Acessar sistema</a>
+      <div class="links">
+        <a class="t" href="#recursos">Recursos</a>
+        <a class="btn small dark js-acessar" href="/login">Acessar sistema</a>
+      </div>
+    </nav>
+
+    <div class="hero-grid">
+      <div>
+        <h1>Do pedido ao pagamento, tudo em um só lugar.</h1>
+        <p class="lead">Controle mesas, cozinha e caixa pelo mesmo sistema e deixe sua equipe atender mais rápido, sem papel e sem confusão.</p>
+        <div class="cta-row">
+          <a class="btn dark js-acessar" href="/login">Acessar o sistema</a>
+          <a class="btn ghost" href="#recursos">Ver recursos</a>
+        </div>
+      </div>
+
+      <div class="board" role="img" aria-label="Exemplo do quadro de pedidos: mesa 12 em preparo, mesa 4 pronta e balcão 7 aguardando">
+        <div class="board-head"><strong>Pedidos de agora</strong><span>3 abertos</span></div>
+        <div class="order" data-s="1"><div class="tbl">12</div><div class="info"><b>Mesa 12</b><small>2 risotos, 1 salmão</small></div><span class="badge b-prep">Preparando</span></div>
+        <div class="order" data-s="2"><div class="tbl">4</div><div class="info"><b>Mesa 4</b><small>3 sucos, 1 sobremesa</small></div><span class="badge b-ok">Pronto</span></div>
+        <div class="order" data-s="0"><div class="tbl">B7</div><div class="info"><b>Balcão 7</b><small>1 prato executivo</small></div><span class="badge b-wait">Na fila</span></div>
       </div>
     </div>
-  </header>
+  </div>
+</header>
 
-  <main>
-    <section class="hero">
-      <div class="container">
-        <div>
-          <span class="selo">● Sistema completo para restaurantes</span>
-          <h1>Seu restaurante <em>organizado</em>, do pedido ao fechamento do caixa.</h1>
-          <p class="sub">Mesas, comandas, cozinha, caixa e estoque em um só lugar. Funciona no computador, no tablet e no celular do garçom, sem instalar nada.</p>
-          <div class="acoes">
-            <a class="botao botao-principal js-acessar" href="/login">
-              Acessar sistema
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
-            </a>
-            <a class="botao botao-secundario js-contato" href="#contato">Quero conhecer</a>
-          </div>
-          <p class="nota">Já é cliente? Entre com o e-mail e a senha do seu restaurante.</p>
+<main>
+  <section class="section" id="recursos">
+    <div class="wrap">
+      <div class="section-head">
+        <h2>Tudo o que o dia a dia do restaurante precisa</h2>
+        <p>Cada área da operação conversa com as outras, então o pedido anotado no salão aparece na hora na cozinha e no caixa.</p>
+      </div>
+      <div class="features">
+        <div class="feature">
+          <div class="ic"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="6" rx="1"/><path d="M6 10v10M18 10v10M3 20h18"/></svg></div>
+          <div><h3>Mesas e comandas</h3><p>Abra, junte e transfira mesas em poucos toques e acompanhe o consumo de cada uma.</p></div>
         </div>
-
-        <div class="previa" aria-hidden="true">
-          <div class="previa-barra"><i></i><i></i><i></i></div>
-          <div class="previa-kpis">
-            <div class="kpi"><small>Vendas hoje</small><strong>R$ 4.870</strong></div>
-            <div class="kpi"><small>Mesas abertas</small><strong>7</strong></div>
-            <div class="kpi"><small>Ticket médio</small><strong>R$ 86</strong></div>
-          </div>
-          <div class="previa-mesas">
-            <div class="mesa ocupada">01</div><div class="mesa">02</div><div class="mesa conta">03</div><div class="mesa ocupada">04</div>
-            <div class="mesa">05</div><div class="mesa ocupada">06</div><div class="mesa">07</div><div class="mesa ocupada">08</div>
-            <div class="mesa conta">09</div><div class="mesa">10</div><div class="mesa ocupada">11</div><div class="mesa">12</div>
-          </div>
+        <div class="feature">
+          <div class="ic"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 14a4 4 0 0 1 1-7.9A5 5 0 0 1 17 7a4 4 0 0 1 1 7.9V20H6z"/><path d="M6 17h12"/></svg></div>
+          <div><h3>Painel da cozinha</h3><p>Os pedidos chegam na tela da cozinha, na ordem certa e com as observações do cliente.</p></div>
+        </div>
+        <div class="feature">
+          <div class="ic"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18M7 15h4"/></svg></div>
+          <div><h3>Caixa e pagamentos</h3><p>Receba em dinheiro, cartão ou Pix, divida a conta entre os clientes e feche o dia sem diferença.</p></div>
+        </div>
+        <div class="feature">
+          <div class="ic"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg></div>
+          <div><h3>Relatórios de vendas</h3><p>Veja o que mais vende, os horários de pico e o faturamento de cada dia, semana ou mês.</p></div>
         </div>
       </div>
-    </section>
-
-    <section id="recursos" class="alt">
-      <div class="container">
-        <div class="titulo-secao">
-          <h2>Tudo o que o salão e a cozinha precisam</h2>
-          <p>Feito para a rotina de restaurante: rápido no horário de pico e simples para a equipe aprender.</p>
-        </div>
-        <div class="grade">
-          <div class="card">
-            <div class="ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg></div>
-            <h3>Mesas e comandas</h3>
-            <p>Veja o salão inteiro em tempo real: mesas livres, ocupadas e pedindo a conta.</p>
-          </div>
-          <div class="card">
-            <div class="ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="2" width="10" height="20" rx="2"/><path d="M11 18h2"/></svg></div>
-            <h3>Garçom no celular</h3>
-            <p>Pedidos lançados direto do celular chegam na cozinha na hora, sem papel.</p>
-          </div>
-          <div class="card">
-            <div class="ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 13.9A4 4 0 0 1 8 6.2a5 5 0 0 1 8 0 4 4 0 0 1 2 7.7V21H6Z"/><path d="M6 17h12"/></svg></div>
-            <h3>Painel da cozinha</h3>
-            <p>Fila de preparo na tela ou na TV, com aviso quando o prato fica pronto.</p>
-          </div>
-          <div class="card">
-            <div class="ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2"/><path d="M6 12h.01M18 12h.01"/></svg></div>
-            <h3>Caixa e pagamentos</h3>
-            <p>Abertura, sangria e fechamento com conferência. Divisão de conta e várias formas de pagamento.</p>
-          </div>
-          <div class="card">
-            <div class="ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8 12 3 3 8v8l9 5 9-5Z"/><path d="m3 8 9 5 9-5"/><path d="M12 13v8"/></svg></div>
-            <h3>Estoque</h3>
-            <p>Baixa automática a cada venda e alerta quando um produto está acabando.</p>
-          </div>
-          <div class="card">
-            <div class="ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="m7 15 4-4 3 3 5-6"/></svg></div>
-            <h3>Relatórios</h3>
-            <p>Vendas por período, produtos mais vendidos e desempenho da equipe.</p>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <section id="como-funciona">
-      <div class="container">
-        <div class="titulo-secao">
-          <h2>Comece em poucos passos</h2>
-          <p>Nada para instalar: o sistema roda no navegador.</p>
-        </div>
-        <div class="passos">
-          <div class="passo">
-            <h3>Fale com a gente</h3>
-            <p>Entendemos como o seu restaurante funciona e liberamos o seu acesso.</p>
-          </div>
-          <div class="passo">
-            <h3>Cadastre o cardápio</h3>
-            <p>Produtos, categorias, mesas e a sua equipe, cada um com o seu acesso.</p>
-          </div>
-          <div class="passo">
-            <h3>Comece a vender</h3>
-            <p>Abra o caixa e use no salão, no balcão e na cozinha no mesmo dia.</p>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <section id="duvidas" class="alt">
-      <div class="container">
-        <div class="titulo-secao">
-          <h2>Dúvidas frequentes</h2>
-        </div>
-        <div class="faq">
-          <details>
-            <summary>Preciso instalar algum programa?</summary>
-            <p>Não. O RestaurantePDV funciona pelo navegador no computador, no tablet e no celular.</p>
-          </details>
-          <details>
-            <summary>Funciona com impressora térmica?</summary>
-            <p>Sim. O sistema imprime fichas de pedido, contas e o fechamento de caixa em impressoras térmicas.</p>
-          </details>
-          <details>
-            <summary>Cada funcionário tem o próprio acesso?</summary>
-            <p>Sim. Você cria perfis para garçom, caixa e cozinha e define o que cada um pode fazer.</p>
-          </details>
-          <details>
-            <summary>Como peço ajuda se tiver algum problema?</summary>
-            <p>Dentro do sistema existe a área de Suporte, onde você abre um chamado e acompanha a resposta.</p>
-          </details>
-        </div>
-      </div>
-    </section>
-
-    <section id="contato">
-      <div class="container">
-        <div class="cta-final">
-          <h2>Pronto para organizar o seu restaurante?</h2>
-          <p>Fale com a gente para conhecer o sistema ou entre na sua conta se você já é cliente.</p>
-          <div class="acoes">
-            <a class="botao botao-principal js-acessar" href="/login">Acessar sistema</a>
-            <a class="botao botao-secundario js-whatsapp" href="#" target="_blank" rel="noopener">Falar no WhatsApp</a>
-          </div>
-        </div>
-      </div>
-    </section>
-  </main>
-
-  <footer>
-    <div class="container">
-      <span>© <span id="ano"></span> RestaurantePDV</span>
-      <a class="js-acessar" href="/login">Acessar sistema</a>
     </div>
-  </footer>
+  </section>
 
-  <script>
-    // ── Configuração do site ────────────────────────────────────────────────
-    // Preencha antes de publicar. Sem número, o botão de WhatsApp some.
-    var WHATSAPP = ''            // ex.: '5562999999999' (DDI + DDD + número, só dígitos)
+  <section class="final" id="acessar">
+    <div class="wrap">
+      <div>
+        <h2>Pronto para abrir o caixa?</h2>
+        <p>Entre com o seu usuário e comece o atendimento de hoje.</p>
+      </div>
+      <div class="cta-row">
+        <a class="btn js-acessar" href="/login">Acessar o sistema</a>
+        <a class="btn whats js-whatsapp" href="#" target="_blank" rel="noopener">Falar no WhatsApp</a>
+      </div>
+    </div>
+  </section>
+</main>
 
-    // Acessado pelo IP ou localhost (antes do domínio): o sistema está no mesmo host.
-    // Com domínio: app.<domínio>, no mesmo protocolo da página (http até existir o SSL).
-    var host = location.hostname.replace(/^www\./, '')
-    var semDominio = /^(\d+\.){3}\d+$|^localhost$/.test(host)
-    var destino = semDominio ? '/login' : location.protocol + '//app.' + host + '/login'
-    document.querySelectorAll('.js-acessar').forEach(function (a) { a.href = destino })
+<footer>
+  <div class="wrap"><span>© <span id="ano"></span> RestaurantePDV</span><span>Sistema PDV para restaurante</span></div>
+</footer>
 
-    var zap = document.querySelectorAll('.js-whatsapp')
-    if (WHATSAPP) {
-      var msg = encodeURIComponent('Olá! Quero conhecer o RestaurantePDV.')
-      zap.forEach(function (a) { a.href = 'https://wa.me/' + WHATSAPP + '?text=' + msg })
-    } else {
-      zap.forEach(function (a) { a.remove() })
+<script>
+  // ── Configuração do site ────────────────────────────────────────────────
+  // Preencha antes de publicar. Sem número, o botão de WhatsApp some.
+  var WHATSAPP = ''            // ex.: '5562999999999' (DDI + DDD + número, só dígitos)
+
+  // Acessado pelo IP ou localhost (antes do domínio): o sistema está no mesmo host.
+  // Com domínio: app.<domínio>, no mesmo protocolo da página (http até existir o SSL).
+  var host = location.hostname.replace(/^www\./, '')
+  var semDominio = /^(\d+\.){3}\d+$|^localhost$/.test(host)
+  var destino = semDominio ? '/login' : location.protocol + '//app.' + host + '/login'
+  document.querySelectorAll('.js-acessar').forEach(function (a) { a.href = destino })
+
+  var zap = document.querySelectorAll('.js-whatsapp')
+  if (WHATSAPP) {
+    var msg = encodeURIComponent('Olá! Quero conhecer o RestaurantePDV.')
+    zap.forEach(function (a) { a.href = 'https://wa.me/' + WHATSAPP + '?text=' + msg })
+  } else {
+    zap.forEach(function (a) { a.remove() })
+  }
+
+  document.getElementById('ano').textContent = new Date().getFullYear()
+</script>
+
+<script>
+(function(){
+  var v=document.querySelector('.hero-video');if(!v)return;
+  var h=document.querySelector('.hero');
+  if(window.matchMedia('(prefers-reduced-motion: reduce)').matches){v.remove();return}
+  function drop(){v.remove()}
+  v.addEventListener('error',drop);
+  v.querySelector('source').addEventListener('error',drop);
+  v.addEventListener('playing',function(){h.classList.add('has-video')});
+  var p=v.play&&v.play();if(p&&p.catch)p.catch(function(){});
+})();
+</script>
+
+<script>
+(function(){
+  if(window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  var board=document.querySelector('.board'),count=board.querySelector('.board-head span');
+  var S=[['b-wait','Na fila'],['b-prep','Preparando'],['b-ok','Pronto']];
+  var pool=[['9','Mesa 9','1 feijoada, 2 refrigerantes'],['3','Mesa 3','2 pizzas grandes'],['B2','Balcão 2','1 marmita'],['7','Mesa 7','4 pratos executivos'],['15','Mesa 15','1 picanha, 1 salada']];
+  var next=0;
+  function live(){return board.querySelectorAll('.order:not(.leaving)')}
+  function updateCount(){var n=live().length;count.textContent=n+(n===1?' aberto':' abertos')}
+  function setStatus(el,i){
+    el.dataset.s=i;
+    var b=el.querySelector('.badge');
+    b.className='badge '+S[i][0];b.textContent=S[i][1];
+    void b.offsetWidth;b.classList.add('pop');
+  }
+  function addOrder(){
+    var p=pool[next++%pool.length],el=document.createElement('div');
+    el.className='order enter';el.dataset.s='0';
+    el.innerHTML='<div class="tbl"></div><div class="info"><b></b><small></small></div><span class="badge b-wait">Na fila</span>';
+    el.querySelector('.tbl').textContent=p[0];
+    el.querySelector('b').textContent=p[1];
+    el.querySelector('small').textContent=p[2];
+    board.appendChild(el);updateCount();
+  }
+  function tick(){
+    var list=Array.prototype.slice.call(live());
+    var ready=list.filter(function(o){return o.dataset.s==='2'})[0];
+    if(ready){
+      ready.classList.add('leaving');updateCount();
+      setTimeout(function(){ready.remove();addOrder()},900);
+      return;
     }
+    var prep=list.filter(function(o){return o.dataset.s==='1'})[0];
+    var wait=list.filter(function(o){return o.dataset.s==='0'})[0];
+    var target=prep||wait;
+    if(target) setStatus(target,+target.dataset.s+1);
+  }
+  Array.prototype.forEach.call(board.querySelectorAll('.order'),function(o,i){
+    o.classList.add('enter');o.style.animationDelay=(500+i*180)+'ms';
+  });
+  setInterval(function(){if(!document.hidden)tick()},2400);
+})();
+</script>
 
-    document.getElementById('ano').textContent = new Date().getFullYear()
-  </script>
 </body>
 </html>

@@ -380,7 +380,6 @@ onUnmounted(() => {
 .lg :where(button){font:inherit;color:inherit}
 
 .bg{position:fixed;inset:0;overflow:hidden;z-index:0}
-.bg::before{content:"";position:absolute;inset:0;background-image:radial-gradient(rgba(255,255,255,.18) 1px,transparent 1.5px);background-size:30px 30px;-webkit-mask-image:radial-gradient(ellipse 80% 70% at 50% 50%,#000,transparent 80%);mask-image:radial-gradient(ellipse 80% 70% at 50% 50%,#000,transparent 80%)}
 .orb{position:absolute;border-radius:50%;filter:blur(110px);animation:drift 22s ease-in-out infinite alternate}
 .o1{width:620px;height:620px;left:-200px;top:-200px;background:#FF7A00;opacity:.4}
 .o2{width:520px;height:520px;right:-160px;bottom:-200px;background:#FF9B33;opacity:.26;animation-duration:28s;animation-delay:-8s}

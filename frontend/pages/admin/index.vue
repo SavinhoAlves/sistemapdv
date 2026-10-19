@@ -907,7 +907,8 @@ const qrIpSelecionado = ref('')
 
 async function gerarQrDataUrl(token: string, ip: string) {
   const port = window.location.port ? `:${window.location.port}` : ''
-  const url  = `${window.location.protocol}//${ip}${port}/m?t=${token}`
+  // baseURL: o sistema vive em /app (nuxt.config)
+  const url  = `${window.location.protocol}//${ip}${port}${useRuntimeConfig().app.baseURL}m?t=${token}`
   qrUrl.value = url
   return QRCode.toDataURL(url, { width: 240, margin: 2, color: { dark: '#000000', light: '#ffffff' } })
 }

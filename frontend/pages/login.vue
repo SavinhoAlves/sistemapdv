@@ -57,9 +57,21 @@
             <span>Restaurante <i class="lg-pdv">PDV</i></span>
           </div>
 
-          <h1>Entrar no sistema</h1>
+          <!-- Um login só: restaurante ou gestão da plataforma -->
+          <div class="lg-acesso" role="tablist" aria-label="Tipo de acesso">
+            <button type="button" role="tab" :aria-selected="acesso === 'restaurante'" :class="{ ativo: acesso === 'restaurante' }" @click="setAcesso('restaurante')">
+              <Store :size="16" /> Restaurante
+            </button>
+            <button type="button" role="tab" :aria-selected="acesso === 'plataforma'" :class="{ ativo: acesso === 'plataforma' }" @click="setAcesso('plataforma')">
+              <ShieldCheck :size="16" /> Plataforma
+            </button>
+          </div>
+
+          <h1>{{ acesso === 'plataforma' ? 'Entrar na Central' : 'Entrar no sistema' }}</h1>
           <p class="lg-sub">
-            {{ modo === 'rfid' ? 'Encoste o crachá no leitor para começar o turno.' : 'Use o e-mail e a senha que o gerente cadastrou para você.' }}
+            {{ acesso === 'plataforma'
+              ? 'Acesso de quem administra o Restaurante PDV.'
+              : modo === 'rfid' ? 'Encoste o crachá no leitor para começar o turno.' : 'Use o e-mail e a senha que o gerente cadastrou para você.' }}
           </p>
 
           <p v-if="msg.text" class="lg-msg" :class="`lg-msg--${msg.type}`" role="alert">
@@ -69,7 +81,7 @@
           </p>
 
           <!-- Restaurante: só aparece como campo quando a pessoa pede para trocar -->
-          <div class="lg-rest">
+          <div v-if="acesso === 'restaurante'" class="lg-rest">
             <template v-if="!editandoSlug">
               <Store :size="16" />
               <span>Restaurante <b>{{ slugAtual || '—' }}</b></span>
@@ -95,7 +107,7 @@
           </div>
 
           <!-- ── CRACHÁ (só quando o plano do restaurante inclui RFID) ── -->
-          <div v-if="modo === 'rfid'" class="lg-rfid">
+          <div v-if="acesso === 'restaurante' && modo === 'rfid'" class="lg-rfid">
             <button type="button" class="lg-rfid-alvo" :class="{ ativo: rfidFocused, lendo: rfidReading }" @click="focusRfid">
               <span class="lg-rfid-ondas"><i /><i /><i /></span>
               <span class="lg-rfid-cartao"><Wifi :size="30" :stroke-width="1.75" /></span>
@@ -121,7 +133,7 @@
           </div>
 
           <!-- ── E-MAIL E SENHA ── -->
-          <form v-else novalidate @submit.prevent="handleManualLogin">
+          <form v-else novalidate @submit.prevent="acesso === 'plataforma' ? loginPlataforma() : handleManualLogin()">
             <div class="lg-field">
               <label for="login-email">E-mail</label>
               <div class="lg-control">
@@ -133,7 +145,7 @@
                   name="email"
                   type="email"
                   autocomplete="username"
-                  placeholder="seu@email.com"
+                  :placeholder="acesso === 'plataforma' ? 'admin@restaurantepdv.com.br' : 'seu@email.com'"
                   :aria-invalid="invalido === 'email' || undefined"
                 >
               </div>
@@ -174,12 +186,16 @@
               {{ loading ? 'Entrando…' : 'Entrar' }}
             </button>
 
-            <button v-if="rfidAtivo" type="button" class="lg-btn lg-btn--ghost" @click="setModo('rfid')">
+            <button v-if="rfidAtivo && acesso === 'restaurante'" type="button" class="lg-btn lg-btn--ghost" @click="setModo('rfid')">
               <CreditCard :size="18" /> Entrar com crachá
             </button>
           </form>
 
-          <p class="lg-foot">Esqueceu a senha? O gerente do restaurante pode criar uma nova para você.</p>
+          <p class="lg-foot">
+            {{ acesso === 'plataforma'
+              ? 'Esqueceu a senha? Outro administrador da plataforma pode redefinir para você.'
+              : 'Esqueceu a senha? O gerente do restaurante pode criar uma nova para você.' }}
+          </p>
         </div>
       </main>
     </div>
@@ -191,17 +207,35 @@ import { navigateTo } from 'nuxt/app'
 import { ref, reactive, computed, onMounted, onUnmounted, nextTick } from 'vue'
 import {
   UtensilsCrossed, CreditCard, KeyRound, Wifi, UserRound, Lock, Eye, EyeOff,
-  CheckCircle2, AlertCircle, Store, Sun, Moon,
+  CheckCircle2, AlertCircle, Store, Sun, Moon, ShieldCheck,
 } from 'lucide-vue-next'
 import { useApi } from '~/services/api'
 import { useAuthStore } from '~/stores/auth'
 import { useThemeStore } from '~/stores/theme'
+import { usePlatformAuthStore } from '~/stores/platformAuth'
 import { getTenantSlug, setTenantSlug } from '~/composables/useTenantSlug'
 
 definePageMeta({ layout: false })
 
 const authStore  = useAuthStore()
 const themeStore = useThemeStore()
+const platformAuth = usePlatformAuthStore()
+const route      = useRoute()
+const runtimeConfig = useRuntimeConfig()
+
+// ── Tipo de acesso: restaurante (padrão) ou plataforma (?acesso=plataforma) ──
+const acesso = ref<'restaurante' | 'plataforma'>(route.query.acesso === 'plataforma' ? 'plataforma' : 'restaurante')
+
+function setAcesso(a: 'restaurante' | 'plataforma') {
+  if (acesso.value === a) return
+  acesso.value = a
+  hideMsg()
+  if (a === 'plataforma') modo.value = 'manual'
+  else if (rfidAtivo.value) modo.value = 'rfid'
+  navigateTo({ path: '/login', query: a === 'plataforma' ? { acesso: 'plataforma' } : {} }, { replace: true })
+  if (modo.value === 'rfid') nextTick(focusRfid)
+  else nextTick(() => emailRef.value?.focus())
+}
 const api        = useApi()
 
 // RFID é recurso de plano: a API só devolve rfid_ativo quando o super admin
@@ -329,6 +363,33 @@ async function handleManualLogin() {
   }
 }
 
+// ── Login da plataforma (super admin) ───────────────────────────────────
+async function loginPlataforma() {
+  hideMsg()
+  if (!form.email.trim()) return falhar('Informe seu e-mail para continuar.', 'email')
+  if (!form.senha) return falhar('Informe sua senha para continuar.', 'senha')
+  loading.value = true
+  try {
+    const baseUrl = (runtimeConfig.public as any).apiUrl as string
+    const resp = await fetch(`${baseUrl}/api/platform/auth/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: form.email.trim(), senha: form.senha }),
+    })
+    const data = await resp.json().catch(() => ({}))
+    if (!resp.ok) throw new Error(data.error || 'E-mail ou senha incorretos.')
+    if (!data.accessToken || !data.user) throw new Error('Resposta inválida do servidor.')
+    if (data.refreshToken) localStorage.setItem('platform_refresh_token', data.refreshToken)
+    platformAuth.set(data.accessToken, data.user)
+    showMsg('success', `Bem-vindo, ${data.user.nome}!`)
+    navigateTo('/platform')
+  } catch (err: any) {
+    falhar(err?.message || 'Falha ao conectar com o servidor.', 'senha')
+  } finally {
+    loading.value = false
+  }
+}
+
 function falhar(texto: string, campo: 'email' | 'senha' | null) {
   showMsg('error', texto)
   invalido.value = campo
@@ -371,12 +432,17 @@ function tick() {
 let animTimer: ReturnType<typeof setInterval> | null = null
 
 onMounted(async () => {
-  authStore.restoreSession()
-  if (authStore.isAuthenticated) return navigateTo('/')
+  if (acesso.value === 'plataforma') {
+    platformAuth.restore()
+    if (platformAuth.isAuthenticated) return navigateTo('/platform')
+  } else {
+    authStore.restoreSession()
+    if (authStore.isAuthenticated) return navigateTo('/')
+  }
 
   slugAtual.value = getTenantSlug() || ''
   await carregarConfig()
-  if (rfidAtivo.value) setModo('rfid')
+  if (rfidAtivo.value && acesso.value === 'restaurante') setModo('rfid')
   else nextTick(() => emailRef.value?.focus())
 
   if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
@@ -480,6 +546,11 @@ html.dark .lg {
 .lg-logo-mark { width: 64px; height: 64px; border-radius: 18px; background: var(--brand); color: var(--brand-ink); display: grid; place-items: center; }
 .lg-pdv { color: #FF7A00; font-style: normal; }
 
+.lg-acesso { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; padding: 4px; margin-bottom: 22px; border-radius: 14px; background: var(--soft); }
+.lg-acesso button { display: inline-flex; align-items: center; justify-content: center; gap: 8px; height: 42px; border: 0; border-radius: 10px; background: transparent; color: var(--muted); font: 600 14px var(--fonte-texto); cursor: pointer; }
+.lg-acesso button:hover { color: var(--ink); }
+.lg-acesso button.ativo { background: var(--surface); color: var(--ink); box-shadow: 0 1px 3px rgba(0,0,0,.12); }
+.lg-acesso button:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
 .lg-card h1 { font-size: 22px; line-height: 1.2; margin-bottom: 6px; text-align: center; }
 .lg-sub { margin: 0 0 22px; color: var(--muted); font-size: 15px; text-align: center; }
 

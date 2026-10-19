@@ -54,7 +54,7 @@ const authStore = useAuthStore()
 const { navItems } = useNavItems()
 
 function isAtivo(rota: string) {
-  if (rota === '/') return route.path === '/' || route.path === '/painel'
+  if (rota === '/') return route.path === '/'
   return route.path.startsWith(rota)
 }
 

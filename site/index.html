@@ -164,7 +164,7 @@ footer .wrap{display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px}
       </a>
       <div class="links">
         <a class="t" href="#recursos">Recursos</a>
-        <a class="btn small dark js-acessar" href="/login">Acessar sistema</a>
+        <a class="btn small dark js-acessar" href="/app/login">Acessar sistema</a>
       </div>
     </nav>
 
@@ -173,7 +173,7 @@ footer .wrap{display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px}
         <h1>Do pedido ao pagamento, tudo em um só lugar.</h1>
         <p class="lead">Controle mesas, cozinha e caixa pelo mesmo sistema e deixe sua equipe atender mais rápido, sem papel e sem confusão.</p>
         <div class="cta-row">
-          <a class="btn dark js-acessar" href="/login">Acessar o sistema</a>
+          <a class="btn dark js-acessar" href="/app/login">Acessar o sistema</a>
           <a class="btn ghost" href="#recursos">Ver recursos</a>
         </div>
       </div>
@@ -223,7 +223,7 @@ footer .wrap{display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px}
         <p>Entre com o seu usuário e comece o atendimento de hoje.</p>
       </div>
       <div class="cta-row">
-        <a class="btn js-acessar" href="/login">Acessar o sistema</a>
+        <a class="btn js-acessar" href="/app/login">Acessar o sistema</a>
         <a class="btn whats js-whatsapp" href="#" target="_blank" rel="noopener">Falar no WhatsApp</a>
       </div>
     </div>
@@ -239,22 +239,11 @@ footer .wrap{display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px}
   // Preencha antes de publicar. Sem número, o botão de WhatsApp some.
   var WHATSAPP = ''            // ex.: '5562999999999' (DDI + DDD + número, só dígitos)
 
-  // Pelo IP, localhost ou app.<domínio>, o sistema está no mesmo endereço:
-  // o Nginx entrega este site só no "/" exato e o resto é o sistema.
-  // No domínio principal: app.<domínio>, no mesmo protocolo da página.
+  // O sistema vive em /app. Pelo IP, localhost ou app.<domínio>, está no
+  // mesmo endereço deste site; no domínio principal, em app.<domínio>.
   var host = location.hostname.replace(/^www\./, '')
   var mesmoEndereco = /^(\d+\.){3}\d+$|^localhost$|^app\./.test(host)
-  var destino = mesmoEndereco ? '/login' : location.protocol + '//app.' + host + '/login'
-
-  // Mesmo endereço do sistema e já logado (ou abrindo acesso de suporte):
-  // vai direto para o painel em vez de mostrar o site.
-  if (mesmoEndereco) {
-    try {
-      if (localStorage.getItem('auth_token') || localStorage.getItem('suporte_pending_token') || localStorage.getItem('suporte_token')) {
-        location.replace('/painel')
-      }
-    } catch (e) {}
-  }
+  var destino = (mesmoEndereco ? '' : location.protocol + '//app.' + host) + '/app/login'
   document.querySelectorAll('.js-acessar').forEach(function (a) { a.href = destino })
 
   var zap = document.querySelectorAll('.js-whatsapp')

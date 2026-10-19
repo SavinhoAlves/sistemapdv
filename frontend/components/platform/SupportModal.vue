@@ -85,7 +85,8 @@ async function confirmar() {
       id: res.usuario.id, nome: res.usuario.nome, cargo: res.usuario.cargo,
     }, props.modo)
     emit('update:modelValue', false)
-    if (novaAba) novaAba.location.href = rota.value
+    // A aba nova abre fora do roteador: precisa do baseURL (o sistema vive em /app)
+    if (novaAba) novaAba.location.href = useRuntimeConfig().app.baseURL + rota.value.replace(/^\//, '')
   } catch (e: any) {
     novaAba?.close()
     toast.add({ title: 'Erro', description: e?.message || 'Não foi possível gerar token de suporte', color: 'red', icon: 'i-lucide-alert-circle', timeout: 3000 })

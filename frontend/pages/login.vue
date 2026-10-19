@@ -1,245 +1,159 @@
 <template>
   <div class="lg">
-    <div class="lg-page">
+    <div class="bg" aria-hidden="true"><div class="orb o1" /><div class="orb o2" /></div>
 
-      <!-- ══ PAINEL — comanda animada (desktop) ══ -->
-      <aside class="lg-panel" aria-hidden="true">
-        <div class="lg-marca">
-          <span class="lg-marca-ic"><UtensilsCrossed :size="18" /></span>
-          Restaurante PDV
+    <div class="page">
+      <section class="hero" aria-label="Apresentação do sistema">
+        <span class="tagline">Plataforma para restaurantes</span>
+        <h2>Cada perfil com a <i>ferramenta certa.</i></h2>
+        <p class="lead">Clientes operam o restaurante no dia a dia. Gestores acompanham toda a plataforma: licenças, cobrança e planos.</p>
+        <div class="mods">
+          <div class="mod"><span class="ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 5h18v5H3zM6 10v10M18 10v10" /></svg></span><div><h3>Mesas e comandas</h3><p>Abra, junte e transfira mesas, com a divisão de conta.</p></div></div>
+          <div class="mod"><span class="ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 14a4 4 0 0 1 1-7.9A5 5 0 0 1 17 7a4 4 0 0 1 1 7.9V20H6zM6 17h12" /></svg></span><div><h3>Cozinha integrada</h3><p>O pedido do salão chega na hora na tela da cozinha.</p></div></div>
+          <div class="mod"><span class="ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 6h14a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2zM3 10h18M7 15h4" /></svg></span><div><h3>Caixa e pagamentos</h3><p>Dinheiro, cartão e Pix, com fechamento do dia.</p></div></div>
+          <div class="mod"><span class="ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2" /></svg></span><div><h3>Relatórios</h3><p>Vendas, horários de pico e faturamento em tempo real.</p></div></div>
+        </div>
+        <div class="chips"><span>Perfis dedicados</span><span>Vários restaurantes</span><span>Relatórios em tempo real</span><span>100% online</span></div>
+      </section>
+
+      <div class="side">
+        <div class="top">
+          <!-- O site de acesso fica na raiz do endereço; o sistema vive em /app -->
+          <a class="back" href="/"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6l-6 6 6 6" /></svg><span>Voltar ao início</span></a>
         </div>
 
-        <!-- Comanda impressa linha a linha, como sai na bobina do caixa -->
-        <div class="lg-stage">
-          <div class="lg-cupom" :class="{ fechada: comanda.fechada }">
-            <div class="lg-cupom-topo">
-              <span>{{ comanda.mesa }}</span>
-              <span>{{ comanda.hora }}</span>
+        <main class="center">
+          <div class="lg-card">
+            <div class="brand">
+              <div class="mark"><svg width="46" height="46" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m16 2-2.3 2.3a3 3 0 0 0 0 4.2l1.8 1.8a3 3 0 0 0 4.2 0L22 8" /><path d="M15 15 3.3 3.3a4.2 4.2 0 0 0 0 6l7.3 7.3c.7.7 2 .7 2.8 0L15 15Zm0 0 7 7" /><path d="m2.1 21.8 6.4-6.3" /><path d="m19 5-7 7" /></svg></div>
+              <h1>Restaurante <i>PDV</i></h1>
+              <p class="welcome">{{ bloqueio ? 'Não foi possível entrar' : saudacao }}</p>
             </div>
-            <div class="lg-cupom-itens">
-              <div v-for="(it, i) in comanda.itens.slice(0, comanda.linhas)" :key="comanda.id + '-' + i" class="lg-cupom-linha">
-                <span>{{ it[0] }}×</span>
-                <span>{{ it[1] }}</span>
-                <span>{{ reais(it[0] * it[2]) }}</span>
+
+            <div v-if="!bloqueio">
+              <div class="tabs" role="tablist" aria-label="Tipo de acesso">
+                <button class="tab" role="tab" type="button" :aria-selected="perfil === 'cli'" @click="setPerfil('cli')"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 9l1-5h16l1 5M4 9v11h16V9M9 20v-6h6v6" /></svg>Cliente</button>
+                <button class="tab" role="tab" type="button" :aria-selected="perfil === 'ges'" @click="setPerfil('ges')"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z" /><path d="M9 12l2 2 4-4" /></svg>Gestor</button>
               </div>
-              <div v-if="comanda.linhas < comanda.itens.length" class="lg-cupom-cursor"><i /></div>
-            </div>
-            <div class="lg-cupom-soma">
-              <div><span>Subtotal</span><span>{{ reais(subtotal) }}</span></div>
-              <div><span>Serviço 10%</span><span>{{ reais(subtotal * 0.1) }}</span></div>
-              <div class="lg-cupom-total"><span>Total</span><span>{{ reais(subtotal * 1.1) }}</span></div>
-            </div>
-            <span v-if="comanda.fechada" class="lg-carimbo">Paga</span>
-          </div>
-        </div>
+              <p class="tabdesc">{{ PERFIL[perfil].desc }}</p>
 
-        <div>
-          <h2>Do pedido na mesa à conta paga.</h2>
-          <p class="lg-lead">O que o garçom lança chega na cozinha e fecha no caixa, sem comanda de papel perdida.</p>
-        </div>
-      </aside>
-
-      <!-- ══ FORMULÁRIO ══ -->
-      <main class="lg-form-side">
-        <button
-          class="lg-theme"
-          type="button"
-          :aria-label="themeStore.dark ? 'Mudar para tema claro' : 'Mudar para tema escuro'"
-          @click="themeStore.toggle()"
-        >
-          <Sun v-if="themeStore.dark" :size="20" />
-          <Moon v-else :size="20" />
-        </button>
-
-        <div class="lg-card">
-          <div class="lg-logo">
-            <span class="lg-logo-mark"><UtensilsCrossed :size="30" :stroke-width="2" /></span>
-            <span>Restaurante <i class="lg-pdv">PDV</i></span>
-          </div>
-
-          <!-- Um login só: restaurante ou gestão da plataforma -->
-          <div class="lg-acesso" role="tablist" aria-label="Tipo de acesso">
-            <button type="button" role="tab" :aria-selected="acesso === 'restaurante'" :class="{ ativo: acesso === 'restaurante' }" @click="setAcesso('restaurante')">
-              <Store :size="16" /> Restaurante
-            </button>
-            <button type="button" role="tab" :aria-selected="acesso === 'plataforma'" :class="{ ativo: acesso === 'plataforma' }" @click="setAcesso('plataforma')">
-              <ShieldCheck :size="16" /> Plataforma
-            </button>
-          </div>
-
-          <h1>{{ acesso === 'plataforma' ? 'Entrar na Central' : 'Entrar no sistema' }}</h1>
-          <p class="lg-sub">
-            {{ acesso === 'plataforma'
-              ? 'Acesso de quem administra o Restaurante PDV.'
-              : modo === 'rfid' ? 'Encoste o crachá no leitor para começar o turno.' : 'Use o e-mail e a senha que o gerente cadastrou para você.' }}
-          </p>
-
-          <p v-if="msg.text" class="lg-msg" :class="`lg-msg--${msg.type}`" role="alert">
-            <CheckCircle2 v-if="msg.type === 'success'" :size="18" />
-            <AlertCircle v-else :size="18" />
-            {{ msg.text }}
-          </p>
-
-          <!-- Restaurante: só aparece como campo quando a pessoa pede para trocar -->
-          <div v-if="acesso === 'restaurante'" class="lg-rest">
-            <template v-if="!editandoSlug">
-              <Store :size="16" />
-              <span>Restaurante <b>{{ slugAtual || '—' }}</b></span>
-              <button type="button" class="lg-link" @click="trocarRestaurante">Trocar</button>
-            </template>
-            <div v-else class="lg-field lg-field--rest">
-              <label for="login-slug">Código do restaurante</label>
-              <div class="lg-control">
-                <span class="lg-lead-ic"><Store :size="20" /></span>
-                <input
-                  id="login-slug"
-                  ref="slugRef"
-                  v-model="form.slug"
-                  name="pdv-restaurante-slug"
-                  type="text"
-                  autocomplete="off"
-                  placeholder="ex: tarantela"
-                  @blur="confirmarSlug"
-                  @keydown.enter.prevent="confirmarSlug"
-                >
+              <!-- Restaurante do acesso (subdomínio, último acesso ou .env) -->
+              <div v-if="perfil === 'cli'" class="rest">
+                <template v-if="!editandoSlug">
+                  <span>Restaurante <b>{{ slugAtual || 'não informado' }}</b></span>
+                  <button type="button" class="link" @click="trocarRestaurante">{{ slugAtual ? 'Trocar' : 'Informar' }}</button>
+                </template>
+                <form v-else class="rest-edit" novalidate @submit.prevent="confirmarSlug">
+                  <input ref="slugRef" v-model="form.slug" type="text" placeholder="código do restaurante" autocomplete="organization" aria-label="Código do restaurante" @blur="confirmarSlug">
+                </form>
               </div>
+
+              <p v-if="msg.text" class="msg" :class="msg.type === 'error' ? 'err' : 'ok'" :role="msg.type === 'error' ? 'alert' : 'status'">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex:none" aria-hidden="true"><circle cx="12" cy="12" r="9" /><path d="M12 8v5M12 16.5v.1" /></svg>
+                {{ msg.text }}
+              </p>
+
+              <!-- Crachá RFID: recurso de plano, só aparece quando liberado -->
+              <div v-if="perfil === 'cli' && modo === 'rfid'" class="rfid" @click="focusRfid">
+                <div class="rfid-ic" :class="{ lendo: rfidReading }"><svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2" /><path d="M7 15h4M15 9.5a3 3 0 0 1 0 5M17.5 8a6 6 0 0 1 0 8" /></svg></div>
+                <p>{{ rfidReading ? 'Lendo o crachá…' : 'Encoste o crachá no leitor para entrar.' }}</p>
+                <input ref="rfidInputRef" v-model="rfidBuffer" class="rfid-input" type="password" autocomplete="off" aria-label="Leitura do crachá" @input="onRfidInput" @keydown.enter.prevent="onRfidEnter">
+                <button type="button" class="btn ghost" @click.stop="setModo('manual')">Entrar com e-mail e senha</button>
+              </div>
+
+              <form v-else novalidate @submit.prevent="entrar">
+                <div class="field">
+                  <label for="user">E-mail</label>
+                  <div class="control">
+                    <span class="lead-ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4" /><path d="M4 21c0-4 3.6-7 8-7s8 3 8 7" /></svg></span>
+                    <input id="user" ref="emailRef" v-model="form.email" name="user" type="email" autocomplete="username" :placeholder="PERFIL[perfil].ph" :aria-invalid="invalido === 'email'">
+                  </div>
+                </div>
+                <div class="field">
+                  <label for="pass">Senha</label>
+                  <div class="control">
+                    <span class="lead-ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="10" rx="2" /><path d="M8 11V7a4 4 0 0 1 8 0v4" /></svg></span>
+                    <input id="pass" ref="senhaRef" v-model="form.senha" class="pw" name="pass" :type="showPass ? 'text' : 'password'" autocomplete="current-password" placeholder="Digite sua senha" :aria-invalid="invalido === 'senha'" @keyup="verificarCaps" @blur="capsLock = false">
+                    <button type="button" class="toggle" :aria-label="showPass ? 'Ocultar senha' : 'Mostrar senha'" :aria-pressed="showPass" @click="showPass = !showPass">
+                      <svg v-if="!showPass" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z" /><circle cx="12" cy="12" r="3" /></svg>
+                      <svg v-else width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 3l18 18M10.6 6.2A10 10 0 0 1 12 5c6.5 0 10 7 10 7a17 17 0 0 1-3.2 4M6.5 7.6A17 17 0 0 0 2 12s3.5 7 10 7c1.6 0 3-.3 4.3-.9" /><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2" /></svg>
+                    </button>
+                  </div>
+                  <p class="hint" :class="{ show: capsLock }">Caps Lock está ativado.</p>
+                </div>
+                <div class="row">
+                  <button v-if="rfidAtivo && perfil === 'cli'" type="button" class="link" @click="setModo('rfid')">Entrar com crachá</button>
+                  <span v-else />
+                  <button type="button" class="link" @click="abrirRecuperar">Esqueci minha senha</button>
+                </div>
+                <button class="btn" type="submit" :disabled="loading"><span class="spin" /><span>{{ loading ? 'Entrando…' : PERFIL[perfil].btn }}</span></button>
+              </form>
+              <p class="help">{{ PERFIL[perfil].help }}</p>
+            </div>
+
+            <div v-else class="blocked" role="alert">
+              <div class="lock"><svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2" /><path d="M8 11V7a4 4 0 0 1 8 0v4" /></svg></div>
+              <h2>Acesso bloqueado</h2>
+              <p>{{ bloqueio }}</p>
+              <a class="btn" href="/" style="text-decoration:none">Falar com o suporte</a>
+              <button class="btn ghost" type="button" @click="voltarLogin">Voltar ao login</button>
             </div>
           </div>
-
-          <!-- ── CRACHÁ (só quando o plano do restaurante inclui RFID) ── -->
-          <div v-if="acesso === 'restaurante' && modo === 'rfid'" class="lg-rfid">
-            <button type="button" class="lg-rfid-alvo" :class="{ ativo: rfidFocused, lendo: rfidReading }" @click="focusRfid">
-              <span class="lg-rfid-ondas"><i /><i /><i /></span>
-              <span class="lg-rfid-cartao"><Wifi :size="30" :stroke-width="1.75" /></span>
-            </button>
-            <strong>{{ rfidReading ? 'Identificando…' : 'Aproxime o crachá do leitor' }}</strong>
-            <span class="lg-rfid-status"><i />{{ rfidReading ? 'Lendo cartão' : rfidFocused ? 'Leitor pronto' : 'Toque no círculo para ativar o leitor' }}</span>
-            <input
-              id="rfid-input"
-              ref="rfidInputRef"
-              v-model="rfidBuffer"
-              name="rfid-input"
-              aria-label="Leitor de cartão RFID"
-              type="password"
-              class="lg-rfid-input"
-              @input="onRfidInput"
-              @keyup.enter="onRfidEnter"
-              @focus="rfidFocused = true"
-              @blur="rfidFocused = false"
-            >
-            <button type="button" class="lg-btn lg-btn--ghost" @click="setModo('manual')">
-              <KeyRound :size="18" /> Entrar com e-mail e senha
-            </button>
-          </div>
-
-          <!-- ── E-MAIL E SENHA ── -->
-          <form v-else novalidate @submit.prevent="acesso === 'plataforma' ? loginPlataforma() : handleManualLogin()">
-            <div class="lg-field">
-              <label for="login-email">E-mail</label>
-              <div class="lg-control">
-                <span class="lg-lead-ic"><UserRound :size="20" /></span>
-                <input
-                  id="login-email"
-                  ref="emailRef"
-                  v-model="form.email"
-                  name="email"
-                  type="email"
-                  autocomplete="username"
-                  :placeholder="acesso === 'plataforma' ? 'admin@restaurantepdv.com.br' : 'seu@email.com'"
-                  :aria-invalid="invalido === 'email' || undefined"
-                >
-              </div>
-            </div>
-
-            <div class="lg-field">
-              <label for="login-senha">Senha</label>
-              <div class="lg-control">
-                <span class="lg-lead-ic"><Lock :size="20" /></span>
-                <input
-                  id="login-senha"
-                  ref="senhaRef"
-                  v-model="form.senha"
-                  name="senha"
-                  :type="showPass ? 'text' : 'password'"
-                  autocomplete="current-password"
-                  placeholder="Sua senha"
-                  :aria-invalid="invalido === 'senha' || undefined"
-                  @keyup="verificarCaps"
-                  @blur="capsLock = false"
-                >
-                <button
-                  type="button"
-                  class="lg-toggle"
-                  :aria-label="showPass ? 'Ocultar senha' : 'Mostrar senha'"
-                  :aria-pressed="showPass"
-                  @click="showPass = !showPass"
-                >
-                  <EyeOff v-if="showPass" :size="20" />
-                  <Eye v-else :size="20" />
-                </button>
-              </div>
-              <p v-if="capsLock" class="lg-hint">Caps Lock está ativado.</p>
-            </div>
-
-            <button class="lg-btn" type="submit" :disabled="loading">
-              <span v-if="loading" class="lg-spin" />
-              {{ loading ? 'Entrando…' : 'Entrar' }}
-            </button>
-
-            <button v-if="rfidAtivo && acesso === 'restaurante'" type="button" class="lg-btn lg-btn--ghost" @click="setModo('rfid')">
-              <CreditCard :size="18" /> Entrar com crachá
-            </button>
-          </form>
-
-          <p class="lg-foot">
-            {{ acesso === 'plataforma'
-              ? 'Esqueceu a senha? Outro administrador da plataforma pode redefinir para você.'
-              : 'Esqueceu a senha? O gerente do restaurante pode criar uma nova para você.' }}
-          </p>
-        </div>
-      </main>
+        </main>
+        <div class="copy">© Restaurante PDV</div>
+      </div>
     </div>
+
+    <!-- Recuperar senha: a redefinição é feita por quem administra o acesso,
+         não por um formulário público (CNPJ/CPF não é segredo). -->
+    <dialog ref="dlgRef" aria-labelledby="dt" @click="fecharFora">
+      <h2 id="dt">Recuperar senha</h2>
+      <p class="sub">{{ perfil === 'cli'
+        ? 'O gerente do restaurante cria uma nova senha para você em Configurações › Usuários. Depois é só entrar com ela.'
+        : 'Outro administrador da plataforma pode redefinir a sua senha na Central, em Usuários.' }}</p>
+      <div class="dact"><span /><button type="button" class="btn" @click="dlgRef?.close()">Entendi</button></div>
+    </dialog>
   </div>
 </template>
 
 <script setup lang="ts">
 import { navigateTo } from 'nuxt/app'
-import { ref, reactive, computed, onMounted, onUnmounted, nextTick } from 'vue'
-import {
-  UtensilsCrossed, CreditCard, KeyRound, Wifi, UserRound, Lock, Eye, EyeOff,
-  CheckCircle2, AlertCircle, Store, Sun, Moon, ShieldCheck,
-} from 'lucide-vue-next'
+import { ref, reactive, onMounted, onUnmounted, nextTick } from 'vue'
 import { useApi } from '~/services/api'
 import { useAuthStore } from '~/stores/auth'
-import { useThemeStore } from '~/stores/theme'
 import { usePlatformAuthStore } from '~/stores/platformAuth'
 import { getTenantSlug, setTenantSlug } from '~/composables/useTenantSlug'
 
 definePageMeta({ layout: false })
 
-const authStore  = useAuthStore()
-const themeStore = useThemeStore()
+const authStore    = useAuthStore()
 const platformAuth = usePlatformAuthStore()
-const route      = useRoute()
+const route        = useRoute()
 const runtimeConfig = useRuntimeConfig()
+const api          = useApi()
 
-// ── Tipo de acesso: restaurante (padrão) ou plataforma (?acesso=plataforma) ──
-const acesso = ref<'restaurante' | 'plataforma'>(route.query.acesso === 'plataforma' ? 'plataforma' : 'restaurante')
+// ── Perfis: Cliente = restaurante, Gestor = plataforma (?acesso=plataforma) ──
+type Perfil = 'cli' | 'ges'
+const PERFIL = {
+  cli: { desc: 'Acesse o sistema do seu restaurante: caixa, mesas e cozinha.', ph: 'seu@email.com', btn: 'Entrar no sistema', help: 'Problemas para acessar? Fale com o gerente da loja.' },
+  ges: { desc: 'Acesso ao painel da plataforma: restaurantes, cobrança, planos e demonstrações.', ph: 'admin@restaurantepdv.com.br', btn: 'Entrar no painel', help: 'Problemas para acessar? Fale com outro administrador.' },
+}
+const perfil = ref<Perfil>(route.query.acesso === 'plataforma' ? 'ges' : 'cli')
 
-function setAcesso(a: 'restaurante' | 'plataforma') {
-  if (acesso.value === a) return
-  acesso.value = a
+function setPerfil(p: Perfil) {
+  if (perfil.value === p) return
+  perfil.value = p
   hideMsg()
-  if (a === 'plataforma') modo.value = 'manual'
+  if (p === 'ges') modo.value = 'manual'
   else if (rfidAtivo.value) modo.value = 'rfid'
-  navigateTo({ path: '/login', query: a === 'plataforma' ? { acesso: 'plataforma' } : {} }, { replace: true })
+  navigateTo({ path: '/login', query: p === 'ges' ? { acesso: 'plataforma' } : {} }, { replace: true })
   if (modo.value === 'rfid') nextTick(focusRfid)
   else nextTick(() => emailRef.value?.focus())
 }
-const api        = useApi()
 
-// RFID é recurso de plano: a API só devolve rfid_ativo quando o super admin
-// liberou (rfidDisponivel) e o restaurante ativou nas configurações.
+const hora = new Date().getHours()
+const saudacao = (hora < 12 ? 'Bom dia' : hora < 18 ? 'Boa tarde' : 'Boa noite') + ', bem-vindo de volta'
+
 const rfidAtivo = ref(false)
 const modo      = ref<'rfid' | 'manual'>('manual')
 const loading   = ref(false)
@@ -247,20 +161,19 @@ const showPass  = ref(false)
 const capsLock  = ref(false)
 const invalido  = ref<'email' | 'senha' | null>(null)
 const msg       = reactive({ text: '', type: 'error' as 'error' | 'success' })
+const bloqueio  = ref('')
 
 const rfidInputRef = ref<HTMLInputElement>()
 const emailRef     = ref<HTMLInputElement>()
 const senhaRef     = ref<HTMLInputElement>()
 const slugRef      = ref<HTMLInputElement>()
-const rfidFocused  = ref(false)
+const dlgRef       = ref<HTMLDialogElement>()
 const rfidReading  = ref(false)
 const rfidBuffer   = ref('')
 const form         = reactive({ email: '', senha: '', slug: '' })
 let rfidTimer: ReturnType<typeof setTimeout> | null = null
 
 // ── Restaurante ─────────────────────────────────────────────────────────
-// O slug vem do subdomínio, do último acesso ou do .env; o campo só aparece
-// quando a pessoa pede para trocar.
 const slugAtual    = ref('')
 const editandoSlug = ref(false)
 
@@ -271,6 +184,7 @@ function trocarRestaurante() {
 }
 
 async function confirmarSlug() {
+  if (!editandoSlug.value) return
   const novo = form.slug.trim().toLowerCase()
   editandoSlug.value = false
   if (!novo || novo === slugAtual.value) return
@@ -288,6 +202,25 @@ async function carregarConfig() {
   if (!rfidAtivo.value && modo.value === 'rfid') setModo('manual')
 }
 
+// Licença vencida ou restaurante suspenso: estado "Acesso bloqueado"
+async function verificarLicenca(slug: string) {
+  if (!slug) return false
+  try {
+    const st = await api.get<{ suspenso?: boolean; expirado?: boolean; semLicenca?: boolean; motivo?: string }>(`/sistema/status-licenca?slug=${encodeURIComponent(slug)}`)
+    if (st.suspenso) bloqueio.value = st.motivo || 'Este restaurante está suspenso. Entre em contato para regularizar o acesso.'
+    else if (st.expirado) bloqueio.value = 'A licença deste restaurante está vencida. Entre em contato para regularizar o acesso.'
+    else if (st.semLicenca) bloqueio.value = 'Este restaurante ainda não tem uma licença ativa. Entre em contato para liberar o acesso.'
+  } catch { /* sem status, segue o login normal */ }
+  return !!bloqueio.value
+}
+
+function voltarLogin() {
+  bloqueio.value = ''
+  form.senha = ''
+  hideMsg()
+  nextTick(() => emailRef.value?.focus())
+}
+
 // ── Modos ───────────────────────────────────────────────────────────────
 function setModo(m: 'rfid' | 'manual') {
   modo.value = m
@@ -301,6 +234,9 @@ function focusRfid() { rfidInputRef.value?.focus() }
 function verificarCaps(e: KeyboardEvent) {
   capsLock.value = !!e.getModifierState?.('CapsLock')
 }
+
+function abrirRecuperar() { dlgRef.value?.showModal() }
+function fecharFora(e: MouseEvent) { if (e.target === dlgRef.value) dlgRef.value?.close() }
 
 // ── Login por crachá ────────────────────────────────────────────────────
 function onRfidInput() {
@@ -336,6 +272,7 @@ async function loginRfid(cartao_rfid: string) {
     const res: any = await api.auth.rfid(cartao_rfid, slug)
     concluirLogin(res, slug, `Bem-vindo, ${res.usuario?.nome}!`)
   } catch (e: any) {
+    if (/suspenso/i.test(e?.message || '') && await verificarLicenca(slug)) return
     showMsg('error', e.message || 'Cartão não reconhecido.')
     focusRfid()
   } finally {
@@ -343,7 +280,11 @@ async function loginRfid(cartao_rfid: string) {
   }
 }
 
-// ── Login por e-mail e senha ────────────────────────────────────────────
+function entrar() {
+  return perfil.value === 'ges' ? loginPlataforma() : handleManualLogin()
+}
+
+// ── Cliente: e-mail e senha do restaurante ──────────────────────────────
 async function handleManualLogin() {
   hideMsg()
   const slug = slugAtual.value
@@ -357,13 +298,14 @@ async function handleManualLogin() {
     concluirLogin(res, slug, 'Acesso autorizado!')
   } catch (err: any) {
     const texto = err?.message || err?.data?.error || 'Falha ao conectar com o servidor.'
+    if (/suspenso/i.test(texto) && await verificarLicenca(slug)) return
     falhar(texto === 'Sessão expirada' ? 'E-mail ou senha incorretos.' : texto, 'senha')
   } finally {
     loading.value = false
   }
 }
 
-// ── Login da plataforma (super admin) ───────────────────────────────────
+// ── Gestor: login da plataforma (super admin) ───────────────────────────
 async function loginPlataforma() {
   hideMsg()
   if (!form.email.trim()) return falhar('Informe seu e-mail para continuar.', 'email')
@@ -400,39 +342,8 @@ function falhar(texto: string, campo: 'email' | 'senha' | null) {
 function showMsg(type: 'error' | 'success', text: string) { msg.type = type; msg.text = text }
 function hideMsg() { msg.text = ''; invalido.value = null }
 
-// ── Comanda do painel: imprime uma linha por vez, fecha e passa à próxima ──
-type Item = [number, string, number] // quantidade, produto, preço unitário
-
-const EXEMPLOS: { mesa: string; hora: string; itens: Item[] }[] = [
-  { mesa: 'Mesa 07', hora: '12:41', itens: [[2, 'Parmegiana de frango', 46.9], [1, 'Arroz à grega', 12], [2, 'Suco de laranja', 9.5], [1, 'Pudim de leite', 14]] },
-  { mesa: 'Balcão 3', hora: '13:05', itens: [[1, 'Prato executivo', 32.9], [1, 'Refrigerante lata', 7], [1, 'Café expresso', 6.5]] },
-  { mesa: 'Mesa 14', hora: '20:18', itens: [[1, 'Pizza margherita', 64], [1, 'Pizza calabresa', 62], [3, 'Cerveja long neck', 13], [1, 'Petit gâteau', 24]] },
-]
-
-let seqComanda = 0
-function novaComanda(i: number) {
-  const ex = EXEMPLOS[i % EXEMPLOS.length]
-  return { id: ++seqComanda, ...ex, linhas: 1, fechada: false }
-}
-const indice  = ref(0)
-const comanda = ref(novaComanda(0))
-const subtotal = computed(() => comanda.value.itens.slice(0, comanda.value.linhas).reduce((t, it) => t + it[0] * it[2], 0))
-const reais = (v: number) => v.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-
-let pausa = 0
-function tick() {
-  const c = comanda.value
-  if (pausa > 0) { pausa--; return }
-  if (c.linhas < c.itens.length) { c.linhas++; return }
-  if (!c.fechada) { c.fechada = true; pausa = 2; return }
-  indice.value++
-  comanda.value = novaComanda(indice.value)
-}
-
-let animTimer: ReturnType<typeof setInterval> | null = null
-
 onMounted(async () => {
-  if (acesso.value === 'plataforma') {
+  if (perfil.value === 'ges') {
     platformAuth.restore()
     if (platformAuth.isAuthenticated) return navigateTo('/platform')
   } else {
@@ -442,196 +353,142 @@ onMounted(async () => {
 
   slugAtual.value = getTenantSlug() || ''
   await carregarConfig()
-  if (rfidAtivo.value && acesso.value === 'restaurante') setModo('rfid')
+  if (rfidAtivo.value && perfil.value === 'cli') setModo('rfid')
   else nextTick(() => emailRef.value?.focus())
-
-  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-    comanda.value.linhas = comanda.value.itens.length
-  } else {
-    animTimer = setInterval(() => { if (!document.hidden) tick() }, 1100)
-  }
 })
 
 onUnmounted(() => {
-  if (animTimer) clearInterval(animTimer)
   if (rfidTimer) clearTimeout(rfidTimer)
 })
 </script>
 
 <style scoped>
 /* ═══════════════════════════════════════════════════════════════════════════
-   Login do sistema — design "Entrar · RestaurantePDV".
-   Paleta própria (laranja quente), escopada nesta página: o tema escuro
-   segue o mesmo seletor `html.dark` do resto do app, não o do sistema
-   operacional, para o botão de tema daqui valer no sistema todo.
+   Login — design "Entrar · Restaurante PDV" (escuro, vidro e laranja).
+   Fiel ao arquivo de referência; só as fontes seguem a identidade do PDV
+   (Sora no texto) e a lógica é a real do sistema.
    ═══════════════════════════════════════════════════════════════════════════ */
 .lg {
-  --bg: #FFF4EA; --surface: #FFFFFF; --ink: #2A1608; --muted: #7A5C48; --line: #EBCFB8; --soft: #FFEBDA;
-  --brand: #D9480F; --brand-ink: #FFFFFF; --brand-hover: #B93C0A; --focus: #EA580C; --danger: #B3261E; --ok: #14602B;
-  --hero: #FF7A00; --hero-ink: #1E1E1E; --paper: #FFFDF7; --paper-ink: #1B1B18;
-
-  min-height: 100dvh;
-  background: var(--bg);
-  color: var(--ink);
-  font: 400 16px/1.55 var(--fonte-texto);
-  -webkit-font-smoothing: antialiased;
+  --bg:#12100E; --card:rgba(30,27,24,.72); --ink:#F6F2EA; --muted:#A8A196; --line:rgba(255,255,255,.12);
+  --field:#171513; --brand:#FF7A00; --brand-hover:#FF8F2B; --danger:#FF8F94; --focus:#FFA14D; --ok:#5DDBA8;
+  min-height:100vh; background:var(--bg); color:var(--ink); color-scheme:dark;
+  font:400 16px/1.5 var(--fonte-texto),system-ui,sans-serif; -webkit-font-smoothing:antialiased; overflow-x:hidden;
+  padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
 }
-html.dark .lg {
-  --bg: #1A0E07; --surface: #27160C; --ink: #FFEFE2; --muted: #CBA68D; --line: #4D2F1D; --soft: #33200F;
-  --brand: #FF8A3D; --brand-ink: #2A1000; --brand-hover: #FFA566; --focus: #FFA566; --danger: #FF8A80; --ok: #7EDC9A;
+.lg *,.lg *::before,.lg *::after{box-sizing:border-box}
+.lg h1,.lg h2,.lg h3{font-family:var(--fonte-texto);letter-spacing:-.02em;margin:0}
+.lg :where(button){font:inherit;color:inherit}
+
+.bg{position:fixed;inset:0;overflow:hidden;z-index:0}
+.bg::before{content:"";position:absolute;inset:0;background-image:radial-gradient(rgba(255,255,255,.18) 1px,transparent 1.5px);background-size:30px 30px;-webkit-mask-image:radial-gradient(ellipse 80% 70% at 50% 50%,#000,transparent 80%);mask-image:radial-gradient(ellipse 80% 70% at 50% 50%,#000,transparent 80%)}
+.orb{position:absolute;border-radius:50%;filter:blur(110px);animation:drift 22s ease-in-out infinite alternate}
+.o1{width:620px;height:620px;left:-200px;top:-200px;background:#FF7A00;opacity:.4}
+.o2{width:520px;height:520px;right:-160px;bottom:-200px;background:#FF9B33;opacity:.26;animation-duration:28s;animation-delay:-8s}
+@keyframes drift{from{transform:translate(0,0) scale(1)}to{transform:translate(60px,40px) scale(1.12)}}
+
+.page{position:relative;z-index:1;min-height:100vh;display:grid;grid-template-columns:1.1fr 1fr;gap:14px;padding:14px}
+
+/* Painel de apresentação */
+.hero{border:1px solid var(--line);border-radius:30px;background:linear-gradient(160deg,rgba(255,122,0,.16),rgba(30,27,24,.55) 45%);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);padding:44px 48px;display:flex;flex-direction:column;justify-content:center;gap:28px}
+.tagline{align-self:flex-start;font-size:13px;font-weight:600;color:var(--focus);padding:6px 14px;border-radius:999px;background:rgba(255,122,0,.14);border:1px solid rgba(255,122,0,.35)}
+.hero h2{font-size:clamp(32px,3.6vw,50px);line-height:1.04;font-weight:800;max-width:15ch}
+.hero h2 i{font-style:normal;color:var(--brand)}
+.hero p.lead{margin:0;color:var(--muted);font-size:17px;max-width:48ch}
+.mods{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.mod{display:flex;gap:14px;padding:16px;border-radius:20px;border:1px solid var(--line);background:rgba(255,255,255,.04);transition:background .2s,transform .2s,border-color .2s}
+.mod:hover{background:rgba(255,255,255,.07);transform:translateY(-2px);border-color:rgba(255,122,0,.4)}
+.mod .ic{flex:none;width:44px;height:44px;border-radius:13px;background:rgba(255,122,0,.16);color:var(--brand);display:grid;place-items:center}
+.mod h3{font-size:16px;margin-bottom:2px}
+.mod p{margin:0;color:var(--muted);font-size:14px;line-height:1.4}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chips span{font-size:13px;font-weight:500;padding:5px 12px;border-radius:999px;background:rgba(255,255,255,.06);color:#D8D2C7}
+
+/* Coluna do formulário */
+.side{display:flex;flex-direction:column;padding:6px 10px}
+.top{display:flex;align-items:center;justify-content:space-between;min-height:42px}
+.back{display:inline-flex;align-items:center;gap:8px;height:42px;padding:0 16px 0 12px;border-radius:999px;border:1px solid var(--line);background:rgba(255,255,255,.04);color:var(--ink);text-decoration:none;font-weight:500;font-size:14px;transition:background .15s}
+.back:hover{background:rgba(255,255,255,.1)}
+.center{flex:1;display:flex;align-items:center;justify-content:center;padding:16px 0}
+.lg-card{width:100%;max-width:430px}
+.brand{text-align:center;margin-bottom:22px}
+.mark{width:84px;height:84px;margin:0 auto 14px;border-radius:26px;background:linear-gradient(145deg,#FFA23D,#FF7A00 60%,#E85F00);color:#fff;display:grid;place-items:center;box-shadow:0 18px 40px rgba(255,122,0,.45),inset 0 2px 0 rgba(255,255,255,.35)}
+.brand h1{font-size:30px;line-height:1.1;font-weight:800}
+.brand h1 i{font-style:normal;color:var(--brand)}
+.welcome{margin:6px 0 0;color:var(--muted);font-size:14px}
+
+.tabs{display:grid;grid-template-columns:1fr 1fr;gap:4px;padding:4px;border-radius:16px;background:rgba(255,255,255,.06);border:1px solid var(--line);margin-bottom:12px}
+.tab{height:46px;border:0;border-radius:12px;background:none;color:var(--muted);font-weight:600;display:flex;align-items:center;justify-content:center;gap:8px;cursor:pointer;transition:background .2s,color .2s}
+.tab:hover{color:var(--ink)}
+.tab[aria-selected=true]{background:var(--brand);color:#1E1E1E;box-shadow:0 8px 20px rgba(255,122,0,.3)}
+.tabdesc{margin:0 2px 20px;color:var(--muted);font-size:14px;min-height:42px}
+
+/* Restaurante do acesso */
+.rest{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:-6px 0 18px;padding:10px 14px;border-radius:14px;border:1px dashed var(--line);font-size:14px;color:var(--muted)}
+.rest b{color:var(--ink);font-family:var(--fonte-numero);font-weight:600}
+.rest-edit{flex:1}
+.rest-edit input{height:42px;padding:0 14px;border-radius:12px;font-family:var(--fonte-numero)}
+
+.field{margin-bottom:16px}
+label{display:block;font-weight:500;font-size:14px;margin-bottom:7px;color:#D8D2C7}
+.control{position:relative}
+.lead-ic{position:absolute;left:16px;top:50%;transform:translateY(-50%);color:var(--muted);pointer-events:none;display:flex;transition:color .15s}
+.control:focus-within .lead-ic{color:var(--brand)}
+input{width:100%;height:56px;padding:0 16px 0 48px;font:inherit;color:var(--ink);background:var(--field);border:1.5px solid var(--line);border-radius:16px;transition:border-color .15s,box-shadow .15s}
+input::placeholder{color:#6F695F}
+input:hover{border-color:rgba(255,255,255,.22)}
+input:focus-visible{outline:none;border-color:var(--brand);box-shadow:0 0 0 4px rgba(255,122,0,.2)}
+input[aria-invalid=true]{border-color:var(--danger)}
+input.pw{padding-right:54px}
+.toggle{position:absolute;right:7px;top:7px;width:42px;height:42px;border:0;border-radius:12px;background:transparent;color:var(--muted);cursor:pointer;display:grid;place-items:center}
+.toggle:hover{color:var(--ink);background:rgba(255,255,255,.08)}
+.hint{display:none;margin:7px 2px 0;font-size:13px;color:var(--muted)}
+.hint.show{display:block}
+.row{display:flex;justify-content:space-between;align-items:center;margin:2px 0 22px;font-size:14px;gap:12px;flex-wrap:wrap}
+.link{color:var(--focus);font-weight:500;text-decoration:none;border:0;background:none;padding:0;cursor:pointer;border-radius:4px;font-size:inherit}
+.link:hover{text-decoration:underline}
+.btn{width:100%;height:58px;border:0;border-radius:16px;background:var(--brand);color:#1E1E1E !important;font:700 17px var(--fonte-texto),sans-serif;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;box-shadow:0 14px 30px rgba(255,122,0,.35);transition:background .15s,transform .05s,box-shadow .15s}
+.btn:hover{background:var(--brand-hover);box-shadow:0 18px 38px rgba(255,122,0,.45)}
+.btn:active{transform:scale(.99)}
+.btn[disabled]{opacity:.8;cursor:progress}
+.btn.ghost{background:rgba(255,255,255,.07);color:var(--ink) !important;box-shadow:none;border:1px solid var(--line);height:52px;font-weight:600}
+.btn.ghost:hover{background:rgba(255,255,255,.12);box-shadow:none}
+.spin{width:18px;height:18px;border:2.5px solid rgba(30,30,30,.3);border-top-color:#1E1E1E;border-radius:50%;animation:s .7s linear infinite;display:none}
+.btn[disabled] .spin{display:block}
+@keyframes s{to{transform:rotate(360deg)}}
+.msg{display:flex;align-items:center;gap:10px;margin:0 0 16px;padding:12px 14px;border-radius:14px;font-size:14px}
+.msg.err{color:var(--danger);background:rgba(255,143,148,.1);border:1px solid rgba(255,143,148,.35)}
+.msg.ok{color:var(--ok);background:rgba(93,219,168,.1);border:1px solid rgba(93,219,168,.35)}
+.help{margin:22px 0 0;text-align:center;font-size:13px;color:var(--muted)}
+.copy{text-align:center;font-size:13px;color:#7C766B}
+a:focus-visible,button:focus-visible{outline:3px solid var(--focus);outline-offset:2px}
+
+/* Crachá RFID */
+.rfid{text-align:center;cursor:pointer}
+.rfid-ic{width:76px;height:76px;margin:0 auto 14px;border-radius:24px;background:rgba(255,122,0,.14);color:var(--brand);border:1px solid rgba(255,122,0,.35);display:grid;place-items:center}
+.rfid-ic.lendo{animation:pulso 1s ease-in-out infinite}
+@keyframes pulso{50%{box-shadow:0 0 0 10px rgba(255,122,0,.15)}}
+.rfid p{color:var(--muted);margin:0 0 20px}
+.rfid-input{position:absolute;opacity:0;width:1px;height:1px;pointer-events:none}
+
+/* Acesso bloqueado */
+.blocked{text-align:center;padding:8px 0}
+.blocked .lock{width:76px;height:76px;margin:0 auto 18px;border-radius:24px;background:rgba(255,143,148,.12);color:var(--danger);border:1px solid rgba(255,143,148,.35);display:grid;place-items:center}
+.blocked h2{font-size:26px;margin-bottom:8px}
+.blocked p{color:var(--muted);margin:0 0 24px}
+.blocked .btn{margin-bottom:10px}
+
+/* Recuperar senha */
+dialog{border:1px solid var(--line);background:#1B1815;color:var(--ink);border-radius:26px;padding:28px;width:min(440px,calc(100% - 32px));box-shadow:0 40px 90px rgba(0,0,0,.6);font-family:var(--fonte-texto)}
+dialog::backdrop{background:rgba(0,0,0,.62);backdrop-filter:blur(4px)}
+dialog h2{font-size:24px;margin-bottom:6px}
+dialog .sub{margin:0 0 20px;color:var(--muted);font-size:14px}
+.dact{display:grid;grid-template-columns:1fr 1.4fr;gap:10px;margin-top:20px}
+.dact .btn{height:52px;font-size:16px}
+
+@media (max-width:980px){
+  .page{grid-template-columns:1fr;padding:12px}
+  .hero{display:none}
 }
-.lg h1, .lg h2 { font-family: var(--fonte-texto); font-weight: 700; letter-spacing: -.03em; margin: 0; }
-
-.lg-page { display: grid; grid-template-columns: 1.1fr 1fr; min-height: 100dvh; padding: 14px; gap: 14px; }
-
-/* ── Painel ──
-   Laranja chapado da marca, sem brilhos. Em cima, a comanda do PDV: papel de
-   bobina picotado, itens e valores em fonte monoespaçada, carimbo de paga. */
-.lg-panel {
-  position: relative; border-radius: 24px; background: var(--hero); color: var(--hero-ink);
-  padding: 36px 44px 40px; display: flex; flex-direction: column; justify-content: space-between; gap: 24px;
-  overflow: hidden;
-  /* trama de linhas de bobina, bem discreta */
-  background-image: repeating-linear-gradient(0deg, rgba(0,0,0,.035) 0 1px, transparent 1px 28px);
-}
-.lg-marca { display: flex; align-items: center; gap: 10px; font: 700 16px var(--fonte-texto); color: #1E1E1E; }
-.lg-marca-ic { width: 36px; height: 36px; border-radius: 10px; background: #1E1E1E; color: var(--hero); display: grid; place-items: center; }
-.lg-panel h2 { font-size: clamp(28px, 3vw, 42px); line-height: 1.08; max-width: 15ch; margin-bottom: 12px; }
-.lg-lead { margin: 0; max-width: 42ch; color: rgba(30,20,10,.82); font-size: 16px; }
-
-.lg-stage { flex: 1; display: grid; place-items: center; padding: 8px 0; }
-.lg-cupom {
-  --furo: 7px;
-  position: relative; width: min(340px, 100%);
-  padding: 22px 22px 24px;
-  background: var(--paper); color: var(--paper-ink);
-  font: 400 14px/1.6 var(--fonte-numero); font-variant-numeric: tabular-nums;
-  box-shadow: 0 24px 50px rgba(90,30,0,.28);
-  -webkit-mask:
-    radial-gradient(circle var(--furo) at 50% 0, #0000 98%, #000) 50% 0 / calc(var(--furo) * 3) 51% repeat-x,
-    radial-gradient(circle var(--furo) at 50% 100%, #0000 98%, #000) 50% 100% / calc(var(--furo) * 3) 51% repeat-x;
-          mask:
-    radial-gradient(circle var(--furo) at 50% 0, #0000 98%, #000) 50% 0 / calc(var(--furo) * 3) 51% repeat-x,
-    radial-gradient(circle var(--furo) at 50% 100%, #0000 98%, #000) 50% 100% / calc(var(--furo) * 3) 51% repeat-x;
-}
-.lg-cupom-topo { display: flex; justify-content: space-between; padding-bottom: 10px; border-bottom: 1.5px dashed #D9CFB8; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; font-size: 12px; }
-.lg-cupom-itens { min-height: 128px; padding: 10px 0; }
-.lg-cupom-linha { display: grid; grid-template-columns: 2.4em 1fr auto; gap: 8px; animation: lg-imprime .35s ease-out both; }
-.lg-cupom-linha > :last-child { text-align: right; }
-.lg-cupom-cursor i { display: inline-block; width: 9px; height: 15px; background: #1B1B18; vertical-align: middle; animation: lg-pisca 1s steps(1) infinite; }
-.lg-cupom-soma { border-top: 1.5px dashed #D9CFB8; padding-top: 10px; display: grid; gap: 2px; }
-.lg-cupom-soma > div { display: flex; justify-content: space-between; color: #6A6757; }
-.lg-cupom-soma .lg-cupom-total { color: #1B1B18; font-weight: 700; font-size: 17px; margin-top: 4px; }
-.lg-carimbo {
-  position: absolute; right: 18px; top: 46%;
-  padding: 4px 14px; border: 2.5px solid #12805C; border-radius: 8px;
-  color: #12805C; font: 700 20px var(--fonte-numero); letter-spacing: .18em; text-transform: uppercase;
-  transform: rotate(-12deg); opacity: .9;
-  animation: lg-carimba .3s cubic-bezier(.2,.8,.2,1) both;
-}
-@keyframes lg-imprime { from { opacity: 0; transform: translateY(-4px); clip-path: inset(0 100% 0 0); } to { opacity: 1; transform: none; clip-path: inset(0 0 0 0); } }
-@keyframes lg-pisca { 50% { opacity: 0; } }
-@keyframes lg-carimba { from { opacity: 0; transform: rotate(-12deg) scale(1.6); } to { opacity: .9; transform: rotate(-12deg) scale(1); } }
-
-/* ── Formulário ── */
-.lg-form-side { position: relative; display: flex; align-items: center; justify-content: center; padding: 32px 24px; }
-.lg-theme {
-  position: absolute; top: 14px; right: 14px; width: 44px; height: 44px; border-radius: 12px;
-  border: 1.5px solid var(--line); background: var(--surface); color: var(--ink); cursor: pointer; display: grid; place-items: center;
-}
-.lg-theme:hover { background: var(--soft); }
-.lg-card { width: 100%; max-width: 404px; }
-
-.lg-logo { display: flex; flex-direction: column; align-items: center; gap: 16px; margin-bottom: 34px; font: 700 28px/1.1 var(--fonte-texto); letter-spacing: -.03em; text-align: center; }
-.lg-logo-mark { width: 64px; height: 64px; border-radius: 18px; background: var(--brand); color: var(--brand-ink); display: grid; place-items: center; }
-.lg-pdv { color: #FF7A00; font-style: normal; }
-
-.lg-acesso { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; padding: 4px; margin-bottom: 22px; border-radius: 14px; background: var(--soft); }
-.lg-acesso button { display: inline-flex; align-items: center; justify-content: center; gap: 8px; height: 42px; border: 0; border-radius: 10px; background: transparent; color: var(--muted); font: 600 14px var(--fonte-texto); cursor: pointer; }
-.lg-acesso button:hover { color: var(--ink); }
-.lg-acesso button.ativo { background: var(--surface); color: var(--ink); box-shadow: 0 1px 3px rgba(0,0,0,.12); }
-.lg-acesso button:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
-.lg-card h1 { font-size: 22px; line-height: 1.2; margin-bottom: 6px; text-align: center; }
-.lg-sub { margin: 0 0 22px; color: var(--muted); font-size: 15px; text-align: center; }
-
-.lg-msg {
-  display: flex; align-items: center; gap: 10px; margin: 0 0 18px; padding: 12px 14px; border-radius: 12px; font-size: 14px;
-}
-.lg-msg--error   { color: var(--danger); background: color-mix(in srgb, var(--danger) 10%, transparent); border: 1px solid color-mix(in srgb, var(--danger) 35%, transparent); }
-.lg-msg--success { color: var(--ok); background: color-mix(in srgb, var(--ok) 10%, transparent); border: 1px solid color-mix(in srgb, var(--ok) 35%, transparent); }
-
-.lg-rest { display: flex; align-items: center; gap: 8px; margin-bottom: 18px; padding: 10px 14px; border-radius: 12px; background: var(--soft); color: var(--muted); font-size: 14px; }
-.lg-rest b { color: var(--ink); font-weight: 600; }
-.lg-rest .lg-link { margin-left: auto; }
-.lg-rest:has(.lg-field--rest) { padding: 0; background: none; }
-.lg-field--rest { width: 100%; margin-bottom: 0 !important; }
-
-.lg-field { margin-bottom: 18px; }
-.lg label { display: block; font-weight: 500; font-size: 14px; margin-bottom: 7px; }
-.lg-control { position: relative; }
-.lg-lead-ic { position: absolute; left: 15px; top: 50%; transform: translateY(-50%); color: var(--muted); pointer-events: none; display: flex; transition: color .15s; }
-.lg-control:focus-within .lg-lead-ic { color: var(--brand); }
-.lg-control input {
-  width: 100%; height: 54px; padding: 0 14px 0 46px; font: inherit; color: var(--ink);
-  background: var(--surface); border: 1.5px solid var(--line); border-radius: 14px;
-  transition: border-color .15s, box-shadow .15s;
-}
-.lg-control input::placeholder { color: #B79A86; }
-.lg-control input:hover { border-color: #E0B48F; }
-.lg-control input:focus-visible { outline: none; border-color: var(--focus); box-shadow: 0 0 0 4px color-mix(in srgb, var(--focus) 22%, transparent); }
-.lg-control input[aria-invalid='true'] { border-color: var(--danger); }
-.lg-control input[name='senha'] { padding-right: 52px; }
-.lg-toggle { position: absolute; right: 6px; top: 6px; width: 42px; height: 42px; border: 0; border-radius: 10px; background: transparent; color: var(--muted); cursor: pointer; display: grid; place-items: center; }
-.lg-toggle:hover { color: var(--ink); background: var(--soft); }
-.lg-hint { margin: 7px 2px 0; font-size: 13px; color: var(--muted); }
-
-.lg-link { color: var(--brand); font-weight: 500; text-decoration: none; border-radius: 4px; background: none; border: 0; padding: 4px 2px; cursor: pointer; font-size: 14px; }
-.lg-link:hover { text-decoration: underline; }
-
-.lg-btn {
-  width: 100%; height: 56px; margin-top: 6px; border: 0; border-radius: 14px; background: var(--brand); color: var(--brand-ink);
-  font: 600 16px var(--fonte-texto); cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px;
-  box-shadow: 0 10px 22px color-mix(in srgb, var(--brand) 32%, transparent);
-  transition: background .15s, transform .05s, box-shadow .15s;
-}
-.lg-btn:hover { background: var(--brand-hover); }
-.lg-btn:active { transform: scale(.99); box-shadow: none; }
-.lg-btn[disabled] { opacity: .8; cursor: progress; }
-.lg-btn--ghost { margin-top: 12px; height: 52px; background: transparent; color: var(--ink); border: 1.5px solid var(--line); box-shadow: none; font-size: 16px; }
-.lg-btn--ghost:hover { background: var(--soft); }
-.lg-spin { width: 18px; height: 18px; border: 2.5px solid color-mix(in srgb, var(--brand-ink) 35%, transparent); border-top-color: var(--brand-ink); border-radius: 50%; animation: lg-s .7s linear infinite; }
-@keyframes lg-s { to { transform: rotate(360deg); } }
-
-.lg-toggle:focus-visible, .lg-btn:focus-visible, .lg-theme:focus-visible, .lg-link:focus-visible, .lg-rfid-alvo:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
-
-/* Crachá (não existe no protótipo; segue a mesma linguagem visual) */
-.lg-rfid { position: relative; display: flex; flex-direction: column; align-items: center; gap: 12px; text-align: center; }
-.lg-rfid > strong { font-size: 17px; font-weight: 600; }
-.lg-rfid-alvo { position: relative; width: 168px; height: 168px; display: grid; place-items: center; border-radius: 50%; border: 0; background: none; cursor: pointer; }
-.lg-rfid-ondas, .lg-rfid-ondas i { position: absolute; inset: 0; border-radius: 50%; }
-.lg-rfid-ondas i { border: 1.5px solid var(--line); }
-.lg-rfid-ondas i:nth-child(2) { inset: 18px; }
-.lg-rfid-ondas i:nth-child(3) { inset: 36px; }
-.lg-rfid-alvo.ativo .lg-rfid-ondas i { border-color: var(--brand); animation: lg-onda 2.4s ease-in-out infinite; }
-.lg-rfid-alvo.ativo .lg-rfid-ondas i:nth-child(2) { animation-delay: .3s; }
-.lg-rfid-alvo.ativo .lg-rfid-ondas i:nth-child(3) { animation-delay: .6s; }
-@keyframes lg-onda { 0%, 100% { opacity: .25; } 50% { opacity: .8; } }
-.lg-rfid-cartao { position: relative; width: 72px; height: 96px; display: grid; place-items: center; border-radius: 12px; background: var(--surface); border: 1.5px solid var(--line); color: var(--muted); transition: transform .18s, background-color .18s, color .18s; }
-.lg-rfid-alvo.ativo .lg-rfid-cartao { color: var(--brand); }
-.lg-rfid-alvo.lendo .lg-rfid-cartao { background: var(--brand); border-color: var(--brand); color: var(--brand-ink); transform: scale(1.06); }
-.lg-rfid-status { display: inline-flex; align-items: center; gap: 8px; font-size: 14px; color: var(--muted); }
-.lg-rfid-status i { width: 8px; height: 8px; border-radius: 50%; background: var(--line); }
-.lg-rfid-alvo.ativo ~ .lg-rfid-status i { background: #2EC27E; }
-.lg-rfid-alvo.lendo ~ .lg-rfid-status i { background: var(--brand); }
-.lg-rfid-input { position: absolute; width: 0; height: 0; opacity: 0; }
-
-.lg-foot { margin-top: 30px; text-align: center; font-size: 13px; color: var(--muted); }
-
-@media (max-width: 900px) {
-  .lg-page { grid-template-columns: 1fr; padding: 0; }
-  .lg-panel { display: none; }
-}
-@media (prefers-reduced-motion: reduce) {
-  .lg-cupom-linha, .lg-cupom-cursor i, .lg-carimbo, .lg-rfid-ondas i { animation: none !important; }
-}
+@media (max-width:520px){.back span{display:none}.back{padding:0 12px}}
+@media (prefers-reduced-motion:reduce){.orb{animation:none}.spin{animation-duration:1.5s}.mod{transition:none}}
 </style>

@@ -220,6 +220,8 @@ async function verificarLicenca(slug: string) {
   if (!slug) return false
   try {
     const st = await api.get<{ suspenso?: boolean; expirado?: boolean; semLicenca?: boolean; motivo?: string }>(`/sistema/status-licenca?slug=${encodeURIComponent(slug)}`)
+    // Restaurante inexistente não é bloqueio: o login mostra o erro e pede outro código
+    if (st.motivo === 'tenant_nao_encontrado') return false
     if (st.suspenso) bloqueio.value = st.motivo || 'Este restaurante está suspenso. Entre em contato para regularizar o acesso.'
     else if (st.expirado) bloqueio.value = 'A licença deste restaurante está vencida. Entre em contato para regularizar o acesso.'
     else if (st.semLicenca) bloqueio.value = 'Este restaurante ainda não tem uma licença ativa. Entre em contato para liberar o acesso.'
@@ -365,7 +367,17 @@ onMounted(async () => {
   }
 
   slugAtual.value = getTenantSlug() || ''
-  if (slugAtual.value) await resolverRestaurante(slugAtual.value).catch(() => { restInfo.value = null })
+  // Restaurante salvo (ou o padrão do build) que não existe: pede o código em vez de tentar com ele
+  if (slugAtual.value) {
+    await resolverRestaurante(slugAtual.value).catch((e: any) => {
+      restInfo.value = null
+      if (/não encontrado/i.test(e?.message || '')) slugAtual.value = ''
+    })
+  }
+  if (!slugAtual.value && perfil.value === 'cli') {
+    trocarRestaurante()
+    return
+  }
   await carregarConfig()
   if (rfidAtivo.value && perfil.value === 'cli') setModo('rfid')
   else nextTick(() => emailRef.value?.focus())

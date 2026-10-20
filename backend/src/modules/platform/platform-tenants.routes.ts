@@ -9,6 +9,11 @@ import {
   TESTE_DIAS, aplicarRecursos, contratoAtual, dataDe, hojeBR, proximaDataComDia, registrarPagamento,
   resumir, sincronizarLicenca, somarDias, somarMeses, ymd,
 } from './assinatura'
+import { registrarVersao } from './contrato'
+
+/** Resumo da versão do contrato para a tela avisar quando precisa reenviar. */
+const versaoResp = (r: Awaited<ReturnType<typeof registrarVersao>>) =>
+  r && { numero: r.versao.numero, nova: r.nova }
 
 function slugify(s: string) {
   return s
@@ -290,7 +295,8 @@ export async function platformTenantsRoutes(app: FastifyInstance) {
     } else {
       await sincronizarLicenca(tenant.id)
     }
-    return reply.status(201).send(tenant)
+    const versao = await registrarVersao(tenant.id, 'Cadastro')
+    return reply.status(201).send({ ...tenant, contratoVersao: versaoResp(versao) })
   })
 
   // PUT /:id — editar dados do tenant
@@ -318,7 +324,9 @@ export async function platformTenantsRoutes(app: FastifyInstance) {
           observacoes:          typeof observacoes === 'string' ? observacoes.trim() || null : null,
         },
       })
-      return reply.send(tenant)
+      // Nome, documento e endereço vão no contrato
+      const versao = await registrarVersao(id, 'Dados do restaurante alterados')
+      return reply.send({ ...tenant, contratoVersao: versaoResp(versao) })
     } catch (err: any) {
       if (err.code === 'P2025') return reply.status(404).send({ error: 'Tenant não encontrado' })
       if (err.code === 'P2002') {
@@ -391,11 +399,12 @@ export async function platformTenantsRoutes(app: FastifyInstance) {
       const contrato = await contratoAtual(prisma, id)
       if (plano && contrato) await prisma.contrato.update({ where: { id: contrato.id }, data: { plano: plano.nome } })
       await aplicarRecursos(id)
+      const versao = await registrarVersao(id, 'Plano alterado')
       const tenant = await prisma.tenant.findUnique({
         where: { id },
         select: { id: true, planoId: true, rfidDisponivel: true, vendaMobilePermitida: true, plano: { select: { id: true, nome: true, valor: true } } },
       })
-      return reply.send(tenant)
+      return reply.send({ ...tenant, contratoVersao: versaoResp(versao) })
     } catch (err: any) {
       if (err.code === 'P2025') return reply.status(404).send({ error: 'Tenant não encontrado' })
       throw err
@@ -446,7 +455,8 @@ export async function platformTenantsRoutes(app: FastifyInstance) {
       return con
     })
     invalidateTenantCache(id)
-    return reply.send(contrato)
+    const versao = await registrarVersao(id, atual ? 'Contrato editado' : 'Contrato criado')
+    return reply.send({ ...contrato, contratoVersao: versaoResp(versao) })
   })
 
   // GET /:id/admin — retorna o usuário administrador do tenant

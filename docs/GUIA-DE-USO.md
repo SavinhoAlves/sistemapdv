@@ -176,7 +176,7 @@ Painel com: restaurantes ativos, receita mensal (contratos pagantes) e estimativ
      - **Teste grátis de 7 dias** (ex.: segunda a domingo): o acesso fica liberado até o último dia do teste e o primeiro vencimento é o dia seguinte. Sem pagamento, o acesso bloqueia quando o teste acaba.
      - **Fechamento direto**: informe o primeiro vencimento e, se já recebeu, marque **Já recebi o primeiro pagamento**.
      - **Isento**: sem cobrança, acesso sempre liberado.
-2. Salve. O contrato é gerado e o acesso já segue a cobrança.
+2. Salve. O contrato em PDF (versão 1) é gerado e o acesso já segue a cobrança. Envie o PDF ao cliente pelo card **Contrato** (veja 4.5).
 
 ### 4.4 Assinatura do restaurante (`/platform/tenants/<id>`)
 
@@ -192,7 +192,18 @@ A licença não é mais editada à mão: ela é calculada a partir do contrato e
 
 A página **Cobranças** lista todos os restaurantes com a situação (em dia, em teste, atrasado, bloqueado, isento), o próximo vencimento e o botão para registrar pagamento.
 
-### 4.5 Suporte remoto
+### 4.5 Contrato em PDF
+
+O PDF é gerado no servidor com os dados do restaurante, do contrato e da contratada (pessoa física, foro de Miracema/RJ).
+
+- Cada vez que algo que aparece no contrato muda (nome, CNPJ, endereço, responsável, plano, valor, ciclo, dia de vencimento, datas, isenção, condições específicas), é criada uma **versão nova**. As antigas ficam guardadas e o PDF delas sai igual ao que foi enviado.
+- Registrar pagamento, ajustar vencimento, trocar a situação do papel ou mexer nos recursos **não** gera versão.
+- Quando há versão nova, o card **Contrato** mostra "Contrato atualizado (versão N) — envie ao cliente".
+- **Ver PDF** abre o arquivo; **Baixar** salva; **Compartilhar** abre o compartilhamento do celular (WhatsApp, e-mail) e marca a versão como enviada. No computador, Compartilhar baixa o arquivo para você anexar.
+- **Marcar como enviado** registra o envio feito por outro caminho.
+- Os dados da contratada ficam em `backend/src/modules/platform/contrato.ts` (`CONTRATADA`). As cláusulas estão em `contrato-pdf.ts`. Recomenda-se revisão por advogado.
+
+### 4.6 Suporte remoto
 
 Na lista de restaurantes, use a ação de **suporte remoto**:
 
@@ -200,7 +211,7 @@ Na lista de restaurantes, use a ação de **suporte remoto**:
 - **Auxiliar** — permite agir no sistema do cliente para ajudar.
 - Escolha em qual tela o cliente está com problema para abrir direto nela. A sessão de suporte fica marcada na tela e é encerrada ao sair.
 
-### 4.6 Tickets
+### 4.7 Tickets
 
 Menu **Tickets**: abra, filtre (abertos, em andamento, resolvidos, fechados, urgentes), atualize status/respostas e exclua chamados de cada restaurante.
 

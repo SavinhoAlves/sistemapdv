@@ -250,17 +250,22 @@ async function salvar() {
       })
       fechar()
       emit('saved')
-      toast.add({ title: 'Cliente cadastrado', description: 'Contrato gerado e acesso liberado conforme a cobrança.', color: 'green', icon: 'i-lucide-check-circle-2', timeout: 3000 })
+      toast.add({ title: 'Cliente cadastrado', description: 'Contrato gerado (versão 1). Envie o PDF ao cliente pelo card Contrato.', color: 'green', icon: 'i-lucide-check-circle-2', timeout: 5000 })
       navigateTo(`/platform/tenants/${created.id}`)
       return
     }
     const tid = props.tenant!.id
+    // A API diz se a edição mudou o texto do contrato (nova versão a reenviar)
+    const reenviar = (v?: { numero: number; nova: boolean } | null) =>
+      v?.nova ? `O contrato passou para a versão ${v.numero}. Reenvie o PDF atualizado ao cliente.` : undefined
     if (abaAtiva.value === 'dados') {
-      await platformFetch(`/platform/tenants/${tid}`, { method: 'PUT', body: JSON.stringify(dadosPayload()) })
-      toast.add({ title: 'Dados atualizados', color: 'green', icon: 'i-lucide-check-circle-2', timeout: 3000 })
+      const res = await platformFetch<any>(`/platform/tenants/${tid}`, { method: 'PUT', body: JSON.stringify(dadosPayload()) })
+      const aviso = reenviar(res.contratoVersao)
+      toast.add({ title: 'Dados atualizados', description: aviso, color: 'green', icon: aviso ? 'i-lucide-file-text' : 'i-lucide-check-circle-2', timeout: aviso ? 8000 : 3000 })
     } else {
-      await platformFetch(`/platform/tenants/${tid}/contrato`, { method: 'PUT', body: JSON.stringify(contratoRef.value!.payload()) })
-      toast.add({ title: 'Contrato atualizado', description: 'Plano, cobrança e acesso recalculados.', color: 'green', icon: 'i-lucide-check-circle-2', timeout: 3000 })
+      const res = await platformFetch<any>(`/platform/tenants/${tid}/contrato`, { method: 'PUT', body: JSON.stringify(contratoRef.value!.payload()) })
+      const aviso = reenviar(res.contratoVersao)
+      toast.add({ title: 'Contrato atualizado', description: aviso ?? 'Cobrança e acesso recalculados. O texto do contrato não mudou.', color: 'green', icon: aviso ? 'i-lucide-file-text' : 'i-lucide-check-circle-2', timeout: aviso ? 8000 : 3000 })
     }
     fechar()
     emit('saved')

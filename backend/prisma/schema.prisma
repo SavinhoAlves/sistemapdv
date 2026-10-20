@@ -139,6 +139,7 @@ model Tenant {
   dispositivos         Dispositivo[]
   licencas             Licenca[]
   contratos            Contrato[]
+  contratoVersoes      ContratoVersao[]
   tickets              TicketSuporte[]
 
   @@map("tenants")
@@ -703,6 +704,26 @@ model Contrato {
 
   @@index([tenantId])
   @@map("contratos")
+}
+
+/// Cada mudança no texto do contrato gera uma versão nova; as antigas ficam
+/// guardadas para o PDF de qualquer versão sair igual ao que foi enviado.
+model ContratoVersao {
+  id         String    @id @default(uuid())
+  tenantId   String    @map("tenant_id")
+  numero     Int
+  /// Tudo o que o PDF precisa: contratada, contratante e condições
+  dados      Json
+  /// sha256 de `dados`, para saber se uma edição mudou o contrato
+  hash       String
+  motivo     String?
+  enviadoEm  DateTime? @map("enviado_em")
+  createdAt  DateTime  @default(now()) @map("created_at")
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, numero])
+  @@map("contrato_versoes")
 }
 
 // ── Planos (pacotes de recursos vendidos pela plataforma) ──────────────────────

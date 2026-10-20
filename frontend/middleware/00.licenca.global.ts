@@ -30,6 +30,7 @@ export default defineNuxtRouteMiddleware(async (to) => {
       { query: { slug } }
     )
     cache.value = { valido: !!(res.ativo && !res.expirado && !res.semLicenca), ts: agora }
+    useState<unknown>('licenca_aviso', () => null).value = res.aviso ?? null
     if (!cache.value.valido) return navigateTo('/ativacao')
   } catch {
     // Backend indisponível — deixa passar para não travar o sistema

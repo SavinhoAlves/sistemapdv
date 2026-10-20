@@ -3,8 +3,12 @@ import { requirePlatform, invalidateTenantCache } from '../../middlewares/tenant
 import { prisma } from '../../lib/prisma'
 import { signAccessToken } from '../../lib/jwt'
 import bcrypt from 'bcryptjs'
-import { recursosDoPlano } from './platform-planos.routes'
-import { competenciaAtual, situacao, valorMensal } from './platform-cobranca.routes'
+import { z } from 'zod'
+import { valorMensalDoCiclo } from './platform-cobranca.routes'
+import {
+  TESTE_DIAS, aplicarRecursos, contratoAtual, dataDe, hojeBR, proximaDataComDia, registrarPagamento,
+  resumir, sincronizarLicenca, somarDias, somarMeses, ymd,
+} from './assinatura'
 
 function slugify(s: string) {
   return s
@@ -15,12 +19,34 @@ function slugify(s: string) {
     .replace(/(^-|-$)/g, '')
 }
 
-const FATOR_MRR: Record<string, number> = {
-  mensal:      1,
-  trimestral:  1 / 3,
-  semestral:   1 / 6,
-  anual:       1 / 12,
-}
+const DATA_RE = /^\d{4}-\d{2}-\d{2}$/
+const CICLOS = ['mensal', 'trimestral', 'semestral', 'anual'] as const
+
+/** Campos do contrato (cadastro e edição). Valor é o do ciclo; o do plano vem pré-preenchido na tela. */
+const contratoBody = z.object({
+  planoId:     z.string().min(1).nullish(),
+  plano:       z.string().trim().max(60).nullish(),
+  valor:       z.coerce.number().min(0, 'Valor não pode ser negativo').max(1_000_000).nullable(),
+  ciclo:       z.enum(CICLOS).default('mensal'),
+  dataInicio:  z.string().regex(DATA_RE).nullish(),
+  dataFim:     z.string().regex(DATA_RE).nullish(),
+  status:      z.enum(['trial', 'ativo', 'suspenso', 'cancelado']).default('trial'),
+  isento:      z.boolean().default(false),
+  observacoes: z.string().trim().max(1000).nullish(),
+  diaVencimento: z.coerce.number().int().min(1, 'Dia entre 1 e 31').max(31, 'Dia entre 1 e 31').optional(),
+})
+
+const cadastroContratoBody = contratoBody.extend({
+  teste:              z.boolean().default(false),
+  primeiroVencimento: z.string().regex(DATA_RE, 'Data do primeiro vencimento inválida').nullish(),
+  pagamentoInicial:   z.object({
+    valor:  z.coerce.number().positive('Informe o valor recebido'),
+    pagoEm: z.string().regex(DATA_RE, 'Data do pagamento inválida'),
+    forma:  z.enum(['pix', 'dinheiro', 'cartao', 'boleto', 'transferencia']).nullish(),
+  }).nullish(),
+})
+
+const primeiroErro = (e: z.ZodError) => e.issues[0]?.message ?? 'Dados inválidos'
 
 export async function platformTenantsRoutes(app: FastifyInstance) {
   // GET /dashboard — métricas consolidadas para o painel
@@ -28,73 +54,54 @@ export async function platformTenantsRoutes(app: FastifyInstance) {
     const tenants = await prisma.tenant.findMany({
       where: { status: { not: 'cancelado' } },
       select: {
-        id: true, codigo: true, nome: true, slug: true, status: true,
-        licencas:  { orderBy: { createdAt: 'desc' }, take: 1,
-          select: { status: true, dataVencimento: true } },
-        contratos: { orderBy: { createdAt: 'desc' }, take: 1,
-          select: { plano: true, valor: true, ciclo: true, status: true } },
-        cobrancaDiaVencimento: true, cobrancaValor: true, cobrancaIsento: true,
-        plano: { select: { valor: true } },
-        pagamentosMensalidade: { where: { competencia: competenciaAtual() }, take: 1, select: { id: true } },
+        id: true, nome: true, status: true,
+        plano: { select: { nome: true } },
+        contratos: { orderBy: { createdAt: 'desc' }, take: 1 },
+        pagamentosMensalidade: { take: 1, select: { id: true } },
       },
     })
-
-    const agora   = new Date()
-    const compAtual = competenciaAtual(agora)
-    const em30d   = new Date(agora.getTime() + 30 * 86_400_000)
-    const em7d    = new Date(agora.getTime() +  7 * 86_400_000)
 
     let mrr = 0
     const porPlano: Record<string, { count: number; mrr: number }> = {}
     const alertas: { tenantId: string; nome: string; tipo: string; dias?: number; valor?: number }[] = []
-
-    let licAtivas = 0, licPendentes = 0, licBloqueadas = 0, licVencendo30 = 0, licVencidas = 0
+    const cont = { ativas: 0, pendentes: 0, bloqueadas: 0, vencendo: 0, vencidas: 0, teste: 0 }
 
     for (const t of tenants) {
-      const lic = t.licencas[0]
-      const con = t.contratos[0]
+      const con = t.contratos[0] ?? null
+      const r = resumir(con, t.status, t.pagamentosMensalidade.length > 0)
+      const base = { tenantId: t.id, nome: t.nome }
 
-      if (lic) {
-        if (lic.status === 'ativado') {
-          licAtivas++
-          if (lic.dataVencimento) {
-            const venc = new Date(lic.dataVencimento)
-            if (venc < agora) {
-              licVencidas++
-              alertas.push({ tenantId: t.id, nome: t.nome, tipo: 'licenca_vencida' })
-            } else if (venc <= em30d) {
-              licVencendo30++
-              const dias = Math.ceil((venc.getTime() - agora.getTime()) / 86_400_000)
-              alertas.push({ tenantId: t.id, nome: t.nome, tipo: dias <= 7 ? 'licenca_critica' : 'licenca_vencendo', dias })
-            }
-          }
-        } else if (lic.status === 'pendente') {
-          licPendentes++
-        } else if (lic.status === 'bloqueado') {
-          licBloqueadas++
-          alertas.push({ tenantId: t.id, nome: t.nome, tipo: 'inadimplente' })
-        }
+      if (r.situacao === 'em_dia' || r.situacao === 'isento' || r.situacao === 'teste' || r.situacao === 'tolerancia') cont.ativas++
+      if (r.situacao === 'pendente') cont.pendentes++
+      if (r.situacao === 'bloqueado') { cont.bloqueadas++; alertas.push({ ...base, tipo: 'bloqueado', valor: r.valor ?? undefined }) }
+      if (r.situacao === 'tolerancia') {
+        cont.vencidas++
+        alertas.push({ ...base, tipo: 'tolerancia', dias: r.diasParaBloquear ?? 0, valor: r.valor ?? undefined })
+      }
+      if (r.situacao === 'em_dia' && r.diasParaVencer !== null && r.diasParaVencer <= 5) {
+        cont.vencendo++
+        alertas.push({ ...base, tipo: 'vencendo', dias: r.diasParaVencer, valor: r.valor ?? undefined })
+      }
+      if (r.situacao === 'teste') {
+        cont.teste++
+        const dias = r.testeAte ? Math.max(0, Math.round((dataDe(r.testeAte).getTime() - dataDe(hojeBR()).getTime()) / 86_400_000)) : 0
+        if (dias <= 2) alertas.push({ ...base, tipo: 'teste_acabando', dias })
       }
 
-      // Mensalidade do mês vencida sem pagamento
-      const { valor } = valorMensal(t)
-      const sit = situacao(t.cobrancaIsento, t.pagamentosMensalidade.length > 0, compAtual, t.cobrancaDiaVencimento, agora, valor)
-      if (sit === 'atrasado' && valor > 0) {
-        alertas.push({ tenantId: t.id, nome: t.nome, tipo: 'mensalidade_atrasada', dias: agora.getDate() - t.cobrancaDiaVencimento, valor })
-      }
-
-      if (con?.status === 'ativo' && con.valor) {
-        const mrrTenant = Number(con.valor) * (FATOR_MRR[con.ciclo] ?? 1)
-        mrr += mrrTenant
-        if (!porPlano[con.plano]) porPlano[con.plano] = { count: 0, mrr: 0 }
-        porPlano[con.plano].count++
-        porPlano[con.plano].mrr += mrrTenant
+      // Receita mensal: quem paga (sem teste, isentos, suspensos ou rescindidos)
+      if (['em_dia', 'tolerancia', 'bloqueado'].includes(r.situacao) && r.valor) {
+        const m = valorMensalDoCiclo(r.valor, r.ciclo)
+        const nome = t.plano?.nome ?? con?.plano ?? 'Sem plano'
+        mrr += m
+        porPlano[nome] ??= { count: 0, mrr: 0 }
+        porPlano[nome].count++
+        porPlano[nome].mrr += m
       }
     }
 
-    // Ordena alertas: vencidas > críticas (≤7d) > mensalidade atrasada > vencendo > licença bloqueada
-    const prioridade: Record<string, number> = { licenca_vencida: 0, licenca_critica: 1, mensalidade_atrasada: 2, licenca_vencendo: 3, inadimplente: 4 }
-    alertas.sort((a, b) => (prioridade[a.tipo] ?? 9) - (prioridade[b.tipo] ?? 9))
+    // Bloqueados > em tolerância > teste acabando > vencendo
+    const prioridade: Record<string, number> = { bloqueado: 0, tolerancia: 1, teste_acabando: 2, vencendo: 3 }
+    alertas.sort((a, b) => (prioridade[a.tipo] ?? 9) - (prioridade[b.tipo] ?? 9) || (a.dias ?? 0) - (b.dias ?? 0))
 
     return reply.send({
       totais: {
@@ -102,12 +109,12 @@ export async function platformTenantsRoutes(app: FastifyInstance) {
         ativos:    tenants.filter(t => t.status === 'ativo').length,
         suspensos: tenants.filter(t => t.status === 'suspenso').length,
       },
-      licencas: { ativas: licAtivas, pendentes: licPendentes, bloqueadas: licBloqueadas, vencendo: licVencendo30, vencidas: licVencidas },
+      licencas: cont,
       financeiro: {
-        mrr,
-        arr: mrr * 12,
+        mrr: Math.round(mrr * 100) / 100,
+        arr: Math.round(mrr * 12 * 100) / 100,
         porPlano: Object.entries(porPlano)
-          .map(([plano, d]) => ({ plano, count: d.count, mrr: d.mrr }))
+          .map(([plano, d]) => ({ plano, count: d.count, mrr: Math.round(d.mrr * 100) / 100 }))
           .sort((a, b) => b.mrr - a.mrr),
       },
       alertas,
@@ -127,6 +134,11 @@ export async function platformTenantsRoutes(app: FastifyInstance) {
         responsavel: true,
         telefone: true,
         endereco: true,
+        // O modal de edição da lista reenvia estes campos: sem eles, salvar apagava os valores
+        cpfResponsavel: true,
+        cidade: true,
+        uf: true,
+        observacoes: true,
         status: true,
         rfidDisponivel: true,
         vendaMobilePermitida: true,
@@ -138,15 +150,15 @@ export async function platformTenantsRoutes(app: FastifyInstance) {
           take: 1,
           select: { id: true, status: true, dataAtivacao: true, dataVencimento: true },
         },
-        contratos: {
-          orderBy: { createdAt: 'desc' },
-          take: 1,
-          select: { id: true, plano: true, valor: true, ciclo: true, status: true, dataInicio: true, dataFim: true },
-        },
+        contratos: { orderBy: { createdAt: 'desc' }, take: 1 },
+        pagamentosMensalidade: { take: 1, select: { id: true } },
       },
       orderBy: { nome: 'asc' },
     })
-    return reply.send(tenants)
+    return reply.send(tenants.map(({ pagamentosMensalidade, ...t }) => ({
+      ...t,
+      assinatura: resumir(t.contratos[0] ?? null, t.status, pagamentosMensalidade.length > 0),
+    })))
   })
 
   // GET /:id — detalhes completos com licença e contratos
@@ -168,8 +180,13 @@ export async function platformTenantsRoutes(app: FastifyInstance) {
         status: true,
         rfidDisponivel: true,
         vendaMobilePermitida: true,
+        rfidManual: true,
+        vendaMobileManual: true,
+        cpfResponsavel: true,
+        cidade: true,
+        uf: true,
         planoId: true,
-        plano: { select: { id: true, nome: true, valor: true } },
+        plano: { select: { id: true, nome: true, valor: true, rfid: true, vendaMobile: true } },
         createdAt: true,
         licencas: {
           orderBy: { createdAt: 'desc' },
@@ -179,77 +196,86 @@ export async function platformTenantsRoutes(app: FastifyInstance) {
           orderBy: { createdAt: 'desc' },
           take: 1,
         },
+        pagamentosMensalidade: { take: 1, select: { id: true } },
       },
     })
     if (!tenant) return reply.status(404).send({ error: 'Tenant não encontrado' })
-    return reply.send(tenant)
+    const { pagamentosMensalidade, ...resto } = tenant
+    return reply.send({ ...resto, assinatura: resumir(tenant.contratos[0] ?? null, tenant.status, pagamentosMensalidade.length > 0) })
   })
 
-  // POST / — criar tenant (+ licença pendente automática + contrato opcional)
+  // POST / — cria o restaurante com administrador e assinatura (contrato + licença derivada)
   app.post('/', { preHandler: requirePlatform }, async (request, reply) => {
     const body = request.body as any
-    const { nome, slug, cnpj, cpfResponsavel, responsavel, contato, telefone, endereco, cidade, uf, observacoes, vendaMobilePermitida, rfidDisponivel, contrato, adminEmail, adminSenha, planoId } = body
-
-    const plano = typeof planoId === 'string' && planoId
-      ? await prisma.plano.findUnique({ where: { id: planoId } })
-      : null
-    if (planoId && !plano) return reply.status(400).send({ error: 'Plano não encontrado' })
+    const { nome, slug, cnpj, cpfResponsavel, responsavel, contato, telefone, endereco, cidade, uf, observacoes, adminEmail, adminSenha } = body
 
     if (typeof nome !== 'string' || !nome.trim()) return reply.status(400).send({ error: 'Nome é obrigatório' })
     if (typeof adminEmail !== 'string' || !adminEmail.trim()) return reply.status(400).send({ error: 'E-mail do administrador é obrigatório' })
     if (typeof adminSenha !== 'string' || adminSenha.length < 6) return reply.status(400).send({ error: 'Senha do administrador deve ter no mínimo 6 caracteres' })
 
+    const parsed = cadastroContratoBody.safeParse(body.contrato ?? {})
+    if (!parsed.success) return reply.status(400).send({ error: primeiroErro(parsed.error) })
+    const c = parsed.data
+
+    const plano = c.planoId ? await prisma.plano.findUnique({ where: { id: c.planoId } }) : null
+    if (c.planoId && !plano) return reply.status(400).send({ error: 'Plano não encontrado' })
+    if (!plano && !c.plano) return reply.status(400).send({ error: 'Escolha o plano do restaurante' })
+
+    // Teste: começa hoje e vai até o 7º dia (seg → dom); o 1º vencimento é o dia seguinte.
+    // Sem teste: 1º vencimento informado (padrão: hoje, para pagar no fechamento).
+    const inicio = c.dataInicio ?? hojeBR()
+    const testeAte = c.teste ? somarDias(inicio, TESTE_DIAS - 1) : null
+    const primeiroVenc = testeAte ? somarDias(testeAte, 1) : (c.primeiroVencimento ?? inicio)
+    const diaVencimento = c.diaVencimento ?? Number(primeiroVenc.slice(8, 10))
+
     const slugInput = typeof slug === 'string' ? slug.trim() : ''
     const finalSlug = (slugInput || slugify(nome)).toLowerCase()
+    const texto = (v: unknown) => (typeof v === 'string' ? v.trim() || null : null)
 
+    let tenant
     try {
-      const tenant = await prisma.$transaction(async (tx) => {
+      tenant = await prisma.$transaction(async (tx) => {
         const t = await tx.tenant.create({
           data: {
-            nome:                 nome.trim(),
-            slug:                 finalSlug,
-            cnpj:                 typeof cnpj === 'string' ? cnpj.trim() || null : null,
-            cpfResponsavel:       typeof cpfResponsavel === 'string' ? cpfResponsavel.trim() || null : null,
-            responsavel:          typeof responsavel === 'string' ? responsavel.trim() || null : null,
-            contato:              typeof contato === 'string' ? contato.trim() || null : null,
-            telefone:             typeof telefone === 'string' ? telefone.trim() || null : null,
-            endereco:             typeof endereco === 'string' ? endereco.trim() || null : null,
-            cidade:               typeof cidade === 'string' ? cidade.trim() || null : null,
-            uf:                   typeof uf === 'string' ? uf.trim().toUpperCase() || null : null,
-            observacoes:          typeof observacoes === 'string' ? observacoes.trim() || null : null,
-            ...(plano
-              ? { planoId: plano.id, ...recursosDoPlano(plano) }
-              : { vendaMobilePermitida: vendaMobilePermitida ?? true, rfidDisponivel: rfidDisponivel ?? false }),
+            nome: nome.trim(),
+            slug: finalSlug,
+            cnpj: texto(cnpj), cpfResponsavel: texto(cpfResponsavel), responsavel: texto(responsavel),
+            contato: texto(contato), telefone: texto(telefone), endereco: texto(endereco), cidade: texto(cidade),
+            uf: texto(uf)?.toUpperCase() ?? null, observacoes: texto(observacoes),
+            planoId: plano?.id ?? null,
           },
         })
-        await tx.licenca.create({ data: { tenantId: t.id, status: 'pendente' } })
-        if (typeof contrato?.plano === 'string' && contrato.plano.trim()) {
-          await tx.contrato.create({
-            data: {
-              tenantId:   t.id,
-              plano:      contrato.plano.trim(),
-              valor:      contrato.valor != null ? contrato.valor : null,
-              ciclo:      contrato.ciclo || 'mensal',
-              dataInicio: contrato.dataInicio ? new Date(contrato.dataInicio) : new Date(),
-              dataFim:    contrato.dataFim ? new Date(contrato.dataFim) : null,
-              status:     contrato.status || 'trial',
-            },
-          })
-        }
+        await tx.contrato.create({
+          data: {
+            tenantId: t.id,
+            plano: plano?.nome ?? c.plano!,
+            valor: c.valor,
+            ciclo: c.ciclo,
+            dataInicio: dataDe(inicio),
+            dataFim: c.dataFim ? dataDe(c.dataFim) : null,
+            status: c.status,
+            isento: c.isento,
+            observacoes: c.observacoes || null,
+            diaVencimento,
+            testeAte: testeAte ? dataDe(testeAte) : null,
+            proximoVencimento: dataDe(primeiroVenc),
+          },
+        })
         const senhaHash = await bcrypt.hash(adminSenha, 12)
         await tx.usuario.create({
           data: {
             tenantId: t.id,
-            nome:     typeof responsavel === 'string' && responsavel.trim() ? responsavel.trim() : nome.trim(),
+            nome:     texto(responsavel) ?? nome.trim(),
             email:    adminEmail.trim().toLowerCase(),
             senhaHash,
             cargo:    'administrador',
             ativo:    true,
           },
         })
+        await aplicarRecursos(t.id, tx)
+        await sincronizarLicenca(t.id, tx)
         return t
       })
-      return reply.status(201).send(tenant)
     } catch (err: any) {
       if (err.code === 'P2002') {
         const field = err.meta?.target?.includes('slug') ? 'slug' : 'CNPJ'
@@ -257,20 +283,23 @@ export async function platformTenantsRoutes(app: FastifyInstance) {
       }
       throw err
     }
+
+    // Pagamento recebido no fechamento: cobre o 1º ciclo
+    if (c.pagamentoInicial && !c.isento) {
+      await registrarPagamento(tenant.id, c.pagamentoInicial)
+    } else {
+      await sincronizarLicenca(tenant.id)
+    }
+    return reply.status(201).send(tenant)
   })
 
   // PUT /:id — editar dados do tenant
   app.put('/:id', { preHandler: requirePlatform }, async (request, reply) => {
     const { id } = request.params as { id: string }
     const body = request.body as any
-    const { nome, slug, cnpj, cpfResponsavel, responsavel, contato, telefone, endereco, cidade, uf, observacoes, vendaMobilePermitida, rfidDisponivel } = body
+    const { nome, slug, cnpj, cpfResponsavel, responsavel, contato, telefone, endereco, cidade, uf, observacoes } = body
 
     if (typeof nome !== 'string' || !nome.trim()) return reply.status(400).send({ error: 'Nome é obrigatório' })
-
-    // Com plano, RFID e celular seguem o plano: ignorar o que vier do formulário
-    const atual = await prisma.tenant.findUnique({ where: { id }, select: { planoId: true } })
-    if (!atual) return reply.status(404).send({ error: 'Tenant não encontrado' })
-    const recursosManuais = !atual.planoId
 
     try {
       const tenant = await prisma.tenant.update({
@@ -287,8 +316,6 @@ export async function platformTenantsRoutes(app: FastifyInstance) {
           cidade:               typeof cidade === 'string' ? cidade.trim() || null : null,
           uf:                   typeof uf === 'string' ? uf.trim().toUpperCase() || null : null,
           observacoes:          typeof observacoes === 'string' ? observacoes.trim() || null : null,
-          ...(recursosManuais && vendaMobilePermitida !== undefined ? { vendaMobilePermitida } : {}),
-          ...(recursosManuais && rfidDisponivel !== undefined ? { rfidDisponivel } : {}),
         },
       })
       return reply.send(tenant)
@@ -316,8 +343,8 @@ export async function platformTenantsRoutes(app: FastifyInstance) {
         data: { status: status as any },
         select: { id: true, nome: true, status: true },
       })
-      // Invalida o cache para que a suspensão entre em vigor imediatamente
-      invalidateTenantCache(id)
+      // Licença acompanha a suspensão/reativação na hora (sincronizar também invalida o cache)
+      await sincronizarLicenca(id)
       return reply.send(tenant)
     } catch (err: any) {
       if (err.code === 'P2025') return reply.status(404).send({ error: 'Tenant não encontrado' })
@@ -325,56 +352,28 @@ export async function platformTenantsRoutes(app: FastifyInstance) {
     }
   })
 
-  // PATCH /:id/rfid — habilitar/desabilitar RFID
-  app.patch('/:id/rfid', { preHandler: requirePlatform }, async (request, reply) => {
+  // PATCH /:id/recursos — exceção do superadmin sobre o plano: true/false força, null segue o plano
+  app.patch('/:id/recursos', { preHandler: requirePlatform }, async (request, reply) => {
     const { id } = request.params as { id: string }
-    const { disponivel } = request.body as { disponivel: boolean }
-
-    if (typeof disponivel !== 'boolean') {
-      return reply.status(400).send({ error: '"disponivel" deve ser boolean' })
-    }
-    const atual = await prisma.tenant.findUnique({ where: { id }, select: { plano: { select: { nome: true } } } })
-    if (!atual) return reply.status(404).send({ error: 'Tenant não encontrado' })
-    if (atual.plano) {
-      return reply.status(409).send({ error: `O RFID é definido pelo plano ${atual.plano.nome}. Troque o plano ou edite os recursos dele.` })
-    }
+    const parsed = z.object({
+      rfid:        z.boolean().nullable().optional(),
+      vendaMobile: z.boolean().nullable().optional(),
+    }).safeParse(request.body ?? {})
+    if (!parsed.success) return reply.status(400).send({ error: 'Use true, false ou null para cada recurso' })
+    const { rfid, vendaMobile } = parsed.data
     try {
-      const tenant = await prisma.tenant.update({
+      await prisma.tenant.update({
         where: { id },
-        data: { rfidDisponivel: disponivel },
-        select: { id: true, nome: true, slug: true, rfidDisponivel: true },
+        data: {
+          ...(rfid !== undefined ? { rfidManual: rfid } : {}),
+          ...(vendaMobile !== undefined ? { vendaMobileManual: vendaMobile } : {}),
+        },
       })
-      return reply.send(tenant)
     } catch (err: any) {
       if (err.code === 'P2025') return reply.status(404).send({ error: 'Tenant não encontrado' })
       throw err
     }
-  })
-
-  // PATCH /:id/mobile — habilitar/desabilitar Venda Mobile
-  app.patch('/:id/mobile', { preHandler: requirePlatform }, async (request, reply) => {
-    const { id } = request.params as { id: string }
-    const { permitida } = request.body as { permitida: boolean }
-
-    if (typeof permitida !== 'boolean') {
-      return reply.status(400).send({ error: '"permitida" deve ser boolean' })
-    }
-    const atual = await prisma.tenant.findUnique({ where: { id }, select: { plano: { select: { nome: true } } } })
-    if (!atual) return reply.status(404).send({ error: 'Tenant não encontrado' })
-    if (atual.plano) {
-      return reply.status(409).send({ error: `A venda pelo celular é definido pelo plano ${atual.plano.nome}. Troque o plano ou edite os recursos dele.` })
-    }
-    try {
-      const tenant = await prisma.tenant.update({
-        where: { id },
-        data: { vendaMobilePermitida: permitida },
-        select: { id: true, nome: true, slug: true, vendaMobilePermitida: true },
-      })
-      return reply.send(tenant)
-    } catch (err: any) {
-      if (err.code === 'P2025') return reply.status(404).send({ error: 'Tenant não encontrado' })
-      throw err
-    }
+    return reply.send(await aplicarRecursos(id))
   })
 
   // PATCH /:id/plano — troca o plano; os recursos passam a seguir o plano novo.
@@ -388,12 +387,14 @@ export async function platformTenantsRoutes(app: FastifyInstance) {
     const plano = planoId ? await prisma.plano.findUnique({ where: { id: planoId } }) : null
     if (planoId && !plano) return reply.status(400).send({ error: 'Plano não encontrado' })
     try {
-      const tenant = await prisma.tenant.update({
+      await prisma.tenant.update({ where: { id }, data: { planoId: plano?.id ?? null } })
+      const contrato = await contratoAtual(prisma, id)
+      if (plano && contrato) await prisma.contrato.update({ where: { id: contrato.id }, data: { plano: plano.nome } })
+      await aplicarRecursos(id)
+      const tenant = await prisma.tenant.findUnique({
         where: { id },
-        data: plano ? { planoId: plano.id, ...recursosDoPlano(plano) } : { planoId: null },
         select: { id: true, planoId: true, rfidDisponivel: true, vendaMobilePermitida: true, plano: { select: { id: true, nome: true, valor: true } } },
       })
-      invalidateTenantCache(id)
       return reply.send(tenant)
     } catch (err: any) {
       if (err.code === 'P2025') return reply.status(404).send({ error: 'Tenant não encontrado' })
@@ -401,35 +402,50 @@ export async function platformTenantsRoutes(app: FastifyInstance) {
     }
   })
 
-  // PUT /:id/contrato — criar ou atualizar contrato
+  // PUT /:id/contrato — edita a assinatura: plano, valor, ciclo, vencimento, isenção, situação do papel
   app.put('/:id/contrato', { preHandler: requirePlatform }, async (request, reply) => {
     const { id } = request.params as { id: string }
-    const body = request.body as any
-    const { plano, valor, ciclo, dataInicio, dataFim, status } = body
+    const parsed = contratoBody.safeParse(request.body ?? {})
+    if (!parsed.success) return reply.status(400).send({ error: primeiroErro(parsed.error) })
+    const c = parsed.data
 
-    if (typeof plano !== 'string' || !plano.trim()) return reply.status(400).send({ error: 'Plano é obrigatório' })
-
-    const tenant = await prisma.tenant.findUnique({ where: { id } })
+    const tenant = await prisma.tenant.findUnique({ where: { id }, select: { id: true } })
     if (!tenant) return reply.status(404).send({ error: 'Tenant não encontrado' })
+    const plano = c.planoId ? await prisma.plano.findUnique({ where: { id: c.planoId } }) : null
+    if (c.planoId && !plano) return reply.status(400).send({ error: 'Plano não encontrado' })
+    if (!plano && !c.plano) return reply.status(400).send({ error: 'Escolha o plano do restaurante' })
 
-    const existing = await prisma.contrato.findFirst({
-      where: { tenantId: id },
-      orderBy: { createdAt: 'desc' },
-    })
+    const atual = await contratoAtual(prisma, id)
+
+    // Mudou o dia: o próximo vencimento vai para o novo dia, no mesmo mês
+    const dia = c.diaVencimento ?? atual?.diaVencimento ?? 10
+    let proximo = atual?.proximoVencimento ? ymd(atual.proximoVencimento) : null
+    if (proximo && dia !== atual?.diaVencimento) proximo = somarMeses(proximo, 0, dia)
+    if (!proximo) proximo = proximaDataComDia(hojeBR(), dia)
 
     const data = {
-      plano:     plano.trim(),
-      valor:     valor != null ? valor : null,
-      ciclo:     (ciclo || 'mensal') as any,
-      dataInicio: dataInicio ? new Date(dataInicio) : null,
-      dataFim:   dataFim ? new Date(dataFim) : null,
-      status:    (status || 'ativo') as any,
+      plano:       plano?.nome ?? c.plano!,
+      valor:       c.valor,
+      ciclo:       c.ciclo,
+      dataInicio:  c.dataInicio ? dataDe(c.dataInicio) : atual?.dataInicio ?? null,
+      dataFim:     c.dataFim ? dataDe(c.dataFim) : null,
+      status:      c.status,
+      isento:      c.isento,
+      observacoes: c.observacoes || null,
+      diaVencimento: dia,
+      proximoVencimento: dataDe(proximo),
     }
 
-    const contrato = existing
-      ? await prisma.contrato.update({ where: { id: existing.id }, data })
-      : await prisma.contrato.create({ data: { tenantId: id, ...data } })
-
+    const contrato = await prisma.$transaction(async tx => {
+      const con = atual
+        ? await tx.contrato.update({ where: { id: atual.id }, data })
+        : await tx.contrato.create({ data: { tenantId: id, ...data } })
+      await tx.tenant.update({ where: { id }, data: { planoId: plano?.id ?? null } })
+      await aplicarRecursos(id, tx)
+      await sincronizarLicenca(id, tx)
+      return con
+    })
+    invalidateTenantCache(id)
     return reply.send(contrato)
   })
 
@@ -532,38 +548,5 @@ export async function platformTenantsRoutes(app: FastifyInstance) {
       tenantSlug: tenant.slug,
       usuario: { id: admin.id, nome: admin.nome, cargo: admin.cargo, email: admin.email },
     })
-  })
-
-  // PUT /:id/licenca — criar ou atualizar licença
-  app.put('/:id/licenca', { preHandler: requirePlatform }, async (request, reply) => {
-    const { id } = request.params as { id: string }
-    const body = request.body as any
-    const { status, dataVencimento, dataAtivacao } = body
-
-    if (!['ativado', 'pendente', 'bloqueado'].includes(status)) {
-      return reply.status(400).send({ error: 'Status de licença inválido' })
-    }
-
-    const tenant = await prisma.tenant.findUnique({ where: { id } })
-    if (!tenant) return reply.status(404).send({ error: 'Tenant não encontrado' })
-
-    const existing = await prisma.licenca.findFirst({
-      where: { tenantId: id },
-      orderBy: { createdAt: 'desc' },
-    })
-
-    const data = {
-      status:         status as any,
-      dataVencimento: dataVencimento ? new Date(dataVencimento) : null,
-      dataAtivacao:   dataAtivacao   ? new Date(dataAtivacao)   : (status === 'ativado' ? new Date() : null),
-    }
-
-    const licenca = existing
-      ? await prisma.licenca.update({ where: { id: existing.id }, data })
-      : await prisma.licenca.create({ data: { tenantId: id, ...data } })
-
-    // Renovação/bloqueio vale na hora, sem esperar o TTL do cache de acesso
-    invalidateTenantCache(id)
-    return reply.send(licenca)
   })
 }

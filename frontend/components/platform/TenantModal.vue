@@ -75,42 +75,10 @@
         </div>
       </template>
 
-      <!-- Passo 3: contrato -->
+      <!-- Passo 3: contrato (assinatura) -->
       <template v-else>
-        <div class="pf-note info">O contrato de prestação de serviços é gerado ao cadastrar e fica pronto para imprimir e assinar.</div>
-        <div class="pf-boxm">
-          <div class="pf-fld">
-            <span class="pf-lab">Plano *</span>
-            <div v-if="planosAtivos.length" class="pf-rotas">
-              <button v-for="pl in planosAtivos" :key="pl.id" type="button" :class="{ sel: planoId === pl.id }" @click="escolherPlano(pl)">
-                <span>{{ pl.nome }} · {{ moedaBR(pl.valor) }}/mês</span>
-                <small>{{ resumoRecursos(pl) }}</small>
-              </button>
-            </div>
-            <small v-else style="color:var(--pf-muted)">
-              Nenhum plano criado. Os recursos ficam manuais. <NuxtLink to="/platform/planos" style="color:var(--pf-brand-d)">Criar planos</NuxtLink>
-            </small>
-            <input v-if="!planosAtivos.length" v-model="contratoForm.plano" class="pf-inp" placeholder="Nome do plano no contrato" aria-label="Nome do plano">
-          </div>
-          <div class="pf-form">
-            <div class="pf-fld"><label class="pf-lab" for="tm-valor">Valor mensal (R$)</label><input id="tm-valor" v-model="contratoForm.valor" class="pf-inp" type="number" min="0" step="0.01" placeholder="0,00"></div>
-            <div class="pf-fld">
-              <span class="pf-lab">Ciclo de cobrança</span>
-              <div class="pf-chips">
-                <button v-for="c in ciclos" :key="c.value" type="button" class="pf-fc" :aria-pressed="contratoForm.ciclo === c.value" @click="contratoForm.ciclo = c.value as any">{{ c.label }}</button>
-              </div>
-            </div>
-            <div class="pf-fld"><label class="pf-lab" for="tm-ini">Início do contrato</label><input id="tm-ini" v-model="contratoForm.dataInicio" class="pf-inp" type="date"></div>
-            <div class="pf-fld"><label class="pf-lab" for="tm-fim">Fim (opcional)</label><input id="tm-fim" v-model="contratoForm.dataFim" class="pf-inp" type="date"></div>
-            <div class="pf-fld full">
-              <span class="pf-lab">Situação do contrato</span>
-              <div class="pf-seg">
-                <button type="button" class="warn" :class="{ sel: contratoForm.status === 'trial' }" @click="contratoForm.status = 'trial'">Ag. assinatura</button>
-                <button type="button" class="ok" :class="{ sel: contratoForm.status === 'ativo' }" @click="contratoForm.status = 'ativo'">Assinado</button>
-              </div>
-            </div>
-          </div>
-        </div>
+        <div class="pf-note info">Ao cadastrar, o contrato é gerado e o acesso já segue a cobrança: teste grátis, primeiro vencimento e tolerância de 5 dias.</div>
+        <PlatformContratoForm ref="contratoRef" v-model="contrato" modo="cadastro" />
       </template>
     </template>
 
@@ -131,74 +99,10 @@
           <div class="pf-fld full"><label class="pf-lab" for="te-obs">Observações</label><textarea id="te-obs" v-model="form.observacoes" class="pf-inp" rows="2" placeholder="Anotações internas" /></div>
         </div>
       </div>
-      <div v-if="tenant?.plano" class="pf-note info">Os recursos deste restaurante seguem o plano {{ tenant.plano.nome }}.</div>
-      <div v-else class="pf-boxm">
-        <p class="pf-sub" style="margin:0">Recursos</p>
-        <div>
-          <div v-for="feat in features" :key="feat.key" class="pf-feat">
-            <div><b>{{ feat.label }}</b><small>{{ feat.desc }}</small></div>
-            <button
-              type="button"
-              class="pf-sw"
-              role="switch"
-              :aria-checked="!!(form as any)[feat.key]"
-              :aria-label="feat.label"
-              @click="(form as any)[feat.key] = !(form as any)[feat.key]"
-            />
-          </div>
-        </div>
-      </div>
     </template>
 
-    <!-- ════ EDIÇÃO: licença ════ -->
-    <div v-else-if="abaAtiva === 'licenca'" class="pf-boxm">
-      <div class="pf-fld">
-        <span class="pf-lab">Situação</span>
-        <div class="pf-seg">
-          <button
-            v-for="s in licencaStatuses"
-            :key="s.value"
-            type="button"
-            :class="[{ green: 'ok', amber: 'warn', red: 'bad' }[s.color], { sel: licencaForm.status === s.value }]"
-            @click="licencaForm.status = s.value"
-          >{{ s.label }}</button>
-        </div>
-      </div>
-      <div class="pf-form">
-        <div class="pf-fld"><label class="pf-lab" for="tl-at">Ativação</label><input id="tl-at" v-model="licencaForm.dataAtivacao" class="pf-inp" type="date"></div>
-        <div class="pf-fld"><label class="pf-lab" for="tl-ve">Vencimento</label><input id="tl-ve" v-model="licencaForm.dataVencimento" class="pf-inp" type="date"></div>
-      </div>
-      <small v-if="licencaAtual" style="color:var(--pf-muted)">Criada em {{ formatDate(licencaAtual.createdAt) }}</small>
-    </div>
-
     <!-- ════ EDIÇÃO: contrato ════ -->
-    <div v-else-if="abaAtiva === 'contrato'" class="pf-boxm">
-      <div class="pf-fld">
-        <span class="pf-lab">Plano *</span>
-        <div class="pf-chips">
-          <button v-for="p in planosPredef" :key="p" type="button" class="pf-fc" :aria-pressed="contratoForm.plano === p" @click="contratoForm.plano = p">{{ p }}</button>
-        </div>
-        <input v-model="contratoForm.plano" class="pf-inp" placeholder="Ou escreva o nome do plano" aria-label="Nome do plano">
-      </div>
-      <div class="pf-form">
-        <div class="pf-fld"><label class="pf-lab" for="tc-valor">Valor (R$)</label><input id="tc-valor" v-model="contratoForm.valor" class="pf-inp" type="number" min="0" step="0.01" placeholder="0,00"></div>
-        <div class="pf-fld">
-          <span class="pf-lab">Situação</span>
-          <div class="pf-seg">
-            <button type="button" class="warn" :class="{ sel: contratoForm.status === 'trial' }" @click="contratoForm.status = 'trial'">Ag. assinatura</button>
-            <button type="button" class="ok" :class="{ sel: contratoForm.status === 'ativo' }" @click="contratoForm.status = 'ativo'">Assinado</button>
-          </div>
-        </div>
-        <div class="pf-fld full">
-          <span class="pf-lab">Ciclo de cobrança</span>
-          <div class="pf-chips">
-            <button v-for="c in ciclos" :key="c.value" type="button" class="pf-fc" :aria-pressed="contratoForm.ciclo === c.value" @click="contratoForm.ciclo = c.value as any">{{ c.label }}</button>
-          </div>
-        </div>
-        <div class="pf-fld"><label class="pf-lab" for="tc-ini">Início</label><input id="tc-ini" v-model="contratoForm.dataInicio" class="pf-inp" type="date"></div>
-        <div class="pf-fld"><label class="pf-lab" for="tc-fim">Fim (opcional)</label><input id="tc-fim" v-model="contratoForm.dataFim" class="pf-inp" type="date"></div>
-      </div>
-    </div>
+    <PlatformContratoForm v-else-if="abaAtiva === 'contrato'" ref="contratoRef" v-model="contrato" modo="edicao" />
 
     <p v-if="erroModal" class="pf-err" role="alert">{{ erroModal }}</p>
 
@@ -225,19 +129,10 @@
 
 <script setup lang="ts">
 import { Store, Check, Eye, EyeOff, Loader2 } from 'lucide-vue-next'
-import { usePlanos, RECURSOS, type Plano } from '~/composables/usePlanos'
-interface Licenca  { id: string; status: string; dataAtivacao: string | null; dataVencimento: string | null; createdAt: string }
-interface Contrato { id: string; plano: string; valor: string | null; ciclo: string; status: string; dataInicio?: string | null; dataFim?: string | null }
-interface Tenant {
-  id: string; nome: string; slug: string; cnpj: string | null; contato: string | null
-  responsavel: string | null; cpfResponsavel: string | null; telefone: string | null
-  endereco: string | null; cidade: string | null; uf: string | null; observacoes: string | null
-  status: string; rfidDisponivel: boolean; vendaMobilePermitida: boolean; createdAt: string
-  plano?: { id: string; nome: string } | null
-  licencas: Licenca[]; contratos: Contrato[]
-}
+import type { ContratoModelo } from './ContratoForm.vue'
+import type { Tenant } from '~/composables/usePlatformTenants'
 
-const props = defineProps<{ modelValue: boolean; tenant: Tenant | null }>()
+const props = defineProps<{ modelValue: boolean; tenant: Tenant | null; abaInicial?: 'dados' | 'contrato' }>()
 const emit  = defineEmits<{ 'update:modelValue': [boolean]; 'saved': [] }>()
 
 const toast             = useToast()
@@ -249,19 +144,25 @@ const isEdit = computed(() => props.tenant !== null)
 const form = reactive({
   nome: '', slug: '', cnpj: '', responsavel: '', cpfResponsavel: '', contato: '',
   telefone: '', endereco: '', cidade: '', uf: '', observacoes: '',
-  vendaMobilePermitida: true, rfidDisponivel: false,
 })
-const licencaForm  = reactive({ status: 'pendente', dataAtivacao: '', dataVencimento: '' })
-const contratoForm = reactive({ plano: 'Básico', valor: '', ciclo: 'mensal' as 'mensal' | 'trimestral' | 'semestral' | 'anual', dataInicio: new Date().toISOString().substring(0, 10), dataFim: '', status: 'trial' as 'trial' | 'ativo' })
 const adminForm    = reactive({ email: '', senha: '', senhaConfirm: '' })
 const mostrarSenha = ref(false)
 
-const abaAtiva            = ref<'dados' | 'licenca' | 'contrato'>('dados')
-const passo               = ref(0)
-const salvando            = ref(false)
-const erroModal           = ref('')
-const licencaAtual        = ref<Licenca | null>(null)
-const contratoAtualTenant = ref<Contrato | null>(null)
+const hoje = () => new Date(Date.now() - 3 * 3_600_000).toISOString().slice(0, 10)
+function contratoVazio(): ContratoModelo {
+  return {
+    planoId: null, plano: '', valor: '', ciclo: 'mensal', dataInicio: hoje(), dataFim: '', status: 'trial',
+    isento: false, observacoes: '', diaVencimento: 10,
+    teste: true, primeiroVencimento: hoje(), pagarAgora: false, pagamento: { pagoEm: hoje(), forma: 'pix' },
+  }
+}
+const contrato    = ref<ContratoModelo>(contratoVazio())
+const contratoRef = ref<{ payload: () => any; validar: () => string | null } | null>(null)
+
+const abaAtiva  = ref<'dados' | 'contrato'>('dados')
+const passo     = ref(0)
+const salvando  = ref(false)
+const erroModal = ref('')
 
 // ── Constantes ────────────────────────────────────────────────────────────────
 const passos = [
@@ -270,52 +171,17 @@ const passos = [
   { id: 'contrato',        label: 'Contrato'        },
 ]
 const abas = [
-  { id: 'dados' as const,    label: 'Dados',    icon: 'i-lucide-building-2' },
-  { id: 'licenca' as const,  label: 'Licença',  icon: 'i-lucide-file-text'  },
-  { id: 'contrato' as const, label: 'Contrato', icon: 'i-lucide-banknote'   },
-]
-const licencaStatuses: { value: string; label: string; color: 'green' | 'amber' | 'red' }[] = [
-  { value: 'ativado',   label: 'Ativada',   color: 'green' },
-  { value: 'pendente',  label: 'Pendente',  color: 'amber' },
-  { value: 'bloqueado', label: 'Bloqueada', color: 'red'   },
-]
-const features = [
-  { key: 'vendaMobilePermitida', label: 'Venda pelo Celular', desc: 'Acesso via QR Code e dispositivo móvel', color: 'sky',    onIcon: 'i-lucide-check' },
-  { key: 'rfidDisponivel',       label: 'RFID',               desc: 'Autenticação por cartão (feature paga)',  color: 'violet', onIcon: 'i-lucide-check' },
-]
-const planosPredef = ['Básico', 'Profissional', 'Enterprise']
-
-// Planos criados em Planos e valores; no cadastro, escolher um define o plano
-// do restaurante (os recursos passam a seguir o plano) e o nome do contrato.
-const { planos, carregar: carregarPlanos } = usePlanos()
-const planosAtivos = computed(() => planos.value.filter(pl => pl.ativo))
-const planoId = ref<string | null>(null)
-const moedaBR = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
-function resumoRecursos(pl: Plano) {
-  const r = RECURSOS.filter(x => pl[x.chave]).map(x => x.rotulo)
-  return r.length ? r.join(', ') : 'Sem recursos extras'
-}
-function escolherPlano(pl: Plano) {
-  planoId.value = pl.id
-  contratoForm.plano = pl.nome
-  contratoForm.valor = String(pl.valor)
-}
-const ciclos = [
-  { value: 'mensal', label: 'Mensal' }, { value: 'trimestral', label: 'Trim.' },
-  { value: 'semestral', label: 'Semes.' }, { value: 'anual', label: 'Anual' },
+  { id: 'dados' as const,    label: 'Dados'    },
+  { id: 'contrato' as const, label: 'Contrato e cobrança' },
 ]
 
 // ── Watch: popula/reseta ao abrir ─────────────────────────────────────────────
 watch(() => props.modelValue, (open) => {
   if (!open) return
-  planoId.value = null
-  carregarPlanos()
   erroModal.value = ''
-  abaAtiva.value = 'dados'
+  abaAtiva.value = props.abaInicial ?? 'dados'
   passo.value = 0
   mostrarSenha.value = false
-  licencaAtual.value = null
-  contratoAtualTenant.value = null
 
   if (props.tenant) {
     const t = props.tenant
@@ -323,45 +189,31 @@ watch(() => props.modelValue, (open) => {
       nome: t.nome, slug: t.slug, cnpj: t.cnpj || '', responsavel: t.responsavel || '',
       cpfResponsavel: t.cpfResponsavel || '', contato: t.contato || '', telefone: t.telefone || '',
       endereco: t.endereco || '', cidade: t.cidade || '', uf: t.uf || '', observacoes: t.observacoes || '',
-      vendaMobilePermitida: t.vendaMobilePermitida, rfidDisponivel: t.rfidDisponivel,
     })
-    const lic = t.licencas?.[0]
-    if (lic) {
-      licencaAtual.value = lic
-      licencaForm.status = lic.status
-      licencaForm.dataAtivacao = lic.dataAtivacao?.substring(0, 10) || ''
-      licencaForm.dataVencimento = lic.dataVencimento?.substring(0, 10) || ''
-    } else {
-      licencaForm.status = 'pendente'; licencaForm.dataAtivacao = ''; licencaForm.dataVencimento = ''
-    }
     const con = t.contratos?.[0]
-    if (con) {
-      contratoAtualTenant.value = con
-      contratoForm.plano = con.plano; contratoForm.valor = con.valor || ''
-      contratoForm.ciclo = (con.ciclo as any) || 'mensal'
-      contratoForm.dataInicio = con.dataInicio?.substring(0, 10) || ''
-      contratoForm.dataFim = con.dataFim?.substring(0, 10) || ''
-      contratoForm.status = (con.status as any) || 'trial'
-    } else {
-      resetContratoForm()
+    contrato.value = {
+      ...contratoVazio(),
+      planoId: t.planoId ?? null,
+      plano: t.plano?.nome ?? con?.plano ?? '',
+      valor: con?.valor ?? '',
+      ciclo: (con?.ciclo as ContratoModelo['ciclo']) || 'mensal',
+      dataInicio: con?.dataInicio?.slice(0, 10) || '',
+      dataFim: con?.dataFim?.slice(0, 10) || '',
+      status: (con?.status as ContratoModelo['status']) || 'trial',
+      isento: con?.isento ?? false,
+      observacoes: con?.observacoes ?? '',
+      diaVencimento: con?.diaVencimento ?? 10,
     }
   } else {
-    Object.assign(form, { nome: '', slug: '', cnpj: '', responsavel: '', cpfResponsavel: '', contato: '', telefone: '', endereco: '', cidade: '', uf: '', observacoes: '', vendaMobilePermitida: true, rfidDisponivel: false })
-    licencaForm.status = 'pendente'; licencaForm.dataAtivacao = ''; licencaForm.dataVencimento = ''
-    resetContratoForm()
+    Object.assign(form, { nome: '', slug: '', cnpj: '', responsavel: '', cpfResponsavel: '', contato: '', telefone: '', endereco: '', cidade: '', uf: '', observacoes: '' })
+    contrato.value = contratoVazio()
     Object.assign(adminForm, { email: '', senha: '', senhaConfirm: '' })
   }
 })
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
-function resetContratoForm() {
-  contratoForm.plano = 'Básico'; contratoForm.valor = ''; contratoForm.ciclo = 'mensal'
-  contratoForm.dataInicio = new Date().toISOString().substring(0, 10)
-  contratoForm.dataFim = ''; contratoForm.status = 'trial'
-}
 function slugify(s: string) { return s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') }
 function autoSlug() { if (!isEdit.value) form.slug = slugify(form.nome) }
-function formatDate(d: string | null | undefined) { if (!d) return '—'; return new Date(d).toLocaleDateString('pt-BR') }
 function fechar() { emit('update:modelValue', false) }
 
 function avancar() {
@@ -377,42 +229,38 @@ function avancar() {
   passo.value++
 }
 
-function parseValor(v: string) { return v ? parseFloat(v.replace(',', '.')) : null }
+const dadosPayload = () => ({
+  nome: form.nome, slug: form.slug, cnpj: form.cnpj || null, cpfResponsavel: form.cpfResponsavel || null,
+  responsavel: form.responsavel || null, contato: form.contato || null, telefone: form.telefone || null,
+  endereco: form.endereco || null, cidade: form.cidade || null, uf: form.uf || null, observacoes: form.observacoes || null,
+})
 
 async function salvar() {
   erroModal.value = ''
+  const precisaContrato = !isEdit.value || abaAtiva.value === 'contrato'
+  const invalido = precisaContrato ? contratoRef.value?.validar() : null
+  if (invalido) { erroModal.value = invalido; return }
+
   salvando.value = true
   try {
     if (!isEdit.value) {
-      if (planosAtivos.value.length && !planoId.value) { erroModal.value = 'Escolha o plano do restaurante'; return }
-      if (!contratoForm.plano.trim()) { erroModal.value = 'Selecione o plano do contrato'; return }
-      const payload = {
-        nome: form.nome, slug: form.slug, cnpj: form.cnpj || null, cpfResponsavel: form.cpfResponsavel || null,
-        responsavel: form.responsavel || null, contato: form.contato || null, telefone: form.telefone || null,
-        endereco: form.endereco || null, cidade: form.cidade || null, uf: form.uf || null, observacoes: form.observacoes || null,
-        vendaMobilePermitida: form.vendaMobilePermitida, rfidDisponivel: form.rfidDisponivel,
-        contrato: { plano: contratoForm.plano.trim(), valor: parseValor(contratoForm.valor), ciclo: contratoForm.ciclo, dataInicio: contratoForm.dataInicio || null, dataFim: contratoForm.dataFim || null, status: contratoForm.status },
-        adminEmail: adminForm.email.trim(), adminSenha: adminForm.senha,
-        planoId: planoId.value,
-      }
-      const created = await platformFetch<any>('/platform/tenants', { method: 'POST', body: JSON.stringify(payload) })
+      const created = await platformFetch<any>('/platform/tenants', {
+        method: 'POST',
+        body: JSON.stringify({ ...dadosPayload(), adminEmail: adminForm.email.trim(), adminSenha: adminForm.senha, contrato: contratoRef.value!.payload() }),
+      })
       fechar()
       emit('saved')
-      toast.add({ title: 'Sucesso', description: 'Cliente cadastrado! Contrato disponível para impressão.', color: 'green', icon: 'i-lucide-check-circle-2', timeout: 3000 })
+      toast.add({ title: 'Cliente cadastrado', description: 'Contrato gerado e acesso liberado conforme a cobrança.', color: 'green', icon: 'i-lucide-check-circle-2', timeout: 3000 })
       navigateTo(`/platform/tenants/${created.id}`)
       return
     }
     const tid = props.tenant!.id
     if (abaAtiva.value === 'dados') {
-      await platformFetch(`/platform/tenants/${tid}`, { method: 'PUT', body: JSON.stringify({ nome: form.nome, slug: form.slug, cnpj: form.cnpj || null, cpfResponsavel: form.cpfResponsavel || null, responsavel: form.responsavel || null, contato: form.contato || null, telefone: form.telefone || null, endereco: form.endereco || null, cidade: form.cidade || null, uf: form.uf || null, observacoes: form.observacoes || null, vendaMobilePermitida: form.vendaMobilePermitida, rfidDisponivel: form.rfidDisponivel }) })
-      toast.add({ title: 'Sucesso', description: 'Dados atualizados!', color: 'green', icon: 'i-lucide-check-circle-2', timeout: 3000 })
-    } else if (abaAtiva.value === 'licenca') {
-      await platformFetch(`/platform/tenants/${tid}/licenca`, { method: 'PUT', body: JSON.stringify({ status: licencaForm.status, dataAtivacao: licencaForm.dataAtivacao || null, dataVencimento: licencaForm.dataVencimento || null }) })
-      toast.add({ title: 'Sucesso', description: 'Licença atualizada!', color: 'green', icon: 'i-lucide-check-circle-2', timeout: 3000 })
-    } else if (abaAtiva.value === 'contrato') {
-      if (!contratoForm.plano.trim()) { erroModal.value = 'Informe o nome do plano'; return }
-      await platformFetch(`/platform/tenants/${tid}/contrato`, { method: 'PUT', body: JSON.stringify({ plano: contratoForm.plano.trim(), valor: parseValor(contratoForm.valor), ciclo: contratoForm.ciclo, dataInicio: contratoForm.dataInicio || null, dataFim: contratoForm.dataFim || null, status: contratoForm.status }) })
-      toast.add({ title: 'Sucesso', description: 'Contrato atualizado!', color: 'green', icon: 'i-lucide-check-circle-2', timeout: 3000 })
+      await platformFetch(`/platform/tenants/${tid}`, { method: 'PUT', body: JSON.stringify(dadosPayload()) })
+      toast.add({ title: 'Dados atualizados', color: 'green', icon: 'i-lucide-check-circle-2', timeout: 3000 })
+    } else {
+      await platformFetch(`/platform/tenants/${tid}/contrato`, { method: 'PUT', body: JSON.stringify(contratoRef.value!.payload()) })
+      toast.add({ title: 'Contrato atualizado', description: 'Plano, cobrança e acesso recalculados.', color: 'green', icon: 'i-lucide-check-circle-2', timeout: 3000 })
     }
     fechar()
     emit('saved')

@@ -10,6 +10,7 @@ export default defineNuxtPlugin(() => {
     'licenca_cache',
     () => ({ valido: null, ts: 0 })
   )
+  const aviso = useState<unknown>('licenca_aviso', () => null)
 
   setInterval(async () => {
     if (ROTAS_LIVRES.some(r => router.currentRoute.value.path.startsWith(r))) return
@@ -21,6 +22,7 @@ export default defineNuxtPlugin(() => {
       )
       const valido = !!(res.ativo && !res.expirado && !res.semLicenca)
       cache.value = { valido, ts: Date.now() }
+      aviso.value = res.aviso ?? null
       if (!valido) navigateTo('/ativacao')
     } catch {
       // ignore transient errors — só age em resposta confirmada do backend

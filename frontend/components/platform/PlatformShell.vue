@@ -93,7 +93,7 @@ const NAV: { nome: string; itens: ItemNav[] }[] = [
   { nome: 'Clientes', itens: [
     { chave: 'painel',       rotulo: 'Visão geral',   icone: LayoutDashboard, rota: '/platform' },
     { chave: 'restaurantes', rotulo: 'Restaurantes',  icone: Store,           rota: '/platform/restaurantes' },
-    { chave: 'cobranca',     rotulo: 'Mensalidades',  icone: Wallet,          rota: '/platform/mensalidades' },
+    { chave: 'cobranca',     rotulo: 'Cobranças',     icone: Wallet,          rota: '/platform/mensalidades' },
     { chave: 'demos',        rotulo: 'Testes', icone: FlaskConical },
   ] },
   { nome: 'Atendimento', itens: [

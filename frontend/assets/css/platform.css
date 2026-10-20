@@ -203,7 +203,7 @@ html.dark .pf, html.dark .pf-portal {
 
 /* Menu suspenso */
 .pf-menu { position: absolute; right: 0; top: calc(100% + 6px); z-index: 30; min-width: 190px; padding: 6px; background: var(--pf-card); border: 1px solid var(--pf-line); border-radius: 14px; box-shadow: 0 16px 40px rgba(0,0,0,.18); text-align: left; }
-.pf-menu button { display: flex; align-items: center; gap: 10px; width: 100%; padding: 9px 10px; border: 0; border-radius: 10px; background: none; font-weight: 600; font-size: 14px; }
+.pf-menu button { display: flex; align-items: center; gap: 10px; width: 100%; text-align: left; padding: 9px 10px; border: 0; border-radius: 10px; background: none; font-weight: 600; font-size: 14px; }
 .pf-menu button:hover { background: var(--pf-soft); }
 .pf-menu small { display: block; font-weight: 400; color: var(--pf-muted); font-size: 12px; }
 /* Menu teleportado para o body (escapa do overflow dos cards): posição vem do botão */

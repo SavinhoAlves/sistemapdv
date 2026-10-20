@@ -119,7 +119,7 @@
       <div
         v-if="menuSuporte"
         class="pf-portal pf-menu"
-        :style="{ top: `${menuSuporte.top}px`, right: `${menuSuporte.right}px` }"
+        :style="menuSuporte.pos"
         @click.stop
       >
         <button @click="suporte(menuSuporte.tenant, 'visualizacao')">
@@ -190,11 +190,16 @@ const tenantEditando = ref<Tenant | null>(null)
 function abrirModal(t: Tenant | null) { tenantEditando.value = t; modalAberto.value = true }
 function abrirDetalhe(t: Tenant) { navigateTo(`/platform/tenants/${t.id}`) }
 
-const menuSuporte  = ref<{ tenant: Tenant; top: number; right: number } | null>(null)
+const menuSuporte  = ref<{ tenant: Tenant; pos: Record<string, string> } | null>(null)
+const ALTURA_MENU = 140
 function alternarMenu(t: Tenant, ev: MouseEvent) {
   if (menuSuporte.value?.tenant.id === t.id) { menuSuporte.value = null; return }
   const r = (ev.currentTarget as HTMLElement).getBoundingClientRect()
-  menuSuporte.value = { tenant: t, top: r.bottom + 6, right: window.innerWidth - r.right }
+  // Sem espaço abaixo do botão (últimas linhas da tela), abre para cima
+  const vertical = r.bottom + 6 + ALTURA_MENU > window.innerHeight
+    ? { top: 'auto', bottom: `${window.innerHeight - r.top + 6}px` }
+    : { top: `${r.bottom + 6}px` }
+  menuSuporte.value = { tenant: t, pos: { ...vertical, right: `${window.innerWidth - r.right}px` } }
 }
 const suporteModal = reactive({ aberto: false, tenant: null as Tenant | null, modo: 'auxiliar' as 'visualizacao' | 'auxiliar' })
 function suporte(t: Tenant, modo: 'visualizacao' | 'auxiliar') {

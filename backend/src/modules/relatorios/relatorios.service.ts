@@ -1,20 +1,50 @@
 import { prisma } from '../../lib/prisma'
+import { hojeLocal, intervaloDias, partesLocais, somarDias } from '../../lib/fuso'
 
-function periodoDefault(dataInicio?: string, dataFim?: string) {
-  const hoje = new Date().toISOString().slice(0, 10)
-  return { inicio: dataInicio || hoje, fim: dataFim || hoje }
+/**
+ * Filtros comuns a todos os relatórios. Cada relatório usa os que fazem
+ * sentido para ele e ignora o resto (a tela só oferece os aplicáveis).
+ *
+ * Período: dias inteiros no fuso de Brasília. Antes o intervalo era montado
+ * em UTC, e uma venda às 22h caía no dia seguinte.
+ */
+export interface Filtros {
+  dataInicio?: string
+  dataFim?: string
+  funcionarioId?: string   // garçom que lançou o pedido / operador do caixa
+  metodoId?: string
+  categoriaId?: string
+  produtoId?: string
+  origem?: 'mesa' | 'balcao' // mesa = comanda de mesa; balcao = venda direta
+  status?: string
 }
 
-function dateRange(inicio: string, fim: string) {
-  const start = new Date(inicio + 'T00:00:00.000Z')
-  const end   = new Date(fim   + 'T23:59:59.999Z')
-  return { gte: start, lte: end }
+function periodo(f: Filtros) {
+  const hoje = hojeLocal()
+  const inicio = f.dataInicio || hoje
+  const fim = f.dataFim || inicio
+  return { inicio, fim, range: intervaloDias(inicio, fim) }
+}
+
+const dinheiro = (v: number) => Number(v.toFixed(2))
+const filtroOrigem = (origem?: Filtros['origem']) =>
+  origem === 'mesa' ? { mesaId: { not: null } } : origem === 'balcao' ? { mesaId: null } : {}
+const nomeLocal = (mesa: { nomeMesa: string | null; numero: number } | null, numeroPedido?: number) =>
+  mesa ? (mesa.nomeMesa ?? `Mesa ${mesa.numero}`) : `Balcão${numeroPedido ? ` #${numeroPedido}` : ''}`
+
+/** Pedidos do garçom (para filtrar pagamentos/itens por quem atendeu). */
+async function pedidosDoFuncionario(tenantId: string, funcionarioId: string, range?: { gte: Date; lt: Date }) {
+  const pedidos = await prisma.pedido.findMany({
+    where: { tenantId, garcomId: funcionarioId, ...(range ? { createdAt: range } : {}) },
+    select: { id: true },
+  })
+  return pedidos.map((p) => p.id)
 }
 
 // ─── filtros ────────────────────────────────────────────────────────────────────
 
 export async function filtros(tenantId: string) {
-  const [funcionarios, metodos, categorias] = await Promise.all([
+  const [funcionarios, metodos, categorias, produtos] = await Promise.all([
     prisma.usuario.findMany({
       where: { tenantId, ativo: true },
       select: { id: true, nome: true, cargo: true },
@@ -30,132 +60,101 @@ export async function filtros(tenantId: string) {
       select: { id: true, nome: true },
       orderBy: { nome: 'asc' },
     }),
+    prisma.produto.findMany({
+      where: { tenantId },
+      select: { id: true, nome: true, categoriaId: true },
+      orderBy: { nome: 'asc' },
+    }),
   ])
-  return { funcionarios, metodos, categorias }
+  return { funcionarios, metodos, categorias, produtos }
 }
 
 // ─── visão geral ────────────────────────────────────────────────────────────────
 
-export async function visaoGeral(
-  tenantId: string,
-  params: { dataInicio?: string; dataFim?: string; garcomId?: string; metodoId?: string },
-) {
-  const { inicio, fim } = periodoDefault(params.dataInicio, params.dataFim)
-  const range = dateRange(inicio, fim)
+export async function visaoGeral(tenantId: string, f: Filtros) {
+  const { inicio, fim, range } = periodo(f)
 
-  const whereBase: any = { tenantId, status: 'confirmado', createdAt: range }
-  if (params.metodoId) whereBase.metodoId = params.metodoId
+  const where: any = { tenantId, status: 'confirmado', createdAt: range, ...filtroOrigem(f.origem) }
+  if (f.metodoId) where.metodoId = f.metodoId
+  if (f.funcionarioId) where.pedidoId = { in: await pedidosDoFuncionario(tenantId, f.funcionarioId, range) }
 
-  // Para filtrar por garçom precisamos ir pelos pedidos
-  let pedidoIdsComGarcom: string[] | undefined
-  if (params.garcomId) {
-    const pedidos = await prisma.pedido.findMany({
-      where: { tenantId, garcomId: params.garcomId, createdAt: range },
-      select: { id: true },
-    })
-    pedidoIdsComGarcom = pedidos.map((p) => p.id)
-    whereBase.pedidoId = { in: pedidoIdsComGarcom }
-  }
+  const [pagamentos, descontos, porMetodo, usuarios] = await Promise.all([
+    prisma.pagamento.findMany({ where, select: { valor: true, createdAt: true, pedidoId: true } }),
 
-  const [aggs, descontos, pagamentosEvol, metodosPie, porFuncionario] = await Promise.all([
-    prisma.pagamento.aggregate({
-      where: whereBase,
-      _sum: { valor: true },
-      _count: { id: true },
-      _avg: { valor: true },
-    }),
-
-    // Antes: prisma.pedido.aggregate sobre o escalar `Pedido.desconto`.
-    // O desconto virou tabela Abatimento — cada linha com motivo e autor —
-    // então o relatório passa a somar as linhas não canceladas.
+    // Desconto é a tabela Abatimento: cada linha com motivo e autor
     prisma.abatimento.aggregate({
       where: {
-        tenantId,
-        cancelado: false,
-        createdAt: range,
-        ...(pedidoIdsComGarcom ? { pedidoId: { in: pedidoIdsComGarcom } } : {}),
+        tenantId, cancelado: false, createdAt: range,
+        pedido: { ...(f.funcionarioId ? { garcomId: f.funcionarioId } : {}), ...filtroOrigem(f.origem) },
       },
       _sum: { valor: true },
       _count: { id: true },
     }),
 
-    // Carrega pagamentos individuais para agregação por dia/hora em JS
-    prisma.pagamento.findMany({
-      where: whereBase,
-      select: { valor: true, createdAt: true },
-    }),
-
-    prisma.pagamento.groupBy({
-      by: ['metodoId'],
-      where: whereBase,
-      _count: { id: true },
-      _sum: { valor: true },
-    }),
+    prisma.pagamento.groupBy({ by: ['metodoId'], where, _count: { id: true }, _sum: { valor: true } }),
 
     prisma.usuario.findMany({
-      where: { tenantId, ativo: true },
+      where: { tenantId, ...(f.funcionarioId ? { id: f.funcionarioId } : {}) },
       select: {
         id: true, nome: true, cargo: true,
         pedidos: {
-          where: { tenantId, createdAt: range },
+          where: { tenantId, createdAt: range, ...filtroOrigem(f.origem) },
           select: {
             id: true,
-            pagamentos: { where: { status: 'confirmado' }, select: { valor: true } },
+            pagamentos: {
+              where: { status: 'confirmado', ...(f.metodoId ? { metodoId: f.metodoId } : {}) },
+              select: { valor: true },
+            },
           },
         },
       },
     }),
   ])
 
-  // Agrega por dia e por hora em JS (evita $queryRaw com UUID)
-  const byDay: Record<string, { dia: string; total: number; qtd: number }> = {}
-  const byHour: Record<number, { hora: number; total: number; qtd: number }> = {}
-  for (const p of pagamentosEvol) {
-    const dia = p.createdAt.toISOString().slice(0, 10)
-    byDay[dia] = byDay[dia] ?? { dia, total: 0, qtd: 0 }
-    byDay[dia].total += Number(p.valor)
-    byDay[dia].qtd++
-    const hora = p.createdAt.getUTCHours()
-    byHour[hora] = byHour[hora] ?? { hora, total: 0, qtd: 0 }
-    byHour[hora].total += Number(p.valor)
-    byHour[hora].qtd++
-  }
-  const evolucao = Object.values(byDay).sort((a, b) => a.dia.localeCompare(b.dia))
-  const horarios = Object.values(byHour).sort((a, b) => a.hora - b.hora)
+  const faturamento = pagamentos.reduce((s, p) => s + Number(p.valor), 0)
+  const qtdPedidos = new Set(pagamentos.map((p) => p.pedidoId)).size
 
-  const metodosMap = await prisma.metodoPagamento.findMany({
-    where: { tenantId, id: { in: metodosPie.map((m) => m.metodoId) } },
+  // Por dia e por hora no fuso local
+  const byDay = new Map<string, { dia: string; total: number; qtd: number }>()
+  const byHour = Array.from({ length: 24 }, (_, hora) => ({ hora, total: 0, qtd: 0 }))
+  for (const p of pagamentos) {
+    const { dia, hora } = partesLocais(p.createdAt)
+    const d = byDay.get(dia) ?? { dia, total: 0, qtd: 0 }
+    d.total += Number(p.valor); d.qtd++
+    byDay.set(dia, d)
+    byHour[hora].total += Number(p.valor); byHour[hora].qtd++
+  }
+  // Dias sem venda também aparecem (0), para a evolução não pular datas
+  const evolucao: { dia: string; total: number; qtd: number }[] = []
+  for (let d = inicio; d <= fim && evolucao.length < 400; d = somarDias(d, 1)) {
+    const x = byDay.get(d) ?? { dia: d, total: 0, qtd: 0 }
+    evolucao.push({ ...x, total: dinheiro(x.total) })
+  }
+
+  const nomes = await prisma.metodoPagamento.findMany({
+    where: { tenantId, id: { in: porMetodo.map((m) => m.metodoId) } },
     select: { id: true, nome: true },
   })
 
-  // Comparativo período anterior
-  const dias = Math.ceil((new Date(fim).getTime() - new Date(inicio).getTime()) / 86400000) + 1
-  const antFim = new Date(inicio); antFim.setDate(antFim.getDate() - 1)
-  const antIni = new Date(antFim); antIni.setDate(antIni.getDate() - dias + 1)
-  const anteriorAgg = await prisma.pagamento.aggregate({
-    where: {
-      tenantId,
-      status: 'confirmado',
-      createdAt: { gte: antIni, lte: antFim },
-      ...(params.metodoId ? { metodoId: params.metodoId } : {}),
-    },
-    _sum: { valor: true },
-    _count: { id: true },
-  })
+  // Período anterior de mesmo tamanho, com os mesmos filtros
+  const dias = evolucao.length
+  const antFim = somarDias(inicio, -1)
+  const antIni = somarDias(antFim, -(dias - 1))
+  const whereAnt = { ...where, createdAt: intervaloDias(antIni, antFim) }
+  if (f.funcionarioId) whereAnt.pedidoId = { in: await pedidosDoFuncionario(tenantId, f.funcionarioId, whereAnt.createdAt) }
+  const anteriorAgg = await prisma.pagamento.aggregate({ where: whereAnt, _sum: { valor: true }, _count: { id: true } })
 
-  const porFuncionarioResult = porFuncionario
+  const porFuncionario = usuarios
     .filter((u) => u.pedidos.length > 0)
     .map((u) => {
-      const totalFaturado = u.pedidos.reduce(
-        (acc, p) => acc + p.pagamentos.reduce((s, pg) => s + Number(pg.valor), 0), 0
-      )
+      const pags = u.pedidos.flatMap((p) => p.pagamentos)
+      const total = pags.reduce((s, p) => s + Number(p.valor), 0)
       return {
-        id:             u.id,
-        nome:           u.nome,
-        cargo:          u.cargo,
-        qtdPedidos:     u.pedidos.length,
-        qtdPagamentos:  u.pedidos.reduce((a, p) => a + p.pagamentos.length, 0),
-        totalFaturado:  Number(totalFaturado.toFixed(2)),
+        id: u.id, nome: u.nome, cargo: u.cargo,
+        qtdPedidos: u.pedidos.length,
+        qtdPagamentos: pags.length,
+        totalFaturado: dinheiro(total),
+        ticketMedio: pags.length ? dinheiro(total / pags.length) : 0,
       }
     })
     .sort((a, b) => b.totalFaturado - a.totalFaturado)
@@ -163,321 +162,393 @@ export async function visaoGeral(
   return {
     periodo: { inicio, fim },
     resumo: {
-      faturamento:    Number(aggs._sum.valor ?? 0),
-      qtdPagamentos:  aggs._count.id,
-      ticketMedio:    Number(aggs._avg.valor ?? 0),
+      faturamento:    dinheiro(faturamento),
+      qtdPagamentos:  pagamentos.length,
+      qtdPedidos,
+      ticketMedio:    pagamentos.length ? dinheiro(faturamento / pagamentos.length) : 0,
       totalAbatido:   Number(descontos._sum.valor ?? 0),
       qtdAbatimentos: descontos._count.id,
     },
     anterior: {
+      inicio: antIni, fim: antFim,
       faturamento:   Number(anteriorAgg._sum.valor ?? 0),
       qtdPagamentos: anteriorAgg._count.id,
     },
     evolucao,
-    metodos: metodosPie.map((m) => ({
-      metodo: metodosMap.find((mm) => mm.id === m.metodoId)?.nome ?? '?',
-      qtd:   m._count.id,
-      total: Number(m._sum.valor ?? 0),
-    })),
-    horarios,
-    porFuncionario: porFuncionarioResult,
+    horarios: byHour.map((h) => ({ ...h, total: dinheiro(h.total) })),
+    metodos: porMetodo
+      .map((m) => ({
+        metodoId: m.metodoId,
+        metodo: nomes.find((n) => n.id === m.metodoId)?.nome ?? '?',
+        qtd:   m._count.id,
+        total: Number(m._sum.valor ?? 0),
+      }))
+      .sort((a, b) => b.total - a.total),
+    porFuncionario,
+  }
+}
+
+// ─── vendas (lista) ─────────────────────────────────────────────────────────────
+
+export async function vendas(tenantId: string, f: Filtros) {
+  const { inicio, fim, range } = periodo(f)
+  const where: any = { tenantId, createdAt: range, ...filtroOrigem(f.origem) }
+  where.status = f.status === 'estornado' ? 'estornado' : f.status === 'todos' ? { in: ['confirmado', 'estornado'] } : 'confirmado'
+  if (f.metodoId) where.metodoId = f.metodoId
+  if (f.funcionarioId) where.pedido = { garcomId: f.funcionarioId }
+
+  const LIMITE = 1000
+  const linhas = await prisma.pagamento.findMany({
+    where,
+    orderBy: { createdAt: 'desc' },
+    take: LIMITE + 1,
+    select: {
+      id: true, valor: true, troco: true, status: true, createdAt: true, motivoEstorno: true,
+      metodo: { select: { nome: true } },
+      usuario: { select: { nome: true } },
+      mesa: { select: { nomeMesa: true, numero: true } },
+      pedido: { select: { numero: true, garcom: { select: { nome: true } } } },
+    },
+  })
+
+  const lista = linhas.slice(0, LIMITE).map((p) => ({
+    id: p.id,
+    em: p.createdAt,
+    pedido: p.pedido.numero,
+    local: nomeLocal(p.mesa),
+    origem: p.mesa ? 'mesa' : 'balcao',
+    garcom: p.pedido.garcom.nome,
+    operador: p.usuario.nome,
+    metodo: p.metodo.nome,
+    valor: Number(p.valor),
+    troco: Number(p.troco),
+    status: p.status,
+    motivoEstorno: p.motivoEstorno,
+  }))
+  const confirmadas = lista.filter((v) => v.status === 'confirmado')
+
+  return {
+    periodo: { inicio, fim },
+    resumo: {
+      qtd: confirmadas.length,
+      total: dinheiro(confirmadas.reduce((s, v) => s + v.valor, 0)),
+      qtdEstornos: lista.length - confirmadas.length,
+      totalEstornado: dinheiro(lista.filter((v) => v.status === 'estornado').reduce((s, v) => s + v.valor, 0)),
+    },
+    truncado: linhas.length > LIMITE,
+    vendas: lista,
   }
 }
 
 // ─── produtos ──────────────────────────────────────────────────────────────────
 
-export async function produtos(
-  tenantId: string,
-  params: { dataInicio?: string; dataFim?: string; garcomId?: string; categoriaId?: string },
-) {
-  const { inicio, fim } = periodoDefault(params.dataInicio, params.dataFim)
-  const range = dateRange(inicio, fim)
-
-  const pedidoWhere: any = { tenantId, createdAt: range }
-  if (params.garcomId) pedidoWhere.garcomId = params.garcomId
-
-  const pedidosIds = (
-    await prisma.pedido.findMany({ where: pedidoWhere, select: { id: true } })
-  ).map((p) => p.id)
-
-  const itemWhere: any = { tenantId, pedidoId: { in: pedidosIds } }
-  if (params.categoriaId) {
-    const prods = await prisma.produto.findMany({
-      where: { tenantId, categoriaId: params.categoriaId },
-      select: { id: true },
-    })
-    itemWhere.produtoId = { in: prods.map((p) => p.id) }
-  }
+export async function produtos(tenantId: string, f: Filtros) {
+  const { inicio, fim, range } = periodo(f)
 
   const itens = await prisma.pedidoItem.findMany({
-    where: itemWhere,
-    include: {
-      produto: { include: { categoria: { select: { nome: true } } } },
+    where: {
+      tenantId,
+      status: { not: 'cancelado' },
+      pedido: {
+        createdAt: range,
+        status: { not: 'cancelado' },
+        ...(f.funcionarioId ? { garcomId: f.funcionarioId } : {}),
+        ...filtroOrigem(f.origem),
+      },
+      ...(f.categoriaId ? { produto: { categoriaId: f.categoriaId } } : {}),
+      ...(f.produtoId ? { produtoId: f.produtoId } : {}),
+    },
+    select: {
+      produtoId: true, quantidade: true, precoTotal: true,
+      produto: { select: { nome: true, categoria: { select: { nome: true } } } },
     },
   })
 
-  // Agrega por produto
-  const ranking = Object.values(
-    itens.reduce((acc: any, item) => {
-      const id = item.produtoId
-      if (!acc[id]) {
-        acc[id] = {
-          id,
-          nome: item.produto.nome,
-          categoria: item.produto.categoria?.nome ?? 'Sem categoria',
-          qtdVendida: 0,
-          totalGerado: 0,
-        }
-      }
-      acc[id].qtdVendida  += item.quantidade
-      acc[id].totalGerado += Number(item.precoTotal)
-      return acc
-    }, {}),
-  )
-    .map((r: any) => ({ ...r, totalGerado: Number(r.totalGerado.toFixed(2)) }))
-    .sort((a: any, b: any) => b.qtdVendida - a.qtdVendida)
+  const porProduto = new Map<string, { id: string; nome: string; categoria: string; qtdVendida: number; totalGerado: number }>()
+  const porCat = new Map<string, { categoria: string; qtdVendida: number; totalGerado: number; produtos: Set<string> }>()
+  for (const i of itens) {
+    const cat = i.produto.categoria?.nome ?? 'Sem categoria'
+    const p = porProduto.get(i.produtoId) ?? { id: i.produtoId, nome: i.produto.nome, categoria: cat, qtdVendida: 0, totalGerado: 0 }
+    p.qtdVendida += i.quantidade; p.totalGerado += Number(i.precoTotal)
+    porProduto.set(i.produtoId, p)
+    const c = porCat.get(cat) ?? { categoria: cat, qtdVendida: 0, totalGerado: 0, produtos: new Set() }
+    c.qtdVendida += i.quantidade; c.totalGerado += Number(i.precoTotal); c.produtos.add(i.produtoId)
+    porCat.set(cat, c)
+  }
 
-  // Por categoria
-  const porCategoria = Object.values(
-    itens.reduce((acc: any, item) => {
-      const cat = item.produto.categoria?.nome ?? 'Sem categoria'
-      if (!acc[cat]) acc[cat] = { categoria: cat, qtdVendida: 0, totalGerado: 0, qtdProdutos: new Set() }
-      acc[cat].qtdVendida  += item.quantidade
-      acc[cat].totalGerado += Number(item.precoTotal)
-      acc[cat].qtdProdutos.add(item.produtoId)
-      return acc
-    }, {}),
-  ).map((c: any) => ({
-    categoria: c.categoria,
-    qtdVendida: c.qtdVendida,
-    totalGerado: Number(c.totalGerado.toFixed(2)),
-    qtdProdutos: c.qtdProdutos.size,
-  }))
-
-  // Produtos sem venda no período
-  const vendidosIds = new Set(itens.map((i) => i.produtoId))
   const semVenda = await prisma.produto.findMany({
     where: {
-      tenantId,
-      ativo: true,
-      id: { notIn: Array.from(vendidosIds) },
-      ...(params.categoriaId ? { categoriaId: params.categoriaId } : {}),
+      tenantId, ativo: true,
+      id: { notIn: [...porProduto.keys()] },
+      ...(f.categoriaId ? { categoriaId: f.categoriaId } : {}),
+      ...(f.produtoId ? { id: f.produtoId } : {}),
     },
-    select: {
-      id: true, nome: true,
-      categoria: { select: { nome: true } },
-    },
+    select: { id: true, nome: true, categoria: { select: { nome: true } } },
     orderBy: { nome: 'asc' },
   })
 
   return {
     periodo: { inicio, fim },
-    ranking,
-    porCategoria,
-    semVenda: semVenda.map((p) => ({
-      id: p.id,
-      nome: p.nome,
-      categoria: p.categoria?.nome ?? 'Sem categoria',
-    })),
+    ranking: [...porProduto.values()]
+      .map((r) => ({ ...r, totalGerado: dinheiro(r.totalGerado) }))
+      .sort((a, b) => b.qtdVendida - a.qtdVendida),
+    porCategoria: [...porCat.values()]
+      .map((c) => ({ categoria: c.categoria, qtdVendida: c.qtdVendida, totalGerado: dinheiro(c.totalGerado), qtdProdutos: c.produtos.size }))
+      .sort((a, b) => b.totalGerado - a.totalGerado),
+    semVenda: semVenda.map((p) => ({ id: p.id, nome: p.nome, categoria: p.categoria?.nome ?? 'Sem categoria' })),
   }
 }
 
 // ─── mesas ─────────────────────────────────────────────────────────────────────
 
-export async function mesas(
-  tenantId: string,
-  params: { dataInicio?: string; dataFim?: string; garcomId?: string; metodoId?: string },
-) {
-  const { inicio, fim } = periodoDefault(params.dataInicio, params.dataFim)
-  const range = dateRange(inicio, fim)
+export async function mesas(tenantId: string, f: Filtros) {
+  const { inicio, fim, range } = periodo(f)
 
-  const whereBase: any = { tenantId, status: 'confirmado', createdAt: range }
-  if (params.metodoId) whereBase.metodoId = params.metodoId
-  if (params.garcomId) {
-    const pedidos = await prisma.pedido.findMany({
-      where: { tenantId, garcomId: params.garcomId },
-      select: { id: true },
-    })
-    whereBase.pedidoId = { in: pedidos.map((p) => p.id) }
+  const where: any = { tenantId, status: 'confirmado', createdAt: range, mesaId: { not: null } }
+  if (f.metodoId) where.metodoId = f.metodoId
+  if (f.funcionarioId) where.pedido = { garcomId: f.funcionarioId }
+
+  const [pagamentos, comandas] = await Promise.all([
+    prisma.pagamento.findMany({
+      where,
+      select: { valor: true, createdAt: true, mesaId: true, mesa: { select: { nomeMesa: true, numero: true } } },
+    }),
+    // Tempo de permanência: comandas de mesa fechadas no período
+    prisma.pedido.findMany({
+      where: {
+        tenantId, mesaId: { not: null }, fechadoEm: range, status: 'fechado',
+        ...(f.funcionarioId ? { garcomId: f.funcionarioId } : {}),
+      },
+      select: { createdAt: true, fechadoEm: true },
+    }),
+  ])
+
+  const byMesa = new Map<string, { id: string; nomeMesa: string; qtdPagamentos: number; totalFaturado: number; ultimoPagamento: Date | null }>()
+  for (const p of pagamentos) {
+    const m = byMesa.get(p.mesaId!) ?? { id: p.mesaId!, nomeMesa: nomeLocal(p.mesa), qtdPagamentos: 0, totalFaturado: 0, ultimoPagamento: null }
+    m.qtdPagamentos++; m.totalFaturado += Number(p.valor)
+    if (!m.ultimoPagamento || p.createdAt > m.ultimoPagamento) m.ultimoPagamento = p.createdAt
+    byMesa.set(p.mesaId!, m)
   }
 
-  const pagamentos = await prisma.pagamento.findMany({
-    where: whereBase,
-    include: { mesa: { select: { id: true, nomeMesa: true, numero: true } } },
-  })
+  const total = pagamentos.reduce((s, p) => s + Number(p.valor), 0)
+  const minutos = comandas
+    .filter((c) => c.fechadoEm)
+    .map((c) => (c.fechadoEm!.getTime() - c.createdAt.getTime()) / 60000)
 
-  // Agrega por mesa
-  const byMesa = pagamentos.reduce((acc: any, p) => {
-    const mesaId = p.mesaId ?? 'sem_mesa'
-    if (!acc[mesaId]) {
-      acc[mesaId] = {
-        id: mesaId,
-        nomeMesa: p.mesa?.nomeMesa ?? `Mesa ${p.mesa?.numero ?? '?'}`,
-        qtdPagamentos: 0, totalFaturado: 0, ticketMedio: 0, ultimoPagamento: null,
-      }
-    }
-    acc[mesaId].qtdPagamentos++
-    acc[mesaId].totalFaturado += Number(p.valor)
-    acc[mesaId].ultimoPagamento = p.createdAt
-    return acc
-  }, {})
-
-  const ranking = Object.values(byMesa)
-    .map((m: any) => ({
-      ...m,
-      totalFaturado: Number(m.totalFaturado.toFixed(2)),
-      ticketMedio: m.qtdPagamentos > 0
-        ? Number((m.totalFaturado / m.qtdPagamentos).toFixed(2))
-        : 0,
-    }))
-    .sort((a: any, b: any) => b.totalFaturado - a.totalFaturado)
-
-  const resumo = {
-    mesasAtendidas:   Object.keys(byMesa).filter((k) => k !== 'sem_mesa').length,
-    faturamentoTotal: Number(pagamentos.reduce((s, p) => s + Number(p.valor), 0).toFixed(2)),
-    ticketMedioGeral: pagamentos.length > 0
-      ? Number((pagamentos.reduce((s, p) => s + Number(p.valor), 0) / pagamentos.length).toFixed(2))
-      : 0,
-  }
-
-  // Descontos (abatimentos) no período
-  // Agora o relatório mostra motivo e autor de cada abatimento — antes só
-  // existia um total por pedido, sem nenhum rastro de quem concedeu nem por quê.
-  const linhas = await prisma.abatimento.findMany({
-    where: { tenantId, cancelado: false, createdAt: range },
-    select: {
-      valor: true,
-      tipo: true,
-      motivo: true,
-      createdAt: true,
-      usuario: { select: { nome: true } },
-      pedido: { select: { numero: true, mesa: { select: { nomeMesa: true, numero: true } } } },
+  return {
+    periodo: { inicio, fim },
+    resumo: {
+      mesasAtendidas:   byMesa.size,
+      comandasFechadas: comandas.length,
+      faturamentoTotal: dinheiro(total),
+      ticketMedioGeral: pagamentos.length ? dinheiro(total / pagamentos.length) : 0,
+      permanenciaMedia: minutos.length ? Math.round(minutos.reduce((a, b) => a + b, 0) / minutos.length) : null,
     },
-    orderBy: { createdAt: 'desc' },
-  })
-
-  // Agrupa por comanda, mantendo os motivos individuais.
-  const porComanda = new Map<string, { nomeMesa: string; qtdAbatimentos: number; totalAbatido: number; detalhes: any[] }>()
-  for (const l of linhas) {
-    const nomeMesa = l.pedido.mesa?.nomeMesa
-      ?? (l.pedido.mesa ? `Mesa ${l.pedido.mesa.numero}` : `Balcão #${l.pedido.numero}`)
-    const atual = porComanda.get(nomeMesa) ?? { nomeMesa, qtdAbatimentos: 0, totalAbatido: 0, detalhes: [] }
-    atual.qtdAbatimentos += 1
-    atual.totalAbatido = Number((atual.totalAbatido + Number(l.valor)).toFixed(2))
-    atual.detalhes.push({
-      valor: Number(l.valor),
-      tipo: l.tipo,
-      motivo: l.motivo,
-      por: l.usuario.nome,
-      em: l.createdAt,
-    })
-    porComanda.set(nomeMesa, atual)
+    ranking: [...byMesa.values()]
+      .map((m) => ({ ...m, totalFaturado: dinheiro(m.totalFaturado), ticketMedio: dinheiro(m.totalFaturado / m.qtdPagamentos) }))
+      .sort((a, b) => b.totalFaturado - a.totalFaturado),
   }
+}
 
-  const abatimentos = [...porComanda.values()].sort((a, b) => b.totalAbatido - a.totalAbatido)
+// ─── descontos, cancelamentos e estornos ───────────────────────────────────────
 
-  return { periodo: { inicio, fim }, resumo, ranking, abatimentos }
+export async function descontos(tenantId: string, f: Filtros) {
+  const { inicio, fim, range } = periodo(f)
+  const doFuncionario = f.funcionarioId ? { pedido: { garcomId: f.funcionarioId } } : {}
+
+  const [abatimentos, itensCancelados, estornos] = await Promise.all([
+    prisma.abatimento.findMany({
+      where: { tenantId, cancelado: false, createdAt: range, ...doFuncionario },
+      orderBy: { createdAt: 'desc' },
+      select: {
+        id: true, valor: true, tipo: true, percentual: true, motivo: true, createdAt: true,
+        usuario: { select: { nome: true } },
+        pedido: { select: { numero: true, mesa: { select: { nomeMesa: true, numero: true } } } },
+      },
+    }),
+    prisma.pedidoItem.findMany({
+      where: {
+        tenantId, status: 'cancelado', updatedAt: range, ...doFuncionario,
+        ...(f.categoriaId ? { produto: { categoriaId: f.categoriaId } } : {}),
+      },
+      orderBy: { updatedAt: 'desc' },
+      select: {
+        id: true, quantidade: true, precoTotal: true, motivoCancelamento: true, updatedAt: true, canceladoPorId: true,
+        produto: { select: { nome: true } },
+        pedido: { select: { numero: true, mesa: { select: { nomeMesa: true, numero: true } } } },
+      },
+    }),
+    prisma.pagamento.findMany({
+      where: { tenantId, status: 'estornado', estornadoEm: range, ...doFuncionario },
+      orderBy: { estornadoEm: 'desc' },
+      select: {
+        id: true, valor: true, motivoEstorno: true, estornadoEm: true,
+        metodo: { select: { nome: true } },
+        estornadoPor: { select: { nome: true } },
+        pedido: { select: { numero: true } },
+        mesa: { select: { nomeMesa: true, numero: true } },
+      },
+    }),
+  ])
+
+  // Nome de quem cancelou o item (só o id fica na linha)
+  const ids = [...new Set(itensCancelados.map((i) => i.canceladoPorId).filter(Boolean))] as string[]
+  const quem = ids.length
+    ? await prisma.usuario.findMany({ where: { tenantId, id: { in: ids } }, select: { id: true, nome: true } })
+    : []
+  const nomeDe = (id: string | null) => quem.find((u) => u.id === id)?.nome ?? '—'
+
+  const linhasAbat = abatimentos.map((a) => ({
+    id: a.id, em: a.createdAt, tipo: a.tipo, valor: Number(a.valor),
+    percentual: a.percentual === null ? null : Number(a.percentual),
+    motivo: a.motivo, por: a.usuario.nome, local: nomeLocal(a.pedido.mesa, a.pedido.numero),
+  }))
+  const linhasItens = itensCancelados.map((i) => ({
+    id: i.id, em: i.updatedAt, produto: i.produto.nome, quantidade: i.quantidade, valor: Number(i.precoTotal),
+    motivo: i.motivoCancelamento, por: nomeDe(i.canceladoPorId), local: nomeLocal(i.pedido.mesa, i.pedido.numero),
+  }))
+  const linhasEstornos = estornos.map((e) => ({
+    id: e.id, em: e.estornadoEm, valor: Number(e.valor), metodo: e.metodo.nome,
+    motivo: e.motivoEstorno, por: e.estornadoPor?.nome ?? '—', local: nomeLocal(e.mesa, e.pedido.numero),
+  }))
+
+  const soma = (xs: { valor: number }[]) => dinheiro(xs.reduce((s, x) => s + x.valor, 0))
+  return {
+    periodo: { inicio, fim },
+    resumo: {
+      descontos:    { qtd: linhasAbat.filter((a) => a.tipo !== 'cortesia').length, total: soma(linhasAbat.filter((a) => a.tipo !== 'cortesia')) },
+      cortesias:    { qtd: linhasAbat.filter((a) => a.tipo === 'cortesia').length, total: soma(linhasAbat.filter((a) => a.tipo === 'cortesia')) },
+      cancelamentos: { qtd: linhasItens.length, total: soma(linhasItens) },
+      estornos:     { qtd: linhasEstornos.length, total: soma(linhasEstornos) },
+    },
+    abatimentos: linhasAbat,
+    itensCancelados: linhasItens,
+    estornos: linhasEstornos,
+  }
 }
 
 // ─── caixa ─────────────────────────────────────────────────────────────────────
 
-export async function caixa(
-  tenantId: string,
-  params: { dataInicio?: string; dataFim?: string; funcionarioId?: string },
-) {
-  const { inicio, fim } = periodoDefault(params.dataInicio, params.dataFim)
-  const start = new Date(inicio + 'T00:00:00Z')
-  const end   = new Date(fim   + 'T23:59:59Z')
-
-  const caixaWhere: any = {
-    tenantId,
-    OR: [
-      { dataAbertura: { gte: start, lte: end } },
-      { fechadoEm:    { gte: start, lte: end } },
-    ],
-  }
-  if (params.funcionarioId) caixaWhere.funcionarioId = params.funcionarioId
+export async function caixa(tenantId: string, f: Filtros) {
+  const { inicio, fim, range } = periodo(f)
 
   const caixas = await prisma.caixa.findMany({
-    where: caixaWhere,
-    orderBy: { dataAbertura: 'desc' },
-    include: {
-      funcionario: { select: { nome: true } },
+    where: {
+      tenantId,
+      OR: [{ dataAbertura: range }, { fechadoEm: range }],
+      ...(f.funcionarioId ? { funcionarioId: f.funcionarioId } : {}),
     },
+    orderBy: { dataAbertura: 'desc' },
+    include: { funcionario: { select: { nome: true } } },
+  })
+
+  const movs = await prisma.movimentoCaixa.findMany({
+    where: { tenantId, caixaId: { in: caixas.map((c) => c.id) }, createdAt: range, tipo: { in: ['sangria', 'suprimento'] } },
+    orderBy: { createdAt: 'desc' },
+    include: { usuario: { select: { nome: true } } },
   })
 
   const historico = caixas.map((c) => ({
-    id:             c.id,
-    valorInicial:   Number(c.valorInicial),
-    valorFechamento: c.valorFechamento ? Number(c.valorFechamento) : null,
-    status:         c.status,
-    dataAbertura:   c.dataAbertura,
-    fechadoEm:      c.fechadoEm,
-    operador:       c.funcionario.nome,
-    diferenca:      c.diferenca ? Number(c.diferenca) : null,
+    id:              c.id,
+    operador:        c.funcionario.nome,
+    status:          c.status,
+    dataAbertura:    c.dataAbertura,
+    fechadoEm:       c.fechadoEm,
+    valorInicial:    Number(c.valorInicial),
+    valorFechamento: c.valorFechamento === null ? null : Number(c.valorFechamento),
+    valorContado:    c.valorContado === null ? null : Number(c.valorContado),
+    diferenca:       c.diferenca === null ? null : Number(c.diferenca),
   }))
 
-  const caixaIds = caixas.map((c) => c.id)
+  const fechados = historico.filter((c) => c.diferenca !== null)
+  return {
+    periodo: { inicio, fim },
+    resumo: {
+      qtdCaixas:       caixas.length,
+      totalSangrias:   dinheiro(movs.filter((m) => m.tipo === 'sangria').reduce((s, m) => s + Number(m.valor), 0)),
+      totalSuprimentos: dinheiro(movs.filter((m) => m.tipo === 'suprimento').reduce((s, m) => s + Number(m.valor), 0)),
+      diferencaTotal:  dinheiro(fechados.reduce((s, c) => s + (c.diferenca ?? 0), 0)),
+      comDiferenca:    fechados.filter((c) => Math.abs(c.diferenca ?? 0) >= 0.01).length,
+    },
+    historico,
+    movimentos: movs.map((m) => ({
+      id: m.id, tipo: m.tipo, valor: Number(m.valor), descricao: m.descricao, em: m.createdAt, operador: m.usuario.nome,
+    })),
+  }
+}
 
-  const movWhere: any = {
-    tenantId,
-    caixaId: { in: caixaIds },
-    createdAt: { gte: start, lte: end },
+// ─── estoque ───────────────────────────────────────────────────────────────────
+
+export async function estoque(tenantId: string, f: Filtros) {
+  const { inicio, fim, range } = periodo(f)
+  const filtroProduto = {
+    ...(f.categoriaId ? { categoriaId: f.categoriaId } : {}),
+    ...(f.produtoId ? { id: f.produtoId } : {}),
   }
 
-  const movs = await prisma.movimentoCaixa.findMany({
-    where: movWhere,
-    orderBy: { createdAt: 'desc' },
-    include: {
-      usuario: { select: { nome: true } },
-      caixa:   { select: { id: true } },
-    },
+  const [produtos, movs] = await Promise.all([
+    prisma.produto.findMany({
+      where: { tenantId, gerenciarEstoque: true, ativo: true, ...filtroProduto },
+      select: { id: true, nome: true, preco: true, estoqueAtual: true, estoqueMinimo: true, categoria: { select: { nome: true } } },
+      orderBy: { nome: 'asc' },
+    }),
+    prisma.movimentacaoEstoque.findMany({
+      where: {
+        tenantId, createdAt: range,
+        ...(Object.keys(filtroProduto).length ? { produto: filtroProduto } : {}),
+        ...(f.funcionarioId ? { usuarioId: f.funcionarioId } : {}),
+      },
+      orderBy: { createdAt: 'desc' },
+      take: 2000,
+      select: {
+        id: true, tipo: true, quantidade: true, motivo: true, createdAt: true,
+        produto: { select: { nome: true } },
+        usuario: { select: { nome: true } },
+      },
+    }),
+  ])
+
+  const posicao = produtos.map((p) => {
+    const atual = Number(p.estoqueAtual), minimo = Number(p.estoqueMinimo)
+    return {
+      id: p.id, nome: p.nome, categoria: p.categoria?.nome ?? 'Sem categoria',
+      estoqueAtual: atual, estoqueMinimo: minimo,
+      situacao: atual <= 0 ? 'zerado' : minimo > 0 && atual <= minimo ? 'baixo' : 'ok',
+      valorEmEstoque: dinheiro(Math.max(atual, 0) * Number(p.preco)),
+    }
   })
 
-  const movimentos = movs.map((m) => ({
-    tipo:      m.tipo,
-    valor:     Number(m.valor),
-    descricao: m.descricao,
-    createdAt: m.createdAt,
-    caixaId:   m.caixa.id,
-    operador:  m.usuario.nome,
-  }))
-
-  const totaisPorTipo = movs.reduce((acc: any, m) => {
-    if (!acc[m.tipo]) acc[m.tipo] = { tipo: m.tipo, qtd: 0, total: 0 }
-    acc[m.tipo].qtd++
-    acc[m.tipo].total += Number(m.valor)
-    return acc
-  }, {})
-
-  const resumo = {
-    qtdCaixas:      caixas.length,
-    totalInicial:   Number(caixas.reduce((s, c) => s + Number(c.valorInicial), 0).toFixed(2)),
-    totalFechamento: Number(
-      caixas.filter((c) => c.valorFechamento).reduce((s, c) => s + Number(c.valorFechamento), 0).toFixed(2)
-    ),
+  return {
+    periodo: { inicio, fim },
+    resumo: {
+      produtosControlados: posicao.length,
+      zerados: posicao.filter((p) => p.situacao === 'zerado').length,
+      baixos:  posicao.filter((p) => p.situacao === 'baixo').length,
+      entradas: movs.filter((m) => m.tipo === 'entrada').reduce((s, m) => s + Number(m.quantidade), 0),
+      saidas:   movs.filter((m) => m.tipo === 'saida').reduce((s, m) => s + Number(m.quantidade), 0),
+      valorEmEstoque: dinheiro(posicao.reduce((s, p) => s + p.valorEmEstoque, 0)),
+    },
+    posicao: posicao.sort((a, b) => ({ zerado: 0, baixo: 1, ok: 2 }[a.situacao]! - { zerado: 0, baixo: 1, ok: 2 }[b.situacao]!)),
+    movimentos: movs.map((m) => ({
+      id: m.id, em: m.createdAt, tipo: m.tipo, quantidade: Number(m.quantidade),
+      motivo: m.motivo, produto: m.produto.nome, por: m.usuario?.nome ?? 'Sistema',
+    })),
   }
-
-  return { periodo: { inicio, fim }, resumo, historico, movimentos, totaisPorTipo: Object.values(totaisPorTipo) }
 }
 
 // ─── auditoria ─────────────────────────────────────────────────────────────────
 
-export async function auditoria(
-  tenantId: string,
-  params: { acao?: string; dataInicio?: string; dataFim?: string; limite?: number },
-) {
-  const limite = Math.min(Number(params.limite) || 200, 1000)
-  const where: any = { tenantId }
-
-  if (params.acao) where.acao = params.acao
-  if (params.dataInicio || params.dataFim) {
-    const { inicio, fim } = periodoDefault(params.dataInicio, params.dataFim)
-    where.createdAt = dateRange(inicio, fim)
-  }
+export async function auditoria(tenantId: string, f: Filtros & { acao?: string; limite?: number }) {
+  const { range } = periodo(f)
+  const limite = Math.min(Number(f.limite) || 300, 1000)
 
   const registros = await prisma.auditoria.findMany({
-    where,
+    where: {
+      tenantId, createdAt: range,
+      ...(f.acao ? { acao: f.acao } : {}),
+      ...(f.funcionarioId ? { usuarioId: f.funcionarioId } : {}),
+    },
     orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
     take: limite,
     include: { usuario: { select: { nome: true } } },

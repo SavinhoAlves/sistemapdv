@@ -1,9 +1,19 @@
 import { z } from 'zod'
 
+// identificador: código do usuário (3), nome de usuário (joao) ou e-mail.
+// `email` continua aceito para clientes antigos do app.
 export const loginSchema = z.object({
-  email: z.string().email('Email inválido'),
+  identificador: z.string().optional(),
+  email:         z.string().optional(),
   senha: z.string().min(1, 'Senha obrigatória'),
   slug: z.string().min(1, 'Slug do restaurante obrigatório'),
+}).transform((d, ctx) => {
+  const identificador = (d.identificador || d.email || '').trim()
+  if (!identificador) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Informe o código ou o nome de usuário' })
+    return z.NEVER
+  }
+  return { identificador, senha: d.senha, slug: d.slug }
 })
 
 export const loginRfidSchema = z.object({

@@ -70,7 +70,7 @@
                   <span class="pf-av">{{ iniciais(t.nome) }}</span>
                   <div style="min-width:0">
                     <b>{{ t.nome }}</b>
-                    <small>{{ t.slug }}<template v-if="t.responsavel"> · {{ t.responsavel }}</template></small>
+                    <small>Cód. {{ t.codigo }} · {{ t.slug }}<template v-if="t.responsavel"> · {{ t.responsavel }}</template></small>
                     <div v-if="t.rfidDisponivel || t.vendaMobilePermitida" class="pf-tags" style="margin-top:4px">
                       <span v-if="t.rfidDisponivel" class="pf-tag">RFID</span>
                       <span v-if="t.vendaMobilePermitida" class="pf-tag">Celular</span>
@@ -174,7 +174,7 @@ const lista = computed(() => {
     ordem.col === 'nome' ? t.nome : ordem.col === 'plano' ? nomePlano(t) : licencaPill(t)[0]
   return tenants.value
     .filter(t => filtro.value === 'todos' || statusPill(t)[2] === filtro.value)
-    .filter(t => !q || [t.nome, t.slug, t.responsavel ?? ''].some(v => v.toLowerCase().includes(q)))
+    .filter(t => !q || [t.nome, t.slug, String(t.codigo ?? ''), t.responsavel ?? ''].some(v => v.toLowerCase().includes(q)))
     .sort((a, b) => chave(a).localeCompare(chave(b), 'pt-BR') * ordem.dir)
 })
 

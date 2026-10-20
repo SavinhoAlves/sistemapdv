@@ -103,9 +103,9 @@ export function useApi() {
     delete: <T>(endpoint: string)                  => request<T>(endpoint, { method: 'DELETE' }),
 
     auth: {
-      login: (email: string, senha: string, slugOverride?: string) => {
+      login: (identificador: string, senha: string, slugOverride?: string) => {
         const slug = slugOverride || getTenantSlug()
-        return request('/auth/login', { method: 'POST', body: JSON.stringify({ email, senha, slug }) })
+        return request('/auth/login', { method: 'POST', body: JSON.stringify({ identificador, senha, slug }) })
       },
       rfid: (rfid: string, slugOverride?: string) => {
         const slug = slugOverride || getTenantSlug()

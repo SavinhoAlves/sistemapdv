@@ -12,8 +12,8 @@ export async function authRoutes(app: FastifyInstance) {
       return reply.status(400).send({ error: result.error.errors[0].message })
     }
     try {
-      const data = await AuthService.loginComEmail(
-        result.data.email,
+      const data = await AuthService.loginComSenha(
+        result.data.identificador,
         result.data.senha,
         result.data.slug
       )
@@ -21,6 +21,15 @@ export async function authRoutes(app: FastifyInstance) {
     } catch (err: any) {
       return reply.status(401).send({ error: err.message })
     }
+  })
+
+  // GET /api/auth/restaurante?ref=1001 — resolve código numérico ou slug do restaurante
+  app.get('/restaurante', { config: { public: true } }, async (request, reply) => {
+    const ref = String((request.query as any).ref ?? '').trim()
+    if (!ref) return reply.status(400).send({ error: 'Informe o código do restaurante' })
+    const tenant = await AuthService.buscarTenant(ref)
+    if (!tenant) return reply.status(404).send({ error: 'Restaurante não encontrado' })
+    return reply.send({ codigo: tenant.codigo, slug: tenant.slug, nome: tenant.nome })
   })
 
   // POST /api/auth/rfid

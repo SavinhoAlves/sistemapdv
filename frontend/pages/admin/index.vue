@@ -43,7 +43,7 @@
               <tr>
                 <th class="px-5 py-3 text-left text-[10px] font-black uppercase tracking-widest text-gray-500 dark:text-white/40">Nome</th>
                 <th class="px-5 py-3 text-left text-[10px] font-black uppercase tracking-widest text-gray-500 dark:text-white/40">Cargo</th>
-                <th class="px-5 py-3 text-left text-[10px] font-black uppercase tracking-widest text-gray-500 dark:text-white/40">E-mail</th>
+                <th class="px-5 py-3 text-left text-[10px] font-black uppercase tracking-widest text-gray-500 dark:text-white/40">Acesso</th>
                 <th class="px-5 py-3 text-center text-[10px] font-black uppercase tracking-widest text-gray-500 dark:text-white/40">Status</th>
                 <th class="px-5 py-3 text-right text-[10px] font-black uppercase tracking-widest text-gray-500 dark:text-white/40">Ações</th>
               </tr>
@@ -58,7 +58,10 @@
                 <td class="px-5 py-3">
                   <span class="text-[10px] font-black px-2 py-0.5 rounded-full capitalize" :class="corCargo(f.cargo)">{{ f.cargo }}</span>
                 </td>
-                <td class="px-5 py-3 text-xs text-gray-500 dark:text-white/50">{{ f.email || '—' }}</td>
+                <td class="px-5 py-3 text-xs text-gray-500 dark:text-white/50">
+                  <p><span class="font-mono font-black text-gray-900 dark:text-white">{{ f.codigo }}</span><template v-if="f.login"> · {{ f.login }}</template></p>
+                  <p v-if="f.email" class="text-[10px] text-gray-400 dark:text-white/40">{{ f.email }}</p>
+                </td>
                 <td class="px-5 py-3 text-center">
                   <button @click="toggleAtivo(f)"
                     class="text-[10px] font-black px-2 py-0.5 rounded-full transition-all"
@@ -275,6 +278,14 @@
                   <option value="caixa">Caixa</option>
                   <option value="cozinha">Cozinha</option>
                 </select>
+              </div>
+              <div>
+                <label for="fLogin" class="block text-[10px] font-black uppercase tracking-widest text-gray-500 dark:text-white/40 mb-1.5">Nome de usuário</label>
+                <input id="fLogin" v-model="funcForm.login" type="text" placeholder="ex.: joao" autocapitalize="none" autocomplete="off" spellcheck="false"
+                  class="w-full h-11 px-4 bg-gray-50 dark:bg-white/[0.06] border border-gray-200 dark:border-white/10 rounded-xl text-gray-900 dark:text-white text-sm outline-none focus:border-orange-500 transition-all placeholder:text-gray-400 dark:placeholder:text-white/25" />
+                <p class="mt-1 text-[10px] text-gray-400 dark:text-white/40">
+                  {{ funcForm.codigo ? `Entra com o código ${funcForm.codigo} ou com este nome de usuário.` : 'O código de acesso é gerado ao salvar. Opcional: defina também um nome de usuário.' }}
+                </p>
               </div>
               <div>
                 <label for="fEmail" class="block text-[10px] font-black uppercase tracking-widest text-gray-500 dark:text-white/40 mb-1.5">E-mail</label>
@@ -660,7 +671,7 @@ const loadingFunc  = ref(false)
 const modalFunc    = ref(false)
 const salvandoFunc = ref(false)
 const erroFunc     = ref('')
-const funcForm     = reactive({ id: null as string | null, nome: '', cargo: '', email: '', senha: '', cartao_rfid: '', perfil_id: null as string | null })
+const funcForm     = reactive({ id: null as string | null, codigo: null as number | null, login: '', nome: '', cargo: '', email: '', senha: '', cartao_rfid: '', perfil_id: null as string | null })
 
 function corCargo(cargo: string) {
   if (cargo === 'administrador') return 'bg-purple-500/15 text-purple-400'
@@ -678,9 +689,9 @@ async function carregarFuncionarios() {
 function abrirModalFunc(f: any) {
   erroFunc.value = ''
   if (f) {
-    Object.assign(funcForm, { id: f.id, nome: f.nome, cargo: f.cargo, email: f.email || '', senha: '', cartao_rfid: f.cartaoRfid || '', perfil_id: f.perfilId || null })
+    Object.assign(funcForm, { id: f.id, codigo: f.codigo ?? null, login: f.login || '', nome: f.nome, cargo: f.cargo, email: f.email || '', senha: '', cartao_rfid: f.cartaoRfid || '', perfil_id: f.perfilId || null })
   } else {
-    Object.assign(funcForm, { id: null, nome: '', cargo: '', email: '', senha: '', cartao_rfid: '', perfil_id: null })
+    Object.assign(funcForm, { id: null, codigo: null, login: '', nome: '', cargo: '', email: '', senha: '', cartao_rfid: '', perfil_id: null })
   }
   modalFunc.value = true
 }
@@ -689,7 +700,7 @@ async function salvarFunc() {
   if (!funcForm.nome.trim() || !funcForm.cargo) { erroFunc.value = 'Nome e cargo são obrigatórios'; return }
   salvandoFunc.value = true; erroFunc.value = ''
   try {
-    const payload = { nome: funcForm.nome, email: funcForm.email || null, cargo: funcForm.cargo,
+    const payload = { nome: funcForm.nome, login: funcForm.login.trim().toLowerCase() || null, email: funcForm.email || null, cargo: funcForm.cargo,
       cartaoRfid: funcForm.cartao_rfid || null, perfilId: funcForm.perfil_id || null,
       ...(funcForm.senha ? { senha: funcForm.senha } : {}) }
     if (funcForm.id) await api.put(`/usuarios/${funcForm.id}`, payload)

@@ -19,14 +19,30 @@ async function getPermissoes(
   return (perfil?.permissoes as Record<string, boolean>) ?? {}
 }
 
-export async function loginComEmail(email: string, senha: string, slug: string) {
-  const tenant = await prisma.tenant.findUnique({ where: { slug } })
+/** Busca o restaurante pelo código numérico (1001) ou pelo slug. */
+export function buscarTenant(ref: string) {
+  const valor = ref.trim().toLowerCase()
+  return /^\d+$/.test(valor)
+    ? prisma.tenant.findUnique({ where: { codigo: Number(valor) } })
+    : prisma.tenant.findUnique({ where: { slug: valor } })
+}
+
+/** Filtro do usuário: só dígitos = código; com @ = e-mail; senão nome de usuário. */
+function filtroIdentificador(identificador: string) {
+  const valor = identificador.trim().toLowerCase()
+  if (/^\d+$/.test(valor)) return { codigo: Number(valor) }
+  if (valor.includes('@')) return { email: { equals: valor, mode: 'insensitive' as const } }
+  return { login: valor }
+}
+
+export async function loginComSenha(identificador: string, senha: string, slug: string) {
+  const tenant = await buscarTenant(slug)
   if (!tenant || tenant.status !== 'ativo') {
     throw new Error('Restaurante não encontrado ou suspenso')
   }
 
   const usuario = await prisma.usuario.findFirst({
-    where: { email, tenantId: tenant.id, ativo: true },
+    where: { ...filtroIdentificador(identificador), tenantId: tenant.id, ativo: true },
   })
   if (!usuario || !usuario.senhaHash) {
     throw new Error('Credenciais inválidas')

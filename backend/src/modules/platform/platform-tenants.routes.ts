@@ -28,7 +28,7 @@ export async function platformTenantsRoutes(app: FastifyInstance) {
     const tenants = await prisma.tenant.findMany({
       where: { status: { not: 'cancelado' } },
       select: {
-        id: true, nome: true, slug: true, status: true,
+        id: true, codigo: true, nome: true, slug: true, status: true,
         licencas:  { orderBy: { createdAt: 'desc' }, take: 1,
           select: { status: true, dataVencimento: true } },
         contratos: { orderBy: { createdAt: 'desc' }, take: 1,
@@ -119,6 +119,7 @@ export async function platformTenantsRoutes(app: FastifyInstance) {
     const tenants = await prisma.tenant.findMany({
       select: {
         id: true,
+        codigo: true,
         nome: true,
         slug: true,
         cnpj: true,
@@ -155,6 +156,7 @@ export async function platformTenantsRoutes(app: FastifyInstance) {
       where: { id },
       select: {
         id: true,
+        codigo: true,
         nome: true,
         slug: true,
         cnpj: true,
@@ -436,7 +438,7 @@ export async function platformTenantsRoutes(app: FastifyInstance) {
     const { id } = request.params as { id: string }
     const admin = await prisma.usuario.findFirst({
       where: { tenantId: id, cargo: 'administrador' },
-      select: { id: true, nome: true, email: true, ativo: true },
+      select: { id: true, codigo: true, login: true, nome: true, email: true, ativo: true },
       orderBy: { createdAt: 'asc' },
     })
     return reply.send(admin ?? null)

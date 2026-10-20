@@ -110,6 +110,8 @@ function navegar(rota: string) {
   font-weight: 500;
   transition: background-color var(--tempo-toque) var(--curva), color var(--tempo-toque) var(--curva);
 }
+/* Recolhida, o texto fica com largura 0 mas o gap ainda contava e tirava o ícone do centro */
+.sb__item:not(.aberto) { gap: 0; }
 .sb__item.aberto { justify-content: flex-start; padding: 0 var(--e-3); }
 .sb__item:hover  { background: var(--sup-elevado); color: var(--txt); }
 .sb__item.ativo  { background: var(--sup-elevado); color: var(--txt); font-weight: 600; }

@@ -113,9 +113,9 @@
             </div>
             <div class="flex items-center gap-1 shrink-0">
               <button @click="alternarCozinha(cat)"
-                :title="cat.vai_cozinha ? 'Itens vão para a cozinha — clique para desativar' : 'Itens NÃO vão para a cozinha — clique para ativar'"
+                :title="cat.vaiCozinha ? 'Itens vão para a cozinha — clique para desativar' : 'Itens NÃO vão para a cozinha — clique para ativar'"
                 class="h-7 px-2 rounded-lg flex items-center gap-1 justify-center text-[10px] font-black transition-all"
-                :class="cat.vai_cozinha
+                :class="cat.vaiCozinha
                   ? 'bg-orange-500/10 text-orange-400 hover:bg-orange-500/20'
                   : 'text-gray-300 dark:text-white/20 hover:bg-gray-100 dark:hover:bg-white/5 hover:text-gray-400 dark:hover:text-white/40'">
                 <ChefHat :size="12" />
@@ -839,10 +839,10 @@ async function carregarCategorias() {
 }
 
 async function alternarCozinha(cat: any) {
-  const novoValor = !cat.vai_cozinha
+  const novoValor = !cat.vaiCozinha
   try {
-    await api.patch(`/categorias/${cat.id}/cozinha`, { vai_cozinha: novoValor })
-    cat.vai_cozinha = novoValor
+    await api.patch(`/categorias/${cat.id}/cozinha`, { vaiCozinha: novoValor })
+    cat.vaiCozinha = novoValor
     toastStore.success(novoValor
       ? `Itens de "${cat.nome}" agora aparecem na cozinha`
       : `Itens de "${cat.nome}" não vão mais para a cozinha`)

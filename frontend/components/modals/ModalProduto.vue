@@ -35,7 +35,7 @@
           <label for="prod-categoria" class="text-xs font-bold text-gray-500 dark:text-white/40 block mb-1">Categoria</label>
 
           <div v-if="!novaCategoria" class="flex gap-2">
-            <select id="prod-categoria" name="prod-categoria" v-model="form.categoria_id"
+            <select id="prod-categoria" name="prod-categoria" v-model="form.categoriaId"
               class="flex-1 h-11 border border-gray-200 dark:border-white/10 rounded-xl px-3 outline-none !bg-gray-50 dark:!bg-white/[0.06] text-gray-900 dark:text-white focus:border-orange-500/70 transition-colors">
               <option :value="null">Sem categoria</option>
               <option
@@ -81,7 +81,7 @@
             </button>
           </div>
 
-          <div v-if="!novaCategoria && categoriaAtual?.vai_cozinha" class="mt-1.5 flex items-center gap-1 text-[11px] font-black text-orange-400">
+          <div v-if="!novaCategoria && categoriaAtual?.vaiCozinha" class="mt-1.5 flex items-center gap-1 text-[11px] font-black text-orange-400">
             <ChefHat :size="12" />
             Vai para a cozinha
           </div>
@@ -97,7 +97,7 @@
         <!-- ESTOQUE -->
         <div>
           <label for="prod-estoque-atual" class="text-xs font-bold text-gray-500 dark:text-white/40 block mb-1">Estoque atual</label>
-          <input id="prod-estoque-atual" name="prod-estoque-atual" v-model="form.estoque_atual" type="number" min="0" step="1"
+          <input id="prod-estoque-atual" name="prod-estoque-atual" v-model="form.estoqueAtual" type="number" min="0" step="1"
             class="w-full h-11 border border-gray-200 dark:border-white/10 rounded-xl px-3 mt-0 outline-none bg-gray-50 dark:bg-white/[0.06] text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-white/25 focus:border-orange-500/70 transition-colors" />
           <p v-if="form.id" class="text-[11px] text-gray-400 dark:text-white/40 mt-1">
             Alterações aqui entram no histórico como ajuste
@@ -106,7 +106,7 @@
 
         <div>
           <label for="prod-estoque-minimo" class="text-xs font-bold text-gray-500 dark:text-white/40 block mb-1">Estoque mínimo</label>
-          <input id="prod-estoque-minimo" name="prod-estoque-minimo" v-model="form.estoque_minimo" type="number" min="0" step="1"
+          <input id="prod-estoque-minimo" name="prod-estoque-minimo" v-model="form.estoqueMinimo" type="number" min="0" step="1"
             class="w-full h-11 border border-gray-200 dark:border-white/10 rounded-xl px-3 mt-0 outline-none bg-gray-50 dark:bg-white/[0.06] text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-white/25 focus:border-orange-500/70 transition-colors" />
           <p class="text-[11px] text-gray-400 dark:text-white/40 mt-1">
             Abaixo disso o produto é marcado como "baixo estoque"
@@ -124,12 +124,12 @@
           </div>
 
           <button
-            @click="form.gerenciar_estoque = !form.gerenciar_estoque"
-            :class="form.gerenciar_estoque ? 'bg-green-500' : 'bg-gray-300 dark:bg-gray-400'"
+            @click="form.gerenciarEstoque = !form.gerenciarEstoque"
+            :class="form.gerenciarEstoque ? 'bg-green-500' : 'bg-gray-300 dark:bg-gray-400'"
             class="w-14 h-8 rounded-full relative transition-colors"
           >
             <div
-              :class="form.gerenciar_estoque ? 'translate-x-7' : 'translate-x-1'"
+              :class="form.gerenciarEstoque ? 'translate-x-7' : 'translate-x-1'"
               class="w-6 h-6 bg-white rounded-full absolute top-1 transition"
             />
           </button>
@@ -198,11 +198,11 @@ const form = reactive({
   id: null,
   nome: '',
   preco: 0,
-  categoria_id: null,
+  categoriaId: null,
   ativo: true,
-  estoque_atual: 0,
-  estoque_minimo: 5,
-  gerenciar_estoque: true
+  estoqueAtual: 0,
+  estoqueMinimo: 5,
+  gerenciarEstoque: true
 })
 
 const categorias        = ref([])
@@ -210,7 +210,7 @@ const novaCategoria     = ref(false)
 const nomeNovaCategoria = ref('')
 const criandoCategoria  = ref(false)
 
-const categoriaAtual = computed(() => categorias.value.find(c => c.id === form.categoria_id))
+const categoriaAtual = computed(() => categorias.value.find(c => c.id === form.categoriaId))
 
 async function carregarCategorias() {
   try {
@@ -229,7 +229,7 @@ async function criarCategoria() {
   try {
     const nova = await api.post('/categorias', { nome })
     categorias.value.push({ id: nova.id, nome: nova.nome })
-    form.categoria_id = nova.id
+    form.categoriaId = nova.id
     novaCategoria.value     = false
     nomeNovaCategoria.value = ''
     toastStore.success(`Categoria "${nova.nome}" criada!`)
@@ -248,7 +248,7 @@ function fechar() {
 
 function salvar() {
   if (!form.nome?.trim()) return toastStore.error('Nome obrigatório', 'Informe o nome do produto')
-  if (!form.categoria_id) return toastStore.error('Categoria obrigatória', 'Selecione uma categoria para o produto')
+  if (!form.categoriaId) return toastStore.error('Categoria obrigatória', 'Selecione uma categoria para o produto')
   if (!form.preco || Number(form.preco) <= 0) return toastStore.error('Preço inválido', 'Informe um preço maior que zero')
   emit('salvar', { ...form })
   fechar()
@@ -266,11 +266,11 @@ watch(
         id: null,
         nome: '',
         preco: 0,
-        categoria_id: null,
+        categoriaId: null,
         ativo: true,
-        estoque_atual: 0,
-        estoque_minimo: 5,
-        gerenciar_estoque: true
+        estoqueAtual: 0,
+        estoqueMinimo: 5,
+        gerenciarEstoque: true
       })
     }
   },

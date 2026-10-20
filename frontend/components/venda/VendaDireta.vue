@@ -38,21 +38,21 @@
             v-for="p in produtosFiltrados" :key="p.id"
             @click="adicionarAoCarrinho(p)"
             class="group relative bg-white dark:bg-white/5 backdrop-blur-xl border border-gray-200 dark:border-white/[0.08] rounded-2xl p-3.5 flex flex-col items-center text-center hover:border-orange-400/60 hover:bg-orange-50 dark:hover:bg-white/[0.08] active:scale-95 transition-all"
-            :class="p.gerenciar_estoque && p.estoque_atual <= 0 ? 'opacity-50 cursor-not-allowed hover:border-gray-200 dark:hover:border-white/[0.08] hover:bg-white dark:hover:bg-white/5' : ''"
+            :class="p.gerenciarEstoque && p.estoqueAtual <= 0 ? 'opacity-50 cursor-not-allowed hover:border-gray-200 dark:hover:border-white/[0.08] hover:bg-white dark:hover:bg-white/5' : ''"
           >
             <!-- BADGE ESTOQUE -->
             <span
-              v-if="p.gerenciar_estoque && p.estoque_atual <= 0"
+              v-if="p.gerenciarEstoque && p.estoqueAtual <= 0"
               class="absolute top-1.5 right-1.5 text-[9px] font-black bg-red-500/15 text-red-400 px-1.5 py-0.5 rounded-md leading-none"
             >Esgotado</span>
             <span
-              v-else-if="p.gerenciar_estoque && p.estoque_atual <= p.estoque_minimo"
+              v-else-if="p.gerenciarEstoque && p.estoqueAtual <= p.estoqueMinimo"
               class="absolute top-1.5 right-1.5 text-[9px] font-black bg-amber-500/15 text-amber-400 px-1.5 py-0.5 rounded-md leading-none"
-            >{{ p.estoque_atual }} un.</span>
+            >{{ p.estoqueAtual }} un.</span>
             <span
-              v-else-if="p.gerenciar_estoque"
+              v-else-if="p.gerenciarEstoque"
               class="absolute top-1.5 right-1.5 text-[9px] font-black bg-white/10 text-gray-400 dark:text-white/30 px-1.5 py-0.5 rounded-md leading-none"
-            >{{ p.estoque_atual }} un.</span>
+            >{{ p.estoqueAtual }} un.</span>
 
             <div class="w-8 h-8 rounded-xl bg-orange-500/10 flex items-center justify-center mb-2.5">
               <UtensilsCrossed :size="14" class="text-orange-500" />
@@ -373,7 +373,7 @@ const produtosFiltrados = computed(() => {
 interface CartItem { produto_id: number; nome_produto: string; preco_unit: number; quantidade: number }
 
 function adicionarAoCarrinho(p: Produto) {
-  if (p.gerenciar_estoque && p.estoque_atual <= 0) {
+  if (p.gerenciarEstoque && p.estoqueAtual <= 0) {
     toastStore.warning(`${p.nome} está sem estoque`)
     return
   }
@@ -385,18 +385,18 @@ function adicionarAoCarrinho(p: Produto) {
     carrinho.value.push({ produto_id: p.id, nome_produto: p.nome, preco_unit: Number(p.preco), quantidade: 1 })
   }
 
-  if (p.gerenciar_estoque) p.estoque_atual--
+  if (p.gerenciarEstoque) p.estoqueAtual--
 }
 
 function incrementar(idx: number) {
   const item = carrinho.value[idx]
   const prod = todosProdutos.value.find(p => p.id === item.produto_id)
-  if (prod?.gerenciar_estoque) {
-    if (prod.estoque_atual <= 0) {
+  if (prod?.gerenciarEstoque) {
+    if (prod.estoqueAtual <= 0) {
       toastStore.warning(`Estoque insuficiente`)
       return
     }
-    prod.estoque_atual--
+    prod.estoqueAtual--
   }
   item.quantidade++
 }
@@ -404,7 +404,7 @@ function incrementar(idx: number) {
 function decrementar(idx: number) {
   const item = carrinho.value[idx]
   const prod = todosProdutos.value.find(p => p.id === item.produto_id)
-  if (prod?.gerenciar_estoque) prod.estoque_atual++
+  if (prod?.gerenciarEstoque) prod.estoqueAtual++
   if (item.quantidade <= 1) carrinho.value.splice(idx, 1)
   else item.quantidade--
 }
@@ -412,7 +412,7 @@ function decrementar(idx: number) {
 function limparCarrinho() {
   for (const item of carrinho.value) {
     const prod = todosProdutos.value.find(p => p.id === item.produto_id)
-    if (prod?.gerenciar_estoque) prod.estoque_atual += item.quantidade
+    if (prod?.gerenciarEstoque) prod.estoqueAtual += item.quantidade
   }
   carrinho.value = []
 }
@@ -596,7 +596,7 @@ async function carregarProdutos() {
     // Aplica reservas do carrinho persistido sobre o estoque recém-carregado
     for (const item of carrinho.value) {
       const prod = todosProdutos.value.find(p => p.id === item.produto_id)
-      if (prod?.gerenciar_estoque) prod.estoque_atual = Math.max(0, prod.estoque_atual - item.quantidade)
+      if (prod?.gerenciarEstoque) prod.estoqueAtual = Math.max(0, prod.estoqueAtual - item.quantidade)
     }
   } catch {}
 }

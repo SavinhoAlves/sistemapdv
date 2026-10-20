@@ -3,7 +3,8 @@
     <Sidebar v-if="!quiosque" />
     <Navbar v-if="!quiosque" />
 
-    <main class="p-4 w-full">
+    <main class="p-4 w-full relative min-h-[calc(100vh-4rem)]">
+      <CaixaFechado v-if="!quiosque" acao="receber pedidos na cozinha" />
 
       <!-- BANNER OFFLINE -->
       <div v-if="semConexao"

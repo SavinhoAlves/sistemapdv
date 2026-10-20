@@ -1,4 +1,30 @@
 import { prisma } from '../../lib/prisma'
+import { partesLocais, inicioDoDia, hojeLocal, somarDias } from '../../lib/fuso'
+
+/**
+ * Faturamento confirmado por hora de hoje e por dia nos últimos 7 dias
+ * (hora local), para o gráfico da página inicial.
+ */
+async function series(tenantId: string) {
+  const hoje = hojeLocal()
+  const dias = Array.from({ length: 7 }, (_, i) => somarDias(hoje, i - 6))
+  const pagamentos = await prisma.pagamento.findMany({
+    where: { tenantId, status: 'confirmado', createdAt: { gte: inicioDoDia(dias[0]) } },
+    select: { valor: true, createdAt: true },
+  })
+
+  const porHora = Array.from({ length: 24 }, (_, hora) => ({ hora, total: 0, qtd: 0 }))
+  const porDia = dias.map((dia) => ({ dia, total: 0, qtd: 0 }))
+  for (const p of pagamentos) {
+    const { dia, hora } = partesLocais(p.createdAt)
+    const v = Number(p.valor)
+    const d = porDia.find((x) => x.dia === dia)
+    if (d) { d.total += v; d.qtd++ }
+    if (dia === hoje) { porHora[hora].total += v; porHora[hora].qtd++ }
+  }
+  const arred = <T extends { total: number }>(xs: T[]) => xs.map((x) => ({ ...x, total: Number(x.total.toFixed(2)) }))
+  return { porHora: arred(porHora), ultimos7Dias: arred(porDia) }
+}
 
 export async function stats(tenantId: string) {
   // Mesas abertas
@@ -54,7 +80,7 @@ export async function stats(tenantId: string) {
       valor:     Number(p.valor),
       troco:     Number(p.troco),
       createdAt: p.createdAt,
-      nomeMesa:  p.mesa?.nomeMesa ?? `Mesa ${p.mesa?.numero ?? '?'}`,
+      nomeMesa:  p.mesa ? (p.mesa.nomeMesa ?? `Mesa ${p.mesa.numero}`) : null, // sem mesa = venda direta
       metodo:    p.metodo.nome,
     }))
 
@@ -111,7 +137,7 @@ export async function stats(tenantId: string) {
       valor:     Number(p.valor),
       troco:     Number(p.troco),
       createdAt: p.createdAt,
-      nomeMesa:  p.mesa?.nomeMesa ?? `Mesa ${p.mesa?.numero ?? '?'}`,
+      nomeMesa:  p.mesa ? (p.mesa.nomeMesa ?? `Mesa ${p.mesa.numero}`) : null, // sem mesa = venda direta
       metodo:    p.metodo.nome,
     }))
 
@@ -135,6 +161,7 @@ export async function stats(tenantId: string) {
   }
 
   return {
+    ...(await series(tenantId)),
     faturamentoHoje,
     pagamentosHoje,
     mesasAbertas,

@@ -9,7 +9,8 @@
     >
       <Navbar />
 
-      <main class="flex-1 overflow-hidden">
+      <main class="flex-1 overflow-hidden relative">
+        <CaixaFechado acao="iniciar mesas e lançar pedidos" />
 
         <!-- SALÃO -->
         <div v-if="!modoProdutos" class="salao h-full overflow-auto">

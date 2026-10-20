@@ -2,180 +2,136 @@ import type { FastifyInstance } from 'fastify'
 import { z } from 'zod'
 import { requirePlatform } from '../../middlewares/tenant.middleware'
 import { prisma } from '../../lib/prisma'
+import {
+  AssinaturaErro, MESES_CICLO, ajustarVencimento, desfazerPagamento, hojeBR, registrarPagamento, resumir,
+  somarDias, type Situacao,
+} from './assinatura'
 
 /**
- * Mensalidades: o que cada restaurante paga à plataforma, mês a mês.
- *
- * Valor do mês, nesta ordem:
- *   1. valor combinado no restaurante (cobrancaValor);
- *   2. contrato assinado ou em assinatura, convertido para o mês pelo ciclo
- *      (mesma conta da receita mensal da Visão geral);
- *   3. preço do plano.
- *
- * Situação no mês de referência: isento > em dia (tem pagamento) > sem valor
- * (nada a cobrar definido) > atrasado (já passou do dia de vencimento) >
- * pendente. Restaurantes cadastrados depois do mês consultado não entram.
- * Atraso não bloqueia o restaurante — o bloqueio continua sendo pela licença.
+ * Cobrança: situação da assinatura de cada restaurante e os pagamentos.
+ * As regras (vencimento, tolerância, teste, licença) ficam em ./assinatura.
  */
 
-export const FATOR_MENSAL: Record<string, number> = { mensal: 1, trimestral: 1 / 3, semestral: 1 / 6, anual: 1 / 12 }
-
-const COMPETENCIA_RE = /^\d{4}-(0[1-9]|1[0-2])$/
-
-export type Situacao = 'isento' | 'em_dia' | 'sem_valor' | 'atrasado' | 'pendente'
-
-export function competenciaAtual(d = new Date()) {
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
-}
-
-/** Valor mensal e de onde ele veio. */
-export function valorMensal(t: {
-  cobrancaValor: any
-  plano: { valor: any } | null
-  contratos: { valor: any; ciclo: string; status: string }[]
-}): { valor: number; origem: 'combinado' | 'contrato' | 'plano' | 'nenhum' } {
-  if (t.cobrancaValor != null) return { valor: Number(t.cobrancaValor), origem: 'combinado' }
-  const con = t.contratos.find(c => (c.status === 'ativo' || c.status === 'trial') && c.valor != null)
-  if (con) return { valor: Math.round(Number(con.valor) * (FATOR_MENSAL[con.ciclo] ?? 1) * 100) / 100, origem: 'contrato' }
-  if (t.plano) return { valor: Number(t.plano.valor), origem: 'plano' }
-  return { valor: 0, origem: 'nenhum' }
-}
-
-/**
- * Situação de uma competência. Meses passados sem pagamento estão atrasados;
- * meses futuros ficam pendentes; no mês corrente vale o dia de vencimento.
- */
-export function situacao(isento: boolean, pago: boolean, competencia: string, diaVencimento: number, hoje = new Date(), valor = 1): Situacao {
-  if (isento) return 'isento'
-  if (pago) return 'em_dia'
-  if (valor <= 0) return 'sem_valor'
-  const atual = competenciaAtual(hoje)
-  if (competencia < atual) return 'atrasado'
-  if (competencia > atual) return 'pendente'
-  return hoje.getDate() > diaVencimento ? 'atrasado' : 'pendente'
-}
-
-const configBody = z.object({
-  diaVencimento: z.coerce.number().int().min(1, 'Dia entre 1 e 28').max(28, 'Dia entre 1 e 28'),
-  valor:         z.coerce.number().min(0, 'Valor não pode ser negativo').max(1_000_000).nullable(),
-  isento:        z.boolean(),
-  observacao:    z.string().trim().max(300).nullish(),
-})
+const DATA_RE = /^\d{4}-\d{2}-\d{2}$/
 
 const pagamentoBody = z.object({
-  tenantId:    z.string().min(1),
-  competencia: z.string().regex(COMPETENCIA_RE, 'Mês inválido (use AAAA-MM)'),
-  valor:       z.coerce.number().positive('Informe o valor recebido').max(1_000_000),
-  pagoEm:      z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Data inválida'),
-  forma:       z.enum(['pix', 'dinheiro', 'cartao', 'boleto', 'transferencia']).nullish(),
-  observacao:  z.string().trim().max(300).nullish(),
+  tenantId:   z.string().min(1),
+  valor:      z.coerce.number().positive('Informe o valor recebido').max(1_000_000),
+  pagoEm:     z.string().regex(DATA_RE, 'Data inválida'),
+  forma:      z.enum(['pix', 'dinheiro', 'cartao', 'boleto', 'transferencia']).nullish(),
+  observacao: z.string().trim().max(300).nullish(),
 })
 
-export async function platformCobrancaRoutes(app: FastifyInstance) {
-  // GET /?competencia=AAAA-MM — situação de todos os restaurantes no mês
-  app.get('/', { preHandler: requirePlatform }, async (request, reply) => {
-    const { competencia = competenciaAtual() } = request.query as { competencia?: string }
-    if (!COMPETENCIA_RE.test(competencia)) return reply.status(400).send({ error: 'Mês inválido (use AAAA-MM)' })
+const ajusteBody = z.object({
+  vencimento: z.string().regex(DATA_RE, 'Data inválida'),
+  motivo:     z.string().trim().min(3, 'Informe o motivo do ajuste').max(300),
+})
 
+/** Valor do ciclo convertido para o mês (receita mensal). */
+export function valorMensalDoCiclo(valor: number | null, ciclo: string) {
+  return valor ? Math.round((valor / (MESES_CICLO[ciclo] ?? 1)) * 100) / 100 : 0
+}
+
+function responderErro(reply: any, err: unknown) {
+  if (err instanceof AssinaturaErro) return reply.status(err.status).send({ error: err.message })
+  throw err
+}
+
+export async function platformCobrancaRoutes(app: FastifyInstance) {
+  // GET / — situação da assinatura de todos os restaurantes
+  app.get('/', { preHandler: requirePlatform }, async (_request, reply) => {
     const tenants = await prisma.tenant.findMany({
+      where: { status: { not: 'cancelado' } },
       orderBy: { nome: 'asc' },
       select: {
-        id: true, nome: true, slug: true, status: true, createdAt: true,
-        cobrancaDiaVencimento: true, cobrancaValor: true, cobrancaIsento: true, cobrancaObs: true,
-        plano: { select: { nome: true, valor: true } },
-        contratos: { orderBy: { createdAt: 'desc' }, take: 1, select: { plano: true, valor: true, ciclo: true, status: true } },
-        pagamentosMensalidade: { where: { competencia }, take: 1 },
+        id: true, codigo: true, nome: true, slug: true, status: true,
+        plano: { select: { nome: true } },
+        contratos: { orderBy: { createdAt: 'desc' }, take: 1 },
+        pagamentosMensalidade: { orderBy: { createdAt: 'desc' }, take: 1 },
       },
     })
 
-    const linhas = tenants.filter(t => competenciaAtual(t.createdAt) <= competencia).map(t => {
-      const { valor, origem } = valorMensal(t)
-      const pagamento = t.pagamentosMensalidade[0] ?? null
+    const hoje = hojeBR()
+    const mes = hoje.slice(0, 7)
+    const em30d = somarDias(hoje, 30)
+
+    const linhas = tenants.map(t => {
+      const contrato = t.contratos[0] ?? null
+      const ultimo = t.pagamentosMensalidade[0] ?? null
+      const r = resumir(contrato, t.status, !!ultimo)
       return {
         tenantId: t.id,
+        codigo: t.codigo,
         nome: t.nome,
         slug: t.slug,
-        status: t.status,
-        plano: t.plano?.nome ?? t.contratos[0]?.plano ?? null,
-        diaVencimento: t.cobrancaDiaVencimento,
-        isento: t.cobrancaIsento,
-        observacao: t.cobrancaObs,
-        valor,
-        valorCombinado: t.cobrancaValor != null ? Number(t.cobrancaValor) : null,
-        origemValor: origem,
-        situacao: situacao(t.cobrancaIsento, !!pagamento, competencia, t.cobrancaDiaVencimento, new Date(), valor),
-        pagamento: pagamento && { id: pagamento.id, valor: Number(pagamento.valor), pagoEm: pagamento.pagoEm, forma: pagamento.forma, observacao: pagamento.observacao },
+        plano: t.plano?.nome ?? contrato?.plano ?? null,
+        ...r,
+        observacao: contrato?.observacoes ?? null,
+        ultimoPagamento: ultimo && {
+          id: ultimo.id, valor: Number(ultimo.valor), pagoEm: ultimo.pagoEm, forma: ultimo.forma,
+          periodoInicio: ultimo.periodoInicio, periodoFim: ultimo.periodoFim,
+        },
       }
     })
 
-    const soma = (f: (l: typeof linhas[number]) => boolean, campo: (l: typeof linhas[number]) => number = l => l.valor) =>
-      Math.round(linhas.filter(f).reduce((s, l) => s + campo(l), 0) * 100) / 100
+    const recebidosNoMes = await prisma.pagamentoMensalidade.aggregate({
+      where: { pagoEm: { gte: new Date(`${mes}-01T00:00:00.000Z`), lte: new Date(`${hoje}T00:00:00.000Z`) } },
+      _sum: { valor: true },
+    })
+
+    const cobraveis = linhas.filter(l => !['isento', 'cancelado', 'suspenso'].includes(l.situacao))
+    const soma = (ls: typeof linhas) => Math.round(ls.reduce((s, l) => s + (l.valor ?? 0), 0) * 100) / 100
+    const qtd = (s: Situacao) => linhas.filter(l => l.situacao === s).length
 
     return reply.send({
-      competencia,
+      hoje,
       totais: {
-        previsto:  soma(l => !l.isento),
-        recebido:  soma(l => !!l.pagamento, l => l.pagamento!.valor),
-        pendente:  soma(l => l.situacao === 'pendente'),
-        atrasado:  soma(l => l.situacao === 'atrasado'),
+        receitaMensal: Math.round(cobraveis.filter(l => l.situacao !== 'teste').reduce((s, l) => s + valorMensalDoCiclo(l.valor, l.ciclo), 0) * 100) / 100,
+        recebidoNoMes: Number(recebidosNoMes._sum.valor ?? 0),
+        aReceber30d:   soma(cobraveis.filter(l => l.proximoVencimento && l.proximoVencimento >= hoje && l.proximoVencimento <= em30d && l.situacao === 'em_dia')),
+        emAtraso:      soma(linhas.filter(l => l.situacao === 'tolerancia' || (l.situacao === 'bloqueado' && l.proximoVencimento))),
         qtd: {
-          em_dia:   linhas.filter(l => l.situacao === 'em_dia').length,
-          pendente: linhas.filter(l => l.situacao === 'pendente').length,
-          atrasado: linhas.filter(l => l.situacao === 'atrasado').length,
-          isento:   linhas.filter(l => l.situacao === 'isento').length,
-          sem_valor: linhas.filter(l => l.situacao === 'sem_valor').length,
+          teste: qtd('teste'), em_dia: qtd('em_dia'), tolerancia: qtd('tolerancia'), bloqueado: qtd('bloqueado'),
+          isento: qtd('isento'), suspenso: qtd('suspenso'), pendente: qtd('pendente'),
         },
       },
       restaurantes: linhas,
     })
   })
 
-  // PUT /tenants/:id — dia de vencimento, valor combinado, isenção
-  app.put('/tenants/:id', { preHandler: requirePlatform }, async (request, reply) => {
-    const { id } = request.params as { id: string }
-    const parsed = configBody.safeParse(request.body)
-    if (!parsed.success) return reply.status(400).send({ error: parsed.error.issues[0]?.message ?? 'Dados inválidos' })
-    const { diaVencimento, valor, isento, observacao } = parsed.data
-    try {
-      const t = await prisma.tenant.update({
-        where: { id },
-        data: { cobrancaDiaVencimento: diaVencimento, cobrancaValor: valor, cobrancaIsento: isento, cobrancaObs: observacao || null },
-        select: { id: true, cobrancaDiaVencimento: true, cobrancaValor: true, cobrancaIsento: true, cobrancaObs: true },
-      })
-      return reply.send({ ...t, cobrancaValor: t.cobrancaValor != null ? Number(t.cobrancaValor) : null })
-    } catch (err: any) {
-      if (err.code === 'P2025') return reply.status(404).send({ error: 'Restaurante não encontrado' })
-      throw err
-    }
-  })
-
-  // POST /pagamentos — registra (ou corrige) o pagamento de um mês
+  // POST /pagamentos — registra o pagamento do ciclo em aberto (empurra o vencimento)
   app.post('/pagamentos', { preHandler: requirePlatform }, async (request, reply) => {
     const parsed = pagamentoBody.safeParse(request.body)
     if (!parsed.success) return reply.status(400).send({ error: parsed.error.issues[0]?.message ?? 'Dados inválidos' })
-    const { tenantId, competencia, valor, pagoEm, forma, observacao } = parsed.data
-
-    const existe = await prisma.tenant.findUnique({ where: { id: tenantId }, select: { id: true } })
-    if (!existe) return reply.status(404).send({ error: 'Restaurante não encontrado' })
-
-    const dados = { valor, pagoEm: new Date(`${pagoEm}T12:00:00`), forma: forma ?? null, observacao: observacao || null }
-    const pagamento = await prisma.pagamentoMensalidade.upsert({
-      where: { tenantId_competencia: { tenantId, competencia } },
-      create: { tenantId, competencia, ...dados },
-      update: dados,
-    })
-    return reply.status(201).send({ ...pagamento, valor: Number(pagamento.valor) })
+    const { tenantId, ...dados } = parsed.data
+    try {
+      const pagamento = await registrarPagamento(tenantId, dados)
+      return reply.status(201).send({ ...pagamento, valor: Number(pagamento.valor) })
+    } catch (err) {
+      return responderErro(reply, err)
+    }
   })
 
-  // DELETE /pagamentos/:id — desfaz um pagamento lançado por engano
+  // DELETE /pagamentos/:id — desfaz o pagamento mais recente (o vencimento volta)
   app.delete('/pagamentos/:id', { preHandler: requirePlatform }, async (request, reply) => {
     const { id } = request.params as { id: string }
     try {
-      await prisma.pagamentoMensalidade.delete({ where: { id } })
+      await desfazerPagamento(id)
       return reply.send({ success: true })
-    } catch (err: any) {
-      if (err.code === 'P2025') return reply.status(404).send({ error: 'Pagamento não encontrado' })
-      throw err
+    } catch (err) {
+      return responderErro(reply, err)
+    }
+  })
+
+  // POST /tenants/:id/vencimento — ajuste manual do vencimento (cortesia, negociação)
+  app.post('/tenants/:id/vencimento', { preHandler: requirePlatform }, async (request, reply) => {
+    const { id } = request.params as { id: string }
+    const parsed = ajusteBody.safeParse(request.body)
+    if (!parsed.success) return reply.status(400).send({ error: parsed.error.issues[0]?.message ?? 'Dados inválidos' })
+    try {
+      return reply.send(await ajustarVencimento(id, parsed.data.vencimento, parsed.data.motivo))
+    } catch (err) {
+      return responderErro(reply, err)
     }
   })
 
@@ -184,7 +140,7 @@ export async function platformCobrancaRoutes(app: FastifyInstance) {
     const { id } = request.params as { id: string }
     const pagamentos = await prisma.pagamentoMensalidade.findMany({
       where: { tenantId: id },
-      orderBy: { competencia: 'desc' },
+      orderBy: [{ periodoInicio: { sort: 'desc', nulls: 'last' } }, { createdAt: 'desc' }],
       take: 24,
     })
     return reply.send(pagamentos.map(p => ({ ...p, valor: Number(p.valor) })))

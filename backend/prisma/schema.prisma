@@ -105,13 +105,16 @@ model Tenant {
   observacoes          String?
   vendaMobilePermitida Boolean      @default(true) @map("venda_mobile_permitida")
   rfidDisponivel       Boolean      @default(false) @map("rfid_disponivel")
+  /// Exceção do superadmin aos recursos do plano: null segue o plano
+  rfidManual           Boolean?     @map("rfid_manual")
+  vendaMobileManual    Boolean?     @map("venda_mobile_manual")
   /// Pacote contratado. Com plano, os recursos acima seguem o plano.
   planoId              String?      @map("plano_id")
   plano                Plano?       @relation(fields: [planoId], references: [id], onDelete: SetNull)
-  /// Cobrança da mensalidade (plataforma)
+  /// Obsoletos: a cobrança mora no Contrato desde a migração da assinatura.
+  /// Ficam até o próximo deploy para a API antiga não quebrar durante a troca.
   cobrancaDiaVencimento Int         @default(10) @map("cobranca_dia_vencimento")
-  /// Valor combinado com o restaurante; null usa contrato ou plano
-  cobrancaValor        Decimal?     @map("cobranca_valor") @db.Decimal(10, 2)
+  cobrancaValor       Decimal?     @map("cobranca_valor") @db.Decimal(10, 2)
   cobrancaIsento       Boolean      @default(false) @map("cobranca_isento")
   cobrancaObs          String?      @map("cobranca_obs")
   pagamentosMensalidade PagamentoMensalidade[]
@@ -685,6 +688,14 @@ model Contrato {
   dataFim     DateTime?      @map("data_fim") @db.Date
   status      ContratoStatus @default(ativo)
   observacoes String?
+  /// Assinatura: o pagamento empurra o próximo vencimento um ciclo; a licença é derivada daqui
+  diaVencimento     Int       @default(10) @map("dia_vencimento")
+  proximoVencimento DateTime? @map("proximo_vencimento") @db.Date
+  /// Teste grátis: liberado até o fim deste dia, sem tolerância
+  testeAte          DateTime? @map("teste_ate") @db.Date
+  isento            Boolean   @default(false)
+  ajusteMotivo      String?   @map("ajuste_motivo")
+  ajusteEm          DateTime? @map("ajuste_em")
   createdAt   DateTime       @default(now()) @map("created_at")
   updatedAt   DateTime       @updatedAt @map("updated_at")
 
@@ -727,11 +738,14 @@ model PagamentoMensalidade {
   pagoEm      DateTime @map("pago_em") @db.Date
   forma       String?
   observacao  String?
+  /// Período coberto pelo pagamento: [início, fim), fim = próximo vencimento
+  periodoInicio DateTime? @map("periodo_inicio") @db.Date
+  periodoFim    DateTime? @map("periodo_fim") @db.Date
   createdAt   DateTime @default(now()) @map("created_at")
 
   tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
-  @@unique([tenantId, competencia])
+  @@index([tenantId, competencia])
   @@index([competencia])
   @@map("pagamentos_mensalidade")
 }

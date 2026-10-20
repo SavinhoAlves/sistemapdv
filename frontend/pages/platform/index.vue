@@ -33,14 +33,14 @@
           <em>{{ moeda(dashboard?.financeiro?.arr ?? 0) }} por ano</em>
         </div>
         <div class="pf-st" :class="{ hot: (dashboard?.licencas?.bloqueadas ?? 0) > 0 }">
-          <small>Licenças ativas</small>
+          <small>Liberados</small>
           <strong>{{ dashboard?.licencas?.ativas ?? 0 }}</strong>
-          <em>{{ dashboard?.licencas?.bloqueadas ? `${dashboard.licencas.bloqueadas} bloqueadas` : 'nenhuma bloqueada' }}</em>
+          <em>{{ dashboard?.licencas?.bloqueadas ? `${dashboard.licencas.bloqueadas} bloqueados` : 'nenhum bloqueado' }}<template v-if="dashboard?.licencas?.teste"> · {{ dashboard.licencas.teste }} em teste</template></em>
         </div>
         <div class="pf-st" :class="{ hot: vencimentos > 0 }">
-          <small>Licenças a vencer</small>
+          <small>Cobranças a acompanhar</small>
           <strong>{{ vencimentos }}</strong>
-          <em>{{ dashboard?.licencas?.vencidas ? `${dashboard.licencas.vencidas} vencidas` : 'nos próximos 30 dias' }}</em>
+          <em>{{ dashboard?.licencas?.vencidas ? `${dashboard.licencas.vencidas} em atraso` : 'vencendo nos próximos 5 dias' }}</em>
         </div>
       </div>
 
@@ -63,7 +63,7 @@
               <span class="pf-btn s">Abrir</span>
             </NuxtLink>
           </template>
-          <div v-else class="pf-empty"><b>Sem pendências</b>Licenças válidas e nenhum restaurante bloqueado.</div>
+          <div v-else class="pf-empty"><b>Sem pendências</b>Ninguém atrasado nem bloqueado.</div>
         </div>
 
         <!-- Receita e recursos -->
@@ -108,7 +108,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, type Component } from 'vue'
-import { Plus, AlertTriangle, Clock, Wallet, CreditCard, Smartphone, Lock } from 'lucide-vue-next'
+import { Plus, Clock, Wallet, CreditCard, Smartphone, Lock, Hourglass } from 'lucide-vue-next'
 import { usePlatformAuthStore } from '~/stores/platformAuth'
 import { usePlatformTenants, moeda } from '~/composables/usePlatformTenants'
 
@@ -127,16 +127,18 @@ const recursos = computed<{ rotulo: string; icone: Component; qtd: number }[]>((
   { rotulo: 'Venda pelo celular', icone: Smartphone, qtd: tenants.value.filter(t => t.vendaMobilePermitida).length },
 ])
 
-/** Alertas do backend traduzidos para a lista "Precisa de atenção". */
+const nDias = (n?: number) => `${n ?? 0} ${n === 1 ? 'dia' : 'dias'}`
+
+/** Alertas do backend (situação da assinatura) traduzidos para a lista de pendências. */
 const alertas = computed(() => (dashboard.value?.alertas ?? []).map(a => {
-  if (a.tipo === 'licenca_vencida')
-    return { ...a, tom: 'bad', icone: AlertTriangle as Component, titulo: `Licença de ${a.nome} venceu`, detalhe: 'O restaurante não consegue abrir o caixa' }
-  if (a.tipo === 'licenca_critica' || a.tipo === 'licenca_vencendo')
-    return { ...a, tom: a.tipo === 'licenca_critica' ? 'bad' : 'warn', icone: Clock as Component, titulo: `Licença de ${a.nome} vence em ${a.dias} ${a.dias === 1 ? 'dia' : 'dias'}`, detalhe: 'Renove para evitar o bloqueio' }
-  if (a.tipo === 'mensalidade_atrasada')
-    return { ...a, tom: 'bad', icone: Wallet as Component, titulo: `Mensalidade de ${a.nome} atrasada`, detalhe: `${moeda(a.valor ?? 0)} · venceu há ${a.dias} ${a.dias === 1 ? 'dia' : 'dias'}`, link: '/platform/mensalidades' }
-  // 'inadimplente' no backend = licença bloqueada
-  return { ...a, tom: 'bad', icone: Lock as Component, titulo: `Licença de ${a.nome} bloqueada`, detalhe: 'O restaurante não consegue entrar no sistema' }
+  const valor = a.valor ? `${moeda(a.valor)} · ` : ''
+  if (a.tipo === 'tolerancia')
+    return { ...a, tom: 'warn', icone: Wallet as Component, titulo: `${a.nome}: mensalidade atrasada`, detalhe: `${valor}bloqueia em ${nDias(a.dias)} se não pagar` }
+  if (a.tipo === 'vencendo')
+    return { ...a, tom: 'warn', icone: Clock as Component, titulo: `${a.nome}: vence ${a.dias === 0 ? 'hoje' : `em ${nDias(a.dias)}`}`, detalhe: `${valor}lembre o cliente do pagamento` }
+  if (a.tipo === 'teste_acabando')
+    return { ...a, tom: 'info', icone: Hourglass as Component, titulo: `${a.nome}: teste ${a.dias === 0 ? 'acaba hoje' : `acaba em ${nDias(a.dias)}`}`, detalhe: 'Hora de fechar o contrato' }
+  return { ...a, tom: 'bad', icone: Lock as Component, titulo: `${a.nome}: bloqueado`, detalhe: 'Registre o pagamento para liberar o acesso' }
 }))
 
 onMounted(() => {

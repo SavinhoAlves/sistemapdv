@@ -7,6 +7,8 @@
 
     <!-- CONTEÚDO DAS PÁGINAS -->
     <main class="flex-1 overflow-auto relative">
+      <!-- Mensalidade vencida (tolerância) ou teste acabando -->
+      <AvisoLicenca />
       <slot />
 
       <!-- BLOQUEIO: caixa fechado em páginas que exigem caixa aberto -->

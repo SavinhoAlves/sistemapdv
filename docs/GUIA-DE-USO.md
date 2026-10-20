@@ -149,11 +149,11 @@ Menu **Configurações**:
 
 1. Em **Admin → Funcionários**, gere o **QR Mobile** do funcionário.
 2. O garçom lê o QR no celular e entra direto em `/m` (mesas e vendas pelo celular).
-3. Requer a feature "Venda pelo Celular" ativa na licença e o caixa aberto.
+3. Requer o recurso "Venda pelo celular" liberado (pelo plano ou por exceção na Platform) e o caixa aberto.
 
 ### 3.13 Licença e ativação
 
-Se a licença estiver pendente, bloqueada ou vencida, o sistema abre `/ativacao`. Cole a **chave de ativação** fornecida pelo suporte. A verificação de vencimento roda automaticamente a cada hora.
+O acesso segue a assinatura do restaurante (seção 4.4). Com a mensalidade vencida, o PDV mostra um aviso no topo durante os 5 dias de tolerância; no fim do teste grátis, avisa nos 2 últimos dias. Passado o prazo, o sistema abre `/ativacao` e só volta a liberar quando o pagamento for registrado na Platform. A verificação roda a cada hora.
 
 ---
 
@@ -165,28 +165,32 @@ Se a licença estiver pendente, bloqueada ou vencida, o sistema abre `/ativacao`
 
 ### 4.2 Visão geral
 
-Painel com: restaurantes ativos, receita mensal recorrente e estimativa anual, receita por plano, licenças que pedem atenção (pendentes, vencendo, bloqueadas) e resumo do dia com dados ao vivo.
+Painel com: restaurantes ativos, receita mensal (contratos pagantes) e estimativa anual, receita por plano e pendências: bloqueados, atrasados na tolerância, testes acabando e vencimentos nos próximos 5 dias.
 
 ### 4.3 Cadastrar um restaurante (tenant)
 
-1. **Restaurantes → Novo**.
-2. Preencha:
-   - **Nome do restaurante** e **Identificador (slug)** — o slug vai na URL/login (ex.: `tarantela`). Só letras minúsculas, números e hífen.
-   - Dados jurídicos: CNPJ/CPF, responsável, CPF do responsável, endereço, cidade/UF, telefone, e-mail.
-   - **Plano**, ciclo de cobrança (mensal, trimestral, semestral, anual) e valor mensal.
-   - **Features** (recursos): Mesas, Vendas, Caixa, Relatórios, Tempo Real, RFID, Venda pelo Celular, etc.
-   - **Acesso do administrador**: e-mail de acesso e senha inicial (mín. 6 caracteres) — é o primeiro login do restaurante no PDV. O restaurante recebe um código numérico automático (1001, 1002…) e o administrador entra com o código `<código do restaurante>-1` (ex.: `1001-1`).
-   - **Contrato**: início, fim (opcional) e observações.
-3. Salve. O restaurante já pode logar no PDV com o slug e o admin criado.
+1. **Restaurantes → Novo**. São três passos:
+   - **Estabelecimento**: nome, identificador (slug), CNPJ/CPF, responsável, endereço, contato.
+   - **Acesso admin**: e-mail e senha inicial (mín. 6 caracteres). O restaurante recebe um código numérico automático (1001, 1002…) e o administrador entra com `<código do restaurante>-1` (ex.: `1001-1`).
+   - **Contrato**: plano, ciclo (mensal, trimestral, semestral, anual) e valor do ciclo. O valor vem do plano × meses do ciclo; altere para dar desconto. Escolha:
+     - **Teste grátis de 7 dias** (ex.: segunda a domingo): o acesso fica liberado até o último dia do teste e o primeiro vencimento é o dia seguinte. Sem pagamento, o acesso bloqueia quando o teste acaba.
+     - **Fechamento direto**: informe o primeiro vencimento e, se já recebeu, marque **Já recebi o primeiro pagamento**.
+     - **Isento**: sem cobrança, acesso sempre liberado.
+2. Salve. O contrato é gerado e o acesso já segue a cobrança.
 
-### 4.4 Detalhes do restaurante (`/platform/tenants/<id>`)
+### 4.4 Assinatura do restaurante (`/platform/tenants/<id>`)
 
-Abas:
+A licença não é mais editada à mão: ela é calculada a partir do contrato e dos pagamentos.
 
-- **Dados** — editar cadastro e redefinir o acesso do administrador.
-- **Licença** — status (Pendente, Ativada, Bloqueada), vencimento, renovar (30d, 90d, 6 meses, 1 ano), bloquear/desbloquear e gerar nova chave de ativação para enviar ao cliente.
-- **Contrato** — **Gerar contrato** com os dados jurídicos e acompanhar o status (Ag. assinatura, Assinado, Suspenso, Rescindido).
-- **Features** — ligar/desligar recursos do restaurante.
+- **Registrar pagamento** cobre o ciclo em aberto e empurra o próximo vencimento um ciclo (mensal +1 mês, anual +12), mantendo o dia de vencimento do contrato. O acesso é liberado na hora.
+- Depois do vencimento há **5 dias de tolerância**, com aviso no PDV. Passou disso, o acesso bloqueia.
+- **Ajustar vencimento** é para exceções (cortesia, negociação): define a próxima data à mão, com motivo.
+- **Desfazer** apaga o pagamento mais recente e devolve o vencimento.
+- **Editar contrato** muda plano, valor, ciclo, dia de vencimento, isenção e situação do papel (Ag. assinatura, Assinado, Rescindido). Contrato rescindido bloqueia o acesso.
+- **Recursos** (RFID, venda pelo celular) seguem o plano. Para um restaurante específico, use **Liberar** ou **Bloquear** (exceção) ou volte para **Seguir plano**.
+- **Suspender** bloqueia o acesso mesmo com a mensalidade em dia; **Reativar** volta a seguir a assinatura.
+
+A página **Cobranças** lista todos os restaurantes com a situação (em dia, em teste, atrasado, bloqueado, isento), o próximo vencimento e o botão para registrar pagamento.
 
 ### 4.5 Suporte remoto
 

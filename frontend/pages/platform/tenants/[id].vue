@@ -28,7 +28,7 @@
           </div>
         </div>
         <div style="display:flex;gap:8px;flex-wrap:wrap">
-          <button class="pf-btn" @click="abrirModalDados"><Pencil :size="16" /> Editar dados</button>
+          <button class="pf-btn" @click="abrirEdicao('dados')"><Pencil :size="16" /> Editar dados</button>
           <button class="pf-btn" :class="tenant.status === 'ativo' ? 'd' : 'k'" @click="toggleStatus">
             {{ tenant.status === 'ativo' ? 'Suspender' : 'Reativar' }}
           </button>
@@ -38,67 +38,64 @@
       <div class="pf-grid-det">
         <!-- ── Coluna principal ── -->
         <div>
-          <!-- Licença -->
+          <!-- Assinatura: plano, situação, vencimento, pagamentos -->
           <div class="pf-card">
             <div class="pf-card-h">
-              <div><h2>Licença</h2><p>Sem licença ativa o restaurante não abre o caixa</p></div>
-              <button v-if="licencaAtual" class="pf-btn s pf-r" @click="abrirModalLicenca"><Pencil :size="14" /> Editar datas</button>
+              <div><h2>Assinatura</h2><p>Plano, cobrança e até quando o restaurante entra no sistema</p></div>
+              <span class="pf-pill pf-r" :class="pill[1]"><i />{{ pill[0] }}</span>
             </div>
             <div class="pf-pad">
-              <div v-if="!licencaAtual" class="pf-empty" style="padding:20px 0"><b>Nenhuma licença registrada</b>Gere um contrato para criar a licença.</div>
-              <template v-else>
-                <div class="pf-big">
-                  <div class="pf-big-n" :class="licencaTom">{{ diasRestantes === null ? '∞' : Math.max(0, diasRestantes) }}</div>
-                  <div>
-                    <small>Licença</small>
-                    <b>{{ licencaStatusLabel }}</b>
-                    <small>{{ licencaLabel }}</small>
-                  </div>
+              <div class="pf-big">
+                <div class="pf-big-n" :class="pill[1] === 'info' ? 'ok' : pill[1] === 'mute' ? 'warn' : pill[1]">{{ numeroGrande }}</div>
+                <div>
+                  <small>{{ contratoAtual?.plano ? `Plano ${tenant.plano?.nome ?? contratoAtual.plano}` : 'Sem plano' }}</small>
+                  <b>{{ assinatura?.isento ? 'Isento de mensalidade' : assinatura?.valor != null ? `${formatCurrency(assinatura.valor)} / ${rotuloCiclo(assinatura.ciclo)}` : 'Sem valor definido' }}</b>
+                  <small>{{ explicacao }}</small>
                 </div>
+              </div>
 
-                <dl class="pf-kv" style="margin-bottom:18px">
-                  <dt>Ativação</dt><dd>{{ formatDate(licencaAtual.dataAtivacao) }}</dd>
-                  <dt>Vencimento</dt><dd>{{ formatDate(licencaAtual.dataVencimento) }}</dd>
-                </dl>
+              <dl class="pf-kv" style="margin-bottom:18px">
+                <template v-if="assinatura?.testeAte && !historico.length"><dt>Teste grátis</dt><dd>até {{ diaBR(assinatura.testeAte) }}</dd></template>
+                <template v-if="!assinatura?.isento"><dt>Próximo vencimento</dt><dd>{{ diaBR(assinatura?.proximoVencimento) }}<template v-if="assinatura?.diaVencimento"> · todo dia {{ assinatura.diaVencimento }}</template></dd></template>
+                <dt>Acesso liberado até</dt><dd>{{ assinatura?.isento ? 'sem limite' : assinatura?.liberadoAte ? diaBR(assinatura.liberadoAte) : '—' }}</dd>
+                <template v-if="contratoAtual?.ajusteMotivo"><dt>Último ajuste</dt><dd>{{ contratoAtual.ajusteMotivo }} <small style="color:var(--pf-muted)">({{ formatDate(contratoAtual.ajusteEm) }})</small></dd></template>
+              </dl>
 
-                <p class="pf-sub">{{ licencaAtual.status === 'ativado' && diasRestantes !== null && diasRestantes > 0 ? 'Estender licença' : 'Ativar licença' }}</p>
-                <div class="pf-opts" style="margin-bottom:10px">
-                  <button v-for="periodo in periodos" :key="periodo.label" class="pf-o" :disabled="ativandoLicenca" @click="ativarPeriodo(periodo.dias)">
-                    {{ periodo.label }}
-                  </button>
-                  <button class="pf-o" :disabled="ativandoLicenca" @click="ativarPeriodo(99 * 365)">Ilimitado</button>
-                </div>
-                <div class="pf-row">
-                  <input
-                    v-model="diasCustomCard"
-                    class="pf-inp"
-                    type="number"
-                    min="1"
-                    placeholder="Outro prazo, em dias"
-                    aria-label="Prazo personalizado em dias"
-                    @keydown.enter="diasCustomCard && ativarPeriodo(Number(diasCustomCard))"
-                  >
-                  <button class="pf-btn k" :disabled="ativandoLicenca || !diasCustomCard" @click="diasCustomCard && ativarPeriodo(Number(diasCustomCard))">
-                    <Loader2 v-if="ativandoLicenca" :size="16" class="animate-spin" /> Aplicar
-                  </button>
-                </div>
-              </template>
+              <div class="pf-acts" style="margin-bottom:18px">
+                <button v-if="!assinatura?.isento" class="pf-btn k" @click="abrirPagamento"><Wallet :size="16" /> Registrar pagamento</button>
+                <button v-if="!assinatura?.isento" class="pf-btn" @click="abrirAjuste"><CalendarClock :size="16" /> Ajustar vencimento</button>
+                <button class="pf-btn" @click="abrirEdicao('contrato')"><Pencil :size="16" /> Editar contrato</button>
+              </div>
+
+              <p class="pf-sub">Pagamentos</p>
+              <div v-if="!historico.length" style="color:var(--pf-muted)">Nenhum pagamento registrado.</div>
+              <div v-else class="pf-scroll">
+                <table class="pf-table">
+                  <thead><tr><th>Pago em</th><th>Valor</th><th>Período</th><th>Forma</th><th /></tr></thead>
+                  <tbody>
+                    <tr v-for="(pg, i) in historico" :key="pg.id">
+                      <td class="pf-num">{{ diaBR(pg.pagoEm) }}</td>
+                      <td class="pf-num"><b>{{ formatCurrency(pg.valor) }}</b></td>
+                      <td class="pf-num">{{ pg.periodoInicio ? `${diaBR(pg.periodoInicio)} → ${diaBR(pg.periodoFim)}` : pg.competencia }}</td>
+                      <td>{{ FORMAS.find(f => f.valor === pg.forma)?.rotulo ?? '—' }}</td>
+                      <td class="act"><button v-if="i === 0" class="pf-btn s" @click="desfazendo = pg">Desfazer</button></td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
 
-          <!-- Contrato -->
+          <!-- Contrato (documento) -->
           <div class="pf-card">
             <div class="pf-card-h">
               <div><h2>Contrato</h2><p>Contrato de prestação de serviços em PDF</p></div>
-              <span v-if="contratoAtual" class="pf-pill" :class="contratoTom(contratoAtual.status)"><i />{{ contratoRotulo(contratoAtual.status) }}</span>
-              <button class="pf-btn s" :class="{ 'pf-r': !contratoAtual }" @click="abrirModalContrato">
-                <Pencil :size="14" /> {{ contratoAtual ? 'Editar' : 'Gerar contrato' }}
-              </button>
+              <span v-if="contratoAtual" class="pf-pill pf-r" :class="contratoTom(contratoAtual.status)"><i />{{ contratoRotulo(contratoAtual.status) }}</span>
             </div>
             <div class="pf-pad">
               <div v-if="!contratoAtual" class="pf-empty" style="padding:20px 0">
-                <b>Nenhum contrato gerado</b>
-                Gere o contrato pronto para imprimir e assinar.
+                <b>Nenhum contrato</b>
+                <button class="pf-btn s" style="margin-top:10px" @click="abrirEdicao('contrato')">Criar contrato</button>
               </div>
               <template v-else>
                 <div class="pf-doc">
@@ -107,7 +104,7 @@
                     <b>Plano {{ contratoAtual.plano }}</b>
                     <small style="display:block;color:var(--pf-muted)">
                       {{ formatDate(contratoAtual.dataInicio) }} até {{ contratoAtual.dataFim ? formatDate(contratoAtual.dataFim) : 'prazo indeterminado' }}
-                      <template v-if="contratoAtual.valor"> · {{ formatCurrency(contratoAtual.valor) }} / {{ contratoAtual.ciclo }}</template>
+                      <template v-if="contratoAtual.valor && !contratoAtual.isento"> · {{ formatCurrency(contratoAtual.valor) }} / {{ rotuloCiclo(contratoAtual.ciclo) }}</template>
                     </small>
                   </div>
                 </div>
@@ -165,7 +162,7 @@
               <p v-if="erroAdmin" class="pf-err">{{ erroAdmin }}</p>
               <p v-if="sucessoAdmin" class="pf-ok-msg"><CheckCircle2 :size="16" /> {{ sucessoAdmin }}</p>
               <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
-                <small v-if="adminAtual" style="color:var(--pf-muted)">Login atual: <b style="color:var(--pf-ink)">{{ adminAtual.email }}</b></small>
+                <small v-if="adminAtual" style="color:var(--pf-muted)">Entra com <b style="color:var(--pf-ink)">{{ tenant.codigo }}-{{ adminAtual.codigo }}</b><template v-if="adminAtual.login"> ou <b style="color:var(--pf-ink)">{{ adminAtual.login }}</b></template> · e-mail <b style="color:var(--pf-ink)">{{ adminAtual.email }}</b></small>
                 <button class="pf-btn p" style="margin-left:auto" :disabled="salvandoAdmin" @click="salvarAdmin">
                   <Loader2 v-if="salvandoAdmin" :size="16" class="animate-spin" />
                   <ShieldCheck v-else :size="16" />
@@ -180,33 +177,20 @@
         <div>
           <div class="pf-card">
             <div class="pf-card-h">
-              <div><h2>Plano e recursos</h2><p>O que este restaurante pode usar</p></div>
+              <div><h2>Recursos</h2><p>{{ tenant.plano ? `Seguem o plano ${tenant.plano.nome}` : 'Sem plano: só as liberações abaixo' }}</p></div>
             </div>
             <div class="pf-pad">
-              <div class="pf-fld" style="margin-bottom:14px">
-                <label class="pf-lab" for="det-plano">Plano</label>
-                <select id="det-plano" class="pf-inp" :value="tenant.planoId ?? ''" :disabled="trocandoPlano" @change="trocarPlano(($event.target as HTMLSelectElement).value)">
-                  <option value="">Sem plano (recursos manuais)</option>
-                  <option v-for="pl in planosDisponiveis" :key="pl.id" :value="pl.id">
-                    {{ pl.nome }} · {{ formatCurrency(String(pl.valor)) }}/mês{{ pl.ativo ? '' : ' (inativo)' }}
-                  </option>
-                </select>
-                <small v-if="!planos.length" style="color:var(--pf-muted)">
-                  Nenhum plano criado ainda. <NuxtLink to="/platform/planos" style="color:var(--pf-brand-d)">Criar planos</NuxtLink>
-                </small>
-              </div>
-              <div v-if="tenant.plano" class="pf-note info" style="margin-bottom:6px">
-                Os recursos vêm do plano {{ tenant.plano.nome }}. Para mudar, escolha outro plano acima ou edite o plano em Planos.
-              </div>
-              <div class="pf-feat">
-                <span class="pf-ico" :class="tenant.rfidDisponivel ? 'ok' : ''" style="background:var(--pf-soft)"><CreditCard :size="18" /></span>
-                <div><b>RFID</b><small>Login e identificação por crachá</small></div>
-                <button class="pf-sw" role="switch" :aria-checked="tenant.rfidDisponivel" aria-label="RFID" :disabled="togglingRfid || !!tenant.plano" @click="toggleRfid" />
-              </div>
-              <div class="pf-feat">
-                <span class="pf-ico" style="background:var(--pf-soft)"><Smartphone :size="18" /></span>
-                <div><b>Venda pelo celular</b><small>Acesso via QR Code</small></div>
-                <button class="pf-sw" role="switch" :aria-checked="tenant.vendaMobilePermitida" aria-label="Venda pelo celular" :disabled="togglingMobile || !!tenant.plano" @click="toggleMobile" />
+              <div v-for="r in recursos" :key="r.chave" class="pf-feat" style="flex-wrap:wrap">
+                <span class="pf-ico" :class="r.ativo ? 'ok' : ''" style="background:var(--pf-soft)"><component :is="r.icone" :size="18" /></span>
+                <div style="flex:1;min-width:140px">
+                  <b>{{ r.rotulo }}</b>
+                  <small>{{ r.ativo ? 'Liberado' : 'Bloqueado' }} · {{ r.manual === null ? (tenant.plano ? 'pelo plano' : 'padrão') : 'exceção sua' }}</small>
+                </div>
+                <div class="pf-seg" style="flex:0 0 100%" role="group" :aria-label="r.rotulo">
+                  <button class="mute" :class="{ sel: r.manual === null }" :disabled="salvandoRecurso" @click="definirRecurso(r.chave, null)">{{ tenant.plano ? 'Seguir plano' : 'Padrão' }}</button>
+                  <button class="ok" :class="{ sel: r.manual === true }" :disabled="salvandoRecurso" @click="definirRecurso(r.chave, true)">Liberar</button>
+                  <button class="bad" :class="{ sel: r.manual === false }" :disabled="salvandoRecurso" @click="definirRecurso(r.chave, false)">Bloquear</button>
+                </div>
               </div>
             </div>
           </div>
@@ -214,7 +198,7 @@
           <div class="pf-card">
             <div class="pf-card-h">
               <div><h2>Dados</h2><p>Cadastro do restaurante</p></div>
-              <button class="pf-btn s pf-r" @click="abrirModalDados"><Pencil :size="14" /> Editar</button>
+              <button class="pf-btn s pf-r" @click="abrirEdicao('dados')"><Pencil :size="14" /> Editar</button>
             </div>
             <div class="pf-pad">
               <dl v-if="dadosCadastrais.some(c => c.valor)" class="pf-kv">
@@ -232,139 +216,60 @@
       </div>
     </template>
 
-    <!-- ══ JANELA DE EDIÇÃO ══ -->
-    <Teleport to="body">
-      <Transition name="fade">
-        <div v-if="modalAberto" class="pf-portal pf-veu" @click.self="fecharModal">
-          <div class="pf-modal" role="dialog" aria-modal="true" aria-labelledby="pf-modal-titulo">
-            <div class="pf-modal-h">
-              <span class="pf-av" style="width:42px;height:42px">
-                <component :is="modalModo === 'licenca' ? KeyRound : modalModo === 'contrato' ? FileText : Building2" :size="18" />
-              </span>
-              <div>
-                <h2 id="pf-modal-titulo">{{ modalModo === 'licenca' ? 'Editar licença' : modalModo === 'contrato' ? (contratoAtual ? 'Dados do contrato' : 'Gerar contrato') : 'Editar dados' }}</h2>
-                <small style="color:var(--pf-muted)">{{ tenant?.nome }}</small>
-              </div>
-              <button class="pf-ib" aria-label="Fechar" @click="fecharModal"><X :size="18" /></button>
-            </div>
+    <!-- ══ EDIÇÃO (dados / contrato) ══ -->
+    <PlatformTenantModal v-model="edicaoAberta" :tenant="tenant" :aba-inicial="edicaoAba" @saved="carregar" />
 
-            <div class="pf-modal-b">
-              <!-- DADOS -->
-              <template v-if="modalModo === 'dados'">
-                <div class="pf-boxm">
-                  <div class="pf-form">
-                    <div class="pf-fld full"><label class="pf-lab" for="f-nome">Nome *</label><input id="f-nome" v-model="form.nome" class="pf-inp" type="text"></div>
-                    <div class="pf-fld"><label class="pf-lab" for="f-slug">Identificador (slug)</label><input id="f-slug" v-model="form.slug" class="pf-inp" type="text"></div>
-                    <div class="pf-fld"><label class="pf-lab" for="f-cnpj">CNPJ ou CPF</label><input id="f-cnpj" v-model="form.cnpj" class="pf-inp" type="text" placeholder="00.000.000/0001-00"></div>
-                    <div class="pf-fld"><label class="pf-lab" for="f-resp">Responsável</label><input id="f-resp" v-model="form.responsavel" class="pf-inp" type="text"></div>
-                    <div class="pf-fld"><label class="pf-lab" for="f-cpfr">CPF do responsável</label><input id="f-cpfr" v-model="form.cpfResponsavel" class="pf-inp" type="text" placeholder="000.000.000-00"></div>
-                    <div class="pf-fld"><label class="pf-lab" for="f-email">E-mail</label><input id="f-email" v-model="form.contato" class="pf-inp" type="email"></div>
-                    <div class="pf-fld"><label class="pf-lab" for="f-tel">Telefone</label><input id="f-tel" v-model="form.telefone" class="pf-inp" type="text"></div>
-                    <div class="pf-fld full"><label class="pf-lab" for="f-end">Endereço (rua, nº, bairro)</label><input id="f-end" v-model="form.endereco" class="pf-inp" type="text" placeholder="Rua das Flores, 123, Centro"></div>
-                    <div class="pf-fld"><label class="pf-lab" for="f-cid">Cidade</label><input id="f-cid" v-model="form.cidade" class="pf-inp" type="text"></div>
-                    <div class="pf-fld"><label class="pf-lab" for="f-uf">UF</label><input id="f-uf" v-model="form.uf" class="pf-inp" type="text" maxlength="2" placeholder="GO" style="text-transform:uppercase"></div>
-                    <div class="pf-fld full"><label class="pf-lab" for="f-obs">Observações</label><textarea id="f-obs" v-model="form.observacoes" class="pf-inp" rows="2" /></div>
-                  </div>
-                </div>
-                <div v-if="!tenant?.plano" class="pf-boxm">
-                  <p class="pf-sub" style="margin:0">Recursos</p>
-                  <div>
-                    <div class="pf-feat">
-                      <div><b>Venda pelo celular</b><small>Acesso via QR Code</small></div>
-                      <button class="pf-sw" role="switch" :aria-checked="form.vendaMobilePermitida" aria-label="Venda pelo celular" @click="form.vendaMobilePermitida = !form.vendaMobilePermitida" />
-                    </div>
-                    <div class="pf-feat">
-                      <div><b>RFID</b><small>Login e identificação por crachá</small></div>
-                      <button class="pf-sw" role="switch" :aria-checked="form.rfidDisponivel" aria-label="RFID" @click="form.rfidDisponivel = !form.rfidDisponivel" />
-                    </div>
-                  </div>
-                </div>
-              </template>
-
-              <!-- CONTRATO -->
-              <template v-else-if="modalModo === 'contrato'">
-                <div class="pf-note info">
-                  <FileText :size="18" style="flex:none;margin-top:1px" />
-                  Estes dados geram o contrato de prestação de serviços em PDF, pronto para imprimir e assinar.
-                </div>
-                <div class="pf-boxm">
-                  <div class="pf-form">
-                    <div class="pf-fld full">
-                      <label class="pf-lab" for="c-plano">Plano *</label>
-                      <select id="c-plano" v-model="planoOpcao" class="pf-inp" @change="onPlanoOpcaoChange">
-                        <option value="Básico">Básico</option>
-                        <option value="Profissional">Profissional</option>
-                        <option value="Enterprise">Enterprise</option>
-                        <option value="personalizado">Personalizado…</option>
-                      </select>
-                      <input v-if="planoOpcao === 'personalizado'" v-model="contratoForm.plano" class="pf-inp" type="text" placeholder="Nome do plano" aria-label="Nome do plano">
-                    </div>
-                    <div class="pf-fld"><label class="pf-lab" for="c-valor">Valor (R$)</label><input id="c-valor" v-model="contratoForm.valor" class="pf-inp" type="number" min="0" step="0.01" placeholder="0,00"></div>
-                    <div class="pf-fld">
-                      <label class="pf-lab" for="c-ciclo">Ciclo</label>
-                      <select id="c-ciclo" v-model="contratoForm.ciclo" class="pf-inp">
-                        <option value="mensal">Mensal</option>
-                        <option value="trimestral">Trimestral</option>
-                        <option value="semestral">Semestral</option>
-                        <option value="anual">Anual</option>
-                      </select>
-                    </div>
-                    <div class="pf-fld"><label class="pf-lab" for="c-ini">Início</label><input id="c-ini" v-model="contratoForm.dataInicio" class="pf-inp" type="date"></div>
-                    <div class="pf-fld"><label class="pf-lab" for="c-fim">Fim</label><input id="c-fim" v-model="contratoForm.dataFim" class="pf-inp" type="date"></div>
-                    <div class="pf-fld full">
-                      <span class="pf-lab">Situação</span>
-                      <div class="pf-seg">
-                        <button v-for="s in contratoStatuses" :key="s.value" :class="[s.tom, { sel: contratoForm.status === s.value }]" @click="contratoForm.status = s.value">{{ s.label }}</button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                <div class="pf-boxm">
-                  <p class="pf-sub" style="margin:0">Validade da licença</p>
-                  <div class="pf-opts">
-                    <button v-for="p in periodos" :key="p.label" class="pf-o" :class="{ sel: diasCustomModal === String(p.dias) }" @click="setLicPeriodo(p.dias)">{{ p.label }}</button>
-                    <button class="pf-o" :class="{ sel: contratoForm.licVencimento === '2099-12-31' }" @click="setLicPermanente">Ilimitado</button>
-                  </div>
-                  <div class="pf-row">
-                    <input v-model="diasCustomModal" class="pf-inp" type="number" min="1" placeholder="Outro prazo, em dias" aria-label="Prazo da licença em dias" @keydown.enter="aplicarDiasCustomModal">
-                    <button class="pf-btn k" @click="aplicarDiasCustomModal">Aplicar</button>
-                  </div>
-                  <div class="pf-form">
-                    <div class="pf-fld"><label class="pf-lab" for="c-lat">Ativação</label><input id="c-lat" v-model="contratoForm.licAtivacao" class="pf-inp" type="date"></div>
-                    <div class="pf-fld"><label class="pf-lab" for="c-lve">Vencimento</label><input id="c-lve" v-model="contratoForm.licVencimento" class="pf-inp" type="date"></div>
-                  </div>
-                  <small style="color:var(--pf-muted)">Com o vencimento preenchido, a licença é ativada ao salvar.</small>
-                </div>
-              </template>
-
-              <!-- LICENÇA -->
-              <div v-else-if="modalModo === 'licenca'" class="pf-boxm">
-                <div class="pf-fld">
-                  <span class="pf-lab">Situação</span>
-                  <div class="pf-seg">
-                    <button v-for="s in licencaStatuses" :key="s.value" :class="[s.tom, { sel: licencaForm.status === s.value }]" @click="licencaForm.status = s.value">{{ s.label }}</button>
-                  </div>
-                </div>
-                <div class="pf-form">
-                  <div class="pf-fld"><label class="pf-lab" for="l-at">Ativação</label><input id="l-at" v-model="licencaForm.dataAtivacao" class="pf-inp" type="date"></div>
-                  <div class="pf-fld"><label class="pf-lab" for="l-ve">Vencimento</label><input id="l-ve" v-model="licencaForm.dataVencimento" class="pf-inp" type="date"></div>
-                </div>
-              </div>
-
-              <p v-if="erroModal" class="pf-err">{{ erroModal }}</p>
-            </div>
-
-            <div class="pf-modal-f">
-              <button class="pf-btn" @click="fecharModal">Cancelar</button>
-              <button class="pf-btn p" :disabled="salvando" @click="salvar">
-                <Loader2 v-if="salvando" :size="16" class="animate-spin" />
-                {{ salvando ? 'Salvando…' : 'Salvar' }}
-              </button>
+    <!-- ══ REGISTRAR PAGAMENTO ══ -->
+    <PlatformModal v-model="modalPagamento" titulo="Registrar pagamento" :subtitulo="tenant ? `${tenant.nome} · ${periodoDoPagamento}` : ''" pequena>
+      <template #icone><Wallet :size="18" /></template>
+      <form class="pf-boxm" @submit.prevent="salvarPagamento">
+        <div class="pf-form">
+          <div class="pf-fld"><label class="pf-lab" for="pg-valor">Valor recebido (R$) *</label><input id="pg-valor" v-model="pag.valor" class="pf-inp pf-num" type="number" min="0.01" step="0.01"></div>
+          <div class="pf-fld"><label class="pf-lab" for="pg-data">Pago em *</label><input id="pg-data" v-model="pag.pagoEm" class="pf-inp" type="date"></div>
+          <div class="pf-fld full">
+            <span class="pf-lab">Forma de pagamento</span>
+            <div class="pf-chips">
+              <button v-for="f in FORMAS" :key="f.valor" type="button" class="pf-fc" :aria-pressed="pag.forma === f.valor" @click="pag.forma = pag.forma === f.valor ? null : f.valor">{{ f.rotulo }}</button>
             </div>
           </div>
+          <div class="pf-fld full"><label class="pf-lab" for="pg-obs">Observação <small>(opcional)</small></label><input id="pg-obs" v-model="pag.observacao" class="pf-inp" type="text" maxlength="300"></div>
         </div>
-      </Transition>
-    </Teleport>
+        <button type="submit" hidden />
+      </form>
+      <p class="pf-note info" style="margin:0">O próximo vencimento passa para {{ diaBR(vencimentoAposPagar) }} e o acesso é liberado na hora.</p>
+      <p v-if="erroAcao" class="pf-err" role="alert">{{ erroAcao }}</p>
+      <template #rodape>
+        <button class="pf-btn" @click="modalPagamento = false">Cancelar</button>
+        <button class="pf-btn p" :disabled="salvandoAcao" @click="salvarPagamento"><Loader2 v-if="salvandoAcao" :size="16" class="animate-spin" /> Registrar</button>
+      </template>
+    </PlatformModal>
+
+    <!-- ══ AJUSTAR VENCIMENTO ══ -->
+    <PlatformModal v-model="modalAjuste" titulo="Ajustar vencimento" subtitulo="Para exceções: cortesia, negociação, prorrogação" pequena>
+      <template #icone><CalendarClock :size="18" /></template>
+      <form class="pf-boxm" @submit.prevent="salvarAjuste">
+        <div class="pf-form">
+          <div class="pf-fld full"><label class="pf-lab" for="aj-data">Novo próximo vencimento *</label><input id="aj-data" v-model="ajuste.vencimento" class="pf-inp" type="date"></div>
+          <div class="pf-fld full"><label class="pf-lab" for="aj-motivo">Motivo *</label><input id="aj-motivo" v-model="ajuste.motivo" class="pf-inp" type="text" maxlength="300" placeholder="Ex.: cortesia de 1 mês pela indicação"></div>
+        </div>
+        <button type="submit" hidden />
+      </form>
+      <p class="pf-note info" style="margin:0">Com a tolerância, o acesso fica liberado até {{ ajuste.vencimento ? diaBR(somarDias(ajuste.vencimento, TOLERANCIA_DIAS)) : '—' }}.</p>
+      <p v-if="erroAcao" class="pf-err" role="alert">{{ erroAcao }}</p>
+      <template #rodape>
+        <button class="pf-btn" @click="modalAjuste = false">Cancelar</button>
+        <button class="pf-btn p" :disabled="salvandoAcao" @click="salvarAjuste"><Loader2 v-if="salvandoAcao" :size="16" class="animate-spin" /> Salvar</button>
+      </template>
+    </PlatformModal>
+
+    <PlatformConfirmDialog
+      :model-value="!!desfazendo"
+      title="Desfazer este pagamento?"
+      :message="desfazendo?.periodoInicio ? `O vencimento volta para ${diaBR(desfazendo.periodoInicio)} e o acesso é recalculado.` : 'O pagamento é apagado e o acesso é recalculado.'"
+      type="danger"
+      @update:model-value="v => { if (!v) desfazendo = null }"
+      @resolved="v => v && desfazerPagamento()"
+    />
 
     <!-- ══ CONFIRMAÇÃO ══ -->
     <Teleport to="body">
@@ -400,60 +305,43 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, reactive, onMounted } from 'vue'
+import { ref, computed, reactive, onMounted, type Component } from 'vue'
 import {
-  ArrowLeft, Building2, CreditCard, Smartphone,
-  Loader2, AlertCircle, AlertTriangle, CheckCircle2, Pencil, X, FileText, KeyRound,
+  ArrowLeft, CreditCard, Smartphone, Wallet, CalendarClock,
+  Loader2, AlertCircle, AlertTriangle, CheckCircle2, Pencil, FileText,
   Eye, EyeOff, Printer, Share2, ShieldCheck, Lock,
 } from 'lucide-vue-next'
 import { usePlatformAuthStore } from '~/stores/platformAuth'
-import { usePlanos } from '~/composables/usePlanos'
+import {
+  situacaoPill, rotuloCiclo, mesesCiclo, diaBR, TOLERANCIA_DIAS,
+  type Tenant as TenantBase, type Contrato,
+} from '~/composables/usePlatformTenants'
 
 definePageMeta({ layout: false })
 
-interface Licenca  { id: string; status: string; dataAtivacao: string | null; dataVencimento: string | null; createdAt: string }
-interface Contrato { id: string; plano: string; valor: string | null; ciclo: string; status: string; dataInicio: string | null; dataFim: string | null }
-interface Tenant {
-  id: string; codigo: number; nome: string; slug: string; cnpj: string | null; contato: string | null
-  responsavel: string | null; telefone: string | null; endereco: string | null; observacoes: string | null
-  status: string; rfidDisponivel: boolean; vendaMobilePermitida: boolean; createdAt: string
-  planoId: string | null; plano: { id: string; nome: string; valor: string | number } | null
-  licencas: Licenca[]; contratos: Contrato[]
+type Tenant = TenantBase & {
+  codigo: number
+  rfidManual: boolean | null; vendaMobileManual: boolean | null
+  plano: { id: string; nome: string; valor: string | number; rfid: boolean; vendaMobile: boolean } | null
 }
+interface Pagamento {
+  id: string; valor: number; pagoEm: string; forma: string | null; observacao: string | null
+  competencia: string; periodoInicio: string | null; periodoFim: string | null
+}
+
+const FORMAS = [
+  { valor: 'pix', rotulo: 'Pix' }, { valor: 'dinheiro', rotulo: 'Dinheiro' }, { valor: 'cartao', rotulo: 'Cartão' },
+  { valor: 'boleto', rotulo: 'Boleto' }, { valor: 'transferencia', rotulo: 'Transferência' },
+]
 
 const route             = useRoute()
 const platformAuth      = usePlatformAuthStore()
 const { platformFetch } = usePlatformFetch()
-const { planos, carregar: carregarPlanos } = usePlanos()
 
-// Planos ativos + o plano atual (mesmo se inativo, para continuar aparecendo)
-const planosDisponiveis = computed(() => planos.value.filter(pl => pl.ativo || pl.id === tenant.value?.planoId))
-const trocandoPlano = ref(false)
-
-async function trocarPlano(planoId: string) {
-  if (!tenant.value || trocandoPlano.value) return
-  trocandoPlano.value = true
-  try {
-    const r = await platformFetch<{ planoId: string | null; rfidDisponivel: boolean; vendaMobilePermitida: boolean; plano: Tenant['plano'] }>(
-      `/platform/tenants/${tenant.value.id}/plano`,
-      { method: 'PATCH', body: JSON.stringify({ planoId: planoId || null }) },
-    )
-    Object.assign(tenant.value, r)
-    showToast('success', r.plano ? `Plano ${r.plano.nome} aplicado` : 'Plano removido; recursos agora são manuais')
-  } catch (e: any) {
-    showToast('error', e?.message || 'Não foi possível trocar o plano')
-  } finally {
-    trocandoPlano.value = false
-  }
-}
-
-const tenant         = ref<Tenant | null>(null)
-const loading        = ref(false)
-const erro           = ref('')
-const togglingRfid    = ref(false)
-const togglingMobile  = ref(false)
-const ativandoLicenca = ref(false)
-const diasCustomCard  = ref('')
+const tenant    = ref<Tenant | null>(null)
+const historico = ref<Pagamento[]>([])
+const loading   = ref(false)
+const erro      = ref('')
 
 const confirmDialog = reactive({
   show: false, title: '', message: '', type: 'danger' as 'danger' | 'success',
@@ -464,15 +352,10 @@ function showConfirm(title: string, message: string, type: 'danger' | 'success' 
     Object.assign(confirmDialog, { title, message, type, resolve, show: true })
   })
 }
-const toastMsg       = reactive({ text: '', type: 'success' as 'success' | 'error' })
-
-const modalAberto = ref(false)
-const modalModo   = ref<'dados' | 'licenca' | 'contrato'>('dados')
-const salvando    = ref(false)
-const erroModal   = ref('')
+const toastMsg = reactive({ text: '', type: 'success' as 'success' | 'error' })
 
 // ── Acesso do administrador ───────────────────────────────────────────────────
-const adminAtual      = ref<{ id: string; nome: string; email: string; ativo: boolean } | null>(null)
+const adminAtual      = ref<{ id: string; codigo: number; login: string | null; nome: string; email: string; ativo: boolean } | null>(null)
 const adminForm       = reactive({ nome: '', email: '', senha: '', senhaConfirm: '' })
 const mostrarSenha    = ref(false)
 const salvandoAdmin   = ref(false)
@@ -509,251 +392,205 @@ async function salvarAdmin() {
   }
 }
 
-const form = reactive({ nome: '', slug: '', cnpj: '', cpfResponsavel: '', responsavel: '', contato: '', telefone: '', endereco: '', cidade: '', uf: '', observacoes: '', vendaMobilePermitida: true, rfidDisponivel: false })
-const licencaForm = reactive({ status: 'pendente', dataAtivacao: '', dataVencimento: '' })
-const licencaStatuses = [
-  { value: 'ativado',   label: 'Ativada',   tom: 'ok' },
-  { value: 'pendente',  label: 'Pendente',  tom: 'warn' },
-  { value: 'bloqueado', label: 'Bloqueada', tom: 'bad' },
-]
-const contratoForm = reactive({ plano: '', valor: '', ciclo: 'mensal', dataInicio: '', dataFim: '', status: 'trial', licAtivacao: '', licVencimento: '' })
+// ── Assinatura ────────────────────────────────────────────────────────────────
+const contratoAtual = computed<Contrato | null>(() => tenant.value?.contratos?.[0] ?? null)
+const assinatura    = computed(() => tenant.value?.assinatura)
+const pill          = computed(() => situacaoPill(assinatura.value))
+
+/** Número em destaque: dias até vencer, até bloquear ou de teste. */
+const numeroGrande = computed(() => {
+  const a = assinatura.value
+  if (!a || a.situacao === 'isento') return '∞'
+  if (a.situacao === 'tolerancia') return a.diasParaBloquear ?? 0
+  if (a.situacao === 'teste' && a.testeAte) return Math.max(0, diasAte(a.testeAte))
+  if (a.situacao === 'em_dia') return Math.max(0, a.diasParaVencer ?? 0)
+  return 0
+})
+const explicacao = computed(() => {
+  const a = assinatura.value
+  if (!a) return ''
+  switch (a.situacao) {
+    case 'teste':      return `dias de teste grátis (até ${diaBR(a.testeAte)})`
+    case 'em_dia':     return a.diasParaVencer === 0 ? 'vence hoje' : `dias até o vencimento (${diaBR(a.proximoVencimento)})`
+    case 'tolerancia': return `dias até bloquear: venceu em ${diaBR(a.proximoVencimento)}, tolerância até ${diaBR(a.liberadoAte)}`
+    case 'bloqueado':  return a.proximoVencimento || !a.testeAte ? 'Bloqueado: registre o pagamento para liberar' : 'O teste acabou: registre o pagamento para liberar'
+    case 'isento':     return 'Acesso sempre liberado'
+    case 'suspenso':   return 'Suspenso manualmente: reative no topo da página'
+    case 'cancelado':  return 'Contrato rescindido: o acesso fica bloqueado'
+    default:           return 'Sem vencimento: edite o contrato ou ajuste o vencimento'
+  }
+})
+
+function diasAte(iso: string) {
+  const hoje = new Date(Date.now() - 3 * 3_600_000).toISOString().slice(0, 10)
+  return Math.round((new Date(`${iso}T12:00:00Z`).getTime() - new Date(`${hoje}T12:00:00Z`).getTime()) / 86_400_000)
+}
+function somarDias(iso: string, dias: number) {
+  const d = new Date(`${iso}T12:00:00Z`)
+  d.setUTCDate(d.getUTCDate() + dias)
+  return d.toISOString().slice(0, 10)
+}
+/** Mesma conta do backend: soma meses mantendo o dia de vencimento. */
+function somarMeses(iso: string, meses: number, dia: number) {
+  const [a, m] = iso.split('-').map(Number)
+  const alvo = new Date(Date.UTC(a, m - 1 + meses, 1))
+  const ultimo = new Date(Date.UTC(alvo.getUTCFullYear(), alvo.getUTCMonth() + 1, 0)).getUTCDate()
+  alvo.setUTCDate(Math.min(dia, ultimo))
+  return alvo.toISOString().slice(0, 10)
+}
+const hojeBR = () => new Date(Date.now() - 3 * 3_600_000).toISOString().slice(0, 10)
+
+// ── Registrar pagamento ──
+const modalPagamento = ref(false)
+const salvandoAcao   = ref(false)
+const erroAcao       = ref('')
+const pag = reactive({ valor: '' as string | number, pagoEm: '', forma: 'pix' as string | null, observacao: '' })
+const inicioDoPagamento    = computed(() => assinatura.value?.proximoVencimento ?? hojeBR())
+const vencimentoAposPagar  = computed(() => somarMeses(inicioDoPagamento.value, mesesCiclo(assinatura.value?.ciclo ?? 'mensal'), assinatura.value?.diaVencimento ?? 10))
+const periodoDoPagamento   = computed(() => `${diaBR(inicioDoPagamento.value)} a ${diaBR(vencimentoAposPagar.value)}`)
+
+function abrirPagamento() {
+  erroAcao.value = ''
+  Object.assign(pag, { valor: assinatura.value?.valor ?? '', pagoEm: hojeBR(), forma: 'pix', observacao: '' })
+  modalPagamento.value = true
+}
+async function salvarPagamento() {
+  if (!tenant.value) return
+  erroAcao.value = ''
+  const valor = Number(String(pag.valor).replace(',', '.'))
+  if (!valor || valor <= 0) { erroAcao.value = 'Informe o valor recebido.'; return }
+  if (!pag.pagoEm) { erroAcao.value = 'Informe a data do pagamento.'; return }
+  salvandoAcao.value = true
+  try {
+    await platformFetch('/platform/cobranca/pagamentos', {
+      method: 'POST',
+      body: JSON.stringify({ tenantId: tenant.value.id, valor, pagoEm: pag.pagoEm, forma: pag.forma, observacao: pag.observacao.trim() || null }),
+    })
+    modalPagamento.value = false
+    showToast('success', 'Pagamento registrado e acesso liberado')
+    await carregar()
+  } catch (e: any) {
+    erroAcao.value = e?.message || 'Não deu para registrar o pagamento.'
+  } finally {
+    salvandoAcao.value = false
+  }
+}
+
+// ── Ajustar vencimento ──
+const modalAjuste = ref(false)
+const ajuste = reactive({ vencimento: '', motivo: '' })
+function abrirAjuste() {
+  erroAcao.value = ''
+  Object.assign(ajuste, { vencimento: assinatura.value?.proximoVencimento ?? hojeBR(), motivo: '' })
+  modalAjuste.value = true
+}
+async function salvarAjuste() {
+  if (!tenant.value) return
+  erroAcao.value = ''
+  if (!ajuste.vencimento) { erroAcao.value = 'Informe a data.'; return }
+  if (ajuste.motivo.trim().length < 3) { erroAcao.value = 'Informe o motivo do ajuste.'; return }
+  salvandoAcao.value = true
+  try {
+    await platformFetch(`/platform/cobranca/tenants/${tenant.value.id}/vencimento`, {
+      method: 'POST',
+      body: JSON.stringify({ vencimento: ajuste.vencimento, motivo: ajuste.motivo.trim() }),
+    })
+    modalAjuste.value = false
+    showToast('success', 'Vencimento ajustado')
+    await carregar()
+  } catch (e: any) {
+    erroAcao.value = e?.message || 'Não deu para ajustar.'
+  } finally {
+    salvandoAcao.value = false
+  }
+}
+
+// ── Desfazer pagamento ──
+const desfazendo = ref<Pagamento | null>(null)
+async function desfazerPagamento() {
+  const pg = desfazendo.value
+  if (!pg) return
+  try {
+    await platformFetch(`/platform/cobranca/pagamentos/${pg.id}`, { method: 'DELETE' })
+    showToast('success', 'Pagamento desfeito')
+    await carregar()
+  } catch (e: any) {
+    showToast('error', e?.message || 'Não deu para desfazer')
+  } finally {
+    desfazendo.value = null
+  }
+}
+
+// ── Recursos: plano + exceções do superadmin ──
+const salvandoRecurso = ref(false)
+const recursos = computed<{ chave: 'rfid' | 'vendaMobile'; rotulo: string; icone: Component; ativo: boolean; manual: boolean | null }[]>(() => {
+  const t = tenant.value
+  if (!t) return []
+  return [
+    { chave: 'rfid',        rotulo: 'RFID',               icone: CreditCard, ativo: t.rfidDisponivel,       manual: t.rfidManual },
+    { chave: 'vendaMobile', rotulo: 'Venda pelo celular', icone: Smartphone, ativo: t.vendaMobilePermitida, manual: t.vendaMobileManual },
+  ]
+})
+async function definirRecurso(chave: 'rfid' | 'vendaMobile', valor: boolean | null) {
+  if (!tenant.value || salvandoRecurso.value) return
+  salvandoRecurso.value = true
+  try {
+    const r = await platformFetch<Pick<Tenant, 'rfidDisponivel' | 'vendaMobilePermitida' | 'rfidManual' | 'vendaMobileManual'>>(
+      `/platform/tenants/${tenant.value.id}/recursos`,
+      { method: 'PATCH', body: JSON.stringify({ [chave]: valor }) },
+    )
+    Object.assign(tenant.value, r)
+    showToast('success', valor === null ? 'Recurso segue o plano' : valor ? 'Recurso liberado' : 'Recurso bloqueado')
+  } catch (e: any) {
+    showToast('error', e?.message || 'Não deu para alterar o recurso')
+  } finally {
+    salvandoRecurso.value = false
+  }
+}
+
+// ── Edição (modal compartilhado com a lista) ──
+const edicaoAberta = ref(false)
+const edicaoAba    = ref<'dados' | 'contrato'>('dados')
+function abrirEdicao(aba: 'dados' | 'contrato') { edicaoAba.value = aba; edicaoAberta.value = true }
+
 const contratoStatuses = [
   { value: 'ativo',     label: 'Assinado',       tom: 'ok' },
   { value: 'trial',     label: 'Ag. assinatura', tom: 'warn' },
   { value: 'suspenso',  label: 'Suspenso',       tom: 'bad' },
   { value: 'cancelado', label: 'Rescindido',     tom: 'bad' },
 ]
-const periodos = [
-  { label: '30d',   dias: 30   },
-  { label: '90d',   dias: 90   },
-  { label: '6 meses', dias: 180 },
-  { label: '1 ano', dias: 365  },
-]
-
-const licencaAtual  = computed(() => tenant.value?.licencas?.[0] ?? null)
-const contratoAtual = computed(() => tenant.value?.contratos?.[0] ?? null)
-
-const AVATAR_GLOWS = [
-  'rgba(124,58,237,0.07)', 'rgba(14,165,233,0.07)',
-  'rgba(16,185,129,0.07)', 'rgba(245,158,11,0.07)',
-  'rgba(244,63,94,0.07)',  'rgba(99,102,241,0.07)',
-  'rgba(20,184,166,0.07)', 'rgba(249,115,22,0.07)',
-]
-const avatarGlow = computed(() => {
-  if (!tenant.value) return ''
-  const idx = tenant.value.nome.charCodeAt(0) % AVATAR_GLOWS.length
-  return `background: radial-gradient(circle, ${AVATAR_GLOWS[idx]} 0%, transparent 70%)`
-})
-
-const diasRestantes = computed(() => {
-  if (!licencaAtual.value?.dataVencimento) return null
-  return Math.ceil((new Date(licencaAtual.value.dataVencimento!).getTime() - Date.now()) / 86400000)
-})
-const licencaStatusLabel = computed(() => {
-  const s = licencaAtual.value?.status
-  if (s === 'ativado') return 'Ativa'
-  if (s === 'pendente') return 'Pendente'
-  return 'Bloqueada'
-})
-const licencaLabel = computed(() => {
-  const lic = licencaAtual.value
-  if (!lic) return ''
-  if (lic.status === 'ativado' && lic.dataVencimento) {
-    const d = diasRestantes.value!
-    if (d < 0)  return 'Licença expirada'
-    if (d <= 7) return `Vence em ${d} dia(s)`
-    return `Válida até ${formatDate(lic.dataVencimento)}`
-  }
-  if (lic.status === 'pendente') return 'Aguardando ativação'
-  return 'Licença bloqueada'
-})
-const licencaTom = computed<'ok' | 'warn' | 'bad'>(() => {
-  const st = licencaAtual.value?.status
-  if (st !== 'ativado') return st === 'pendente' ? 'warn' : 'bad'
-  if (diasRestantes.value !== null && diasRestantes.value < 0) return 'bad'
-  if (diasRestantes.value !== null && diasRestantes.value <= 7) return 'warn'
-  return 'ok'
-})
-
 const contratoTom = (s: string) => contratoStatuses.find(c => c.value === s)?.tom ?? 'mute'
 const contratoRotulo = (s: string) => contratoStatuses.find(c => c.value === s)?.label ?? s
 
 const dadosCadastrais = computed(() => [
-  { label: 'CNPJ / CPF',       valor: tenant.value?.cnpj,                          mono: true  },
-  { label: 'Responsável',      valor: tenant.value?.responsavel,                   mono: false },
-  { label: 'CPF do responsável', valor: (tenant.value as any)?.cpfResponsavel,     mono: true  },
-  { label: 'E-mail',           valor: tenant.value?.contato,                       mono: false },
-  { label: 'Telefone',         valor: tenant.value?.telefone,                      mono: false },
-  { label: 'Endereço',         valor: tenant.value?.endereco,                      mono: false },
-  { label: 'Cidade / UF',      valor: [(tenant.value as any)?.cidade, (tenant.value as any)?.uf].filter(Boolean).join(' — ') || null, mono: false },
-  { label: 'Observações',      valor: tenant.value?.observacoes,                   mono: false },
+  { label: 'CNPJ / CPF',         valor: tenant.value?.cnpj },
+  { label: 'Responsável',        valor: tenant.value?.responsavel },
+  { label: 'CPF do responsável', valor: tenant.value?.cpfResponsavel },
+  { label: 'E-mail',             valor: tenant.value?.contato },
+  { label: 'Telefone',           valor: tenant.value?.telefone },
+  { label: 'Endereço',           valor: tenant.value?.endereco },
+  { label: 'Cidade / UF',        valor: [tenant.value?.cidade, tenant.value?.uf].filter(Boolean).join(' — ') || null },
+  { label: 'Observações',        valor: tenant.value?.observacoes },
 ])
 
-function contratoStatusBadge(s: string) { return s === 'ativo' ? 'bg-emerald-500/15 text-emerald-400' : s === 'trial' ? 'bg-sky-500/15 text-sky-400' : s === 'suspenso' ? 'bg-amber-500/15 text-amber-400' : 'bg-red-500/15 text-red-400' }
 function formatDate(d: string | null | undefined) { if (!d) return '—'; return new Date(d).toLocaleDateString('pt-BR') }
 function formatCurrency(v: string | number) { return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(v)) }
 function showToast(type: 'success' | 'error', text: string) { toastMsg.type = type; toastMsg.text = text; setTimeout(() => { toastMsg.text = '' }, 3000) }
 
-
 async function carregar() {
-  loading.value = true; erro.value = ''
+  loading.value = !tenant.value
+  erro.value = ''
   try {
-    tenant.value = await platformFetch<Tenant>(`/platform/tenants/${route.params.id}`)
+    const [t, h] = await Promise.all([
+      platformFetch<Tenant>(`/platform/tenants/${route.params.id}`),
+      platformFetch<Pagamento[]>(`/platform/cobranca/tenants/${route.params.id}/historico`),
+    ])
+    tenant.value = t
+    historico.value = h
     await carregarAdmin()
   }
   catch (e: any) { erro.value = e?.message || 'Erro ao carregar' }
   finally { loading.value = false }
-}
-
-function abrirModalDados() {
-  if (!tenant.value) return
-  const t = tenant.value
-  Object.assign(form, { nome: t.nome, slug: t.slug, cnpj: t.cnpj || '', cpfResponsavel: (t as any).cpfResponsavel || '', responsavel: t.responsavel || '', contato: t.contato || '', telefone: t.telefone || '', endereco: t.endereco || '', cidade: (t as any).cidade || '', uf: (t as any).uf || '', observacoes: t.observacoes || '', vendaMobilePermitida: t.vendaMobilePermitida, rfidDisponivel: t.rfidDisponivel })
-  modalModo.value = 'dados'; erroModal.value = ''; modalAberto.value = true
-}
-
-function abrirModalContrato() {
-  const c   = contratoAtual.value
-  const lic = licencaAtual.value
-  const planoInicial = c?.plano || 'Básico'
-  planoOpcao.value = PLANOS_PADRAO.includes(planoInicial) ? planoInicial : 'personalizado'
-  Object.assign(contratoForm, {
-    plano:         planoInicial,
-    valor:         c?.valor || '',
-    ciclo:         c?.ciclo || 'mensal',
-    dataInicio:    c?.dataInicio?.substring(0, 10) || new Date().toISOString().substring(0, 10),
-    dataFim:       c?.dataFim?.substring(0, 10) || '',
-    status:        c?.status || 'trial',
-    licAtivacao:   lic?.dataAtivacao?.substring(0, 10)  || new Date().toISOString().substring(0, 10),
-    licVencimento: lic?.dataVencimento?.substring(0, 10) || '',
-  })
-  modalModo.value = 'contrato'; erroModal.value = ''; modalAberto.value = true
-}
-
-const diasCustomModal = ref('')
-
-const PLANOS_PADRAO = ['Básico', 'Profissional', 'Enterprise']
-const planoOpcao   = ref('Básico')
-
-function onPlanoOpcaoChange() {
-  if (planoOpcao.value !== 'personalizado') contratoForm.plano = planoOpcao.value
-}
-
-function setLicPeriodo(dias: number) {
-  const hoje = new Date()
-  const venc = new Date(hoje.getTime() + dias * 86400000)
-  contratoForm.licAtivacao   = hoje.toISOString().substring(0, 10)
-  contratoForm.licVencimento = venc.toISOString().substring(0, 10)
-  diasCustomModal.value = String(dias)
-}
-
-function setLicPermanente() {
-  contratoForm.licAtivacao   = new Date().toISOString().substring(0, 10)
-  contratoForm.licVencimento = '2099-12-31'
-  diasCustomModal.value = ''
-}
-
-function aplicarDiasCustomModal() {
-  const d = parseInt(diasCustomModal.value)
-  if (!d || d <= 0) return
-  const hoje = new Date()
-  const venc = new Date(hoje.getTime() + d * 86400000)
-  contratoForm.licAtivacao   = hoje.toISOString().substring(0, 10)
-  contratoForm.licVencimento = venc.toISOString().substring(0, 10)
-}
-
-function abrirModalLicenca() {
-  const lic = licencaAtual.value
-  licencaForm.status        = lic?.status || 'pendente'
-  licencaForm.dataAtivacao  = lic?.dataAtivacao?.substring(0, 10)  || ''
-  licencaForm.dataVencimento = lic?.dataVencimento?.substring(0, 10) || ''
-  modalModo.value = 'licenca'; erroModal.value = ''; modalAberto.value = true
-}
-
-function fecharModal() { modalAberto.value = false }
-
-async function salvar() {
-  erroModal.value = ''
-  salvando.value = true
-  try {
-    if (modalModo.value === 'dados') {
-      if (!form.nome.trim()) { erroModal.value = 'Nome é obrigatório'; salvando.value = false; return }
-      await platformFetch(`/platform/tenants/${tenant.value!.id}`, {
-        method: 'PUT',
-        body: JSON.stringify({ nome: form.nome, slug: form.slug, cnpj: form.cnpj || null, cpfResponsavel: form.cpfResponsavel || null, responsavel: form.responsavel || null, contato: form.contato || null, telefone: form.telefone || null, endereco: form.endereco || null, cidade: form.cidade || null, uf: form.uf || null, observacoes: form.observacoes || null, vendaMobilePermitida: form.vendaMobilePermitida, rfidDisponivel: form.rfidDisponivel }),
-      })
-      showToast('success', 'Dados atualizados!')
-    } else if (modalModo.value === 'licenca') {
-      await platformFetch(`/platform/tenants/${tenant.value!.id}/licenca`, {
-        method: 'PUT',
-        body: JSON.stringify({ status: licencaForm.status, dataAtivacao: licencaForm.dataAtivacao || null, dataVencimento: licencaForm.dataVencimento || null }),
-      })
-      showToast('success', 'Licença atualizada!')
-    } else if (modalModo.value === 'contrato') {
-      if (!contratoForm.plano.trim()) { erroModal.value = 'Plano é obrigatório'; salvando.value = false; return }
-      await platformFetch(`/platform/tenants/${tenant.value!.id}/contrato`, {
-        method: 'PUT',
-        body: JSON.stringify({ plano: contratoForm.plano, valor: contratoForm.valor || null, ciclo: contratoForm.ciclo, dataInicio: contratoForm.dataInicio || null, dataFim: contratoForm.dataFim || null, status: contratoForm.status }),
-      })
-      if (contratoForm.licVencimento) {
-        await platformFetch(`/platform/tenants/${tenant.value!.id}/licenca`, {
-          method: 'PUT',
-          body: JSON.stringify({ status: 'ativado', dataAtivacao: contratoForm.licAtivacao || new Date().toISOString().substring(0, 10), dataVencimento: contratoForm.licVencimento }),
-        })
-      }
-      showToast('success', 'Contrato e licença atualizados!')
-    }
-    fecharModal(); await carregar()
-  } catch (e: any) { erroModal.value = e?.message || 'Erro ao salvar' }
-  finally { salvando.value = false }
-}
-
-async function ativarPeriodo(dias: number) {
-  if (!tenant.value || ativandoLicenca.value) return
-  ativandoLicenca.value = true
-  try {
-    const hoje = new Date()
-    const lic = licencaAtual.value
-    const base = lic?.status === 'ativado' && lic.dataVencimento && new Date(lic.dataVencimento) > hoje
-      ? new Date(lic.dataVencimento)
-      : hoje
-    const vencimento = new Date(base.getTime() + dias * 86400000)
-    await platformFetch(`/platform/tenants/${tenant.value.id}/licenca`, {
-      method: 'PUT',
-      body: JSON.stringify({
-        status: 'ativado',
-        dataAtivacao: hoje.toISOString().substring(0, 10),
-        dataVencimento: vencimento.toISOString().substring(0, 10),
-      }),
-    })
-    showToast('success', `Licença ${base > hoje ? 'estendida' : 'ativada'} por ${dias} dia(s)!`)
-    await carregar()
-  } catch (e: any) { showToast('error', e?.message || 'Erro ao ativar') }
-  finally { ativandoLicenca.value = false }
-}
-
-async function toggleMobile() {
-  if (!tenant.value || togglingMobile.value) return
-  togglingMobile.value = true
-  const novo = !tenant.value.vendaMobilePermitida
-  try {
-    await platformFetch(`/platform/tenants/${tenant.value.id}/mobile`, { method: 'PATCH', body: JSON.stringify({ permitida: novo }) })
-    tenant.value.vendaMobilePermitida = novo
-    showToast('success', novo ? 'Venda pelo Celular habilitada' : 'Venda pelo Celular desabilitada')
-  } catch (e: any) { showToast('error', e?.message || 'Erro') }
-  finally { togglingMobile.value = false }
-}
-
-async function toggleRfid() {
-  if (!tenant.value || togglingRfid.value) return
-  togglingRfid.value = true
-  const novo = !tenant.value.rfidDisponivel
-  try {
-    await platformFetch(`/platform/tenants/${tenant.value.id}/rfid`, { method: 'PATCH', body: JSON.stringify({ disponivel: novo }) })
-    tenant.value.rfidDisponivel = novo
-    showToast('success', novo ? 'RFID habilitado' : 'RFID desabilitado')
-  } catch (e: any) { showToast('error', e?.message || 'Erro') }
-  finally { togglingRfid.value = false }
 }
 
 async function toggleStatus() {
@@ -762,15 +599,15 @@ async function toggleStatus() {
   const ok = await showConfirm(
     novoStatus === 'suspenso' ? `Suspender "${tenant.value.nome}"?` : `Reativar "${tenant.value.nome}"?`,
     novoStatus === 'suspenso'
-      ? 'O tenant ficará inacessível até ser reativado manualmente.'
-      : 'O tenant voltará a funcionar normalmente.',
+      ? 'O restaurante fica sem acesso até ser reativado manualmente, mesmo com a mensalidade em dia.'
+      : 'O acesso volta a seguir a assinatura (vencimento e pagamentos).',
     novoStatus === 'suspenso' ? 'danger' : 'success'
   )
   if (!ok) return
   try {
     await platformFetch(`/platform/tenants/${tenant.value.id}/status`, { method: 'PATCH', body: JSON.stringify({ status: novoStatus }) })
-    tenant.value.status = novoStatus
-    showToast('success', novoStatus === 'suspenso' ? 'Tenant suspenso' : 'Tenant reativado')
+    showToast('success', novoStatus === 'suspenso' ? 'Restaurante suspenso' : 'Restaurante reativado')
+    await carregar()
   } catch (e: any) { showToast('error', e?.message || 'Erro') }
 }
 
@@ -1020,12 +857,12 @@ function gerarContratoPDF(): Window | null {
       </div>
       <p>Pela prestação dos serviços descritos, a CONTRATANTE pagará à CONTRATADA o valor de
       <strong>${valor}</strong> por ciclo <strong>${cicloMap[ciclo] || ciclo}</strong>, com vencimento no dia
-      <strong>10 (dez)</strong> de cada período de referência.</p>
+      <strong>${c?.diaVencimento ?? 10}</strong> de cada período de referência.</p>
       <p>São aceitos os seguintes meios de pagamento: PIX, transferência bancária (TED/DOC) ou boleto bancário.</p>
       <p class="paragrafo">O não pagamento até a data de vencimento acarretará multa moratória de 2% (dois por cento)
       sobre o valor em aberto, acrescida de juros de mora de 1% (um por cento) ao mês, calculados pro rata die,
-      além de correção monetária pelo IGPM/FGV, sem prejuízo da suspensão imediata do acesso ao sistema após
-      10 (dez) dias de inadimplência.</p>
+      além de correção monetária pelo IGPM/FGV, sem prejuízo da suspensão automática do acesso ao sistema após
+      ${TOLERANCIA_DIAS} (cinco) dias de inadimplência.</p>
     </div>
 
     <div class="clause">
@@ -1119,7 +956,7 @@ function gerarContratoPDF(): Window | null {
       <ol>
         <li><strong>Por qualquer das partes</strong>, mediante notificação escrita com antecedência
         mínima de 30 (trinta) dias, sem ônus ou penalidades;</li>
-        <li><strong>Por inadimplência</strong> da CONTRATANTE, após decorridos 10 (dez) dias do
+        <li><strong>Por inadimplência</strong> da CONTRATANTE, após decorridos ${TOLERANCIA_DIAS} (cinco) dias do
         vencimento sem pagamento, independentemente de notificação prévia, não gerando direito
         a restituição de valores já pagos;</li>
         <li><strong>Por descumprimento contratual</strong> de qualquer das partes, após notificação
@@ -1211,7 +1048,6 @@ onMounted(() => {
   platformAuth.restore()
   if (!platformAuth.isAuthenticated) { navigateTo('/platform/login'); return }
   carregar()
-  carregarPlanos()
 })
 </script>
 

@@ -1,15 +1,17 @@
 import type { FastifyInstance } from 'fastify'
 import { z } from 'zod'
-import { requirePlatform, invalidateTenantCache } from '../../middlewares/tenant.middleware'
+import { requirePlatform } from '../../middlewares/tenant.middleware'
 import { prisma } from '../../lib/prisma'
+import { aplicarRecursos } from './assinatura'
 
 /**
  * Planos: pacotes de recursos vendidos pela plataforma.
  *
  * O que o sistema checa de fato continua sendo `tenant.rfidDisponivel` e
  * `tenant.vendaMobilePermitida` (login por crachá, venda pelo celular). O
- * plano é a fonte desses dois campos: atribuir um plano ou editar os
- * recursos de um plano reescreve os campos de todos os restaurantes nele.
+ * plano é a fonte desses dois campos, exceto quando o superadmin libera ou
+ * bloqueia um recurso para um restaurante (rfidManual / vendaMobileManual):
+ * ver aplicarRecursos em ./assinatura.
  * Delivery e NFC-e ficam registrados no plano, mas ainda não existem no PDV.
  */
 
@@ -24,10 +26,6 @@ const planoBody = z.object({
   ativo:       z.boolean().default(true),
 })
 
-/** Recursos do plano no formato dos campos do tenant. */
-export function recursosDoPlano(p: { rfid: boolean; vendaMobile: boolean }) {
-  return { rfidDisponivel: p.rfid, vendaMobilePermitida: p.vendaMobile }
-}
 
 function formatar(p: any) {
   return { ...p, valor: Number(p.valor), qtdRestaurantes: p._count?.tenants ?? 0, _count: undefined }
@@ -62,13 +60,9 @@ export async function platformPlanosRoutes(app: FastifyInstance) {
     const parsed = planoBody.safeParse(request.body)
     if (!parsed.success) return reply.status(400).send({ error: parsed.error.issues[0]?.message ?? 'Dados inválidos' })
     try {
-      const plano = await prisma.$transaction(async (tx) => {
-        const p = await tx.plano.update({ where: { id }, data: parsed.data, include: { _count: { select: { tenants: true } } } })
-        await tx.tenant.updateMany({ where: { planoId: id }, data: recursosDoPlano(p) })
-        return p
-      })
+      const plano = await prisma.plano.update({ where: { id }, data: parsed.data, include: { _count: { select: { tenants: true } } } })
       const afetados = await prisma.tenant.findMany({ where: { planoId: id }, select: { id: true } })
-      afetados.forEach(t => invalidateTenantCache(t.id))
+      for (const t of afetados) await aplicarRecursos(t.id)
       return reply.send(formatar(plano))
     } catch (err: any) {
       if (err.code === 'P2025') return reply.status(404).send({ error: 'Plano não encontrado' })

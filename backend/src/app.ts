@@ -190,6 +190,16 @@ export async function buildApp() {
         ? Math.ceil((licenca.dataVencimento.getTime() - agora.getTime()) / (1000 * 60 * 60 * 24))
         : null
 
+      // Aviso para o PDV: mensalidade vencida (na tolerância) ou teste acabando
+      const { resumir, contratoAtual, diasEntre, hojeBR } = await import('./modules/platform/assinatura')
+      const temPagamento = (await prisma.pagamentoMensalidade.count({ where: { tenantId: tenant.id } })) > 0
+      const r = resumir(await contratoAtual(prisma, tenant.id), tenant.status, temPagamento, agora)
+      const diasTeste = r.testeAte ? diasEntre(hojeBR(agora), r.testeAte) : null
+      const aviso =
+        r.situacao === 'tolerancia' ? { tipo: 'tolerancia', dias: r.diasParaBloquear, liberadoAte: r.liberadoAte }
+        : r.situacao === 'teste' && diasTeste !== null && diasTeste <= 2 ? { tipo: 'teste', dias: diasTeste, liberadoAte: r.testeAte }
+        : null
+
       return reply.send({
         ativo: true,
         expirado: false,
@@ -197,6 +207,7 @@ export async function buildApp() {
         cliente: tenant.nome,
         dataVencimento: licenca.dataVencimento,
         diasRestantes,
+        aviso,
       })
     } catch {
       // Fail-closed: em caso de erro no banco, bloqueia o acesso

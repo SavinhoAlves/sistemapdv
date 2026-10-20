@@ -6,7 +6,7 @@ import type { TenantJwtPayload } from '../../lib/jwt'
 
 const SALT_ROUNDS = 10
 
-/** Nome de usuário: minúsculo, começa com letra (para não confundir com o código). */
+/** Nome de usuário: minúsculo, começa com letra (para não confundir com o código), único na plataforma. */
 export const LOGIN_REGEX = /^[a-z][a-z0-9._-]{2,29}$/
 
 function normalizarLogin(login?: string | null) {
@@ -19,6 +19,7 @@ function hashPin(pin: string): string {
 }
 
 export async function listar(tenantId: string) {
+  const tenant = await prisma.tenant.findUnique({ where: { id: tenantId }, select: { codigo: true } })
   const usuarios = await prisma.usuario.findMany({
     where: { tenantId },
     orderBy: { nome: 'asc' },
@@ -38,7 +39,8 @@ export async function listar(tenantId: string) {
       perfil: { select: { id: true, nome: true } },
     },
   })
-  return usuarios
+  // Código digitado no login: restaurante-usuário (ex.: 1001-3)
+  return usuarios.map(u => ({ ...u, codigoAcesso: `${tenant?.codigo}-${u.codigo}` }))
 }
 
 interface CriarUsuarioData {

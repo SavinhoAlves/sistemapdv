@@ -71,7 +71,7 @@ Em outros aparelhos da rede (tablets, celulares, TV da cozinha), troque `localho
 Acesse `http://<servidor>:3000/login`. Há dois modos:
 
 - **Cartão RFID** — aproxime o crachá do leitor (ou clique na área para focar o leitor).
-- **Usuário / Senha** — informe o código do restaurante (ex.: `1001`; fica salvo no aparelho), o **código do usuário** (ex.: `3`) ou o **nome de usuário** (ex.: `joao`), e a senha. O e-mail continua aceito no mesmo campo. Os códigos aparecem na lista de funcionários e na Central.
+- **Usuário / Senha** — um campo só: digite o **código de acesso** (ex.: `1001-3`, código do restaurante + número do usuário) **ou** o **nome de usuário** (ex.: `joao`, único no sistema), e a senha. O e-mail continua aceito no mesmo campo. O código de cada funcionário aparece na coluna "Acesso" da lista de funcionários.
 
 O restaurante é identificado por: subdomínio (produção) → último slug usado no navegador → `NUXT_PUBLIC_TENANT_SLUG` do `.env`.
 
@@ -175,7 +175,7 @@ Painel com: restaurantes ativos, receita mensal recorrente e estimativa anual, r
    - Dados jurídicos: CNPJ/CPF, responsável, CPF do responsável, endereço, cidade/UF, telefone, e-mail.
    - **Plano**, ciclo de cobrança (mensal, trimestral, semestral, anual) e valor mensal.
    - **Features** (recursos): Mesas, Vendas, Caixa, Relatórios, Tempo Real, RFID, Venda pelo Celular, etc.
-   - **Acesso do administrador**: e-mail de acesso e senha inicial (mín. 6 caracteres) — é o primeiro login do restaurante no PDV. O restaurante recebe um código numérico automático (1001, 1002…) e o administrador o código de usuário `1`.
+   - **Acesso do administrador**: e-mail de acesso e senha inicial (mín. 6 caracteres) — é o primeiro login do restaurante no PDV. O restaurante recebe um código numérico automático (1001, 1002…) e o administrador entra com o código `<código do restaurante>-1` (ex.: `1001-1`).
    - **Contrato**: início, fim (opcional) e observações.
 3. Salve. O restaurante já pode logar no PDV com o slug e o admin criado.
 

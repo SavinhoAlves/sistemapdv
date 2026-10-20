@@ -27,29 +27,52 @@ export function buscarTenant(ref: string) {
     : prisma.tenant.findUnique({ where: { slug: valor } })
 }
 
-/** Filtro do usuário: só dígitos = código; com @ = e-mail; senão nome de usuário. */
-function filtroIdentificador(identificador: string) {
+/**
+ * Usuários que correspondem ao identificador digitado no login:
+ * - "1001-3": código do restaurante + código do usuário (também aceita . ou /)
+ * - "joao": nome de usuário (único na plataforma)
+ * - e-mail: aceito na transição; com vários restaurantes, a senha desempata
+ * - "3": código do usuário só vale quando o restaurante vem junto (clientes antigos)
+ */
+async function buscarCandidatos(identificador: string, slug?: string) {
   const valor = identificador.trim().toLowerCase()
-  if (/^\d+$/.test(valor)) return { codigo: Number(valor) }
-  if (valor.includes('@')) return { email: { equals: valor, mode: 'insensitive' as const } }
-  return { login: valor }
+  const base = { ativo: true, senhaHash: { not: null } }
+  const include = { tenant: true }
+
+  const completo = valor.match(/^(\d+)\s*[-./]\s*(\d+)$/)
+  if (completo) {
+    return prisma.usuario.findMany({
+      where: { ...base, codigo: Number(completo[2]), tenant: { codigo: Number(completo[1]) } },
+      include,
+    })
+  }
+
+  const tenant = slug ? await buscarTenant(slug) : null
+  if (/^\d+$/.test(valor)) {
+    if (!tenant) throw new Error('Use o código completo, ex.: 1001-1')
+    return prisma.usuario.findMany({ where: { ...base, codigo: Number(valor), tenantId: tenant.id }, include })
+  }
+  if (valor.includes('@')) {
+    return prisma.usuario.findMany({
+      where: { ...base, email: { equals: valor, mode: 'insensitive' }, ...(tenant ? { tenantId: tenant.id } : {}) },
+      include,
+    })
+  }
+  return prisma.usuario.findMany({ where: { ...base, login: valor }, include })
 }
 
-export async function loginComSenha(identificador: string, senha: string, slug: string) {
-  const tenant = await buscarTenant(slug)
-  if (!tenant || tenant.status !== 'ativo') {
-    throw new Error('Restaurante não encontrado ou suspenso')
-  }
+export async function loginComSenha(identificador: string, senha: string, slug?: string) {
+  const candidatos = await buscarCandidatos(identificador, slug)
 
-  const usuario = await prisma.usuario.findFirst({
-    where: { ...filtroIdentificador(identificador), tenantId: tenant.id, ativo: true },
-  })
-  if (!usuario || !usuario.senhaHash) {
-    throw new Error('Credenciais inválidas')
+  let usuario: (typeof candidatos)[number] | null = null
+  for (const c of candidatos) {
+    if (await bcrypt.compare(senha, c.senhaHash!)) { usuario = c; break }
   }
+  if (!usuario) throw new Error('Credenciais inválidas')
 
-  const senhaValida = await bcrypt.compare(senha, usuario.senhaHash)
-  if (!senhaValida) throw new Error('Credenciais inválidas')
+  // Só revela o status do restaurante depois da senha conferida
+  const tenant = usuario.tenant
+  if (tenant.status !== 'ativo') throw new Error('Restaurante suspenso')
 
   await prisma.usuario.update({
     where: { id: usuario.id },
@@ -87,6 +110,7 @@ export async function loginComSenha(identificador: string, senha: string, slug: 
       perfilId: usuario.perfilId,
       permissoes,
     },
+    tenant: { codigo: tenant.codigo, slug: tenant.slug, nome: tenant.nome },
   }
 }
 

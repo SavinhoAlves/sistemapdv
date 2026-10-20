@@ -1,12 +1,12 @@
 import { z } from 'zod'
 
-// identificador: código do usuário (3), nome de usuário (joao) ou e-mail.
-// `email` continua aceito para clientes antigos do app.
+// identificador: código completo (1001-3), nome de usuário (joao) ou e-mail.
+// `email` e `slug` continuam aceitos para clientes antigos do app.
 export const loginSchema = z.object({
   identificador: z.string().optional(),
   email:         z.string().optional(),
   senha: z.string().min(1, 'Senha obrigatória'),
-  slug: z.string().min(1, 'Slug do restaurante obrigatório'),
+  slug: z.string().optional(),
 }).transform((d, ctx) => {
   const identificador = (d.identificador || d.email || '').trim()
   if (!identificador) {

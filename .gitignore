@@ -6,6 +6,8 @@ node_modules/
 .nuxt/
 .output/
 dist/
+# frontend/dist é um symlink para .output/public criado pelo nuxt generate
+frontend/dist
 
 # Ambiente
 .env

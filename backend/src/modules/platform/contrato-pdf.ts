@@ -36,10 +36,10 @@ const ICONE_PATHS = `<path d="m16 2-2.3 2.3a3 3 0 0 0 0 4.2l1.8 1.8a3 3 0 0 0 4.
 <path d="M15 15 3.3 3.3a4.2 4.2 0 0 0 0 6l7.3 7.3c.7.7 2 .7 2.8 0L15 15Zm0 0 7 7"/>
 <path d="m2.1 21.8 6.4-6.3"/><path d="m19 5-7 7"/>`
 
-/** Selo da marca: talheres (ícone Lucide "utensils-crossed", licença ISC) no quadrado laranja. */
+/** Selo da marca: talheres (ícone Lucide "utensils-crossed", licença ISC) no quadrado laranja, igual à logo da Platform (.pf-logo-m). */
 const LOGO_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="38" height="38" viewBox="0 0 38 38">
 <defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#FF9B33"/><stop offset="1" stop-color="#FF7A00"/></linearGradient></defs>
-<rect width="38" height="38" rx="11" fill="url(#g)"/>
+<rect width="38" height="38" rx="12" fill="url(#g)"/>
 <g transform="translate(9 9) scale(0.8333)" fill="none" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
 ${ICONE_PATHS}
 </g></svg>`

@@ -185,8 +185,8 @@ model Usuario {
   tenantId    String    @map("tenant_id")
   /// Sequencial dentro do restaurante (1, 2, 3...), preenchido por trigger no banco
   codigo      Int       @default(dbgenerated())
-  /// Nome de usuário para login (minúsculo, começa com letra)
-  login       String?
+  /// Nome de usuário para login (minúsculo, começa com letra), único na plataforma
+  login       String?   @unique
   nome        String
   email       String?
   senhaHash   String?   @map("senha_hash")
@@ -212,7 +212,6 @@ model Usuario {
   movimentacoesEstoque MovimentacaoEstoque[]
 
   @@unique([tenantId, codigo])
-  @@unique([tenantId, login])
   @@unique([tenantId, email])
   @@unique([tenantId, cartaoRfid])
   @@index([tenantId])

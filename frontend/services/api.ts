@@ -103,10 +103,9 @@ export function useApi() {
     delete: <T>(endpoint: string)                  => request<T>(endpoint, { method: 'DELETE' }),
 
     auth: {
-      login: (identificador: string, senha: string, slugOverride?: string) => {
-        const slug = slugOverride || getTenantSlug()
-        return request('/auth/login', { method: 'POST', body: JSON.stringify({ identificador, senha, slug }) })
-      },
+      // Sem slug: o identificador (1001-3 ou nome de usuário) já indica o restaurante
+      login: (identificador: string, senha: string) =>
+        request('/auth/login', { method: 'POST', body: JSON.stringify({ identificador, senha }) }),
       rfid: (rfid: string, slugOverride?: string) => {
         const slug = slugOverride || getTenantSlug()
         return request('/auth/rfid', { method: 'POST', body: JSON.stringify({ cartaoRfid: rfid, slug }) })

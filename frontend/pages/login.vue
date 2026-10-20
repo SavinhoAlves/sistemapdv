@@ -37,17 +37,6 @@
               </div>
               <p class="tabdesc">{{ PERFIL[perfil].desc }}</p>
 
-              <!-- Restaurante do acesso (subdomínio, último acesso ou .env) -->
-              <div v-if="perfil === 'cli'" class="rest">
-                <template v-if="!editandoSlug">
-                  <span>Restaurante <b>{{ restInfo ? `${restInfo.codigo} · ${restInfo.nome}` : (slugAtual || 'não informado') }}</b></span>
-                  <button type="button" class="link" @click="trocarRestaurante">{{ slugAtual ? 'Trocar' : 'Informar' }}</button>
-                </template>
-                <form v-else class="rest-edit" novalidate @submit.prevent="confirmarSlug">
-                  <input ref="slugRef" v-model="form.slug" type="text" placeholder="código do restaurante (ex.: 1001)" autocomplete="organization" aria-label="Código do restaurante" @blur="confirmarSlug">
-                </form>
-              </div>
-
               <p v-if="msg.text" class="msg" :class="msg.type === 'error' ? 'err' : 'ok'" :role="msg.type === 'error' ? 'alert' : 'status'">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex:none" aria-hidden="true"><circle cx="12" cy="12" r="9" /><path d="M12 8v5M12 16.5v.1" /></svg>
                 {{ msg.text }}
@@ -135,7 +124,7 @@ const api          = useApi()
 // ── Perfis: Cliente = restaurante, Gestor = plataforma (?acesso=plataforma) ──
 type Perfil = 'cli' | 'ges'
 const PERFIL = {
-  cli: { desc: 'Acesse o sistema do seu restaurante: caixa, mesas e cozinha.', label: 'Código ou usuário', ph: 'Ex.: 3 ou joao', btn: 'Entrar no sistema', help: 'Problemas para acessar? Fale com o gerente da loja.' },
+  cli: { desc: 'Acesse o sistema do seu restaurante: caixa, mesas e cozinha.', label: 'Código ou usuário', ph: 'Ex.: 1001-1 ou joao', btn: 'Entrar no sistema', help: 'Problemas para acessar? Fale com o gerente da loja.' },
   ges: { desc: 'Acesso ao painel da plataforma: restaurantes, cobrança, planos e demonstrações.', label: 'E-mail', ph: 'admin@restaurantepdv.com.br', btn: 'Entrar no painel', help: 'Problemas para acessar? Fale com outro administrador.' },
 }
 const perfil = ref<Perfil>(route.query.acesso === 'plataforma' ? 'ges' : 'cli')
@@ -166,46 +155,18 @@ const bloqueio  = ref('')
 const rfidInputRef = ref<HTMLInputElement>()
 const emailRef     = ref<HTMLInputElement>()
 const senhaRef     = ref<HTMLInputElement>()
-const slugRef      = ref<HTMLInputElement>()
 const dlgRef       = ref<HTMLDialogElement>()
 const rfidReading  = ref(false)
 const rfidBuffer   = ref('')
-const form         = reactive({ email: '', senha: '', slug: '' })
+const form         = reactive({ email: '', senha: '' })
 let rfidTimer: ReturnType<typeof setTimeout> | null = null
 
-// ── Restaurante ─────────────────────────────────────────────────────────
-const slugAtual    = ref('')
-const restInfo     = ref<{ codigo: number; nome: string } | null>(null)
-const editandoSlug = ref(false)
-
-/** Resolve o código numérico (ou slug) do restaurante; o slug segue sendo o identificador interno. */
-async function resolverRestaurante(valor: string) {
-  const r = await api.get<{ codigo: number; slug: string; nome: string }>(`/auth/restaurante?ref=${encodeURIComponent(valor)}`)
-  slugAtual.value = r.slug
-  restInfo.value  = { codigo: r.codigo, nome: r.nome }
-}
-
-function trocarRestaurante() {
-  form.slug = restInfo.value ? String(restInfo.value.codigo) : slugAtual.value
-  editandoSlug.value = true
-  nextTick(() => slugRef.value?.focus())
-}
-
-async function confirmarSlug() {
-  if (!editandoSlug.value) return
-  const novo = form.slug.trim().toLowerCase()
-  editandoSlug.value = false
-  if (!novo || novo === slugAtual.value || novo === String(restInfo.value?.codigo ?? '')) return
-  hideMsg()
-  try {
-    await resolverRestaurante(novo)
-  } catch {
-    return showMsg('error', 'Restaurante não encontrado. Confira o código.')
-  }
-  await carregarConfig()
-}
+// ── Restaurante do aparelho ─────────────────────────────────────────────
+// Não é digitado: vem do último login (ou do subdomínio) e só é usado pelo crachá RFID.
+const slugAtual = ref('')
 
 async function carregarConfig() {
+  if (!slugAtual.value) { rfidAtivo.value = false; return }
   try {
     const cfg = await api.get<{ rfid_ativo: boolean }>(`/sistema/config-publica?slug=${encodeURIComponent(slugAtual.value)}`)
     rfidAtivo.value = cfg.rfid_ativo === true
@@ -302,18 +263,20 @@ function entrar() {
 // ── Cliente: código ou nome de usuário e senha ──────────────────────────────
 async function handleManualLogin() {
   hideMsg()
-  const slug = slugAtual.value
-  if (!slug) return falhar('Informe o código do restaurante.', null)
   if (!form.email.trim()) return falhar('Informe seu código ou nome de usuário.', 'email')
   if (!form.senha) return falhar('Informe sua senha para continuar.', 'senha')
 
   loading.value = true
   try {
-    const res: any = await api.auth.login(form.email.trim(), form.senha, slug)
-    concluirLogin(res, slug, 'Acesso autorizado!')
+    // O restaurante vem na resposta: código completo (1001-3) e nome de usuário já o identificam
+    const res: any = await api.auth.login(form.email.trim(), form.senha)
+    concluirLogin(res, res.tenant?.slug ?? '', 'Acesso autorizado!')
   } catch (err: any) {
     const texto = err?.message || err?.data?.error || 'Falha ao conectar com o servidor.'
-    if (/suspenso/i.test(texto) && await verificarLicenca(slug)) return
+    if (/suspenso/i.test(texto)) {
+      bloqueio.value = 'Este restaurante está suspenso. Entre em contato para regularizar o acesso.'
+      return
+    }
     falhar(texto === 'Sessão expirada' || texto === 'Credenciais inválidas' ? 'Usuário ou senha incorretos.' : texto, 'senha')
   } finally {
     loading.value = false
@@ -366,17 +329,12 @@ onMounted(async () => {
     if (authStore.isAuthenticated) return navigateTo('/')
   }
 
+  // Restaurante guardado no aparelho (para o crachá); se não existir mais, é descartado
   slugAtual.value = getTenantSlug() || ''
-  // Restaurante salvo (ou o padrão do build) que não existe: pede o código em vez de tentar com ele
   if (slugAtual.value) {
-    await resolverRestaurante(slugAtual.value).catch((e: any) => {
-      restInfo.value = null
+    await api.get(`/auth/restaurante?ref=${encodeURIComponent(slugAtual.value)}`).catch((e: any) => {
       if (/não encontrado/i.test(e?.message || '')) slugAtual.value = ''
     })
-  }
-  if (!slugAtual.value && perfil.value === 'cli') {
-    trocarRestaurante()
-    return
   }
   await carregarConfig()
   if (rfidAtivo.value && perfil.value === 'cli') setModo('rfid')
@@ -448,10 +406,6 @@ onUnmounted(() => {
 .tabdesc{margin:0 2px 20px;color:var(--muted);font-size:14px;min-height:42px}
 
 /* Restaurante do acesso */
-.rest{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:-6px 0 18px;padding:10px 14px;border-radius:14px;border:1px dashed var(--line);font-size:14px;color:var(--muted)}
-.rest b{color:var(--ink);font-family:var(--fonte-numero);font-weight:600}
-.rest-edit{flex:1}
-.rest-edit input{height:42px;padding:0 14px;border-radius:12px;font-family:var(--fonte-numero)}
 
 .field{margin-bottom:16px}
 label{display:block;font-weight:500;font-size:14px;margin-bottom:7px;color:#D8D2C7}

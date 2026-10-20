@@ -25,7 +25,7 @@ export const MESES_CICLO: Record<string, number> = { mensal: 1, trimestral: 3, s
 export type Situacao = 'teste' | 'em_dia' | 'tolerancia' | 'bloqueado' | 'isento' | 'suspenso' | 'cancelado' | 'pendente'
 
 /** Cliente do projeto (estendido com o escopo de tenant) ou a transação dele. */
-type Db = Omit<typeof prisma, '$extends' | '$transaction' | '$disconnect' | '$connect' | '$on' | '$use'>
+export type Db = Omit<typeof prisma, '$extends' | '$transaction' | '$disconnect' | '$connect' | '$on' | '$use'>
 
 // ── Datas ────────────────────────────────────────────────────────────────────
 // Colunas DATE chegam como meia-noite UTC; trabalhamos com 'AAAA-MM-DD' para

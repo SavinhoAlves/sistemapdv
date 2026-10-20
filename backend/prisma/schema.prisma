@@ -90,6 +90,8 @@ enum EstoqueMovimentoTipo {
 
 model Tenant {
   id                   String       @id @default(uuid())
+  /// Código numérico do cliente (1001, 1002...): usado no login e no controle
+  codigo               Int          @unique @default(autoincrement())
   nome                 String
   slug                 String       @unique
   cnpj                 String?      @unique
@@ -181,6 +183,10 @@ model PlatformRefreshToken {
 model Usuario {
   id          String    @id @default(uuid())
   tenantId    String    @map("tenant_id")
+  /// Sequencial dentro do restaurante (1, 2, 3...), preenchido por trigger no banco
+  codigo      Int       @default(dbgenerated())
+  /// Nome de usuário para login (minúsculo, começa com letra)
+  login       String?
   nome        String
   email       String?
   senhaHash   String?   @map("senha_hash")
@@ -205,6 +211,8 @@ model Usuario {
   auditoria            Auditoria[]
   movimentacoesEstoque MovimentacaoEstoque[]
 
+  @@unique([tenantId, codigo])
+  @@unique([tenantId, login])
   @@unique([tenantId, email])
   @@unique([tenantId, cartaoRfid])
   @@index([tenantId])

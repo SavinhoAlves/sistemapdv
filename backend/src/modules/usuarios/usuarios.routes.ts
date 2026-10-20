@@ -3,6 +3,13 @@ import { requireTenant } from '../../middlewares/tenant.middleware'
 import { requirePermissao } from '../../middlewares/permission.middleware'
 import * as Service from './usuarios.service'
 
+function loginInvalido(login: unknown) {
+  if (login === undefined || login === null || login === '') return false
+  return typeof login !== 'string' || !Service.LOGIN_REGEX.test(login.trim().toLowerCase())
+}
+const MSG_LOGIN = 'Nome de usuário deve ter de 3 a 30 caracteres, começar com letra e usar só letras, números, ponto, hífen ou sublinhado'
+const MSG_DUPLICADO = 'Nome de usuário, e-mail ou cartão RFID já em uso'
+
 export async function usuariosRoutes(app: FastifyInstance) {
   // GET /api/usuarios
   app.get('/', { preHandler: [requireTenant, requirePermissao('gerenciarUsuarios')] }, async (request, reply) => {
@@ -18,10 +25,12 @@ export async function usuariosRoutes(app: FastifyInstance) {
     const cargosValidos = ['administrador', 'garcom', 'caixa', 'cozinha']
     if (!cargosValidos.includes(body.cargo))
       return reply.status(400).send({ error: `cargo deve ser um de: ${cargosValidos.join(', ')}` })
+    if (loginInvalido(body.login)) return reply.status(400).send({ error: MSG_LOGIN })
 
     try {
       const usuario = await Service.criar(request.tenantId!, {
         nome: body.nome,
+        login: body.login,
         email: body.email,
         senha: body.senha,
         cartaoRfid: body.cartaoRfid,
@@ -32,7 +41,7 @@ export async function usuariosRoutes(app: FastifyInstance) {
       })
       return reply.status(201).send(usuario)
     } catch (err: any) {
-      if (err.code === 'P2002') return reply.status(409).send({ error: 'E-mail ou cartão RFID já em uso' })
+      if (err.code === 'P2002') return reply.status(409).send({ error: MSG_DUPLICADO })
       throw err
     }
   })
@@ -47,10 +56,12 @@ export async function usuariosRoutes(app: FastifyInstance) {
       if (!cargosValidos.includes(body.cargo))
         return reply.status(400).send({ error: `cargo deve ser um de: ${cargosValidos.join(', ')}` })
     }
+    if (loginInvalido(body.login)) return reply.status(400).send({ error: MSG_LOGIN })
 
     try {
       const usuario = await Service.atualizar(request.tenantId!, id, {
         nome: body.nome,
+        login: body.login,
         email: body.email,
         senha: body.senha,
         cartaoRfid: body.cartaoRfid,
@@ -61,7 +72,7 @@ export async function usuariosRoutes(app: FastifyInstance) {
       })
       return usuario
     } catch (err: any) {
-      if (err.code === 'P2002') return reply.status(409).send({ error: 'E-mail ou cartão RFID já em uso' })
+      if (err.code === 'P2002') return reply.status(409).send({ error: MSG_DUPLICADO })
       if (err.code === 'P2025') return reply.status(404).send({ error: 'Usuário não encontrado' })
       throw err
     }

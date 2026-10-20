@@ -21,6 +21,7 @@
             <h1 style="font-size:clamp(26px,3.4vw,38px)">{{ tenant.nome }}</h1>
             <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:6px">
               <span class="pf-pill" :class="tenant.status === 'ativo' ? 'ok' : 'warn'"><i />{{ tenant.status === 'ativo' ? 'Ativo' : 'Suspenso' }}</span>
+              <span class="pf-tag">Cód. {{ tenant.codigo }}</span>
               <span class="pf-tag">{{ tenant.slug }}</span>
               <span style="color:var(--pf-muted);font-size:14px">Cliente desde {{ formatDate(tenant.createdAt) }}</span>
             </div>
@@ -253,7 +254,7 @@
                 <div class="pf-boxm">
                   <div class="pf-form">
                     <div class="pf-fld full"><label class="pf-lab" for="f-nome">Nome *</label><input id="f-nome" v-model="form.nome" class="pf-inp" type="text"></div>
-                    <div class="pf-fld"><label class="pf-lab" for="f-slug">Login (identificador)</label><input id="f-slug" v-model="form.slug" class="pf-inp" type="text"></div>
+                    <div class="pf-fld"><label class="pf-lab" for="f-slug">Identificador (slug)</label><input id="f-slug" v-model="form.slug" class="pf-inp" type="text"></div>
                     <div class="pf-fld"><label class="pf-lab" for="f-cnpj">CNPJ ou CPF</label><input id="f-cnpj" v-model="form.cnpj" class="pf-inp" type="text" placeholder="00.000.000/0001-00"></div>
                     <div class="pf-fld"><label class="pf-lab" for="f-resp">Responsável</label><input id="f-resp" v-model="form.responsavel" class="pf-inp" type="text"></div>
                     <div class="pf-fld"><label class="pf-lab" for="f-cpfr">CPF do responsável</label><input id="f-cpfr" v-model="form.cpfResponsavel" class="pf-inp" type="text" placeholder="000.000.000-00"></div>
@@ -413,7 +414,7 @@ definePageMeta({ layout: false })
 interface Licenca  { id: string; status: string; dataAtivacao: string | null; dataVencimento: string | null; createdAt: string }
 interface Contrato { id: string; plano: string; valor: string | null; ciclo: string; status: string; dataInicio: string | null; dataFim: string | null }
 interface Tenant {
-  id: string; nome: string; slug: string; cnpj: string | null; contato: string | null
+  id: string; codigo: number; nome: string; slug: string; cnpj: string | null; contato: string | null
   responsavel: string | null; telefone: string | null; endereco: string | null; observacoes: string | null
   status: string; rfidDisponivel: boolean; vendaMobilePermitida: boolean; createdAt: string
   planoId: string | null; plano: { id: string; nome: string; valor: string | number } | null

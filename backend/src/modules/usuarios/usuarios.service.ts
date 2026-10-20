@@ -6,6 +6,13 @@ import type { TenantJwtPayload } from '../../lib/jwt'
 
 const SALT_ROUNDS = 10
 
+/** Nome de usuário: minúsculo, começa com letra (para não confundir com o código). */
+export const LOGIN_REGEX = /^[a-z][a-z0-9._-]{2,29}$/
+
+function normalizarLogin(login?: string | null) {
+  return login?.trim().toLowerCase() || null
+}
+
 function hashPin(pin: string): string {
   // PINs são curtos — armazenamos como bcrypt também por segurança
   return bcrypt.hashSync(pin, SALT_ROUNDS)
@@ -17,6 +24,8 @@ export async function listar(tenantId: string) {
     orderBy: { nome: 'asc' },
     select: {
       id: true,
+      codigo: true,
+      login: true,
       nome: true,
       email: true,
       cargo: true,
@@ -34,6 +43,7 @@ export async function listar(tenantId: string) {
 
 interface CriarUsuarioData {
   nome: string
+  login?: string
   email?: string
   senha?: string
   cartaoRfid?: string
@@ -51,6 +61,7 @@ export async function criar(tenantId: string, data: CriarUsuarioData) {
     data: {
       tenantId,
       nome: data.nome.trim(),
+      login: normalizarLogin(data.login),
       email: data.email || null,
       senhaHash,
       cartaoRfid: data.cartaoRfid || null,
@@ -61,6 +72,8 @@ export async function criar(tenantId: string, data: CriarUsuarioData) {
     },
     select: {
       id: true,
+      codigo: true,
+      login: true,
       nome: true,
       email: true,
       cargo: true,
@@ -75,6 +88,7 @@ export async function criar(tenantId: string, data: CriarUsuarioData) {
 
 interface AtualizarUsuarioData {
   nome?: string
+  login?: string | null
   email?: string
   senha?: string
   cartaoRfid?: string | null
@@ -92,6 +106,7 @@ export async function atualizar(tenantId: string, id: string, data: AtualizarUsu
     where: { id, tenantId },
     data: {
       ...(data.nome !== undefined ? { nome: data.nome.trim() } : {}),
+      ...(data.login !== undefined ? { login: normalizarLogin(data.login) } : {}),
       ...(data.email !== undefined ? { email: data.email || null } : {}),
       ...(senhaHash !== undefined ? { senhaHash } : {}),
       ...(data.cartaoRfid !== undefined ? { cartaoRfid: data.cartaoRfid } : {}),
@@ -102,6 +117,8 @@ export async function atualizar(tenantId: string, id: string, data: AtualizarUsu
     },
     select: {
       id: true,
+      codigo: true,
+      login: true,
       nome: true,
       email: true,
       cargo: true,

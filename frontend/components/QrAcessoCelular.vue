@@ -22,8 +22,8 @@
               @click="trocarIp(ip)">{{ ip }}</button>
           </div>
           <img :src="dataUrl" alt="QR code de acesso" class="mx-auto rounded-2xl border border-gray-200 dark:border-white/10" />
-          <p class="text-xs text-gray-600 dark:text-white/60 mt-3">Peça para {{ funcionario.nome.split(' ')[0] }} apontar a câmera do celular.</p>
-          <p class="text-[11px] text-gray-400 dark:text-white/35 mt-1">Vale enquanto o caixa estiver aberto (até 10 horas).</p>
+          <p class="text-xs text-gray-600 dark:text-white/60 mt-3">Peça para {{ funcionario.nome.split(' ')[0] }} ler com o app RestaurantePDV (Ler QR code) ou com a câmera do celular.</p>
+          <p class="text-[11px] text-gray-400 dark:text-white/35 mt-1">{{ entregador ? 'Vale por até 10 horas.' : 'Vale enquanto o caixa estiver aberto (até 10 horas).' }}</p>
           <a :href="url" target="_blank" rel="noopener" class="block mt-3 text-[10px] font-mono text-orange-500 break-all">{{ url }}</a>
         </template>
 
@@ -36,7 +36,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { X, Loader2 } from 'lucide-vue-next'
 import QRCode from 'qrcode'
 import { useApi } from '~/services/api'
@@ -46,7 +46,8 @@ import { useApi } from '~/services/api'
  * A API recusa (409) quando o plano não inclui, o admin desligou em
  * Configurações → Acesso ou o caixa está fechado; o motivo aparece aqui.
  */
-const props = defineProps<{ funcionario: { id: string; nome: string } | null }>()
+const props = defineProps<{ funcionario: { id: string; nome: string; cargo?: string } | null }>()
+const entregador = computed(() => props.funcionario?.cargo === 'entregador')
 const emit = defineEmits<{ (e: 'fechar'): void }>()
 const api = useApi()
 

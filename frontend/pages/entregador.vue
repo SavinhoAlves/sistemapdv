@@ -17,7 +17,7 @@
       <!-- Aviso: navegador para de mandar GPS com a tela apagada -->
       <div v-if="!rastreio.nativo && emRota" class="rounded-2xl bg-amber-500/10 border border-amber-500/30 p-3 text-xs text-amber-900 dark:text-amber-200">
         Deixe esta tela aberta: no navegador, a localização para quando a tela apaga.
-        <a v-if="linkApp" :href="linkApp" class="font-black underline">Instale o app do entregador</a> para enviar com a tela apagada.
+        <a v-if="linkApp" :href="linkApp" class="font-black underline">Instale o app RestaurantePDV</a> para enviar com a tela apagada.
       </div>
       <div v-if="rastreio.estado.value === 'sem-permissao'" class="rounded-2xl bg-red-500/10 border border-red-500/30 p-3 text-xs text-red-700 dark:text-red-300">
         Permita o acesso à localização (sempre) nas configurações do celular para o restaurante e os clientes verem onde você está.

@@ -4,7 +4,7 @@ import os from 'os'
 import { signAccessToken } from '../../lib/jwt'
 import type { TenantJwtPayload } from '../../lib/jwt'
 import { getPermissoes } from '../auth/auth.service'
-import { motivoSemCelular } from '../configuracoes/configuracoes.service'
+import { motivoSemAcessoPeloQr } from '../configuracoes/configuracoes.service'
 
 const SALT_ROUNDS = 10
 
@@ -151,8 +151,9 @@ export async function gerarMobileToken(tenantId: string, id: string) {
   if (!usuario) throw Object.assign(new Error('Usuário não encontrado'), { status: 404 })
   if (!usuario.ativo) throw Object.assign(new Error('Funcionário desativado'), { status: 409 })
 
-  // Plano, chave em Configurações → Acesso e caixa aberto: sem isso o QR seria recusado no celular
-  const motivo = await motivoSemCelular(tenantId)
+  // Sem isso o QR seria recusado no celular: plano, chave em Configurações → Acesso
+  // e caixa aberto (entregador: delivery no plano)
+  const motivo = await motivoSemAcessoPeloQr(tenantId, usuario.cargo)
   if (motivo) throw Object.assign(new Error(motivo), { status: 409 })
 
   const tenant = await prisma.tenant.findUnique({ where: { id: tenantId }, select: { slug: true } })

@@ -3,6 +3,7 @@ import { loginSchema, loginRfidSchema, loginPinSchema, refreshSchema } from './a
 import * as AuthService from './auth.service'
 import { verifyAccessToken } from '../../lib/jwt'
 import { prisma } from '../../lib/prisma'
+import { motivoSemAcessoPeloQr } from '../configuracoes/configuracoes.service'
 
 export async function authRoutes(app: FastifyInstance) {
   // POST /api/auth/login
@@ -108,22 +109,13 @@ export async function authRoutes(app: FastifyInstance) {
       const payload = verifyAccessToken(token)
       if (payload.type !== 'tenant') return reply.status(401).send({ error: 'Token inválido' })
 
-      const tenant = await prisma.tenant.findUnique({ where: { id: payload.tenantId } })
-      if (!tenant || !tenant.vendaMobilePermitida) {
-        return reply.status(403).send({ error: 'Acesso mobile não permitido para este restaurante' })
-      }
-      const cfg = await prisma.configuracoes.findFirst({ where: { tenantId: tenant.id }, select: { vendaMobileAtiva: true } })
-      if (cfg && !cfg.vendaMobileAtiva) {
-        return reply.status(403).send({ error: 'Venda pelo celular desligada pelo administrador' })
-      }
-
-      const caixaAberto = await prisma.caixa.findFirst({
-        where: { tenantId: payload.tenantId, status: 'aberto' },
-      })
-      if (!caixaAberto) return reply.status(403).send({ error: 'Caixa fechado' })
+      // Mesmas regras de quando o QR foi gerado (o caixa pode ter fechado desde então)
+      const motivo = await motivoSemAcessoPeloQr(payload.tenantId, payload.cargo)
+      if (motivo) return reply.status(403).send({ error: motivo })
 
       return reply.send({
         token,
+        slug: payload.slug,
         usuario: {
           id:         payload.sub,
           nome:       payload.nome,

@@ -36,6 +36,9 @@ interface LancarItemInput {
   observacao?: string
 }
 
+/** Janela para juntar lançamentos seguidos na mesma ficha da cozinha. */
+const JUNTAR_MS = 2 * 60_000
+
 export async function lancarItem(tenantId: string, input: LancarItemInput) {
   const { mesaId, produtoId, usuarioId, observacao } = input
 
@@ -106,12 +109,23 @@ export async function lancarItem(tenantId: string, input: LancarItemInput) {
     }
 
     // ── Rodada ──
-    // Itens lançados juntos saem na mesma ficha da cozinha.
+    // Itens lançados juntos saem na mesma ficha da cozinha. O celular lança
+    // um item por toque: toques seguidos do mesmo garçom (até 2 min) entram
+    // na ficha anterior enquanto a cozinha não começou a preparar.
     const ultima = await tx.pedidoItem.aggregate({
       where: { pedidoId: pedido.id },
       _max: { rodada: true },
     })
-    const rodada = (ultima._max.rodada ?? 0) + 1
+    let rodada = (ultima._max.rodada ?? 0) + 1
+    if (ultima._max.rodada) {
+      const daFicha = await tx.pedidoItem.findMany({
+        where: { pedidoId: pedido.id, rodada: ultima._max.rodada },
+        select: { lancadoPorId: true, createdAt: true, status: true, produto: { select: { categoria: { select: { vaiCozinha: true } } } } },
+      })
+      const recente = daFicha.every((i) => i.lancadoPorId === usuarioId && Date.now() - i.createdAt.getTime() < JUNTAR_MS)
+      const naoComecou = daFicha.every((i) => i.status === 'pendente' || (i.status === 'pronto' && i.produto.categoria?.vaiCozinha === false))
+      if (daFicha.length && recente && naoComecou) rodada = ultima._max.rodada
+    }
 
     const vaiCozinha = produto.categoria?.vaiCozinha ?? true
     const precoUnitario = produto.preco

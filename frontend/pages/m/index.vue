@@ -38,6 +38,7 @@
           Aguarde o administrador abrir o caixa para iniciar o plantão.
         </p>
       </div>
+      <button v-if="app" class="h-11 px-6 rounded-xl border border-white/10 text-sm font-bold text-white/70" @click="voltar">Voltar ao início</button>
       <div class="w-full h-px bg-white/[0.08]"></div>
       <p class="text-[11px] text-white/20">PDV Mobile · Restaurante</p>
     </div>
@@ -56,6 +57,7 @@
       <p class="text-xs text-white/30 leading-relaxed">
         Peça ao administrador para gerar um novo QR Code e escaneie novamente.
       </p>
+      <button v-if="app" class="h-11 px-6 rounded-xl border border-white/10 text-sm font-bold text-white/70" @click="voltar">Voltar ao início</button>
       <div class="w-full h-px bg-white/[0.08]"></div>
       <p class="text-[11px] text-white/20">PDV Mobile · Restaurante</p>
     </div>
@@ -69,6 +71,8 @@ import { Loader2, AlertCircle, WifiOff, LockKeyhole } from 'lucide-vue-next'
 import { useRoute } from 'vue-router'
 import { useAuthStore } from '~/stores/auth'
 import { useRuntimeConfig } from '#imports'
+import { noApp } from '~/lib/app'
+import { setTenantSlug } from '~/composables/useTenantSlug'
 
 definePageMeta({ layout: false })
 
@@ -80,6 +84,9 @@ const loading          = ref(true)
 const erro             = ref('')
 const mobileDesativado = ref(false)
 const caixaFechado     = ref(false)
+const app              = noApp()
+// No app, volta para a tela de acesso (ler outro QR ou entrar com senha)
+function voltar() { authStore.logout() }
 
 function getModoVenda(): string {
   if (authStore.usuario?.cargo === 'administrador') return 'ambos'
@@ -87,6 +94,7 @@ function getModoVenda(): string {
 }
 
 async function primeiraRotaMobile(): Promise<string> {
+  if (authStore.usuario?.cargo === 'entregador') return '/entregador'
   const podeAdicionar = authStore.temPermissao('adicionarPedido')
   const modo = getModoVenda()
   if (podeAdicionar && (modo === 'mesas' || modo === 'ambos'))  return '/m/mesas'
@@ -128,7 +136,11 @@ onMounted(async () => {
     })
 
     if (resp?.token && resp?.usuario) {
-      authStore.setAuth(resp.token, resp.usuario)
+      // Vindo do login por código e senha (app), mantém a renovação da sessão
+      // Restaurante do QR fica no aparelho (licença e crachá dependem dele)
+      if (resp.slug) setTenantSlug(resp.slug)
+      const mesmo = authStore.usuario?.id === resp.usuario.id
+      authStore.setAuth(resp.token, { ...resp.usuario, perfil_id: resp.usuario.perfilId ?? null }, mesmo ? authStore.refreshToken : null)
       const dest = await primeiraRotaMobile()
       await navigateTo(dest)
     } else {
@@ -137,8 +149,11 @@ onMounted(async () => {
   } catch (e: any) {
     loading.value = false
     const status = e?.status ?? e?.response?.status
-    if (status === 403) {
+    const msg = e?.data?.error || ''
+    if (status === 403 && (!msg || /caixa/i.test(msg))) {
       caixaFechado.value = true
+    } else if (status === 403) {
+      erro.value = msg
     } else {
       erro.value = e?.data?.error || e?.message || 'Token inválido ou expirado'
     }

@@ -38,7 +38,7 @@
               <span class="text-[10px] font-black uppercase px-2 py-0.5 rounded-full" :class="selo(a.vendaMobile.disponivel).classe">{{ selo(a.vendaMobile.disponivel).rotulo }}</span>
             </div>
             <p class="text-xs text-gray-500 dark:text-white/50 mt-1 leading-relaxed">
-              O garçom lança pedidos e vendas no próprio celular. Você gera um QR para a pessoa, ela aponta a câmera e entra já logada.
+              O garçom lança pedidos e vendas no próprio celular. Você gera um QR para a pessoa, ela lê com o app RestaurantePDV (ou a câmera do celular) e entra já logada.
               Só funciona com o caixa aberto, e o acesso termina quando o caixa fecha.
             </p>
           </div>

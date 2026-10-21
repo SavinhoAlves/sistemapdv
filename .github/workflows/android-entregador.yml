@@ -9,7 +9,7 @@
 # O app abre https://app.restaurantepdv.com.br/app/entregador; a variável PDV_URL
 # (Settings › Variables) troca o endereço sem mexer no código.
 
-name: Android entregador (APK)
+name: App da equipe Android (APK)
 
 on:
   workflow_dispatch:
@@ -74,7 +74,7 @@ jobs:
           echo "${{ secrets.ENTREGADOR_KEYSTORE_BASE64 }}" | base64 -d > "$RUNNER_TEMP/entregador.p12"
           export ANDROID_KEYSTORE_FILE="$RUNNER_TEMP/entregador.p12"
           cd android && ./gradlew assembleRelease --no-daemon
-          cp app/build/outputs/apk/release/app-release.apk "$GITHUB_WORKSPACE/PDV-Entregador-${{ inputs.version || 'teste' }}.apk"
+          cp app/build/outputs/apk/release/app-release.apk "$GITHUB_WORKSPACE/RestaurantePDV-${{ inputs.version || 'teste' }}.apk"
 
       - name: Publicar em Releases
         if: github.event_name == 'workflow_dispatch'
@@ -82,6 +82,6 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create "entregador-v${{ inputs.version }}-${{ github.run_number }}" "PDV-Entregador-${{ inputs.version }}.apk" \
-            --title "PDV Entregador ${{ inputs.version }} (Android)" \
-            --notes "Baixe PDV-Entregador-${{ inputs.version }}.apk no celular Android e abra para instalar. Entre com o seu código de acesso e senha."
+          gh release create "app-v${{ inputs.version }}-${{ github.run_number }}" "RestaurantePDV-${{ inputs.version }}.apk" \
+            --title "RestaurantePDV ${{ inputs.version }} (Android: garçom e entregador)" \
+            --notes "Baixe RestaurantePDV-${{ inputs.version }}.apk no celular Android e abra para instalar. Entre lendo o QR gerado no computador do restaurante ou com o seu código de acesso e senha."

@@ -9,6 +9,7 @@
     "start": "node .output/server/index.mjs"
   },
   "dependencies": {
+    "@capacitor/core": "^8.5.3",
     "@iconify-json/lucide": "^1.2.128",
     "@nuxt/ui": "^2.22.3",
     "@pinia/nuxt": "^0.5.4",

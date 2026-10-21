@@ -1,5 +1,9 @@
 import { ref, onUnmounted } from 'vue'
+import { Capacitor, registerPlugin } from '@capacitor/core'
 import { useApi } from '~/services/api'
+
+// Plugin nativo (apps/entregador). No navegador comum fica sem implementação e não é usado.
+const BackgroundGeolocation = registerPlugin<any>('BackgroundGeolocation')
 
 /**
  * GPS do entregador durante a rota.
@@ -26,7 +30,7 @@ export function useRastreioEntregador() {
   const api = useApi()
   const estado = ref<Estado>('parado')
   const ultima = ref<{ lat: number; lng: number; em: number } | null>(null)
-  const nativo = typeof window !== 'undefined' && !!(window as any).Capacitor?.Plugins?.BackgroundGeolocation
+  const nativo = Capacitor.isNativePlatform()
 
   let enviada: { lat: number; lng: number; em: number } | null = null
   let watchId: number | string | null = null
@@ -43,8 +47,7 @@ export function useRastreioEntregador() {
   async function iniciar() {
     if (watchId !== null) return
     if (nativo) {
-      const BG = (window as any).Capacitor.Plugins.BackgroundGeolocation
-      watchId = await BG.addWatcher(
+      watchId = await BackgroundGeolocation.addWatcher(
         { backgroundTitle: 'Rota em andamento', backgroundMessage: 'Enviando sua localização ao restaurante e aos clientes', requestPermissions: true, stale: false, distanceFilter: 25 },
         (loc: any, erro: any) => {
           if (erro) { if (erro.code === 'NOT_AUTHORIZED') estado.value = 'sem-permissao'; return }
@@ -65,7 +68,7 @@ export function useRastreioEntregador() {
 
   async function parar() {
     if (watchId === null) return
-    if (nativo) await (window as any).Capacitor.Plugins.BackgroundGeolocation.removeWatcher({ id: watchId })
+    if (nativo) await BackgroundGeolocation.removeWatcher({ id: watchId })
     else navigator.geolocation.clearWatch(watchId as number)
     watchId = null
     estado.value = 'parado'

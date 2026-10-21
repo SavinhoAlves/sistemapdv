@@ -1,0 +1,18 @@
+{
+  "name": "pdv-entregador",
+  "private": true,
+  "version": "1.0.0",
+  "description": "App Android do entregador do RestaurantePDV: abre /app/entregador do servidor e envia o GPS com a tela apagada.",
+  "scripts": {
+    "sync": "cap sync android"
+  },
+  "dependencies": {
+    "@capacitor-community/background-geolocation": "1.2.26",
+    "@capacitor/android": "8.5.3",
+    "@capacitor/core": "8.5.3"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "8.5.3",
+    "typescript": "5.6.3"
+  }
+}

@@ -601,6 +601,9 @@
             </div>
           </div>
 
+          <!-- ══ DELIVERY (cardápio online) ══ -->
+          <ConfigDelivery v-if="secao === 'delivery'" />
+
           <!-- ══ INTEGRAÇÕES ══ -->
           <ConfigIntegracoes v-if="secao === 'integracoes'" />
 
@@ -713,10 +716,11 @@
 import { ref, reactive, computed, watch, onMounted } from 'vue'
 import {
   ImageIcon, Upload, Trash2, Save, Loader2, UtensilsCrossed, Printer, FileText, Eye,
-  Minus, Plus, Plug, Ruler, ChevronDown, Settings, Search, Percent, Store, KeyRound
+  Minus, Plus, Plug, Ruler, ChevronDown, Settings, Search, Percent, Store, KeyRound, Bike
 } from 'lucide-vue-next'
 import ConfigIntegracoes from '~/components/config/ConfigIntegracoes.vue'
 import ConfigAcesso from '~/components/config/ConfigAcesso.vue'
+import ConfigDelivery from '~/components/config/ConfigDelivery.vue'
 import { TIPOS_COMERCIO } from '~/lib/tiposComercio'
 import { useAuthStore } from '~/stores/auth'
 import Navbar from '~/layouts/Navbar.vue'
@@ -740,6 +744,7 @@ const isAdmin   = computed(() => authStore.usuario?.cargo === 'administrador')
 const SECOES = [
   { valor: 'estabelecimento', rotulo: 'Estabelecimento', icone: Store },
   { valor: 'impressao',       rotulo: 'Impressão',       icone: Printer },
+  { valor: 'delivery',        rotulo: 'Delivery',        icone: Bike },
   { valor: 'integracoes',     rotulo: 'Integrações',     icone: Plug },
   { valor: 'acesso',          rotulo: 'Acesso',          icone: KeyRound, admin: true },
 ] as const

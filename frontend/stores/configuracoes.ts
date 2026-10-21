@@ -18,6 +18,7 @@ interface Config {
   rfid_ativo: boolean
   venda_mobile_permitida: boolean
   tipo_comercio: string | null
+  delivery_disponivel: boolean
 }
 
 export const useConfigStore = defineStore('configuracoes', {
@@ -38,6 +39,7 @@ export const useConfigStore = defineStore('configuracoes', {
     rfid_ativo:               false,
     venda_mobile_permitida:   true,
     tipo_comercio:            null,
+    delivery_disponivel:      false,
     carregado:       false,
     ultimaCarregada: 0
   }),
@@ -89,13 +91,14 @@ export const useConfigStore = defineStore('configuracoes', {
         this.rfid_ativo               = rfidAtivo                    ?? false
         this.venda_mobile_permitida   = vendaMobilePermitida         ?? true
         this.tipo_comercio            = d.tipoComercio ?? d.tipo_comercio ?? null
+        this.delivery_disponivel      = Boolean(d.deliveryDisponivel)
         this.carregado       = true
         this.ultimaCarregada = Date.now()
       } catch {}
     },
 
     /** Salva só os campos enviados (RFID e venda pelo celular ficam em Configurações → Acesso). */
-    async salvar(dados: Partial<Omit<Config, 'venda_mobile_permitida'>>) {
+    async salvar(dados: Partial<Omit<Config, 'venda_mobile_permitida' | 'delivery_disponivel'>>) {
       const api = useApi()
       await api.put('/configuracoes', dados)
       Object.assign(this, dados)

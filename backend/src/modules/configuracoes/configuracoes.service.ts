@@ -17,7 +17,7 @@ export async function definirTipoComercio(tenantId: string, tipo: string | null)
 }
 
 export async function buscar(tenantId: string) {
-  const tenant = await prisma.tenant.findUnique({ where: { id: tenantId }, select: { tipoComercio: true } })
+  const tenant = await prisma.tenant.findUnique({ where: { id: tenantId }, select: { tipoComercio: true, plano: { select: { delivery: true } } } })
   const config = await prisma.configuracoes.upsert({
     where: { tenantId },
     update: {},
@@ -31,6 +31,8 @@ export async function buscar(tenantId: string) {
     id: config.id,
     tenantId: config.tenantId,
     tipoComercio: tenant?.tipoComercio ?? null,
+    deliveryDisponivel: Boolean(tenant?.plano?.delivery),
+    deliveryAtivo: config.deliveryAtivo,
     nomeRestaurante: config.nomeRestaurante,
     logoBase64: config.logoBase64,
     logoTamanho: config.logoTamanho,

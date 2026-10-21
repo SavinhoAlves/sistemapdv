@@ -237,6 +237,7 @@
 </template>
 
 <script setup lang="ts">
+import { EVENTOS, type PayloadItem } from '~/shared/eventos'
 import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue'
 import {
   RefreshCw, ChefHat, Maximize2, Minimize2, Volume2, VolumeX,
@@ -495,14 +496,20 @@ onMounted(() => {
   tempoReal.value = socket.isConnected()
   desinscrever.push(socket.on('connect', () => { tempoReal.value = true; agendarBusca() }))
   desinscrever.push(socket.on('disconnect', () => { tempoReal.value = false }))
-  desinscrever.push(socket.on('cozinha:novo_item', (d: any) => {
+  // Nomes de evento da fonte única (shared/eventos.ts). Antes a tela escutava
+  // 'cozinha:novo_item', que o servidor não emite: só o polling de 20 s atualizava.
+  desinscrever.push(socket.on(EVENTOS.item.lancado, (d: PayloadItem) => {
+    if (!d.vaiCozinha) return
     tocarSom('novo')
-    toastStore.success(`Novo pedido: ${d.quantidade}x ${d.produto}`)
+    toastStore.success(`Novo pedido: ${d.quantidade}x ${d.produtoNome}`)
     agendarBusca()
   }))
-  desinscrever.push(socket.on('cozinha:item_status', () => agendarBusca()))
-  desinscrever.push(socket.on('cozinha:item_cancelado', (d: any) => {
-    registrarCancelamento(d)
+  desinscrever.push(socket.on(EVENTOS.item.statusAlterado, (d: PayloadItem) => {
+    if (d.status === 'cancelado' && d.vaiCozinha) registrarCancelamento({ produto: d.produtoNome, quantidade: d.quantidade, mesa_id: d.comandaId })
+    agendarBusca()
+  }))
+  desinscrever.push(socket.on(EVENTOS.item.removido, (d: PayloadItem) => {
+    if (d.vaiCozinha) registrarCancelamento({ produto: d.produtoNome, quantidade: d.quantidade, mesa_id: d.comandaId, removido_tudo: true })
     agendarBusca()
   }))
 

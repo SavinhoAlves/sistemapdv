@@ -1,6 +1,6 @@
 import { getTenantSlug } from '~/composables/useTenantSlug'
 
-const ROTAS_LIVRES = ['/ativacao', '/login', '/m', '/platform']
+const ROTAS_LIVRES = ['/ativacao', '/login', '/m', '/platform', '/cardapio', '/pedido']
 const POLL_MS = 30_000
 
 export default defineNuxtPlugin(() => {

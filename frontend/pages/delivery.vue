@@ -1,0 +1,270 @@
+<template>
+  <div class="min-h-screen transition-colors duration-200 com-sidebar">
+    <Sidebar />
+    <Navbar />
+
+    <main class="p-4 sm:p-6 w-full relative min-h-[calc(100vh-4rem)]">
+      <CaixaFechado acao="receber pedidos do cardápio online" />
+
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-5">
+        <div class="flex items-center gap-3">
+          <div class="size-11 rounded-xl bg-gradient-to-br from-orange-500 to-orange-700 shadow-md shadow-orange-900/50 flex items-center justify-center shrink-0">
+            <Bike :size="18" class="text-white" />
+          </div>
+          <div>
+            <h1 class="text-2xl font-black text-gray-900 dark:text-white">Delivery</h1>
+            <p class="text-sm text-gray-500 dark:text-white/50 mt-0.5">Pedidos do cardápio online: aceite, acompanhe e conclua</p>
+          </div>
+        </div>
+        <div class="flex items-center gap-2">
+          <span class="inline-flex items-center gap-1.5 h-9 px-3 rounded-xl text-xs font-bold border"
+            :class="cfg?.ativo ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300' : 'border-gray-200 dark:border-white/10 text-gray-500 dark:text-white/50'">
+            <span class="size-2 rounded-full" :class="cfg?.ativo ? 'bg-emerald-500' : 'bg-gray-400'" />
+            {{ cfg?.ativo ? 'Cardápio recebendo pedidos' : 'Cardápio pausado' }}
+          </span>
+          <NuxtLink to="/configuracoes?secao=delivery" class="h-9 px-3 rounded-xl border border-gray-200 dark:border-white/10 text-xs font-black text-gray-600 dark:text-white/60 flex items-center gap-1.5 hover:text-gray-900 dark:hover:text-white">
+            <Settings :size="13" /> Ajustes e link
+          </NuxtLink>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 items-start">
+        <section v-for="col in COLUNAS" :key="col.chave" class="rounded-2xl bg-gray-50 dark:bg-white/[0.03] border border-gray-200 dark:border-white/[0.07] p-3 min-h-40">
+          <h2 class="flex items-center justify-between px-1 pb-2.5 text-xs font-black uppercase tracking-widest" :class="col.cor">
+            {{ col.rotulo }} <span class="tabular-nums text-gray-400 dark:text-white/40">{{ porColuna(col.chave).length }}</span>
+          </h2>
+          <p v-if="!porColuna(col.chave).length" class="text-xs text-gray-400 dark:text-white/35 px-1 py-6 text-center">{{ col.vazio }}</p>
+
+          <article v-for="p in porColuna(col.chave)" :key="p.id"
+            class="rounded-xl bg-white dark:bg-[#171c27] border p-3.5 mb-2.5 last:mb-0"
+            :class="p.status === 'recebido' ? 'border-orange-500 shadow-lg shadow-orange-500/10' : 'border-gray-200 dark:border-white/[0.07]'">
+            <div class="flex items-start justify-between gap-2">
+              <div class="min-w-0">
+                <p class="text-sm font-black text-gray-900 dark:text-white truncate">{{ p.clienteNome }}</p>
+                <p class="text-[11px] text-gray-500 dark:text-white/45">
+                  <span class="font-mono font-bold">{{ p.codigo }}</span>
+                  · {{ p.tipo === 'entrega' ? 'Entrega' : 'Retirada' }}<template v-if="p.pedidoNumero"> · nº {{ p.pedidoNumero }}</template>
+                </p>
+              </div>
+              <span class="text-[11px] font-bold tabular-nums shrink-0" :class="minutos(p.criadoEm) > 30 && ativo(p) ? 'text-red-500' : 'text-gray-400 dark:text-white/40'">{{ ha(p.criadoEm) }}</span>
+            </div>
+
+            <span v-if="col.chave === 'cozinha'" class="inline-block mt-2 text-[10px] font-black uppercase px-2 py-0.5 rounded-full"
+              :class="p.etapa === 'pronto' ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300' : 'bg-amber-500/15 text-amber-700 dark:text-amber-300'">
+              {{ p.etapa === 'pronto' ? 'Pronto' : p.etapa === 'preparando' ? 'Em preparo' : 'Na fila da cozinha' }}
+            </span>
+            <span v-else-if="p.status === 'recusado'" class="inline-block mt-2 text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-red-500/15 text-red-600 dark:text-red-400">Recusado</span>
+
+            <ul class="mt-2 text-xs text-gray-700 dark:text-white/75 space-y-0.5">
+              <li v-for="(i, k) in p.itens" :key="k"><b>{{ i.quantidade }}×</b> {{ i.nome }}<span v-if="i.observacao" class="text-orange-600 dark:text-orange-400"> — {{ i.observacao }}</span></li>
+            </ul>
+            <p v-if="p.observacao" class="mt-1.5 text-[11px] text-orange-700 dark:text-orange-300">Obs.: {{ p.observacao }}</p>
+
+            <p v-if="p.tipo === 'entrega'" class="mt-2 text-[11px] text-gray-500 dark:text-white/50 flex gap-1">
+              <MapPin :size="12" class="shrink-0 mt-0.5" />
+              <span>{{ p.endereco }}, {{ p.numero }}<template v-if="p.complemento"> ({{ p.complemento }})</template> — {{ p.bairro }}<template v-if="p.referencia">. {{ p.referencia }}</template></span>
+            </p>
+
+            <div class="mt-2.5 pt-2.5 border-t border-gray-100 dark:border-white/[0.06] flex items-center justify-between gap-2 text-xs">
+              <a :href="`https://wa.me/55${p.clienteTelefone}`" target="_blank" rel="noopener" class="text-gray-500 dark:text-white/50 hover:text-emerald-600 flex items-center gap-1"><Phone :size="12" />{{ telefone(p.clienteTelefone) }}</a>
+              <span class="text-right"><b class="text-gray-900 dark:text-white tabular-nums">{{ moeda(p.total) }}</b>
+                <span class="block text-[10px] text-gray-400 dark:text-white/40">{{ FORMA[p.formaPagamento] }}{{ p.trocoPara ? ` · troco p/ ${moeda(p.trocoPara)}` : '' }}</span></span>
+            </div>
+            <p v-if="p.motivoRecusa" class="mt-1.5 text-[11px] text-red-500">Motivo: {{ p.motivoRecusa }}</p>
+
+            <!-- Ações -->
+            <div v-if="p.status === 'recebido'" class="mt-3 grid grid-cols-[1fr_auto] gap-2">
+              <button class="h-9 rounded-lg bg-orange-500 hover:bg-orange-600 text-white text-xs font-black disabled:opacity-50" :disabled="ocupado === p.id" @click="aceitar(p)">Aceitar e mandar para a cozinha</button>
+              <button class="h-9 px-3 rounded-lg border border-gray-200 dark:border-white/10 text-xs font-black text-gray-600 dark:text-white/60" @click="recusando = p; motivo = ''">Recusar</button>
+            </div>
+            <div v-else-if="['aceito', 'pronto', 'em_rota'].includes(p.status)" class="mt-3 flex gap-2">
+              <button v-if="p.tipo === 'entrega' && p.status !== 'em_rota'" class="flex-1 h-9 rounded-lg border border-orange-500/40 text-orange-600 dark:text-orange-400 text-xs font-black disabled:opacity-50" :disabled="ocupado === p.id" @click="saiu(p)">Saiu para entrega</button>
+              <button class="flex-1 h-9 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black" @click="abrirConcluir(p)">{{ p.tipo === 'entrega' ? 'Entregue e pago' : 'Retirado e pago' }}</button>
+            </div>
+          </article>
+        </section>
+      </div>
+
+      <p v-if="!cfg?.disponivel && carregado" class="mt-6 text-sm text-gray-500 dark:text-white/50">O delivery não está incluído no seu plano. Fale com o suporte para incluir.</p>
+    </main>
+
+    <!-- Recusar -->
+    <Teleport to="body">
+      <div v-if="recusando" class="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4" @click.self="recusando = null">
+        <div class="bg-white dark:bg-[#161b26] rounded-3xl w-full max-w-sm p-6 border border-gray-200 dark:border-white/10" role="dialog" aria-modal="true" aria-label="Recusar pedido">
+          <h2 class="text-lg font-black text-gray-900 dark:text-white">Recusar pedido {{ recusando.codigo }}</h2>
+          <p class="text-xs text-gray-500 dark:text-white/50 mt-1">O cliente vê este motivo na página do pedido.</p>
+          <div class="flex flex-wrap gap-1.5 mt-4">
+            <button v-for="m in MOTIVOS" :key="m" class="h-8 px-3 rounded-lg text-xs font-bold border" :class="motivo === m ? 'border-orange-500 bg-orange-500/10 text-orange-700 dark:text-orange-300' : 'border-gray-200 dark:border-white/10 text-gray-600 dark:text-white/60'" @click="motivo = m">{{ m }}</button>
+          </div>
+          <input v-model="motivo" placeholder="Ou escreva o motivo" class="dlv-campo mt-3" />
+          <div class="mt-5 flex gap-2">
+            <button class="flex-1 h-11 rounded-2xl border border-gray-200 dark:border-white/10 text-sm font-black text-gray-600 dark:text-white/60" @click="recusando = null">Voltar</button>
+            <button class="flex-1 h-11 rounded-2xl bg-red-600 hover:bg-red-700 text-white text-sm font-black disabled:opacity-40" :disabled="motivo.trim().length < 3 || ocupado === recusando.id" @click="recusar">Recusar</button>
+          </div>
+        </div>
+      </div>
+    </Teleport>
+
+    <!-- Concluir com pagamento -->
+    <Teleport to="body">
+      <div v-if="concluindo" class="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4" @click.self="concluindo = null">
+        <div class="bg-white dark:bg-[#161b26] rounded-3xl w-full max-w-sm p-6 border border-gray-200 dark:border-white/10" role="dialog" aria-modal="true" aria-label="Concluir pedido">
+          <h2 class="text-lg font-black text-gray-900 dark:text-white">Concluir {{ concluindo.codigo }}</h2>
+          <p class="text-sm text-gray-500 dark:text-white/50 mt-1">Total <b class="text-gray-900 dark:text-white">{{ moeda(concluindo.total) }}</b> · cliente escolheu {{ FORMA[concluindo.formaPagamento] }}</p>
+          <p class="mt-4 text-[10px] font-black uppercase tracking-widest text-gray-500 dark:text-white/45">Como foi pago</p>
+          <div class="mt-1.5 grid grid-cols-2 gap-2">
+            <button v-for="m in metodos" :key="m.id" class="h-10 rounded-xl border-2 text-xs font-black" :class="metodoId === m.id ? 'border-emerald-500 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300' : 'border-gray-200 dark:border-white/10 text-gray-600 dark:text-white/60'" @click="metodoId = m.id">{{ m.nome }}</button>
+          </div>
+          <label v-if="ehDinheiro" class="block mt-3">
+            <span class="text-[10px] font-black uppercase tracking-widest text-gray-500 dark:text-white/45">Valor recebido</span>
+            <input v-model.number="recebido" type="number" min="0" step="0.01" class="dlv-campo mt-1" />
+            <span v-if="recebido > concluindo.total" class="text-xs text-emerald-600 dark:text-emerald-400 font-bold">Troco: {{ moeda(recebido - concluindo.total) }}</span>
+          </label>
+          <p v-if="erroConcluir" class="mt-3 text-xs text-red-500 font-bold">{{ erroConcluir }}</p>
+          <div class="mt-5 flex gap-2">
+            <button class="flex-1 h-11 rounded-2xl border border-gray-200 dark:border-white/10 text-sm font-black text-gray-600 dark:text-white/60" @click="concluindo = null">Voltar</button>
+            <button class="flex-1 h-11 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-black disabled:opacity-40" :disabled="!metodoId || ocupado === concluindo.id" @click="concluir">Registrar e concluir</button>
+          </div>
+        </div>
+      </div>
+    </Teleport>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { Bike, Settings, MapPin, Phone } from 'lucide-vue-next'
+import Navbar from '~/layouts/Navbar.vue'
+import Sidebar from '~/components/Sidebar.vue'
+import CaixaFechado from '~/components/CaixaFechado.vue'
+import { useApi } from '~/services/api'
+import { useSocket } from '~/services/socket'
+import { useToastStore } from '~/stores/toast'
+import { EVENTOS, type PayloadDelivery } from '~/shared/eventos'
+
+definePageMeta({ layout: false })
+
+const api = useApi()
+const socket = useSocket()
+const toast = useToastStore()
+
+const COLUNAS = [
+  { chave: 'novos',     rotulo: 'Novos',            cor: 'text-orange-600 dark:text-orange-400',   vazio: 'Nenhum pedido esperando' },
+  { chave: 'cozinha',   rotulo: 'Na cozinha',       cor: 'text-amber-600 dark:text-amber-400',     vazio: 'Nada em preparo' },
+  { chave: 'rota',      rotulo: 'Em rota',          cor: 'text-sky-600 dark:text-sky-400',         vazio: 'Ninguém na rua' },
+  { chave: 'feitos',    rotulo: 'Finalizados (12 h)', cor: 'text-gray-500 dark:text-white/45',     vazio: 'Nada finalizado ainda' },
+] as const
+const FORMA: Record<string, string> = { pix: 'Pix', cartao: 'Cartão', dinheiro: 'Dinheiro' }
+const MOTIVOS = ['Fora da área de entrega', 'Item em falta', 'Fechando agora', 'Muito movimento']
+
+const pedidos = ref<any[]>([])
+const cfg = ref<any>(null)
+const carregado = ref(false)
+const ocupado = ref<string | null>(null)
+
+function porColuna(c: string) {
+  return pedidos.value.filter(p =>
+    c === 'novos' ? p.status === 'recebido'
+    : c === 'cozinha' ? p.status === 'aceito' || p.status === 'pronto'
+    : c === 'rota' ? p.status === 'em_rota'
+    : ['entregue', 'recusado', 'cancelado'].includes(p.status),
+  ).sort((a, b) => (c === 'feitos' ? b.criadoEm.localeCompare(a.criadoEm) : a.criadoEm.localeCompare(b.criadoEm)))
+}
+const ativo = (p: any) => !['entregue', 'recusado', 'cancelado'].includes(p.status)
+const minutos = (iso: string) => Math.floor((agora.value - new Date(iso).getTime()) / 60000)
+const ha = (iso: string) => { const m = minutos(iso); return m < 1 ? 'agora' : m < 60 ? `${m} min` : `${Math.floor(m / 60)}h${String(m % 60).padStart(2, '0')}` }
+const moeda = (v: number) => Number(v || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+const telefone = (t: string) => (t.length >= 10 ? `(${t.slice(0, 2)}) ${t.slice(2, -4)}-${t.slice(-4)}` : t)
+
+async function carregar() {
+  try { pedidos.value = await api.get<any[]>('/delivery/pedidos') } catch {}
+  carregado.value = true
+}
+
+async function acao(p: any, fn: () => Promise<any>, ok?: string) {
+  ocupado.value = p.id
+  try {
+    const r = await fn()
+    const i = pedidos.value.findIndex(x => x.id === p.id)
+    if (i >= 0 && r?.id) pedidos.value[i] = r
+    if (ok) toast.success(ok)
+    return true
+  } catch (e: any) { toast.error(e?.message || 'Não deu certo'); return false }
+  finally { ocupado.value = null }
+}
+const aceitar = (p: any) => acao(p, () => api.post(`/delivery/pedidos/${p.id}/aceitar`), `Pedido ${p.codigo} na cozinha`)
+const saiu = (p: any) => acao(p, () => api.post(`/delivery/pedidos/${p.id}/saiu`), 'Cliente avisado: saiu para entrega')
+
+const recusando = ref<any>(null)
+const motivo = ref('')
+async function recusar() {
+  const p = recusando.value
+  if (await acao(p, () => api.post(`/delivery/pedidos/${p.id}/recusar`, { motivo: motivo.value.trim() }), 'Pedido recusado')) recusando.value = null
+}
+
+const concluindo = ref<any>(null)
+const metodos = ref<any[]>([])
+const metodoId = ref('')
+const recebido = ref(0)
+const erroConcluir = ref('')
+const ehDinheiro = computed(() => metodos.value.find(m => m.id === metodoId.value)?.nome.toLowerCase().includes('dinheiro'))
+async function abrirConcluir(p: any) {
+  erroConcluir.value = ''
+  if (!metodos.value.length) { try { metodos.value = await api.get<any[]>('/pagamentos/metodos') } catch {} }
+  const nome = ({ pix: 'pix', cartao: 'cr', dinheiro: 'dinheiro' } as Record<string, string>)[p.formaPagamento]
+  metodoId.value = metodos.value.find(m => m.nome.toLowerCase().includes(nome))?.id ?? ''
+  recebido.value = p.trocoPara ?? p.total
+  concluindo.value = p
+}
+async function concluir() {
+  const p = concluindo.value
+  erroConcluir.value = ''
+  ocupado.value = p.id
+  try {
+    const r = await api.post<any>(`/delivery/pedidos/${p.id}/concluir`, {
+      metodoId: metodoId.value,
+      ...(ehDinheiro.value ? { valorRecebido: Number(recebido.value) || p.total } : {}),
+      idempotencyKey: `delivery-${p.id}`,
+    })
+    const i = pedidos.value.findIndex(x => x.id === p.id)
+    if (i >= 0) pedidos.value[i] = r
+    toast.success(`Pedido ${p.codigo} concluído`)
+    concluindo.value = null
+  } catch (e: any) { erroConcluir.value = e?.message || 'Erro ao registrar o pagamento' }
+  finally { ocupado.value = null }
+}
+
+// ── Tempo real: som e aviso quando chega pedido; polling como rede de segurança ──
+const agora = ref(Date.now())
+let timers: any[] = []
+const desinscrever: Array<() => void> = []
+function bip() {
+  try {
+    const ctx = new AudioContext()
+    ;[0, 0.18].forEach((t) => {
+      const o = ctx.createOscillator(); const g = ctx.createGain()
+      o.frequency.value = 880; g.gain.setValueAtTime(0.18, ctx.currentTime + t); g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + t + 0.15)
+      o.connect(g).connect(ctx.destination); o.start(ctx.currentTime + t); o.stop(ctx.currentTime + t + 0.16)
+    })
+  } catch {}
+}
+onMounted(async () => {
+  carregar()
+  try { cfg.value = await api.get('/delivery/config') } catch { cfg.value = { disponivel: true, ativo: false } }
+  desinscrever.push(socket.on(EVENTOS.delivery.recebido, (d: PayloadDelivery) => {
+    bip()
+    toast.success(`Novo pedido de ${d.clienteNome}`, `${d.tipo === 'entrega' ? 'Entrega' : 'Retirada'} · ${moeda(d.totalCentavos / 100)}`)
+    carregar()
+  }))
+  desinscrever.push(socket.on(EVENTOS.delivery.atualizado, () => carregar()))
+  desinscrever.push(socket.on(EVENTOS.item.statusAlterado, () => carregar()))
+  timers = [setInterval(() => { if (!document.hidden) carregar() }, 20000), setInterval(() => { agora.value = Date.now() }, 30000)]
+})
+onUnmounted(() => { timers.forEach(clearInterval); desinscrever.forEach(f => f()) })
+</script>
+
+<style scoped>
+.dlv-campo { width: 100%; height: 2.6rem; padding: 0 0.8rem; border-radius: 0.75rem; font-size: 0.85rem; outline: none; background: var(--sup-elevado); border: 1px solid var(--linha); color: var(--txt); }
+.dlv-campo:focus { border-color: rgb(249 115 22 / 0.6); }
+</style>

@@ -407,6 +407,7 @@
 </style>
 
 <script setup lang="ts">
+import { numeroBR } from '~/lib/moeda'
 import { totaisDoResumo, vendasDoResumo, porMetodoDoResumo } from '~/lib/caixa'
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
@@ -563,7 +564,7 @@ const fechamentoErro   = ref('')
 const fechandoCaixa    = ref(false)
 const resumoFechamento = ref<any>(null)
 
-const fmtValor = (v: any) => Number(v || 0).toFixed(2)
+const fmtValor = (v: any) => numeroBR(v)
 
 const cancelarFechamento = () => {
   modalConferencia.value = false

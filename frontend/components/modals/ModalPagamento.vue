@@ -54,12 +54,12 @@
                 <!-- RESUMO -->
                 <div class="bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/[0.06] rounded-2xl p-5">
                   <p class="text-xs font-black uppercase tracking-widest text-gray-500 dark:text-white/40 mb-1">
-                    Mesa #{{ mesa?.nome_mesa || mesa?.numero || mesa?.id }}
+                    {{ mesa?.nome_mesa || (mesa?.numero ? `Mesa ${mesa.numero}` : 'Mesa') }}
                   </p>
                   <div class="flex items-end justify-between">
                     <span class="text-sm text-gray-500 dark:text-white/50">Total a pagar</span>
                     <span class="text-4xl font-black text-gray-900 dark:text-white">
-                      R$ {{ total.toFixed(2) }}
+                      {{ reais(total) }}
                     </span>
                   </div>
                 </div>
@@ -90,7 +90,7 @@
                       Cobrando agora (1 de {{ pessoas }})
                     </span>
                     <span class="text-xl font-black text-blue-400">
-                      R$ {{ cobranca.toFixed(2) }}
+                      {{ reais(cobranca) }}
                     </span>
                   </div>
                 </div>
@@ -160,13 +160,13 @@
                       class="flex justify-between items-center bg-green-950/30 rounded-2xl p-4"
                     >
                       <span class="text-sm font-bold text-green-400">Troco</span>
-                      <span class="text-2xl font-black text-green-400">R$ {{ troco.toFixed(2) }}</span>
+                      <span class="text-2xl font-black text-green-400">{{ reais(troco) }}</span>
                     </div>
                     <div
                       v-if="valorRecebidoNum > 0 && valorRecebidoNum < cobranca"
                       class="bg-red-950/30 rounded-2xl p-3 text-center text-sm font-bold text-red-400"
                     >
-                      Valor insuficiente — faltam R$ {{ (cobranca - valorRecebidoNum).toFixed(2) }}
+                      Valor insuficiente — faltam {{ reais((cobranca - valorRecebidoNum)) }}
                     </div>
                   </div>
                 </Transition>
@@ -227,7 +227,7 @@
                 <div class="text-center space-y-2">
                   <p class="text-xl font-black text-gray-900 dark:text-white">Aguardando pagamento</p>
                   <p class="text-sm text-gray-500 dark:text-white/50">
-                    <span class="font-bold">R$ {{ total.toFixed(2) }}</span> via
+                    <span class="font-bold">{{ reais(total) }}</span> via
                     <span class="font-bold">{{ metodoSelecionado?.nome }}</span>
                   </p>
                   <p class="text-xs text-gray-400 dark:text-white/40">O cliente deve pagar na maquininha</p>
@@ -288,6 +288,7 @@
 </template>
 
 <script setup lang="ts">
+import { reais } from '~/lib/moeda'
 import { novoUUID } from '~/lib/uuid'
 import { ref, computed, watch } from 'vue'
 import {
@@ -408,7 +409,7 @@ async function confirmar() {
       toastStore.success('Pagamento confirmado!')
       emit('pago')
     } else {
-      toastStore.success(`Parte registrada — restam R$ ${Number(res.restante).toFixed(2)}`)
+      toastStore.success(`Parte registrada — restam ${reais(Number(res.restante))}`)
       valorRecebido.value     = ''
       metodoSelecionado.value = null
       emit('parcial')
@@ -495,7 +496,7 @@ async function confirmarAposMaquininha() {
       toastStore.success('Pagamento aprovado pela maquininha!')
       emit('pago')
     } else {
-      toastStore.success(`Parte aprovada — restam R$ ${Number(res.restante).toFixed(2)}`)
+      toastStore.success(`Parte aprovada — restam ${reais(Number(res.restante))}`)
       metodoSelecionado.value = null
       estado.value = 'selecao'
       emit('parcial')

@@ -64,7 +64,7 @@ export async function platformCobrancaRoutes(app: FastifyInstance) {
         codigo: t.codigo,
         nome: t.nome,
         slug: t.slug,
-        plano: t.plano?.nome ?? contrato?.plano ?? null,
+        plano: t.plano?.nome ?? (contrato?.plano ? `${contrato.plano} (sem pacote)` : null),
         ...r,
         observacao: contrato?.observacoes ?? null,
         ultimoPagamento: ultimo && {

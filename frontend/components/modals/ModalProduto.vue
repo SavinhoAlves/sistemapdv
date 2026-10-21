@@ -90,7 +90,8 @@
         <!-- PREÇO -->
         <div>
           <label for="prod-preco" class="text-xs font-bold text-gray-500 dark:text-white/40 block mb-1">Preço</label>
-          <input id="prod-preco" name="prod-preco" v-model="form.preco" type="number" min="0" step="0.01"
+          <input id="prod-preco" name="prod-preco" v-model="precoTexto" type="text" inputmode="decimal" placeholder="0,00"
+            @blur="formatarPreco"
             class="w-full h-11 border border-gray-200 dark:border-white/10 rounded-xl px-3 mt-0 outline-none bg-gray-50 dark:bg-white/[0.06] text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-white/25 focus:border-orange-500/70 transition-colors" />
         </div>
 
@@ -180,6 +181,8 @@
 
 <script setup>
 import { reactive, ref, computed, watch, onMounted } from 'vue'
+import { lerValor } from '~/lib/valor'
+import { numeroBR } from '~/lib/moeda'
 import { ChefHat } from 'lucide-vue-next'
 import { useApi } from '~/services/api'
 import { useToastStore } from '~/stores/toast'
@@ -246,10 +249,19 @@ function fechar() {
   emit('update:modelValue', false)
 }
 
+// Preço digitado como texto (aceita 12,5 / 12.50) e mostrado sempre com 2 casas: 12,50
+const precoTexto = ref('')
+function formatarPreco() {
+  const v = lerValor(precoTexto.value)
+  if (v !== null && !Number.isNaN(v) && v >= 0) precoTexto.value = numeroBR(v)
+}
+
 function salvar() {
   if (!form.nome?.trim()) return toastStore.error('Nome obrigatório', 'Informe o nome do produto')
   if (!form.categoriaId) return toastStore.error('Categoria obrigatória', 'Selecione uma categoria para o produto')
-  if (!form.preco || Number(form.preco) <= 0) return toastStore.error('Preço inválido', 'Informe um preço maior que zero')
+  const preco = lerValor(precoTexto.value)
+  if (preco === null || Number.isNaN(preco) || preco <= 0) return toastStore.error('Preço inválido', 'Informe um preço maior que zero, por exemplo 12,50')
+  form.preco = Math.round(preco * 100) / 100
   emit('salvar', { ...form })
   fechar()
 }
@@ -261,7 +273,9 @@ watch(
     nomeNovaCategoria.value = ''
     if (val) {
       Object.assign(form, val)
+      precoTexto.value = numeroBR(val.preco)
     } else {
+      precoTexto.value = ''
       Object.assign(form, {
         id: null,
         nome: '',

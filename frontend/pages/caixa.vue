@@ -434,6 +434,7 @@
 </template>
 
 <script setup lang="ts">
+import { numeroBR } from '~/lib/moeda'
 import { totaisDoResumo, vendasDoResumo, porMetodoDoResumo } from '~/lib/caixa'
 import { ref, computed, onMounted, onUnmounted, reactive } from 'vue'
 import {
@@ -600,7 +601,7 @@ async function registrarMovimento() {
   finally { salvandoMov.value = false }
 }
 
-const fmt = (v: any) => Number(v || 0).toFixed(2)
+const fmt = (v: any) => numeroBR(v)
 
 async function buscar() {
   try {

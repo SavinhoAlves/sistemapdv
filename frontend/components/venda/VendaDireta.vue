@@ -321,6 +321,7 @@
 </template>
 
 <script setup lang="ts">
+import { numeroBR } from '~/lib/moeda'
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { storeToRefs } from 'pinia'
 import {
@@ -586,7 +587,7 @@ function imprimirHtml(html: string) {
   doc.close()
 }
 
-const fmt = (v: any) => Number(v || 0).toFixed(2)
+const fmt = (v: any) => numeroBR(v)
 function fmtFichaDateTime(iso: string) {
   if (!iso) return ''
   const d = new Date(iso)

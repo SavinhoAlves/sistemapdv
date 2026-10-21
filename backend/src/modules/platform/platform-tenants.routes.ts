@@ -98,7 +98,7 @@ export async function platformTenantsRoutes(app: FastifyInstance) {
       // Receita mensal: quem paga (sem teste, isentos, suspensos ou rescindidos)
       if (['em_dia', 'tolerancia', 'bloqueado'].includes(r.situacao) && r.valor) {
         const m = valorMensalDoCiclo(r.valor, r.ciclo)
-        const nome = t.plano?.nome ?? con?.plano ?? 'Sem plano'
+        const nome = t.plano?.nome ?? (con?.plano ? `${con.plano} (sem pacote)` : 'Sem plano')
         mrr += m
         porPlano[nome] ??= { count: 0, mrr: 0 }
         porPlano[nome].count++

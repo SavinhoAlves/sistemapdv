@@ -173,6 +173,7 @@
 </template>
 
 <script setup lang="ts">
+import { numeroBR } from '~/lib/moeda'
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import {
@@ -256,7 +257,7 @@ function pctMetodo(val: number) {
 }
 
 function fmtMoeda(v: number) {
-  return Number(v || 0).toFixed(2).replace('.', ',')
+  return numeroBR(v)
 }
 
 function fmtHora(dt: string) {

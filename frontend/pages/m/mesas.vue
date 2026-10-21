@@ -380,6 +380,7 @@
 </template>
 
 <script setup lang="ts">
+import { reais, numeroBR } from '~/lib/moeda'
 import { itensDaComanda } from '~/lib/comanda'
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import {
@@ -422,7 +423,7 @@ let intervalo: ReturnType<typeof setInterval> | null = null
 
 // ── Helpers ───────────────────────────────────────────────
 function fmt(v: number) {
-  return Number(v || 0).toFixed(2).replace('.', ',')
+  return numeroBR(v)
 }
 
 function formatarTempo(data: string) {
@@ -595,7 +596,7 @@ function imprimirComanda() {
     `<tr>
       <td>${i.produto_nome || i.nome}</td>
       <td style="text-align:center">${i.quantidade}</td>
-      <td style="text-align:right">R$ ${Number((i.preco_unitario || 0) * i.quantidade).toFixed(2)}</td>
+      <td style="text-align:right">${reais(Number((i.preco_unitario || 0) * i.quantidade))}</td>
     </tr>`
   ).join('')
 
@@ -629,7 +630,7 @@ function imprimirComanda() {
   <table><tbody>
     <tr class="total">
       <td colspan="2">Total</td>
-      <td style="text-align:right">R$ ${total.toFixed(2)}</td>
+      <td style="text-align:right">${reais(total)}</td>
     </tr>
   </tbody></table>
   </body></html>`

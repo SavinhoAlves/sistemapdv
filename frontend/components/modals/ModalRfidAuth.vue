@@ -103,7 +103,7 @@
                     </p>
                   </div>
                   <span class="text-sm font-black text-orange-400 shrink-0 ml-3">
-                    R$ {{ Number(mesa.total).toFixed(2) }}
+                    {{ reais(Number(mesa.total)) }}
                   </span>
                 </div>
               </div>
@@ -143,6 +143,7 @@
 </template>
 
 <script setup lang="ts">
+import { reais } from '~/lib/moeda'
 import { computed, watch, onBeforeUnmount } from 'vue'
 import { CreditCard, CheckCircle2, ArrowRight } from 'lucide-vue-next'
 import type { RfidIdentificado } from '~/composables/useRfidIdentify'

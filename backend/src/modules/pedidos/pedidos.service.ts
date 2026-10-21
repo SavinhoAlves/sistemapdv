@@ -131,20 +131,42 @@ export async function lancarItem(tenantId: string, input: LancarItemInput) {
     const precoUnitario = produto.preco
     const precoTotalCent = paraCentavos(precoUnitario) * quantidade
 
-    const item = await tx.pedidoItem.create({
-      data: {
-        pedidoId: pedido.id,
-        produtoId,
-        rodada,
-        quantidade,
-        precoUnitario,
-        // Sempre unitário × quantidade. Sem increment sobre preço atual.
-        precoTotal: paraDecimal(precoTotalCent),
+    // ── Mesmo produto de novo: soma na linha que ainda não saiu ──
+    // Junta com a linha igual (produto, observação e preço) enquanto a cozinha
+    // não começou (pendente) ou, se não vai à cozinha, enquanto não foi entregue.
+    // Em preparo ou entregue, vira linha nova (nova ficha).
+    const obs = observacao?.trim() || null
+    const igual = await tx.pedidoItem.findFirst({
+      where: {
+        pedidoId: pedido.id, produtoId, observacao: obs, precoUnitario,
         status: vaiCozinha ? 'pendente' : 'pronto',
-        observacao: observacao?.trim() || null,
-        lancadoPorId: usuarioId,
-      } as any,
+      },
+      orderBy: { createdAt: 'desc' },
     })
+
+    const item = igual
+      ? await tx.pedidoItem.update({
+          where: { id: igual.id },
+          data: {
+            quantidade: igual.quantidade + quantidade,
+            precoTotal: paraDecimal(paraCentavos(precoUnitario) * (igual.quantidade + quantidade)),
+          },
+        })
+      : await tx.pedidoItem.create({
+          data: {
+            pedidoId: pedido.id,
+            produtoId,
+            rodada,
+            quantidade,
+            precoUnitario,
+            // Sempre unitário × quantidade. Sem increment sobre preço atual.
+            precoTotal: paraDecimal(precoTotalCent),
+            status: vaiCozinha ? 'pendente' : 'pronto',
+            observacao: obs,
+            lancadoPorId: usuarioId,
+          } as any,
+        })
+    if (igual) rodada = igual.rodada
 
     const conta = await contaDoPedido(tx, pedido.id)
 

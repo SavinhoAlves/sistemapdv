@@ -96,7 +96,7 @@
             <!-- Produto -->
             <td class="px-5 py-3.5">
               <p class="font-bold text-white truncate max-w-[180px]">{{ p.nome }}</p>
-              <p class="text-white/30 text-xs">R$ {{ Number(p.preco).toFixed(2) }}</p>
+              <p class="text-white/30 text-xs">{{ reais(Number(p.preco)) }}</p>
             </td>
 
             <!-- Categoria -->
@@ -321,6 +321,7 @@
 </template>
 
 <script setup lang="ts">
+import { reais } from '~/lib/moeda'
 import { ref, computed, onMounted } from 'vue'
 import { useApi } from '~/services/api'
 import {

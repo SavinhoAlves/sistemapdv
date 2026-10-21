@@ -203,9 +203,11 @@ export async function buildApp() {
       const temPagamento = (await prisma.pagamentoMensalidade.count({ where: { tenantId: tenant.id } })) > 0
       const r = resumir(await contratoAtual(prisma, tenant.id), tenant.status, temPagamento, agora)
       const diasTeste = r.testeAte ? diasEntre(hojeBR(agora), r.testeAte) : null
+      // Avisa já a partir de 3 dias antes do vencimento (e no dia), não só na tolerância
       const aviso =
         r.situacao === 'tolerancia' ? { tipo: 'tolerancia', dias: r.diasParaBloquear, liberadoAte: r.liberadoAte }
         : r.situacao === 'teste' && diasTeste !== null && diasTeste <= 2 ? { tipo: 'teste', dias: diasTeste, liberadoAte: r.testeAte }
+        : r.situacao === 'em_dia' && r.diasParaVencer !== null && r.diasParaVencer <= 3 ? { tipo: 'vencendo', dias: r.diasParaVencer, liberadoAte: r.proximoVencimento, bloqueioEm: r.liberadoAte }
         : null
 
       return reply.send({

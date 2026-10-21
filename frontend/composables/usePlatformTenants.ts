@@ -41,7 +41,8 @@ export interface Tenant {
 }
 
 /** Plano do restaurante; sem plano cadastrado, usa o nome do plano no contrato. */
-export const nomePlano = (t: Tenant) => t.plano?.nome ?? t.contratos?.[0]?.plano ?? ''
+// Contratos antigos guardam o plano só como texto, sem pacote em Planos: mostra que não está vinculado
+export const nomePlano = (t: Tenant) => t.plano?.nome ?? (t.contratos?.[0]?.plano ? `${t.contratos[0].plano} (sem pacote)` : '')
 export interface Dashboard {
   totais:     { tenants: number; ativos: number; suspensos: number }
   licencas:   { ativas: number; pendentes: number; bloqueadas: number; vencendo: number; vencidas: number; teste: number }

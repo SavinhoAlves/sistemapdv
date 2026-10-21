@@ -46,6 +46,19 @@
           </template>
         </section>
 
+        <!-- Em rota: mapa com o entregador e quantas entregas faltam antes -->
+        <section v-if="p.rota" class="mt-4 rounded-3xl cdp-cartao p-4">
+          <p class="text-sm font-black">
+            {{ p.rota.entregador.nome }} está a caminho
+          </p>
+          <p class="text-sm cdp-mudo mt-0.5">
+            {{ p.rota.paradasAntes === 0 ? 'Sua entrega é a próxima.' : p.rota.paradasAntes === 1 ? 'Falta 1 entrega antes da sua.' : `Faltam ${p.rota.paradasAntes} entregas antes da sua.` }}
+            <template v-if="p.rota.entregador.posicao"> Posição de {{ hora(p.rota.entregador.posicao.em) }}.</template>
+          </p>
+          <MapaDelivery v-if="marcadores.length" class="mt-3" :marcadores="marcadores" :trajeto="trajeto" altura="260px"
+            descricao="Mapa com a posição do entregador e o seu endereço" />
+        </section>
+
         <!-- Itens -->
         <section class="mt-4 rounded-3xl cdp-cartao p-5">
           <h2 class="text-sm font-black mb-2">{{ p.tipo === 'entrega' ? 'Entrega' : 'Retirada no local' }} · {{ p.clienteNome }}</h2>
@@ -70,6 +83,7 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { Check, Inbox, ChefHat, PackageCheck, Bike, Home, UtensilsCrossed } from 'lucide-vue-next'
 import { useTemaDoAparelho } from '~/composables/useTemaDoAparelho'
+import MapaDelivery from '~/components/MapaDelivery.vue'
 
 definePageMeta({ layout: false })
 useTemaDoAparelho()
@@ -119,6 +133,21 @@ function previsao(x: any) {
   return `${hora(new Date(ini + x.tempoMin * 60000).toISOString())} – ${hora(new Date(ini + (x.tempoMin + 15) * 60000).toISOString())}`
 }
 
+// Só o necessário: restaurante, o entregador e o endereço DESTE cliente (os outros nunca aparecem)
+const marcadores = computed(() => {
+  const r = p.value?.rota
+  if (!r) return []
+  const m: any[] = []
+  if (r.restaurante) m.push({ id: 'r', tipo: 'restaurante', ...r.restaurante, titulo: p.value.restaurante.nome })
+  if (r.destino) m.push({ id: 'd', tipo: 'destino', ...r.destino, rotulo: '★', titulo: 'Seu endereço' })
+  if (r.entregador.posicao) m.push({ id: 'e', tipo: 'entregador', lat: r.entregador.posicao.lat, lng: r.entregador.posicao.lng, titulo: r.entregador.nome })
+  return m
+})
+const trajeto = computed(() => {
+  const r = p.value?.rota
+  return r?.entregador.posicao && r.destino && r.paradasAntes === 0 ? { de: r.entregador.posicao, para: r.destino } : null
+})
+
 let timer: ReturnType<typeof setInterval> | null = null
 async function carregar() {
   try {
@@ -130,7 +159,7 @@ async function carregar() {
 }
 onMounted(() => {
   carregar()
-  timer = setInterval(() => { if (!document.hidden) carregar() }, 15000)
+  timer = setInterval(() => { if (!document.hidden) carregar() }, 10000)
   document.addEventListener('visibilitychange', carregar)
 })
 onUnmounted(() => { if (timer) clearInterval(timer); document.removeEventListener('visibilitychange', carregar) })

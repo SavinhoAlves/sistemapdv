@@ -22,6 +22,9 @@ export const GRUPOS_PERMISSOES: { grupo: string; itens: { chave: string; rotulo:
   { grupo: 'Cozinha', itens: [
     { chave: 'verCozinha',         rotulo: 'Ver e atualizar a fila da cozinha' },
   ] },
+  { grupo: 'Delivery', itens: [
+    { chave: 'fazerEntregas', rotulo: 'Fazer entregas (app do entregador)' },
+  ] },
   { grupo: 'Gestão', itens: [
     { chave: 'gerenciarProdutos',      rotulo: 'Produtos, categorias e estoque' },
     { chave: 'gerenciarConfiguracoes', rotulo: 'Configurações do restaurante' },
@@ -32,12 +35,13 @@ export const GRUPOS_PERMISSOES: { grupo: string; itens: { chave: string; rotulo:
 export const TODAS_PERMISSOES = GRUPOS_PERMISSOES.flatMap(g => g.itens)
 export const rotuloPermissao = (k: string) => TODAS_PERMISSOES.find(p => p.chave === k)?.rotulo ?? k
 
-export type Funcao = 'administrador' | 'garcom' | 'caixa' | 'cozinha'
+export type Funcao = 'administrador' | 'garcom' | 'caixa' | 'cozinha' | 'entregador'
 export const FUNCOES: { valor: Funcao; rotulo: string; descricao: string; inicio: string; cor: string }[] = [
   { valor: 'administrador', rotulo: 'Administrador', descricao: 'Acesso a tudo, inclusive equipe, configurações e suporte.', inicio: 'Painel', cor: 'bg-purple-500/15 text-purple-700 dark:text-purple-300' },
   { valor: 'caixa',         rotulo: 'Caixa',         descricao: 'Opera o caixa, recebe pagamentos, dá desconto e fecha mesas.', inicio: 'Caixa', cor: 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300' },
   { valor: 'garcom',        rotulo: 'Garçom',        descricao: 'Abre mesas e lança pedidos. Não mexe no caixa.', inicio: 'Mesas', cor: 'bg-blue-500/15 text-blue-700 dark:text-blue-300' },
   { valor: 'cozinha',       rotulo: 'Cozinha',       descricao: 'Vê e atualiza a fila de pedidos da cozinha.', inicio: 'Cozinha', cor: 'bg-orange-500/15 text-orange-700 dark:text-orange-300' },
+  { valor: 'entregador',    rotulo: 'Entregador',    descricao: 'Usa o app do entregador: rota, GPS e confirmação de entrega.', inicio: 'Minhas entregas', cor: 'bg-sky-500/15 text-sky-700 dark:text-sky-300' },
 ]
 export const funcao = (v: string) => FUNCOES.find(f => f.valor === v)
 

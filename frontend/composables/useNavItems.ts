@@ -21,6 +21,7 @@ const MAPA: { rota: string; label: string; icon: any; libera: (tem: (p: string) 
   { rota: '/estoque',       label: 'Estoque',       icon: Boxes,        libera: t => t('gerenciarProdutos') },
   { rota: '/caixa',         label: 'Caixa',         icon: Landmark,     libera: t => t('gerenciarCaixa') },
   { rota: '/delivery',      label: 'Delivery',      icon: Bike,         libera: (t, _m, _a, delivery) => delivery && t('gerenciarCaixa') },
+  { rota: '/entregador',    label: 'Minhas entregas', icon: Bike,       libera: (t, _m, admin) => !admin && t('fazerEntregas') },
   { rota: '/cozinha',       label: 'Cozinha',       icon: ChefHat,      libera: t => t('verCozinha') },
   { rota: '/relatorios',    label: 'Relatórios',    icon: FileText,     libera: t => t('verRelatorios') },
   { rota: '/admin',         label: 'Admin',         icon: ShieldCheck,  libera: (_t, _m, admin) => admin },

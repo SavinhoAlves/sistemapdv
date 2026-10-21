@@ -10,7 +10,7 @@
     <!-- Funções -->
     <section>
       <h2 class="text-xs font-black uppercase tracking-widest text-gray-500 dark:text-white/45 mb-3">Funções</h2>
-      <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">
+      <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-5 gap-3">
         <article v-for="f in FUNCOES" :key="f.valor" class="bg-white dark:bg-white/[0.04] border border-gray-200 dark:border-white/[0.08] rounded-2xl p-4 flex flex-col">
           <div class="flex items-center justify-between gap-2">
             <span class="text-[11px] font-black px-2 py-0.5 rounded-full" :class="f.cor">{{ f.rotulo }}</span>

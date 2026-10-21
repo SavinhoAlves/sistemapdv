@@ -16,7 +16,11 @@
             <p class="text-sm text-gray-500 dark:text-white/50 mt-0.5">Pedidos do cardápio online: aceite, acompanhe e conclua</p>
           </div>
         </div>
-        <div class="flex items-center gap-2">
+        <div class="flex items-center gap-2 flex-wrap">
+          <div class="flex rounded-xl border border-gray-200 dark:border-white/10 p-1" role="tablist" aria-label="Visualização">
+            <button v-for="v in [{ k: 'quadro', r: 'Quadro' }, { k: 'mapa', r: 'Mapa' }]" :key="v.k" role="tab" :aria-selected="visao === v.k"
+              class="h-7 px-3 rounded-lg text-xs font-black" :class="visao === v.k ? 'bg-orange-500 text-white' : 'text-gray-500 dark:text-white/50'" @click="trocarVisao(v.k as any)">{{ v.r }}</button>
+          </div>
           <span class="inline-flex items-center gap-1.5 h-9 px-3 rounded-xl text-xs font-bold border"
             :class="cfg?.ativo ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300' : 'border-gray-200 dark:border-white/10 text-gray-500 dark:text-white/50'">
             <span class="size-2 rounded-full" :class="cfg?.ativo ? 'bg-emerald-500' : 'bg-gray-400'" />
@@ -28,7 +32,26 @@
         </div>
       </div>
 
-      <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 items-start">
+      <!-- Mapa: entregadores ao vivo, rastro de 30 min e entregas em andamento -->
+      <div v-if="visao === 'mapa'" class="grid grid-cols-1 lg:grid-cols-[1fr_18rem] gap-4">
+        <MapaDelivery :marcadores="marcadoresMapa" :rastros="mapaDados?.rastros?.map((r: any) => ({ id: r.entregadorId, pontos: r.pontos })) ?? []" altura="min(70vh, 640px)"
+          vazio="Marque o local do restaurante em Configurações → Delivery para ver o mapa" />
+        <aside class="space-y-2">
+          <h2 class="text-xs font-black uppercase tracking-widest text-gray-500 dark:text-white/45">Entregadores</h2>
+          <p v-if="!entregadores.length" class="text-xs text-gray-500 dark:text-white/45">Nenhum entregador cadastrado. Cadastre em Admin → Funcionários com a função Entregador.</p>
+          <div v-for="e in entregadores" :key="e.id" class="rounded-xl bg-white dark:bg-[#171c27] border border-gray-200 dark:border-white/[0.07] p-3">
+            <p class="text-sm font-black text-gray-900 dark:text-white flex items-center gap-2">
+              <span class="size-2 rounded-full" :class="e.posicao ? 'bg-emerald-500' : 'bg-gray-400'" />{{ e.nome }}
+            </p>
+            <p class="text-[11px] text-gray-500 dark:text-white/45 mt-0.5">
+              {{ e.entregas ? `${e.entregas} entrega${e.entregas === 1 ? '' : 's'}${e.emRota ? ' · em rota' : ' · aguardando sair'}` : 'Livre' }}
+              · {{ e.posicao ? `GPS ${ha(e.posicao.em)}` : 'sem GPS' }}
+            </p>
+          </div>
+        </aside>
+      </div>
+
+      <div v-else class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 items-start">
         <section v-for="col in COLUNAS" :key="col.chave" class="rounded-2xl bg-gray-50 dark:bg-white/[0.03] border border-gray-200 dark:border-white/[0.07] p-3 min-h-40">
           <h2 class="flex items-center justify-between px-1 pb-2.5 text-xs font-black uppercase tracking-widest" :class="col.cor">
             {{ col.rotulo }} <span class="tabular-nums text-gray-400 dark:text-white/40">{{ porColuna(col.chave).length }}</span>
@@ -72,13 +95,26 @@
             </div>
             <p v-if="p.motivoRecusa" class="mt-1.5 text-[11px] text-red-500">Motivo: {{ p.motivoRecusa }}</p>
 
+            <!-- Entregador -->
+            <label v-if="p.tipo === 'entrega' && ['aceito', 'pronto', 'em_rota'].includes(p.status) && !p.entregaConfirmadaEm" class="mt-2.5 flex items-center gap-2 text-xs">
+              <Bike :size="13" class="text-gray-400 shrink-0" />
+              <select class="dlv-campo !h-8 !text-xs" :value="p.entregador?.id ?? ''" :disabled="ocupado === p.id" aria-label="Entregador"
+                @change="atribuir(p, ($event.target as HTMLSelectElement).value)">
+                <option value="">Sem entregador</option>
+                <option v-for="e in entregadores" :key="e.id" :value="e.id">{{ e.nome }}{{ e.entregas ? ` (${e.entregas})` : '' }}</option>
+              </select>
+              <span v-if="p.ordemRota && p.status === 'em_rota'" class="shrink-0 text-gray-400 dark:text-white/40">{{ p.ordemRota }}ª parada</span>
+            </label>
+            <p v-if="p.entregaConfirmadaEm" class="mt-2 text-[11px] font-bold text-emerald-600 dark:text-emerald-400">Entregue por {{ p.entregador?.nome?.split(' ')[0] ?? 'entregador' }} às {{ hora(p.entregaConfirmadaEm) }} · acertar pagamento</p>
+            <p v-else-if="p.tipo === 'entrega' && !p.destino && ativo(p)" class="mt-1 text-[10px] text-gray-400 dark:text-white/35">Endereço sem pino no mapa</p>
+
             <!-- Ações -->
             <div v-if="p.status === 'recebido'" class="mt-3 grid grid-cols-[1fr_auto] gap-2">
               <button class="h-9 rounded-lg bg-orange-500 hover:bg-orange-600 text-white text-xs font-black disabled:opacity-50" :disabled="ocupado === p.id" @click="aceitar(p)">Aceitar e mandar para a cozinha</button>
               <button class="h-9 px-3 rounded-lg border border-gray-200 dark:border-white/10 text-xs font-black text-gray-600 dark:text-white/60" @click="recusando = p; motivo = ''">Recusar</button>
             </div>
             <div v-else-if="['aceito', 'pronto', 'em_rota'].includes(p.status)" class="mt-3 flex gap-2">
-              <button v-if="p.tipo === 'entrega' && p.status !== 'em_rota'" class="flex-1 h-9 rounded-lg border border-orange-500/40 text-orange-600 dark:text-orange-400 text-xs font-black disabled:opacity-50" :disabled="ocupado === p.id" @click="saiu(p)">Saiu para entrega</button>
+              <button v-if="p.tipo === 'entrega' && p.status !== 'em_rota' && !p.entregador" class="flex-1 h-9 rounded-lg border border-orange-500/40 text-orange-600 dark:text-orange-400 text-xs font-black disabled:opacity-50" :disabled="ocupado === p.id" @click="saiu(p)">Saiu para entrega</button>
               <button class="flex-1 h-9 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black" @click="abrirConcluir(p)">{{ p.tipo === 'entrega' ? 'Entregue e pago' : 'Retirado e pago' }}</button>
             </div>
           </article>
@@ -138,10 +174,11 @@ import { Bike, Settings, MapPin, Phone } from 'lucide-vue-next'
 import Navbar from '~/layouts/Navbar.vue'
 import Sidebar from '~/components/Sidebar.vue'
 import CaixaFechado from '~/components/CaixaFechado.vue'
+import MapaDelivery from '~/components/MapaDelivery.vue'
 import { useApi } from '~/services/api'
 import { useSocket } from '~/services/socket'
 import { useToastStore } from '~/stores/toast'
-import { EVENTOS, type PayloadDelivery } from '~/shared/eventos'
+import { EVENTOS, type PayloadDelivery, type PayloadPosicao } from '~/shared/eventos'
 
 definePageMeta({ layout: false })
 
@@ -175,12 +212,36 @@ const ativo = (p: any) => !['entregue', 'recusado', 'cancelado'].includes(p.stat
 const minutos = (iso: string) => Math.floor((agora.value - new Date(iso).getTime()) / 60000)
 const ha = (iso: string) => { const m = minutos(iso); return m < 1 ? 'agora' : m < 60 ? `${m} min` : `${Math.floor(m / 60)}h${String(m % 60).padStart(2, '0')}` }
 const moeda = (v: number) => Number(v || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+const hora = (iso: string) => new Date(iso).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
 const telefone = (t: string) => (t.length >= 10 ? `(${t.slice(0, 2)}) ${t.slice(2, -4)}-${t.slice(-4)}` : t)
 
 async function carregar() {
-  try { pedidos.value = await api.get<any[]>('/delivery/pedidos') } catch {}
+  try {
+    const [ps, es] = await Promise.all([api.get<any[]>('/delivery/pedidos'), api.get<any[]>('/delivery/entregadores')])
+    pedidos.value = ps
+    entregadores.value = es
+  } catch {}
   carregado.value = true
+  if (visao.value === 'mapa') carregarMapa()
 }
+
+// ── Entregadores e mapa ──
+const entregadores = ref<any[]>([])
+const visao = ref<'quadro' | 'mapa'>('quadro')
+const mapaDados = ref<any>(null)
+async function carregarMapa() { try { mapaDados.value = await api.get('/delivery/mapa') } catch {} }
+function trocarVisao(v: 'quadro' | 'mapa') { visao.value = v; if (v === 'mapa') carregarMapa() }
+const atribuir = (p: any, entregadorId: string) =>
+  acao(p, () => api.post(`/delivery/pedidos/${p.id}/atribuir`, { entregadorId: entregadorId || null }), entregadorId ? 'Entregador definido' : 'Entregador removido').then(() => carregar())
+const marcadoresMapa = computed(() => {
+  const d = mapaDados.value
+  if (!d) return []
+  const m: any[] = []
+  if (d.restaurante) m.push({ id: 'r', tipo: 'restaurante', lat: d.restaurante.lat, lng: d.restaurante.lng, titulo: d.restaurante.nome })
+  for (const e of d.entregas) if (e.destino) m.push({ id: e.id, tipo: e.status === 'em_rota' ? 'parada' : 'destino', ...e.destino, rotulo: e.ordemRota ? String(e.ordemRota) : '•', titulo: `${e.codigo} · ${e.clienteNome} · ${e.bairro}` })
+  for (const e of d.entregadores) if (e.posicao) m.push({ id: e.id, tipo: 'entregador', lat: e.posicao.lat, lng: e.posicao.lng, titulo: e.nome })
+  return m
+})
 
 async function acao(p: any, fn: () => Promise<any>, ok?: string) {
   ocupado.value = p.id
@@ -259,6 +320,11 @@ onMounted(async () => {
   }))
   desinscrever.push(socket.on(EVENTOS.delivery.atualizado, () => carregar()))
   desinscrever.push(socket.on(EVENTOS.item.statusAlterado, () => carregar()))
+  // Posição ao vivo: move o entregador no mapa sem recarregar tudo
+  desinscrever.push(socket.on(EVENTOS.delivery.posicao, (p: PayloadPosicao) => {
+    const e = mapaDados.value?.entregadores.find((x: any) => x.id === p.usuarioId)
+    if (e) { e.posicao = { lat: p.lat, lng: p.lng, em: p.em }; mapaDados.value.rastros.find((r: any) => r.entregadorId === p.usuarioId)?.pontos.push([p.lat, p.lng]) }
+  }))
   timers = [setInterval(() => { if (!document.hidden) carregar() }, 20000), setInterval(() => { agora.value = Date.now() }, 30000)]
 })
 onUnmounted(() => { timers.forEach(clearInterval); desinscrever.forEach(f => f()) })

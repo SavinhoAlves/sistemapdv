@@ -34,6 +34,21 @@
         </button>
       </article>
 
+      <!-- Local do restaurante (ponto de partida das rotas) -->
+      <article class="rounded-2xl border border-gray-200 dark:border-white/[0.08] bg-white dark:bg-white/[0.03] p-5">
+        <div class="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <p class="text-sm font-black text-gray-900 dark:text-white">Local do restaurante</p>
+            <p class="text-xs text-gray-500 dark:text-white/50 mt-1">De onde saem as entregas: define a ordem das paradas e aparece no mapa. Clique no mapa para ajustar.</p>
+          </div>
+          <button class="h-9 px-3 rounded-xl border border-gray-200 dark:border-white/10 text-xs font-black text-gray-600 dark:text-white/60 flex items-center gap-1.5 disabled:opacity-50" :disabled="localizando" @click="localizar">
+            <MapPin :size="13" /> {{ localizando ? 'Procurando…' : 'Localizar pelo endereço' }}
+          </button>
+        </div>
+        <MapaDelivery class="mt-3" altura="260px" marcavel :marcadores="d.local ? [{ id: 'r', tipo: 'restaurante', ...d.local, titulo: 'Restaurante' }] : []"
+          vazio="Use “Localizar pelo endereço” ou clique no mapa" descricao="Mapa para marcar o local do restaurante" @marcar="marcar" />
+      </article>
+
       <!-- Regras -->
       <article class="rounded-2xl border border-gray-200 dark:border-white/[0.08] bg-white dark:bg-white/[0.03] p-5">
         <p class="text-sm font-black text-gray-900 dark:text-white">Como o cliente recebe</p>
@@ -57,7 +72,8 @@
 
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted } from 'vue'
-import { Copy, ExternalLink } from 'lucide-vue-next'
+import { Copy, ExternalLink, MapPin } from 'lucide-vue-next'
+import MapaDelivery from '~/components/MapaDelivery.vue'
 import QRCode from 'qrcode'
 import { useApi } from '~/services/api'
 import { useToastStore } from '~/stores/toast'
@@ -81,6 +97,15 @@ async function salvar(dados: Record<string, unknown>) {
   catch (e: any) { toast.error(e?.message || 'Erro ao salvar') }
   finally { salvando.value = false }
 }
+const localizando = ref(false)
+async function localizar() {
+  localizando.value = true
+  try { d.value = await api.post('/delivery/config/localizar'); toast.success('Local encontrado', 'Confira o pino e clique no mapa se precisar ajustar.') }
+  catch (e: any) { toast.error(e?.message || 'Não achei o endereço') }
+  finally { localizando.value = false }
+}
+function marcar(p: { lat: number; lng: number }) { salvar({ local: { lat: Number(p.lat.toFixed(6)), lng: Number(p.lng.toFixed(6)) } }) }
+
 async function copiar() {
   try { await navigator.clipboard.writeText(link.value); copiado.value = true; setTimeout(() => (copiado.value = false), 2000) } catch {}
 }

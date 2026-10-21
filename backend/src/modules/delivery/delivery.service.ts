@@ -8,6 +8,7 @@ import { proximoNumero } from '../comandas/sequencia'
 import { calcularConta, includeParaConta } from '../comandas/conta'
 import { verificarAcessoTenant } from '../../middlewares/tenant.middleware'
 import { registrarPagamento } from '../pagamentos/pagamentos.service'
+import { geocodificar, distancia, type Coordenadas } from '../../lib/geocodificar'
 
 /**
  * Delivery pelo cardápio online.
@@ -177,6 +178,7 @@ export async function criarPedido(slug: string, d: NovoPedidoOnline) {
   if (!criado) throw erro(500, 'Não foi possível registrar o pedido. Tente de novo.')
 
   emitir(tenant.id).delivery(EVENTOS.delivery.recebido, payload(criado))
+  if (criado.tipo === 'entrega') void localizarDestino(tenant.id, criado.id)
   return { codigo: criado.codigo }
 }
 
@@ -185,17 +187,38 @@ export async function acompanhar(codigo: string) {
   const po = await semEscopoDeTenant(async () => await prisma.pedidoOnline.findUnique({
     where: { codigo: codigo.trim().toUpperCase() },
     include: {
+      entregador: { select: { id: true, nome: true } },
       tenant: { select: { nome: true, slug: true } },
       pedido: { select: { itens: { select: { status: true, produto: { select: { categoria: { select: { vaiCozinha: true } } } } } } } },
     },
   }))
   if (!po) throw erro(404, 'Pedido não encontrado')
   const cfg = await comTenant(po.tenantId, async () => await prisma.configuracoes.findFirst({
-    where: { tenantId: po.tenantId }, select: { nomeRestaurante: true, deliveryTempoMin: true, logoBase64: true },
+    where: { tenantId: po.tenantId }, select: { nomeRestaurante: true, deliveryTempoMin: true, logoBase64: true, deliveryLat: true, deliveryLng: true },
   }))
+  // Em rota: onde está o entregador e quantas entregas faltam antes desta
+  let rota: any = null
+  if (po.status === 'em_rota' && po.entregadorId && !po.entregaConfirmadaEm) {
+    const [posicao, antes] = await comTenant(po.tenantId, async () => Promise.all([
+      prisma.entregadorPosicao.findFirst({
+        where: { tenantId: po.tenantId, usuarioId: po.entregadorId!, createdAt: { gte: new Date(Date.now() - 15 * 60000) } },
+        orderBy: { createdAt: 'desc' }, select: { lat: true, lng: true, createdAt: true },
+      }),
+      prisma.pedidoOnline.count({
+        where: { tenantId: po.tenantId, entregadorId: po.entregadorId, status: 'em_rota', entregaConfirmadaEm: null, ordemRota: { lt: po.ordemRota ?? 0 } },
+      }),
+    ]))
+    rota = {
+      entregador: { nome: po.entregador?.nome.split(' ')[0] ?? 'Entregador', posicao: posicao ? { lat: posicao.lat, lng: posicao.lng, em: posicao.createdAt } : null },
+      paradasAntes: antes,
+      destino: po.destinoLat != null ? { lat: po.destinoLat, lng: po.destinoLng } : null,
+      restaurante: cfg?.deliveryLat != null ? { lat: cfg.deliveryLat, lng: cfg.deliveryLng } : null,
+    }
+  }
   return {
     codigo: po.codigo,
-    status: etapa(po),
+    status: po.entregaConfirmadaEm && po.status === 'em_rota' ? 'entregue' : etapa(po),
+    rota,
     tipo: po.tipo,
     restaurante: { nome: cfg?.nomeRestaurante || po.tenant.nome, slug: po.tenant.slug, logo: cfg?.logoBase64 ?? null },
     tempoMin: cfg?.deliveryTempoMin ?? 40,
@@ -204,13 +227,12 @@ export async function acompanhar(codigo: string) {
     subtotal: Number(po.subtotal), taxaEntrega: Number(po.taxaEntrega), total: Number(po.total),
     formaPagamento: po.formaPagamento, trocoPara: po.trocoPara === null ? null : Number(po.trocoPara),
     motivoRecusa: po.motivoRecusa,
-    linhaDoTempo: { recebido: po.createdAt, aceito: po.aceitoEm, pronto: po.prontoEm ?? prontoPelaCozinha(po), em_rota: po.saiuEm, entregue: po.entregueEm },
+    linhaDoTempo: { recebido: po.createdAt, aceito: po.aceitoEm, pronto: po.prontoEm ?? prontoPelaCozinha(po), em_rota: po.saiuEm, entregue: po.entregaConfirmadaEm ?? po.entregueEm },
   }
 }
 
 // ─── Caixa ─────────────────────────────────────────────────────────────────────
 
-type ComPedido = Prisma.PedidoOnlineGetPayload<{ include: { pedido: { select: { numero: true; itens: { select: { status: true; produto: { select: { categoria: { select: { vaiCozinha: true } } } } } } } } } }>
 
 /** Itens da cozinha todos prontos (ou não há cozinha): o pedido está pronto. */
 function prontoPelaCozinha(po: { aceitoEm: Date | null; pedido?: { itens: { status: string; produto: { categoria: { vaiCozinha: boolean } | null } }[] } | null }) {
@@ -232,7 +254,10 @@ const payload = (po: any) => ({
 
 const includeCaixa = {
   pedido: { select: { numero: true, itens: { select: { status: true, produto: { select: { categoria: { select: { vaiCozinha: true } } } } } } } },
+  entregador: { select: { id: true, nome: true } },
 } as const
+
+type ComPedido = Prisma.PedidoOnlineGetPayload<{ include: typeof includeCaixa }>
 
 function paraCaixa(po: ComPedido) {
   return {
@@ -244,6 +269,8 @@ function paraCaixa(po: ComPedido) {
     observacao: po.observacao, motivoRecusa: po.motivoRecusa,
     pedidoNumero: po.pedido?.numero ?? null,
     criadoEm: po.createdAt, aceitoEm: po.aceitoEm, saiuEm: po.saiuEm, entregueEm: po.entregueEm,
+    entregador: po.entregador, ordemRota: po.ordemRota, entregaConfirmadaEm: po.entregaConfirmadaEm,
+    destino: po.destinoLat != null && po.destinoLng != null ? { lat: po.destinoLat, lng: po.destinoLng } : null,
   }
 }
 
@@ -414,11 +441,13 @@ export async function config(tenantId: string) {
     pedidoMinimo: Number(cfg?.deliveryPedidoMinimo ?? 0),
     tempoMin: cfg?.deliveryTempoMin ?? 40,
     mensagem: cfg?.deliveryMensagem ?? '',
+    local: cfg?.deliveryLat != null && cfg?.deliveryLng != null ? { lat: cfg.deliveryLat, lng: cfg.deliveryLng } : null,
   }
 }
 
 export async function salvarConfig(tenantId: string, d: {
   ativo?: boolean; entrega?: boolean; retirada?: boolean; taxaEntrega?: number; pedidoMinimo?: number; tempoMin?: number; mensagem?: string | null
+  local?: Coordenadas | null
 }) {
   const atual = await config(tenantId)
   if (d.ativo && !atual.disponivel) throw erro(403, 'Delivery não está incluído no seu plano')
@@ -433,7 +462,193 @@ export async function salvarConfig(tenantId: string, d: {
       ...(d.pedidoMinimo !== undefined ? { deliveryPedidoMinimo: paraDecimal(centavosDoCliente(d.pedidoMinimo, 'Pedido mínimo')) } : {}),
       ...(d.tempoMin !== undefined ? { deliveryTempoMin: Math.min(240, Math.max(5, Math.trunc(d.tempoMin))) } : {}),
       ...(d.mensagem !== undefined ? { deliveryMensagem: d.mensagem?.trim().slice(0, 200) || null } : {}),
+      ...(d.local !== undefined ? { deliveryLat: d.local?.lat ?? null, deliveryLng: d.local?.lng ?? null } : {}),
     },
   })
   return config(tenantId)
+}
+
+// ─── Etapa B: entregador, rota e mapa ──────────────────────────────────────────
+
+const ATIVOS_ROTA = ['aceito', 'pronto', 'em_rota'] as const
+
+/** Geocodifica o destino do pedido (em segundo plano, depois de criado). */
+async function localizarDestino(tenantId: string, id: string) {
+  try {
+    const [po, tenant] = await comTenant(tenantId, async () => Promise.all([
+      prisma.pedidoOnline.findFirst({ where: { tenantId, id }, select: { endereco: true, numero: true, bairro: true } }),
+      prisma.tenant.findUnique({ where: { id: tenantId }, select: { cidade: true, uf: true } }),
+    ]))
+    if (!po?.endereco) return
+    const c = await geocodificar({ rua: po.endereco, numero: po.numero, bairro: po.bairro, cidade: tenant?.cidade, uf: tenant?.uf })
+    if (c) await comTenant(tenantId, async () => await prisma.pedidoOnline.update({ where: { id }, data: { destinoLat: c.lat, destinoLng: c.lng } }))
+  } catch { /* sem pino no mapa; a entrega segue */ }
+}
+
+/** Ponto de partida do restaurante a partir do endereço cadastrado. */
+export async function localizarRestaurante(tenantId: string) {
+  const t = await prisma.tenant.findUnique({ where: { id: tenantId }, select: { endereco: true, cidade: true, uf: true } })
+  if (!t?.endereco && !t?.cidade) throw erro(400, 'Cadastre o endereço do restaurante (Platform) ou marque o ponto no mapa')
+  const c = await geocodificar({ rua: t.endereco, cidade: t.cidade, uf: t.uf })
+  if (!c) throw erro(404, 'Não achei o endereço no mapa. Marque o ponto manualmente.')
+  return salvarConfig(tenantId, { local: c })
+}
+
+async function ultimaPosicao(tenantId: string, usuarioId: string, minutos = 15) {
+  return prisma.entregadorPosicao.findFirst({
+    where: { tenantId, usuarioId, createdAt: { gte: new Date(Date.now() - minutos * 60000) } },
+    orderBy: { createdAt: 'desc' }, select: { lat: true, lng: true, createdAt: true },
+  })
+}
+
+/**
+ * Ordem das paradas: vizinho mais próximo a partir de onde o entregador
+ * está (ou do restaurante). Sem coordenadas, vai para o fim na ordem de
+ * chegada. Recalculada a cada atribuição, início de rota e entrega.
+ */
+export async function recalcularRota(tenantId: string, entregadorId: string) {
+  const [entregas, pos, cfg] = await Promise.all([
+    prisma.pedidoOnline.findMany({
+      where: { tenantId, entregadorId, status: { in: [...ATIVOS_ROTA] }, entregaConfirmadaEm: null },
+      select: { id: true, destinoLat: true, destinoLng: true, createdAt: true },
+      orderBy: { createdAt: 'asc' },
+    }),
+    ultimaPosicao(tenantId, entregadorId),
+    prisma.configuracoes.findFirst({ where: { tenantId }, select: { deliveryLat: true, deliveryLng: true } }),
+  ])
+  let atual: Coordenadas | null = pos ? { lat: pos.lat, lng: pos.lng } : cfg?.deliveryLat != null ? { lat: cfg.deliveryLat, lng: cfg.deliveryLng! } : null
+  const comCoord = entregas.filter((e) => e.destinoLat != null && e.destinoLng != null)
+  const semCoord = entregas.filter((e) => e.destinoLat == null || e.destinoLng == null)
+  const ordem: string[] = []
+  while (comCoord.length) {
+    let melhor = 0
+    if (atual) {
+      let menor = Infinity
+      comCoord.forEach((e, i) => { const d = distancia(atual!, { lat: e.destinoLat!, lng: e.destinoLng! }); if (d < menor) { menor = d; melhor = i } })
+    }
+    const [e] = comCoord.splice(melhor, 1)
+    ordem.push(e.id)
+    atual = { lat: e.destinoLat!, lng: e.destinoLng! }
+  }
+  ordem.push(...semCoord.map((e) => e.id))
+  await prisma.$transaction(ordem.map((id, i) => prisma.pedidoOnline.update({ where: { id }, data: { ordemRota: i + 1 } })))
+}
+
+/** Entregadores ativos, onde estão e quantas entregas têm. */
+export async function entregadores(tenantId: string) {
+  const lista = await prisma.usuario.findMany({
+    where: { tenantId, cargo: 'entregador' as any, ativo: true },
+    select: { id: true, nome: true, entregas: { where: { status: { in: [...ATIVOS_ROTA] }, entregaConfirmadaEm: null }, select: { id: true, status: true } } },
+    orderBy: { nome: 'asc' },
+  })
+  return Promise.all(lista.map(async (u) => {
+    const pos = await ultimaPosicao(tenantId, u.id)
+    return {
+      id: u.id, nome: u.nome,
+      entregas: u.entregas.length,
+      emRota: u.entregas.some((e) => e.status === 'em_rota'),
+      posicao: pos ? { lat: pos.lat, lng: pos.lng, em: pos.createdAt } : null,
+    }
+  }))
+}
+
+/** Caixa escolhe (ou tira) o entregador de um pedido de entrega. */
+export async function atribuir(tenantId: string, id: string, entregadorId: string | null) {
+  const po = await buscar(tenantId, id)
+  if (po.tipo !== 'entrega') throw erro(400, 'Pedido para retirada não tem entregador')
+  if (!ATIVOS_ROTA.includes(po.status as any)) throw erro(409, 'Aceite o pedido antes de escolher o entregador')
+  if (po.entregaConfirmadaEm) throw erro(409, 'Este pedido já foi entregue')
+  if (entregadorId) {
+    const u = await prisma.usuario.findFirst({ where: { tenantId, id: entregadorId, cargo: 'entregador' as any, ativo: true } })
+    if (!u) throw erro(404, 'Entregador não encontrado')
+  }
+  const anterior = po.entregadorId
+  await prisma.pedidoOnline.update({ where: { id }, data: { entregadorId, ordemRota: null } })
+  if (anterior && anterior !== entregadorId) await recalcularRota(tenantId, anterior)
+  if (entregadorId) await recalcularRota(tenantId, entregadorId)
+  const atualizado = await buscar(tenantId, id)
+  emitir(tenantId).delivery(EVENTOS.delivery.atualizado, payload(atualizado))
+  return paraCaixa(atualizado)
+}
+
+/** Mapa do caixa: restaurante, entregadores (com o rastro dos últimos 30 min) e entregas em andamento. */
+export async function mapa(tenantId: string) {
+  const [cfg, ents, pedidos] = await Promise.all([
+    prisma.configuracoes.findFirst({ where: { tenantId }, select: { deliveryLat: true, deliveryLng: true, nomeRestaurante: true } }),
+    entregadores(tenantId),
+    prisma.pedidoOnline.findMany({
+      where: { tenantId, tipo: 'entrega', status: { in: [...ATIVOS_ROTA] }, entregaConfirmadaEm: null },
+      select: { id: true, codigo: true, clienteNome: true, status: true, destinoLat: true, destinoLng: true, entregadorId: true, ordemRota: true, bairro: true },
+    }),
+  ])
+  const desde = new Date(Date.now() - 30 * 60000)
+  const rastros = await Promise.all(ents.filter((e) => e.posicao).map(async (e) => ({
+    entregadorId: e.id,
+    pontos: (await prisma.entregadorPosicao.findMany({
+      where: { tenantId, usuarioId: e.id, createdAt: { gte: desde } }, orderBy: { createdAt: 'asc' }, select: { lat: true, lng: true },
+    })).map((p) => [p.lat, p.lng]),
+  })))
+  return {
+    restaurante: cfg?.deliveryLat != null ? { lat: cfg.deliveryLat, lng: cfg.deliveryLng, nome: cfg.nomeRestaurante } : null,
+    entregadores: ents,
+    rastros,
+    entregas: pedidos.map((p) => ({ ...p, destino: p.destinoLat != null ? { lat: p.destinoLat, lng: p.destinoLng } : null })),
+  }
+}
+
+// ── App do entregador ──
+
+/** As entregas do entregador, na ordem da rota. */
+export async function minhaRota(tenantId: string, usuarioId: string) {
+  const [cfg, lista] = await Promise.all([
+    prisma.configuracoes.findFirst({ where: { tenantId }, select: { deliveryLat: true, deliveryLng: true, nomeRestaurante: true } }),
+    prisma.pedidoOnline.findMany({
+      where: { tenantId, entregadorId: usuarioId, OR: [{ status: { in: [...ATIVOS_ROTA] }, entregaConfirmadaEm: null }, { entregaConfirmadaEm: { gte: new Date(Date.now() - 12 * 3600_000) } }] },
+      include: includeCaixa,
+      orderBy: [{ ordemRota: 'asc' }, { createdAt: 'asc' }],
+    }),
+  ])
+  return {
+    restaurante: { nome: cfg?.nomeRestaurante ?? 'Restaurante', local: cfg?.deliveryLat != null ? { lat: cfg.deliveryLat, lng: cfg.deliveryLng } : null },
+    pendentes: lista.filter((p) => !p.entregaConfirmadaEm).map(paraCaixa),
+    feitas: lista.filter((p) => p.entregaConfirmadaEm).map(paraCaixa),
+  }
+}
+
+/** Saiu: tudo o que está com ele vai para "em rota" (o cliente passa a ver o mapa). */
+export async function iniciarRota(tenantId: string, usuarioId: string) {
+  const prontos = await prisma.pedidoOnline.findMany({
+    where: { tenantId, entregadorId: usuarioId, status: { in: ['aceito', 'pronto'] }, entregaConfirmadaEm: null }, select: { id: true },
+  })
+  if (!prontos.length) throw erro(409, 'Nenhuma entrega esperando para sair')
+  const agora = new Date()
+  await prisma.pedidoOnline.updateMany({ where: { id: { in: prontos.map((p) => p.id) } }, data: { status: 'em_rota', saiuEm: agora, prontoEm: agora } })
+  await recalcularRota(tenantId, usuarioId)
+  for (const p of prontos) emitir(tenantId).delivery(EVENTOS.delivery.atualizado, payload(await buscar(tenantId, p.id)))
+  return minhaRota(tenantId, usuarioId)
+}
+
+/** O entregador confirmou a entrega. O pagamento é acertado no caixa (concluir). */
+export async function confirmarEntrega(tenantId: string, usuarioId: string, id: string) {
+  const po = await buscar(tenantId, id)
+  if (po.entregadorId !== usuarioId) throw erro(403, 'Esta entrega não está com você')
+  if (po.status !== 'em_rota') throw erro(409, 'Inicie a rota antes de confirmar a entrega')
+  if (po.entregaConfirmadaEm) return minhaRota(tenantId, usuarioId)
+  await prisma.pedidoOnline.update({ where: { id }, data: { entregaConfirmadaEm: new Date(), ordemRota: null } })
+  await recalcularRota(tenantId, usuarioId)
+  emitir(tenantId).delivery(EVENTOS.delivery.atualizado, payload(await buscar(tenantId, id)))
+  return minhaRota(tenantId, usuarioId)
+}
+
+/** Posição do GPS (o app manda a cada ~15 s com a rota em andamento). */
+export async function registrarPosicao(tenantId: string, usuarioId: string, d: { lat: number; lng: number; precisao?: number; velocidade?: number }) {
+  const p = await prisma.entregadorPosicao.create({
+    data: { tenantId, usuarioId, lat: d.lat, lng: d.lng, precisao: d.precisao ?? null, velocidade: d.velocidade ?? null },
+  })
+  // Limpeza preguiçosa: de vez em quando apaga o que tem mais de 3 dias
+  if (Math.random() < 0.01) {
+    void prisma.entregadorPosicao.deleteMany({ where: { tenantId, createdAt: { lt: new Date(Date.now() - 3 * 86400_000) } } }).catch(() => {})
+  }
+  emitir(tenantId).posicao({ usuarioId, lat: p.lat, lng: p.lng, em: p.createdAt.toISOString() })
+  return { ok: true }
 }

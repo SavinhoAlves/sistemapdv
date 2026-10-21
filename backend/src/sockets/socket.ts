@@ -10,6 +10,7 @@ import {
   type PayloadPagamento,
   type PayloadCaixa,
   type PayloadDelivery,
+  type PayloadPosicao,
 } from '../lib/eventos'
 
 /**
@@ -146,6 +147,11 @@ export function emitir(tenantId: string) {
     delivery(evento: string, payload: PayloadDelivery) {
       if (!io) return semIo()
       io.to(salas.todos(tenantId)).emit(evento, payload)
+    },
+
+    posicao(payload: PayloadPosicao) {
+      if (!io) return
+      io.to(salas.todos(tenantId)).emit(EVENTOS.delivery.posicao, payload)
     },
   }
 }

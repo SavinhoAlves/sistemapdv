@@ -126,7 +126,7 @@ router.afterEach(() => {
 
 onMounted(async () => {
   // Páginas do cliente final seguem o tema do aparelho (useTemaDoAparelho), não o do PDV
-  const rotaCliente = /^\/(cardapio|pedido)(\/|$)/.test(router.currentRoute.value.path)
+  const rotaCliente = /^\/(cardapio|pedido|entregador)(\/|$)/.test(router.currentRoute.value.path)
   if (!rotaCliente) themeStore.init()
   await router.isReady()
   skeletonTimer = setTimeout(() => { rotaPronta.value = true; skeletonTimer = null }, SKELETON_MIN_MS)

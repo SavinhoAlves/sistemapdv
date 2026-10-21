@@ -35,6 +35,8 @@ export const EVENTOS = {
     recebido: 'delivery:recebido',
     /** aceito, recusado, pronto, em rota, entregue */
     atualizado: 'delivery:atualizado',
+    /** nova posição GPS de um entregador */
+    posicao: 'delivery:posicao',
   },
 } as const
 
@@ -93,6 +95,13 @@ export interface PayloadDelivery {
   tipo: 'entrega' | 'retirada'
   clienteNome: string
   totalCentavos: number
+}
+
+export interface PayloadPosicao {
+  usuarioId: string
+  lat: number
+  lng: number
+  em: string
 }
 
 export interface PayloadCaixa {

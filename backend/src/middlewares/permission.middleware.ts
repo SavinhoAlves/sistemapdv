@@ -39,6 +39,7 @@ export const PERMISSOES_CARGO: Record<string, Record<string, boolean>> = {
     verDashboard: true,
     aplicarDesconto: true,
     estornarPagamento: true,
+    fazerEntregas: true,
   },
   garcom: {
     adicionarPedido: true,
@@ -62,6 +63,10 @@ export const PERMISSOES_CARGO: Record<string, Record<string, boolean>> = {
   },
   cozinha: {
     verCozinha: true,
+  },
+  // App do entregador: só a própria rota
+  entregador: {
+    fazerEntregas: true,
   },
 }
 

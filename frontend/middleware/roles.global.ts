@@ -9,6 +9,7 @@ const PERMISSAO_POR_ROTA: Record<string, string | null> = {
   '/vendas':        'adicionarPedido',
   '/caixa':         'gerenciarCaixa',
   '/delivery':      'gerenciarCaixa',
+  '/entregador':    'fazerEntregas',
   '/cozinha':       'verCozinha',
   '/produtos':      'gerenciarProdutos',
   '/estoque':       'gerenciarProdutos',
@@ -20,7 +21,8 @@ const DESTINO_PADRAO: Record<string, string> = {
   administrador: '/',
   garcom:        '/mesas',
   caixa:         '/caixa',
-  cozinha:       '/cozinha'
+  cozinha:       '/cozinha',
+  entregador:    '/entregador',
 }
 
 export default defineNuxtRouteMiddleware((to) => {
@@ -41,6 +43,9 @@ export default defineNuxtRouteMiddleware((to) => {
     if (usuario.cargo !== 'administrador') return navigateTo(destino)
     return
   }
+
+  // O entregador só usa a própria rota (app do entregador)
+  if (usuario.cargo === 'entregador' && rotaBase !== '/entregador') return navigateTo('/entregador')
 
   // Rotas mapeadas: verifica a permissão necessária
   if (rotaBase in PERMISSAO_POR_ROTA) {

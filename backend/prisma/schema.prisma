@@ -25,6 +25,7 @@ enum UserCargo {
   garcom
   caixa
   cozinha
+  entregador
 }
 
 enum MesaStatus {
@@ -138,6 +139,7 @@ model Tenant {
   configuracoes        Configuracoes?
   impressoras          Impressora[]
   pedidosOnline        PedidoOnline[]
+  posicoesEntregador   EntregadorPosicao[]
   movimentacoesEstoque MovimentacaoEstoque[]
   dispositivos         Dispositivo[]
   licencas             Licenca[]
@@ -219,11 +221,13 @@ model Usuario {
   movimentacoesEstoque MovimentacaoEstoque[]
 
   // relações adicionadas pelas correções do PDV
-  mesasEncerradas       Mesa[]       @relation("EncerradaPor")
-  abatimentosFeitos     Abatimento[] @relation("AbatimentoAutor")
-  abatimentosCancelados Abatimento[] @relation("AbatimentoCancelador")
-  itensLancados         PedidoItem[] @relation("ItemLancadoPor")
-  pagamentosEstornados  Pagamento[]  @relation("PagamentoEstornadoPor")
+  mesasEncerradas       Mesa[]              @relation("EncerradaPor")
+  abatimentosFeitos     Abatimento[]        @relation("AbatimentoAutor")
+  abatimentosCancelados Abatimento[]        @relation("AbatimentoCancelador")
+  itensLancados         PedidoItem[]        @relation("ItemLancadoPor")
+  pagamentosEstornados  Pagamento[]         @relation("PagamentoEstornadoPor")
+  entregas              PedidoOnline[]      @relation("Entregador")
+  posicoes              EntregadorPosicao[]
 
   @@unique([tenantId, codigo])
   @@unique([tenantId, email])
@@ -579,6 +583,9 @@ model Configuracoes {
   deliveryRetirada       Boolean @default(true) @map("delivery_retirada")
   deliveryEntrega        Boolean @default(true) @map("delivery_entrega")
   deliveryMensagem       String? @map("delivery_mensagem")
+  /// Ponto de partida das entregas (mapa e ordem das paradas)
+  deliveryLat            Float?  @map("delivery_lat")
+  deliveryLng            Float?  @map("delivery_lng")
   mpAtivado              Boolean @default(false) @map("mp_ativado")
   mpAccessToken          String? @map("mp_access_token")
   mpDeviceId             String? @map("mp_device_id")
@@ -893,43 +900,72 @@ enum PedidoOnlineTipo {
 }
 
 model PedidoOnline {
-  id              String             @id @default(uuid())
-  tenantId        String             @map("tenant_id")
+  id                  String             @id @default(uuid())
+  tenantId            String             @map("tenant_id")
   /// Código curto que o cliente usa para acompanhar (único na plataforma)
-  codigo          String             @unique
-  status          PedidoOnlineStatus @default(recebido)
-  tipo            PedidoOnlineTipo   @default(entrega)
-  clienteNome     String             @map("cliente_nome")
-  clienteTelefone String             @map("cliente_telefone")
-  endereco        String?
-  numero          String?
-  bairro          String?
-  complemento     String?
-  referencia      String?
+  codigo              String             @unique
+  status              PedidoOnlineStatus @default(recebido)
+  tipo                PedidoOnlineTipo   @default(entrega)
+  clienteNome         String             @map("cliente_nome")
+  clienteTelefone     String             @map("cliente_telefone")
+  endereco            String?
+  numero              String?
+  bairro              String?
+  complemento         String?
+  referencia          String?
   /// Itens como o cliente pediu (nome e preço do momento): [{produtoId, nome, quantidade, preco, observacao}]
-  itens           Json
-  subtotal        Decimal            @db.Decimal(10, 2)
-  taxaEntrega     Decimal            @default(0) @map("taxa_entrega") @db.Decimal(10, 2)
-  total           Decimal            @db.Decimal(10, 2)
+  itens               Json
+  subtotal            Decimal            @db.Decimal(10, 2)
+  taxaEntrega         Decimal            @default(0) @map("taxa_entrega") @db.Decimal(10, 2)
+  total               Decimal            @db.Decimal(10, 2)
   /// dinheiro | cartao | pix — pago na entrega/retirada
-  formaPagamento  String             @map("forma_pagamento")
-  trocoPara       Decimal?           @map("troco_para") @db.Decimal(10, 2)
-  observacao      String?
-  motivoRecusa    String?            @map("motivo_recusa")
-  pedidoId        String?            @unique @map("pedido_id")
-  aceitoPorId     String?            @map("aceito_por")
-  aceitoEm        DateTime?          @map("aceito_em")
-  prontoEm        DateTime?          @map("pronto_em")
-  saiuEm          DateTime?          @map("saiu_em")
-  entregueEm      DateTime?          @map("entregue_em")
-  canceladoEm     DateTime?          @map("cancelado_em")
-  createdAt       DateTime           @default(now()) @map("created_at")
-  updatedAt       DateTime           @updatedAt @map("updated_at")
+  formaPagamento      String             @map("forma_pagamento")
+  trocoPara           Decimal?           @map("troco_para") @db.Decimal(10, 2)
+  observacao          String?
+  motivoRecusa        String?            @map("motivo_recusa")
+  pedidoId            String?            @unique @map("pedido_id")
+  /// Destino geocodificado (OpenStreetMap/Nominatim) — nulo se o endereço não foi achado
+  destinoLat          Float?             @map("destino_lat")
+  destinoLng          Float?             @map("destino_lng")
+  entregadorId        String?            @map("entregador_id")
+  /// Posição na rota do entregador (1 = primeira parada)
+  ordemRota           Int?               @map("ordem_rota")
+  /// O entregador marcou como entregue; o pagamento é acertado no caixa (entregue)
+  entregaConfirmadaEm DateTime?          @map("entrega_confirmada_em")
+  aceitoPorId         String?            @map("aceito_por")
+  aceitoEm            DateTime?          @map("aceito_em")
+  prontoEm            DateTime?          @map("pronto_em")
+  saiuEm              DateTime?          @map("saiu_em")
+  entregueEm          DateTime?          @map("entregue_em")
+  canceladoEm         DateTime?          @map("cancelado_em")
+  createdAt           DateTime           @default(now()) @map("created_at")
+  updatedAt           DateTime           @updatedAt @map("updated_at")
 
-  tenant Tenant  @relation(fields: [tenantId], references: [id])
-  pedido Pedido? @relation(fields: [pedidoId], references: [id])
+  tenant     Tenant   @relation(fields: [tenantId], references: [id])
+  pedido     Pedido?  @relation(fields: [pedidoId], references: [id])
+  entregador Usuario? @relation("Entregador", fields: [entregadorId], references: [id])
 
   @@index([tenantId, status])
+  @@index([tenantId, entregadorId, status])
   @@index([tenantId, createdAt])
   @@map("pedidos_online")
+}
+
+/// Posições GPS do entregador durante a rota (o app manda a cada ~15 s). Guardadas 3 dias.
+model EntregadorPosicao {
+  id         String   @id @default(uuid())
+  tenantId   String   @map("tenant_id")
+  usuarioId  String   @map("usuario_id")
+  lat        Float
+  lng        Float
+  precisao   Float?
+  velocidade Float?
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  tenant  Tenant  @relation(fields: [tenantId], references: [id])
+  usuario Usuario @relation(fields: [usuarioId], references: [id])
+
+  @@index([tenantId, usuarioId, createdAt])
+  @@index([createdAt])
+  @@map("entregador_posicoes")
 }

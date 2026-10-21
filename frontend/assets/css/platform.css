@@ -215,8 +215,8 @@ html.dark .pf, html.dark .pf-portal {
 
 @media (max-width: 1000px) { .pf-two { grid-template-columns: 1fr; } }
 @media (max-width: 860px) {
-  .pf-shell { grid-template-columns: 1fr; }
-  .pf-rail { position: static; height: auto; padding: 10px 10px 0; }
+  .pf-shell { grid-template-columns: minmax(0, 1fr); }
+  .pf-rail { position: static; min-width: 0; height: auto; padding: 10px 10px 0; }
   .pf-rail-in { flex-direction: row; align-items: center; gap: 4px; overflow-x: auto; border-radius: 18px; padding: 8px; }
   .pf-logo { padding: 0 8px 0 4px; }
   .pf-logo span:last-child, .pf-grp, .pf-me-info { display: none; }

@@ -29,6 +29,7 @@ import { platformTicketsRoutes } from './modules/platform/platform-tickets.route
 import { platformPlanosRoutes } from './modules/platform/platform-planos.routes'
 import { platformCobrancaRoutes } from './modules/platform/platform-cobranca.routes'
 import { platformContratosRoutes } from './modules/platform/platform-contratos.routes'
+import { platformDeliveryRoutes } from './modules/platform/platform-delivery.routes'
 
 export async function buildApp() {
   const app = Fastify({
@@ -133,6 +134,7 @@ export async function buildApp() {
   await app.register(platformPlanosRoutes,  { prefix: '/api/platform/planos' })
   await app.register(platformCobrancaRoutes, { prefix: '/api/platform/cobranca' })
   await app.register(platformContratosRoutes, { prefix: '/api/platform/contratos' })
+  await app.register(platformDeliveryRoutes, { prefix: '/api/platform/delivery' })
 
   // Health check
   app.get('/health', { config: { public: true } }, async () => ({ ok: true }))

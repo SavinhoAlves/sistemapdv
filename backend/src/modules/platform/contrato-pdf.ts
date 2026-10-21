@@ -24,6 +24,63 @@ pdfmake.setFonts({
 pdfmake.setUrlAccessPolicy(() => false)
 pdfmake.setLocalAccessPolicy((p) => p.startsWith(FONTES))
 
+// ── Identidade (a mesma da Platform) ─────────────────────────────────────────
+
+const COR = {
+  marca: '#FF7A00', marcaEsc: '#B85500', marcaClara: '#FFF1E2',
+  tinta: '#1E1E1E', suave: '#6F6C66', linha: '#E4E1DA', fundo: '#F6F4F0',
+}
+
+
+const ICONE_PATHS = `<path d="m16 2-2.3 2.3a3 3 0 0 0 0 4.2l1.8 1.8a3 3 0 0 0 4.2 0L22 8"/>
+<path d="M15 15 3.3 3.3a4.2 4.2 0 0 0 0 6l7.3 7.3c.7.7 2 .7 2.8 0L15 15Zm0 0 7 7"/>
+<path d="m2.1 21.8 6.4-6.3"/><path d="m19 5-7 7"/>`
+
+/** Selo da marca: talheres (ícone Lucide "utensils-crossed", licença ISC) no quadrado laranja, igual à logo da Platform (.pf-logo-m). */
+const LOGO_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="38" height="38" viewBox="0 0 38 38">
+<defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#FF9B33"/><stop offset="1" stop-color="#FF7A00"/></linearGradient></defs>
+<rect width="38" height="38" rx="12" fill="url(#g)"/>
+<g transform="translate(9 9) scale(0.8333)" fill="none" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+${ICONE_PATHS}
+</g></svg>`
+
+// ── Fundos (A4 = 595.28 × 841.89 pt) ────────────────────────────────────────
+
+const A4 = { w: 595.28, h: 841.89 }
+const HERO_ALTURA = 232
+
+const FAIXA_RODAPE = `<rect y="${A4.h - 5}" width="${A4.w}" height="5" fill="url(#o)"/>`
+const GRAD_LARANJA = `<linearGradient id="o" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#FF9B33"/><stop offset="1" stop-color="#FF7A00"/></linearGradient>`
+
+/** Página 1: faixa escura com brilhos laranja e os talheres grandes, quase transparentes. */
+const FUNDO_CAPA = `<svg xmlns="http://www.w3.org/2000/svg" width="${A4.w}" height="${A4.h}" viewBox="0 0 ${A4.w} ${A4.h}">
+<defs>
+<linearGradient id="h" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#2E1D0E"/><stop offset="0.6" stop-color="#1E1E1E"/><stop offset="1" stop-color="#171717"/></linearGradient>
+${GRAD_LARANJA}
+</defs>
+<rect width="${A4.w}" height="${HERO_ALTURA}" fill="url(#h)"/>
+<circle cx="545" cy="-10" r="165" fill="#FF7A00" fill-opacity="0.16"/>
+<circle cx="600" cy="190" r="105" fill="#FF9B33" fill-opacity="0.10"/>
+<circle cx="-30" cy="${HERO_ALTURA}" r="90" fill="#FF7A00" fill-opacity="0.07"/>
+<g transform="translate(408 38) scale(6.4)" fill="none" stroke="#FFFFFF" stroke-opacity="0.07" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round">${ICONE_PATHS}</g>
+<rect y="${HERO_ALTURA}" width="${A4.w}" height="${A4.h - HERO_ALTURA}" fill="#FFFFFF"/>
+<rect y="${HERO_ALTURA}" width="${A4.w}" height="4" fill="url(#o)"/>
+${FAIXA_RODAPE}
+</svg>`
+
+/** Demais páginas: marca-d'água dos talheres ao centro e a faixa laranja no pé. */
+const FUNDO_PAGINA = `<svg xmlns="http://www.w3.org/2000/svg" width="${A4.w}" height="${A4.h}" viewBox="0 0 ${A4.w} ${A4.h}">
+<defs>${GRAD_LARANJA}</defs>
+<g transform="translate(${A4.w / 2 - 132} ${A4.h / 2 - 132}) scale(11)" fill="none" stroke="#FF7A00" stroke-opacity="0.045" stroke-width="1" stroke-linecap="round" stroke-linejoin="round">${ICONE_PATHS}</g>
+${FAIXA_RODAPE}
+</svg>`
+
+/** Células separadas por 4pt de branco (cartões lado a lado). */
+const GRADE = {
+  hLineWidth: () => 4, vLineWidth: () => 4, hLineColor: () => '#FFFFFF', vLineColor: () => '#FFFFFF',
+  paddingLeft: () => 0, paddingRight: () => 0, paddingTop: () => 0, paddingBottom: () => 0,
+}
+
 // ── Textos auxiliares ────────────────────────────────────────────────────────
 
 const MESES = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro']
@@ -96,7 +153,19 @@ export function gerarContratoPdf(d: DadosContrato, versao: { numero: number; cri
   const clausulas: Content[] = []
   const clausula = (titulo: string, ...corpo: Content[]) => {
     n++
-    clausulas.push({ text: `CLÁUSULA ${n}ª — ${titulo.toUpperCase()}`, style: 'clausula' }, ...corpo)
+    const cabecalho: Content = {
+      table: {
+        widths: [22, '*'],
+        body: [[
+          { text: String(n), style: 'clNum', fillColor: COR.marca },
+          { text: [{ text: `CLÁUSULA ${n}ª  `, style: 'clRot' }, { text: titulo.toUpperCase(), style: 'clTit' }], margin: [6, 3, 0, 0] },
+        ]],
+      },
+      layout: 'noBorders',
+      margin: [0, 12, 0, 6],
+    }
+    // Título nunca fica sozinho no pé da página: vai junto com o primeiro parágrafo
+    clausulas.push({ stack: [cabecalho, corpo[0]], unbreakable: true }, ...corpo.slice(1))
     return n
   }
   const p = (...t: any[]): Content => ({ text: t, style: 'p' })
@@ -233,104 +302,220 @@ export function gerarContratoPdf(d: DadosContrato, versao: { numero: number; cri
     return c
   }
 
-  const linha = (rotulo: string, valor: string | null | undefined) =>
-    valor ? [{ text: rotulo, style: 'rot' }, { text: valor, style: 'val' }] : null
+  // ── Blocos visuais ─────────────────────────────────────────────────────────
 
-  const quadro = [
-    linha('Plano', co.plano),
-    linha('Valor', cobra ? `${moeda(co.valor!)} por período ${ciclo.nome}` : 'Sem cobrança'),
-    cobra ? linha('Vencimento', `Dia ${co.diaVencimento}`) : null,
-    linha('Início', co.dataInicio ? dataBR(co.dataInicio) : 'Na assinatura'),
-    linha('Término', co.dataFim ? dataBR(co.dataFim) : 'Prazo indeterminado'),
-    co.testeAte ? linha('Teste grátis até', dataBR(co.testeAte)) : null,
-    cobra ? linha('Tolerância', `${rg.toleranciaDias} dias após o vencimento`) : null,
-  ].filter(Boolean) as any[][]
+  const emitido = dataBR(versao.criadaEm.toISOString().slice(0, 10))
+
+  const parte = (rotulo: string, nome: string, linhas: (string | null | undefined)[]) => ({
+    stack: [
+      { canvas: [{ type: 'rect', x: 0, y: 0, w: 26, h: 3, r: 1.5, color: COR.marca }], margin: [0, 0, 0, 7] },
+      { text: rotulo, style: 'rotulo', color: COR.marcaEsc },
+      { text: nome, fontSize: 11, bold: true, margin: [0, 2, 0, 4] },
+      ...linhas.filter(Boolean).map(l => ({ text: l as string, fontSize: 8.5, color: COR.suave, margin: [0, 0, 0, 1] as [number, number, number, number] })),
+    ],
+    margin: [12, 10, 12, 10] as [number, number, number, number],
+  })
+
+  const secao = (t: string): Content => ({
+    columns: [
+      { canvas: [{ type: 'rect', x: 0, y: 0, w: 14, h: 3, r: 1.5, color: COR.marca }], width: 22, margin: [0, 3.5, 0, 0] },
+      { text: t, style: 'secao', margin: 0 },
+    ],
+    margin: [0, 20, 0, 9],
+  })
+
+  const tile = (rotulo: string, valor: string, destaque = false) => ({
+    stack: [
+      { text: rotulo.toUpperCase(), style: 'rotulo', color: destaque ? '#FFE2C2' : COR.suave },
+      { text: valor, fontSize: destaque ? 12.5 : 10, bold: true, color: destaque ? '#FFFFFF' : COR.tinta, margin: [0, 3, 0, 0] },
+    ],
+    fillColor: destaque ? COR.marca : COR.fundo,
+    margin: [10, 8, 10, 8],
+  })
+
+  const tiles = [
+    tile('Valor', cobra ? `${moeda(co.valor!)} / ${ciclo.nome}` : 'Sem cobrança', true),
+    tile('Plano', co.plano),
+    cobra ? tile('Vencimento', `Todo dia ${co.diaVencimento}`) : tile('Ciclo', ciclo.nome),
+    tile('Início', co.dataInicio ? dataBR(co.dataInicio) : 'Na assinatura'),
+    tile('Término', co.dataFim ? dataBR(co.dataFim) : 'Indeterminado'),
+    co.testeAte ? tile('Teste grátis até', dataBR(co.testeAte)) : tile('Tolerância', cobra ? `${rg.toleranciaDias} dias` : '—'),
+  ]
+  const linhasTiles = [tiles.slice(0, 3), tiles.slice(3, 6)]
 
   const assinatura = (nome: string, papel: string, doc?: string | null): Content => ({
     stack: [
-      { canvas: [{ type: 'line', x1: 0, y1: 0, x2: 220, y2: 0, lineWidth: 0.6, lineColor: '#333' }], margin: [0, 36, 0, 4] },
+      { canvas: [{ type: 'line', x1: 0, y1: 0, x2: 225, y2: 0, lineWidth: 0.7, lineColor: COR.tinta }], margin: [0, 34, 0, 5] },
       { text: nome, bold: true, fontSize: 9.5 },
-      { text: papel, fontSize: 8.5, color: '#555' },
-      doc ? { text: doc, fontSize: 8.5, color: '#555' } : '',
+      { text: papel, style: 'rotulo', color: COR.marcaEsc, margin: [0, 1, 0, 0] },
+      doc ? { text: doc, fontSize: 8, color: COR.suave } : '',
     ],
   })
 
   const doc: TDocumentDefinitions = {
     pageSize: 'A4',
-    pageMargins: [56, 60, 56, 56],
+    pageMargins: [48, 74, 48, 58],
     info: {
       title: `Contrato ${ct.codigo} — ${ct.nome} — versão ${versao.numero}`,
       author: cd.nome,
       subject: 'Contrato de licença de uso de software (SaaS)',
     },
-    defaultStyle: { font: 'Roboto', fontSize: 9.5, lineHeight: 1.25, color: '#1a1a1a' },
+    defaultStyle: { font: 'Roboto', fontSize: 9.5, lineHeight: 1.3, color: COR.tinta },
     styles: {
-      titulo: { fontSize: 13, bold: true, alignment: 'center', margin: [0, 0, 0, 4] },
-      sub: { fontSize: 8.5, alignment: 'center', color: '#666', margin: [0, 0, 0, 16] },
-      secao: { fontSize: 10, bold: true, margin: [0, 10, 0, 6], color: '#111' },
-      clausula: { fontSize: 9.5, bold: true, margin: [0, 10, 0, 4] },
-      p: { margin: [0, 0, 0, 4] },
-      lista: { margin: [8, 0, 0, 4] },
-      rot: { fontSize: 8.5, color: '#555' },
-      val: { fontSize: 9, bold: true },
+      rotulo: { fontSize: 7, bold: true, color: COR.suave, characterSpacing: 0.8 },
+      secao: { fontSize: 8, bold: true, color: COR.marcaEsc, characterSpacing: 1.4 },
+      clNum: { color: '#FFFFFF', bold: true, fontSize: 10, alignment: 'center', margin: [0, 3, 0, 3] },
+      clRot: { fontSize: 7.5, bold: true, color: COR.marcaEsc, characterSpacing: 0.6 },
+      clTit: { fontSize: 9.5, bold: true },
+      p: { margin: [0, 0, 0, 5] },
+      lista: { margin: [10, 0, 0, 5] },
+    },
+    background: (pagina) => ({ svg: pagina === 1 ? FUNDO_CAPA : FUNDO_PAGINA, width: A4.w, height: A4.h }),
+    header: (pagina) => {
+      const capa = pagina === 1
+      return {
+        stack: [
+          {
+            columns: [
+              { svg: LOGO_SVG, width: 22, height: 22 },
+              {
+                text: [{ text: 'Restaurante ', bold: true, color: capa ? '#FFFFFF' : COR.tinta }, { text: 'PDV', bold: true, color: COR.marca }],
+                fontSize: 12, margin: [8, 4, 0, 0], width: 'auto',
+              },
+              {
+                text: `Contrato · Cód. ${ct.codigo} · versão ${versao.numero}`,
+                alignment: 'right', fontSize: 8, color: capa ? '#BDB4A8' : COR.suave, margin: [0, 6, 0, 0],
+              },
+            ],
+          },
+          capa
+            ? { canvas: [{ type: 'line', x1: 0, y1: 0, x2: 499, y2: 0, lineWidth: 0.5, lineColor: '#4A4038' }], margin: [0, 10, 0, 0] }
+            : { canvas: [{ type: 'rect', x: 0, y: 0, w: 499, h: 2, color: COR.marca }], margin: [0, 10, 0, 0] },
+        ],
+        margin: [48, 28, 48, 0],
+      } as Content
     },
     footer: (pagina, total) => ({
-      columns: [
-        { text: `Contrato ${ct.codigo} · ${ct.nome} · versão ${versao.numero}`, fontSize: 7.5, color: '#888' },
-        { text: `Página ${pagina} de ${total}`, alignment: 'right', fontSize: 7.5, color: '#888' },
+      stack: [
+        { canvas: [{ type: 'line', x1: 0, y1: 0, x2: 499, y2: 0, lineWidth: 0.5, lineColor: COR.linha }] },
+        {
+          columns: [
+            { text: `Restaurante PDV · ${cd.nome} · ${cd.email}`, fontSize: 7.5, color: COR.suave },
+            { text: `Página ${pagina} de ${total}`, alignment: 'right', fontSize: 7.5, color: COR.suave },
+          ],
+          margin: [0, 8, 0, 0],
+        },
       ],
-      margin: [56, 20, 56, 0],
+      margin: [48, 16, 48, 0],
     }),
     content: ajustar([
-      { text: 'CONTRATO DE LICENÇA DE USO DE SOFTWARE E PRESTAÇÃO DE SERVIÇOS', style: 'titulo' },
-      { text: `Restaurante PDV · Código do cliente ${ct.codigo} · Versão ${versao.numero}, de ${dataBR(versao.criadaEm.toISOString().slice(0, 10))}`, style: 'sub' },
-
-      { text: 'AS PARTES', style: 'secao' },
-      p(b('CONTRATADA: '), `${cd.nome}, pessoa física, inscrito no CPF sob o nº ${cd.cpf}, residente e domiciliado na ${cd.endereco}, ${cd.cidade}/${cd.uf}, e-mail ${cd.email}.`),
-      p(b('CONTRATANTE: '), [ct.nome, ctDoc, ctEndereco ? `com endereço em ${ctEndereco}` : null, ctRep].filter(Boolean).join(', ') + '.',
-        ct.telefone || ct.contato ? ` Contato: ${[ct.telefone, ct.contato].filter(Boolean).join(' · ')}.` : ''),
-      p('As partes acima têm entre si justo e contratado o presente instrumento, que se regerá pelas cláusulas e condições a seguir.'),
-
-      { text: 'QUADRO-RESUMO', style: 'secao' },
+      // Título
       {
-        table: { widths: [110, '*'], body: quadro },
-        layout: {
-          hLineWidth: () => 0.5, vLineWidth: () => 0,
-          hLineColor: () => '#ddd', paddingTop: () => 4, paddingBottom: () => 4,
+        table: {
+          widths: ['*'],
+          heights: [HERO_ALTURA - 74 - 4],
+          body: [[{
+            stack: [
+              { text: 'CONTRATO', style: 'rotulo', color: COR.marca, fontSize: 8, characterSpacing: 2.4, margin: [0, 14, 0, 6] },
+              { text: 'Licença de uso de software\ne prestação de serviços', fontSize: 23, bold: true, lineHeight: 1.08, color: '#FFFFFF' },
+              {
+                text: [
+                  { text: ct.nome, bold: true, color: '#FFFFFF' },
+                  { text: `   ·   Cliente ${ct.codigo}   ·   Versão ${versao.numero}   ·   Emitido em ${emitido}`, color: '#BDB4A8' },
+                ],
+                fontSize: 8.5, margin: [0, 12, 0, 0],
+              },
+            ],
+          }]],
         },
-        margin: [0, 0, 0, 6],
+        layout: 'noBorders',
       },
-      { text: 'Em caso de divergência, prevalecem as cláusulas abaixo.', fontSize: 8, color: '#666', italics: true },
 
-      { text: 'CLÁUSULAS', style: 'secao' },
+      // Partes
+      secao('AS PARTES'),
+      {
+        table: {
+          widths: ['*', '*'],
+          body: [[
+            {
+              ...parte('CONTRATANTE', ct.nome, [
+                ct.cnpj ? `CNPJ ${ct.cnpj}` : null,
+                ctEndereco || null,
+                ct.responsavel ? `Representante: ${ct.responsavel}${ct.cpfResponsavel ? ` · CPF ${ct.cpfResponsavel}` : ''}` : null,
+                [ct.telefone, ct.contato].filter(Boolean).join(' · ') || null,
+              ]),
+              fillColor: COR.fundo,
+            },
+            {
+              ...parte('CONTRATADA', cd.nome, [
+                `Pessoa física · CPF ${cd.cpf}`,
+                `${cd.endereco}, ${cd.cidade}/${cd.uf}`,
+                cd.email,
+              ]),
+              fillColor: COR.fundo,
+            },
+          ]],
+        },
+        layout: GRADE,
+        margin: [-4, -4, -4, 0],
+      },
+      { text: [
+        b('CONTRATANTE: '), [ct.nome, ctDoc, ctEndereco ? `com endereço em ${ctEndereco}` : null, ctRep].filter(Boolean).join(', ') + '. ',
+        b('CONTRATADA: '), `${cd.nome}, pessoa física, inscrito no CPF sob o nº ${cd.cpf}, residente e domiciliado na ${cd.endereco}, ${cd.cidade}/${cd.uf}. `,
+        'As partes têm entre si justo e contratado o presente instrumento, que se regerá pelas cláusulas e condições a seguir.',
+      ], style: 'p', margin: [0, 10, 0, 0] },
+
+      // Quadro-resumo
+      secao('QUADRO-RESUMO'),
+      {
+        table: { widths: ['*', '*', '*'], body: linhasTiles },
+        layout: GRADE,
+        margin: [-4, -4, -4, 0],
+      },
+      { text: 'Em caso de divergência, prevalecem as cláusulas abaixo.', fontSize: 7.5, color: COR.suave, italics: true, margin: [0, 4, 0, 0] },
+
+      // Cláusulas
+      { ...(secao('CLÁUSULAS') as object), pageBreak: 'before' } as Content,
       ...clausulas,
 
       ...(co.observacoes
-        ? [{ text: 'CONDIÇÕES ESPECÍFICAS', style: 'secao' } as Content,
-           p(`As condições abaixo, combinadas entre as partes, complementam as cláusulas acima e prevalecem sobre elas no que forem diferentes: ${co.observacoes}`)]
+        ? [
+            secao('CONDIÇÕES ESPECÍFICAS'),
+            {
+              table: { widths: [3, '*'], body: [[
+                { text: '', fillColor: COR.marca },
+                { stack: [
+                  { text: 'Combinadas entre as partes; complementam as cláusulas acima e prevalecem sobre elas no que forem diferentes.', fontSize: 8, color: COR.suave, margin: [0, 0, 0, 4] },
+                  { text: co.observacoes },
+                ], fillColor: COR.marcaClara, margin: [10, 8, 10, 8] },
+              ]] },
+              layout: 'noBorders',
+            } as Content,
+          ]
         : []),
 
+      // Assinaturas
       {
         stack: [
+          secao('ASSINATURAS'),
           p('E, por estarem de acordo, as partes assinam este contrato, em 2 (duas) vias de igual teor, ou eletronicamente, na presença das testemunhas abaixo.'),
-          { text: `${cd.cidade}/${cd.uf}, ____ de ____________________ de ________.`, margin: [0, 8, 0, 0] },
+          { text: `${cd.cidade}/${cd.uf}, ____ de ____________________ de ________.`, margin: [0, 6, 0, 0] },
           {
             columns: [
               assinatura(ct.nome, 'CONTRATANTE', ct.responsavel ? `p/ ${ct.responsavel}${ct.cpfResponsavel ? ` · CPF ${ct.cpfResponsavel}` : ''}` : null),
               assinatura(cd.nome, 'CONTRATADA', `CPF ${cd.cpf}`),
             ],
-            columnGap: 30,
+            columnGap: 40,
           },
           {
             columns: [
-              assinatura('Testemunha 1', 'Nome:', 'CPF:'),
-              assinatura('Testemunha 2', 'Nome:', 'CPF:'),
+              assinatura('Testemunha 1', 'NOME E CPF'),
+              assinatura('Testemunha 2', 'NOME E CPF'),
             ],
-            columnGap: 30,
+            columnGap: 40,
           },
         ],
         unbreakable: true,
-        margin: [0, 14, 0, 0],
       },
     ]),
   }

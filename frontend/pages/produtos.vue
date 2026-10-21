@@ -127,22 +127,22 @@
             v-for="cat in categoriasList"
             :key="cat.id"
             class="flex items-center gap-2.5 h-10 px-3.5 rounded-xl border transition-colors"
-            :class="cat.vai_cozinha
+            :class="cat.vaiCozinha
               ? 'border-orange-400/50 bg-orange-500/5'
               : 'border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/[0.04]'"
           >
             <span class="text-sm font-bold text-gray-700 dark:text-white/80">{{ cat.nome }}</span>
             <div class="flex items-center gap-1.5">
-              <ChefHat :size="12" :class="cat.vai_cozinha ? 'text-orange-400' : 'text-gray-300 dark:text-white/20'" />
+              <ChefHat :size="12" :class="cat.vaiCozinha ? 'text-orange-400' : 'text-gray-300 dark:text-white/20'" />
               <button
                 @click="toggleCozinha(cat)"
                 :disabled="togglingCozinha === cat.id"
                 class="w-9 h-5 rounded-full relative transition-colors disabled:opacity-50"
-                :class="cat.vai_cozinha ? 'bg-orange-500' : 'bg-gray-300 dark:bg-white/20'"
-                :title="cat.vai_cozinha ? 'Desativar cozinha' : 'Ativar cozinha'"
+                :class="cat.vaiCozinha ? 'bg-orange-500' : 'bg-gray-300 dark:bg-white/20'"
+                :title="cat.vaiCozinha ? 'Desativar cozinha' : 'Ativar cozinha'"
               >
                 <div
-                  :class="cat.vai_cozinha ? 'translate-x-4' : 'translate-x-0.5'"
+                  :class="cat.vaiCozinha ? 'translate-x-4' : 'translate-x-0.5'"
                   class="w-4 h-4 bg-white rounded-full absolute top-0.5 transition-transform shadow-sm"
                 />
               </button>
@@ -216,8 +216,8 @@
             title="Ajustar estoque"
           >
             Estoque:
-            <b :class="baixoEstoque(p) ? 'text-orange-500' : 'text-gray-600 dark:text-white/80'">{{ p.estoque_atual }}</b>
-            <span v-if="p.estoque_minimo > 0" class="text-gray-300 dark:text-white/20"> / mín. {{ p.estoque_minimo }}</span>
+            <b :class="baixoEstoque(p) ? 'text-orange-500' : 'text-gray-600 dark:text-white/80'">{{ p.estoqueAtual }}</b>
+            <span v-if="p.estoqueMinimo > 0" class="text-gray-300 dark:text-white/20"> / mín. {{ p.estoqueMinimo }}</span>
           </button>
           <div v-if="baixoEstoque(p)" class="mt-1.5 flex items-center gap-1 text-[10px] font-black text-orange-500 uppercase tracking-wide">
             <TriangleAlert :size="10" />
@@ -286,7 +286,7 @@
                     :class="baixoEstoque(p) ? 'text-orange-500' : 'text-gray-600 dark:text-white/80'"
                     title="Ajustar estoque"
                   >
-                    {{ p.estoque_atual }}<span v-if="p.estoque_minimo > 0" class="text-gray-300 dark:text-white/20 font-medium"> / {{ p.estoque_minimo }}</span>
+                    {{ p.estoqueAtual }}<span v-if="p.estoqueMinimo > 0" class="text-gray-300 dark:text-white/20 font-medium"> / {{ p.estoqueMinimo }}</span>
                   </button>
                   <div v-if="baixoEstoque(p)" class="mt-0.5 flex items-center justify-center gap-1 text-[9px] font-black text-orange-500 uppercase tracking-wide">
                     <TriangleAlert :size="9" /> baixo
@@ -386,11 +386,11 @@ function setVisualizacao(v: 'grade' | 'lista') {
 }
 
 function controlaEstoque(p: any) {
-  return p.gerenciar_estoque || p.estoque_atual > 0
+  return p.gerenciarEstoque || p.estoqueAtual > 0
 }
 
 function baixoEstoque(p: any) {
-  return controlaEstoque(p) && p.estoque_minimo > 0 && p.estoque_atual <= p.estoque_minimo
+  return controlaEstoque(p) && p.estoqueMinimo > 0 && p.estoqueAtual <= p.estoqueMinimo
 }
 
 const categoriasDisponiveis = computed(() => {
@@ -429,7 +429,7 @@ async function listarProdutos() {
     // Re-aplica reservas do carrinho de venda direta
     for (const item of carrinhoStore.itens) {
       const prod = produtos.value.find((p: any) => p.id === item.produto_id)
-      if (prod?.gerenciar_estoque) prod.estoque_atual = Math.max(0, prod.estoque_atual - item.quantidade)
+      if (prod?.gerenciarEstoque) prod.estoqueAtual = Math.max(0, prod.estoqueAtual - item.quantidade)
     }
   } catch (err) {
     toastStore.error('Erro ao carregar produtos')
@@ -458,10 +458,10 @@ async function carregarCategorias() {
 async function toggleCozinha(cat: any) {
   if (togglingCozinha.value) return
   togglingCozinha.value = cat.id
-  const novoValor = !cat.vai_cozinha
+  const novoValor = !cat.vaiCozinha
   try {
     await api.patch(`/categorias/${cat.id}/cozinha`, { vaiCozinha: novoValor })
-    cat.vai_cozinha = novoValor
+    cat.vaiCozinha = novoValor
     toastStore.success(`"${cat.nome}" ${novoValor ? 'vai' : 'não vai mais'} para a cozinha`)
   } catch {
     toastStore.error('Erro ao atualizar categoria')

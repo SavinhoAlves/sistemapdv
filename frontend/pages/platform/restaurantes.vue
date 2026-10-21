@@ -83,23 +83,13 @@
               <td><span class="pf-pill" :class="statusPill(t)[1]"><i />{{ statusPill(t)[0] }}</span></td>
               <td class="act" @click.stop>
                 <div style="display:inline-flex;gap:6px;align-items:center">
-                  <div class="relative">
-                    <button
-                      class="pf-btn s"
-                      :aria-expanded="menuSuporte === t.id"
-                      @click.stop="menuSuporte = menuSuporte === t.id ? null : t.id"
-                    >
-                      <Monitor :size="16" /> Acessar <ChevronDown :size="14" />
-                    </button>
-                    <div v-if="menuSuporte === t.id" class="pf-menu" @click.stop>
-                      <button @click="suporte(t, 'visualizacao')">
-                        <Eye :size="16" /><span>Só olhar<small>Vê o sistema do restaurante sem mexer em nada</small></span>
-                      </button>
-                      <button @click="suporte(t, 'auxiliar')">
-                        <MousePointer2 :size="16" /><span>Ajudar<small>Entra e pode fazer alterações por ele</small></span>
-                      </button>
-                    </div>
-                  </div>
+                  <button
+                    class="pf-btn s"
+                    :aria-expanded="menuSuporte?.tenant.id === t.id"
+                    @click.stop="alternarMenu(t, $event)"
+                  >
+                    <Monitor :size="16" /> Acessar <ChevronDown :size="14" />
+                  </button>
                   <button
                     class="pf-btn s"
                     :class="t.status === 'ativo' ? 'd' : 'k'"
@@ -124,6 +114,22 @@
       :type="confirmacao.type"
       @resolved="resolverConfirmacao"
     />
+    <!-- Fora da tabela: o card corta o que passa das bordas (overflow) -->
+    <Teleport to="body">
+      <div
+        v-if="menuSuporte"
+        class="pf-portal pf-menu"
+        :style="menuSuporte.pos"
+        @click.stop
+      >
+        <button @click="suporte(menuSuporte.tenant, 'visualizacao')">
+          <Eye :size="16" /><span>Só olhar<small>Vê o sistema do restaurante sem mexer em nada</small></span>
+        </button>
+        <button @click="suporte(menuSuporte.tenant, 'auxiliar')">
+          <MousePointer2 :size="16" /><span>Ajudar<small>Entra e pode fazer alterações por ele</small></span>
+        </button>
+      </div>
+    </Teleport>
     <PlatformSupportModal v-model="suporteModal.aberto" :tenant="suporteModal.tenant" :modo="suporteModal.modo" />
   </PlatformShell>
 </template>
@@ -184,7 +190,17 @@ const tenantEditando = ref<Tenant | null>(null)
 function abrirModal(t: Tenant | null) { tenantEditando.value = t; modalAberto.value = true }
 function abrirDetalhe(t: Tenant) { navigateTo(`/platform/tenants/${t.id}`) }
 
-const menuSuporte  = ref<string | null>(null)
+const menuSuporte  = ref<{ tenant: Tenant; pos: Record<string, string> } | null>(null)
+const ALTURA_MENU = 140
+function alternarMenu(t: Tenant, ev: MouseEvent) {
+  if (menuSuporte.value?.tenant.id === t.id) { menuSuporte.value = null; return }
+  const r = (ev.currentTarget as HTMLElement).getBoundingClientRect()
+  // Sem espaço abaixo do botão (últimas linhas da tela), abre para cima
+  const vertical = r.bottom + 6 + ALTURA_MENU > window.innerHeight
+    ? { top: 'auto', bottom: `${window.innerHeight - r.top + 6}px` }
+    : { top: `${r.bottom + 6}px` }
+  menuSuporte.value = { tenant: t, pos: { ...vertical, right: `${window.innerWidth - r.right}px` } }
+}
 const suporteModal = reactive({ aberto: false, tenant: null as Tenant | null, modo: 'auxiliar' as 'visualizacao' | 'auxiliar' })
 function suporte(t: Tenant, modo: 'visualizacao' | 'auxiliar') {
   menuSuporte.value = null
@@ -226,6 +242,13 @@ onMounted(() => {
   if (!platformAuth.isAuthenticated) { navigateTo('/platform/login'); return }
   carregar()
   document.addEventListener('click', fecharMenus)
+  // O menu fica fixo na tela: ao rolar ou redimensionar, fecha em vez de descolar do botão
+  window.addEventListener('scroll', fecharMenus, true)
+  window.addEventListener('resize', fecharMenus)
 })
-onUnmounted(() => document.removeEventListener('click', fecharMenus))
+onUnmounted(() => {
+  document.removeEventListener('click', fecharMenus)
+  window.removeEventListener('scroll', fecharMenus, true)
+  window.removeEventListener('resize', fecharMenus)
+})
 </script>

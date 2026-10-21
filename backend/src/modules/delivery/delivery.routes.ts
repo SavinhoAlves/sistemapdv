@@ -5,13 +5,21 @@ import { requirePermissao } from '../../middlewares/permission.middleware'
 import type { TenantJwtPayload } from '../../lib/jwt'
 import * as Service from './delivery.service'
 
-const responder = async (reply: any, fn: () => Promise<any>) => {
+/** Configurações do delivery: usadas pelo restaurante e pelo Platform. */
+export const configBody = z.object({
+  ativo: z.boolean().optional(), entrega: z.boolean().optional(), retirada: z.boolean().optional(),
+  taxaEntrega: z.number().min(0).max(500).optional(), pedidoMinimo: z.number().min(0).max(5000).optional(),
+  tempoMin: z.number().int().min(5).max(240).optional(), mensagem: z.string().max(200).nullable().optional(),
+  local: z.object({ lat: z.number().min(-90).max(90), lng: z.number().min(-180).max(180) }).nullable().optional(),
+})
+
+export const responder = async (reply: any, fn: () => Promise<any>) => {
   try { return await fn() } catch (e: any) {
     if (e?.status) return reply.status(e.status).send({ error: e.message })
     throw e
   }
 }
-const primeiro = (e: z.ZodError) => e.issues[0]?.message ?? 'Dados inválidos'
+export const primeiro = (e: z.ZodError) => e.issues[0]?.message ?? 'Dados inválidos'
 
 /** Rotas do caixa (/api/delivery): fila de pedidos do cardápio online e configurações. */
 export async function deliveryRoutes(app: FastifyInstance) {
@@ -52,12 +60,7 @@ export async function deliveryRoutes(app: FastifyInstance) {
 
   app.get('/config', cfg, async (request) => Service.config(request.tenantId!))
   app.put('/config', cfg, async (request, reply) => {
-    const b = z.object({
-      ativo: z.boolean().optional(), entrega: z.boolean().optional(), retirada: z.boolean().optional(),
-      taxaEntrega: z.number().min(0).max(500).optional(), pedidoMinimo: z.number().min(0).max(5000).optional(),
-      tempoMin: z.number().int().min(5).max(240).optional(), mensagem: z.string().max(200).nullable().optional(),
-      local: z.object({ lat: z.number().min(-90).max(90), lng: z.number().min(-180).max(180) }).nullable().optional(),
-    }).safeParse(request.body)
+    const b = configBody.safeParse(request.body)
     if (!b.success) return reply.status(400).send({ error: primeiro(b.error) })
     return responder(reply, () => Service.salvarConfig(request.tenantId!, b.data))
   })

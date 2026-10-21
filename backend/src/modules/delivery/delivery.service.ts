@@ -9,6 +9,7 @@ import { calcularConta, includeParaConta } from '../comandas/conta'
 import { verificarAcessoTenant } from '../../middlewares/tenant.middleware'
 import { registrarPagamento } from '../pagamentos/pagamentos.service'
 import { geocodificar, distancia, type Coordenadas } from '../../lib/geocodificar'
+import { hojeLocal, inicioDoDia } from '../../lib/fuso'
 
 /**
  * Delivery pelo cardápio online.
@@ -651,4 +652,81 @@ export async function registrarPosicao(tenantId: string, usuarioId: string, d: {
   }
   emitir(tenantId).posicao({ usuarioId, lat: p.lat, lng: p.lng, em: p.createdAt.toISOString() })
   return { ok: true }
+}
+
+// ─── Platform: visão geral do delivery em todos os restaurantes ────────────────
+
+const EM_ANDAMENTO = ['recebido', 'aceito', 'pronto', 'em_rota'] as const
+
+/**
+ * Restaurantes com delivery no plano ou ligado, com os números do dia e do
+ * mês. Cruza tenants: chamada só pelas rotas do Platform (sem escopo).
+ */
+export async function visaoGeralPlatform() {
+  return semEscopoDeTenant(async () => {
+    const hoje = hojeLocal()
+    const inicioHoje = inicioDoDia(hoje)
+    const inicioMes = inicioDoDia(`${hoje.slice(0, 7)}-01`)
+
+    const tenants = await prisma.tenant.findMany({
+      where: { OR: [{ plano: { delivery: true } }, { configuracoes: { deliveryAtivo: true } }] },
+      select: {
+        id: true, nome: true, slug: true, cidade: true, uf: true, status: true,
+        plano: { select: { nome: true, delivery: true } },
+        configuracoes: { select: { deliveryAtivo: true, deliveryLat: true, deliveryTaxa: true } },
+      },
+      orderBy: { nome: 'asc' },
+    })
+    const ids = tenants.map((t) => t.id)
+
+    const [hojeG, mesG, recusadosG, andamentoG, ultimoG, posicoes, cadastrados] = await Promise.all([
+      prisma.pedidoOnline.groupBy({ by: ['tenantId'], where: { tenantId: { in: ids }, status: 'entregue', createdAt: { gte: inicioHoje } }, _count: { _all: true }, _sum: { total: true } }),
+      prisma.pedidoOnline.groupBy({ by: ['tenantId'], where: { tenantId: { in: ids }, status: 'entregue', createdAt: { gte: inicioMes } }, _count: { _all: true }, _sum: { total: true } }),
+      prisma.pedidoOnline.groupBy({ by: ['tenantId'], where: { tenantId: { in: ids }, status: { in: ['recusado', 'cancelado'] }, createdAt: { gte: inicioMes } }, _count: { _all: true } }),
+      prisma.pedidoOnline.groupBy({ by: ['tenantId'], where: { tenantId: { in: ids }, status: { in: [...EM_ANDAMENTO] } }, _count: { _all: true } }),
+      prisma.pedidoOnline.groupBy({ by: ['tenantId'], where: { tenantId: { in: ids } }, _max: { createdAt: true } }),
+      prisma.entregadorPosicao.groupBy({ by: ['tenantId', 'usuarioId'], where: { tenantId: { in: ids }, createdAt: { gte: new Date(Date.now() - 15 * 60000) } } }),
+      prisma.usuario.groupBy({ by: ['tenantId'], where: { tenantId: { in: ids }, cargo: 'entregador', ativo: true }, _count: { _all: true } }),
+    ])
+    const por = <T extends { tenantId: string }>(l: T[]) => new Map(l.map((x) => [x.tenantId, x]))
+    const mHoje = por(hojeG), mMes = por(mesG), mRec = por(recusadosG), mAnd = por(andamentoG), mUlt = por(ultimoG), mCad = por(cadastrados)
+    const ativosPor = new Map<string, number>()
+    for (const p of posicoes) ativosPor.set(p.tenantId, (ativosPor.get(p.tenantId) ?? 0) + 1)
+
+    const restaurantes = tenants.map((t) => {
+      const mes = mMes.get(t.id), dia = mHoje.get(t.id)
+      const pedidosMes = mes?._count._all ?? 0
+      const valorMes = Number(mes?._sum.total ?? 0)
+      return {
+        id: t.id, nome: t.nome, slug: t.slug, cidade: t.cidade, uf: t.uf, status: t.status,
+        plano: t.plano?.nome ?? null,
+        disponivel: Boolean(t.plano?.delivery),
+        ativo: t.configuracoes?.deliveryAtivo ?? false,
+        localDefinido: t.configuracoes?.deliveryLat != null,
+        taxaEntrega: Number(t.configuracoes?.deliveryTaxa ?? 0),
+        pedidosHoje: dia?._count._all ?? 0,
+        valorHoje: Number(dia?._sum.total ?? 0),
+        pedidosMes,
+        valorMes,
+        ticketMedio: pedidosMes ? valorMes / pedidosMes : 0,
+        recusadosMes: mRec.get(t.id)?._count._all ?? 0,
+        emAndamento: mAnd.get(t.id)?._count._all ?? 0,
+        entregadoresAtivos: ativosPor.get(t.id) ?? 0,
+        entregadoresCadastrados: mCad.get(t.id)?._count._all ?? 0,
+        ultimoPedidoEm: mUlt.get(t.id)?._max.createdAt ?? null,
+      }
+    })
+    const soma = (k: 'pedidosHoje' | 'valorHoje' | 'pedidosMes' | 'valorMes' | 'emAndamento' | 'entregadoresAtivos') =>
+      restaurantes.reduce((s, r) => s + r[k], 0)
+    return {
+      resumo: {
+        restaurantes: restaurantes.length,
+        recebendo: restaurantes.filter((r) => r.disponivel && r.ativo).length,
+        pedidosHoje: soma('pedidosHoje'), valorHoje: soma('valorHoje'),
+        pedidosMes: soma('pedidosMes'), valorMes: soma('valorMes'),
+        emAndamento: soma('emAndamento'), entregadoresAtivos: soma('entregadoresAtivos'),
+      },
+      restaurantes,
+    }
+  })
 }

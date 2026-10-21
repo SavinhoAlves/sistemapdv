@@ -70,7 +70,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, type Component } from 'vue'
 import {
-  UtensilsCrossed, LayoutDashboard, Store, Wallet, FlaskConical, Ticket,
+  UtensilsCrossed, LayoutDashboard, Store, Wallet, Bike, FlaskConical, Ticket,
   MessageCircle, Tag, Database, Sun, Moon, MoreVertical, KeyRound, LogOut,
 } from 'lucide-vue-next'
 import { usePlatformAuthStore } from '~/stores/platformAuth'
@@ -82,7 +82,7 @@ import { useThemeStore } from '~/stores/theme'
  * aparecem como "Em breve" (Testes, Avisos, Backups).
  */
 defineProps<{
-  ativo: 'painel' | 'restaurantes' | 'tickets' | 'planos' | 'cobranca'
+  ativo: 'painel' | 'restaurantes' | 'tickets' | 'planos' | 'cobranca' | 'delivery'
   titulo: string
   contagens?: Partial<Record<string, number>>
 }>()
@@ -94,6 +94,7 @@ const NAV: { nome: string; itens: ItemNav[] }[] = [
     { chave: 'painel',       rotulo: 'Visão geral',   icone: LayoutDashboard, rota: '/platform' },
     { chave: 'restaurantes', rotulo: 'Restaurantes',  icone: Store,           rota: '/platform/restaurantes' },
     { chave: 'cobranca',     rotulo: 'Cobranças',     icone: Wallet,          rota: '/platform/mensalidades' },
+    { chave: 'delivery',     rotulo: 'Delivery',      icone: Bike,            rota: '/platform/delivery' },
     { chave: 'demos',        rotulo: 'Testes', icone: FlaskConical },
   ] },
   { nome: 'Atendimento', itens: [

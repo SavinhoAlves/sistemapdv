@@ -297,6 +297,9 @@ async function enviar() {
 
 onMounted(async () => {
   await carregar()
+  // Vindo de outra tela com assunto pronto (ex.: "Quero a integração com Stone")
+  const assunto = useRoute().query.assunto
+  if (typeof assunto === 'string' && assunto) { abrirFormulario({ titulo: assunto, tipo: 'outro' }); return }
   // Quem tem chamado em andamento cai direto na aba dos chamados
   if (abertos.value) aba.value = 'chamados'
 })

@@ -226,7 +226,7 @@ const secoes = computed(() => {
 
   const mapa = new Map<string, Produto[]>()
   for (const p of lista) {
-    const chave = p.categoria || 'Sem categoria'
+    const chave = p.categoria || 'Outros'
     if (!mapa.has(chave)) mapa.set(chave, [])
     mapa.get(chave)!.push(p)
   }

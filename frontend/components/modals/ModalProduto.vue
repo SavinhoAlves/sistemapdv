@@ -32,12 +32,12 @@
 
         <!-- CATEGORIA -->
         <div>
-          <label for="prod-categoria" class="text-xs font-bold text-gray-500 dark:text-white/40 block mb-1">Categoria</label>
+          <label for="prod-categoria" class="text-xs font-bold text-gray-500 dark:text-white/40 block mb-1">Categoria <span class="text-red-400">*</span></label>
 
           <div v-if="!novaCategoria" class="flex gap-2">
-            <select id="prod-categoria" name="prod-categoria" v-model="form.categoriaId"
+            <select id="prod-categoria" name="prod-categoria" v-model="form.categoriaId" required
               class="flex-1 h-11 border border-gray-200 dark:border-white/10 rounded-xl px-3 outline-none !bg-gray-50 dark:!bg-white/[0.06] text-gray-900 dark:text-white focus:border-orange-500/70 transition-colors">
-              <option :value="null">Sem categoria</option>
+              <option :value="null" disabled>Selecione...</option>
               <option
                 v-for="cat in categorias"
                 :key="cat.id"

@@ -71,7 +71,7 @@
     <main class="flex-1 p-4 overflow-auto">
 
       <!-- Vazio -->
-      <div v-if="!carregando && !mesasVisiveis.length"
+      <div v-if="iniciado && !mesasVisiveis.length"
         class="flex flex-col items-center justify-center h-full py-24 gap-4 text-center">
         <div class="w-20 h-20 rounded-3xl bg-white/[0.04] flex items-center justify-center">
           <ChefHat :size="36" class="text-white/10" />
@@ -159,6 +159,7 @@
 </template>
 
 <script setup lang="ts">
+import { minutosDesde as minutosNoServidor, agoraServidor } from '~/lib/relogio'
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { ChefHat, Volume2, VolumeX, Maximize2, Minimize2, WifiOff, ArrowLeft } from 'lucide-vue-next'
 import { useApi } from '~/services/api'
@@ -176,10 +177,12 @@ type Mesa = FichaCozinha
 
 const mesas             = ref<Mesa[]>([])
 const carregando        = ref(false)
+// O "vazio" piscava a cada busca; agora só depende de já ter recebido a 1ª resposta
+const iniciado          = ref(false)
 const semConexao        = ref(false)
 const fullscreen        = ref(false)
 const ultimaAtualizacao = ref('')
-const agora             = ref(Date.now())
+const agora             = ref(agoraServidor())
 
 function lsGet(k: string) { return process.client ? localStorage.getItem(k) : null }
 function lsSet(k: string, v: string) { if (process.client) localStorage.setItem(k, v) }
@@ -288,7 +291,7 @@ function corTempo(item: Item) {
 }
 
 function minutosDesde(iso: string) {
-  return Math.floor((agora.value - new Date(iso).getTime()) / 60000)
+  return minutosNoServidor(iso, agora.value)
 }
 function tempoDecorrido(iso: string) {
   const diff = Math.floor((agora.value - new Date(iso).getTime()) / 1000)
@@ -341,6 +344,7 @@ async function buscar() {
     semConexao.value = true
   } finally {
     carregando.value = false
+    iniciado.value = true
   }
 }
 
@@ -365,7 +369,7 @@ onMounted(() => {
   desinscrever.push(socket.on(EVENTOS.item.removido, () => { tocarSom('cancelado'); agendarBusca() }))
 
   timerPolling = setInterval(() => { if (!document.hidden) buscar() }, 15000)
-  timerAgora   = setInterval(() => { agora.value = Date.now() }, 1000)
+  timerAgora   = setInterval(() => { agora.value = agoraServidor() }, 1000)
   timerRelogio = setInterval(atualizarRelogio, 1000)
 
   document.addEventListener('fullscreenchange', () => {

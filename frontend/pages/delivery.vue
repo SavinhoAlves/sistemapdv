@@ -169,6 +169,7 @@
 </template>
 
 <script setup lang="ts">
+import { minutosDesde, agoraServidor } from '~/lib/relogio'
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { Bike, Settings, MapPin, Phone } from 'lucide-vue-next'
 import Navbar from '~/layouts/Navbar.vue'
@@ -209,7 +210,7 @@ function porColuna(c: string) {
   ).sort((a, b) => (c === 'feitos' ? b.criadoEm.localeCompare(a.criadoEm) : a.criadoEm.localeCompare(b.criadoEm)))
 }
 const ativo = (p: any) => !['entregue', 'recusado', 'cancelado'].includes(p.status)
-const minutos = (iso: string) => Math.floor((agora.value - new Date(iso).getTime()) / 60000)
+const minutos = (iso: string) => minutosDesde(iso, agora.value)
 const ha = (iso: string) => { const m = minutos(iso); return m < 1 ? 'agora' : m < 60 ? `${m} min` : `${Math.floor(m / 60)}h${String(m % 60).padStart(2, '0')}` }
 const moeda = (v: number) => Number(v || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
 const hora = (iso: string) => new Date(iso).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
@@ -297,7 +298,7 @@ async function concluir() {
 }
 
 // ── Tempo real: som e aviso quando chega pedido; polling como rede de segurança ──
-const agora = ref(Date.now())
+const agora = ref(agoraServidor())
 let timers: any[] = []
 const desinscrever: Array<() => void> = []
 function bip() {
@@ -325,7 +326,7 @@ onMounted(async () => {
     const e = mapaDados.value?.entregadores.find((x: any) => x.id === p.usuarioId)
     if (e) { e.posicao = { lat: p.lat, lng: p.lng, em: p.em }; mapaDados.value.rastros.find((r: any) => r.entregadorId === p.usuarioId)?.pontos.push([p.lat, p.lng]) }
   }))
-  timers = [setInterval(() => { if (!document.hidden) carregar() }, 20000), setInterval(() => { agora.value = Date.now() }, 30000)]
+  timers = [setInterval(() => { if (!document.hidden) carregar() }, 20000), setInterval(() => { agora.value = agoraServidor() }, 30000)]
 })
 onUnmounted(() => { timers.forEach(clearInterval); desinscrever.forEach(f => f()) })
 </script>

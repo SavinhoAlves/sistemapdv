@@ -1,3 +1,4 @@
+import { minutosDesde as minutosNoServidor } from '~/lib/relogio'
 /**
  * Estado operacional de uma comanda — uma chave só, escolhida pela urgência.
  * Compartilhado entre o ComandaCard e o filtro/legenda da tela de mesas, para
@@ -35,7 +36,7 @@ export const ROTULO_ESTADO: Record<ChaveEstado, string> = {
 
 export function minutosDesde(iso: string | null) {
   if (!iso) return 0
-  return Math.floor((Date.now() - new Date(iso).getTime()) / 60000)
+  return minutosNoServidor(iso)
 }
 
 export function duracao(min: number) {

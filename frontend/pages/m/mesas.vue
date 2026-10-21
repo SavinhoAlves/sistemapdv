@@ -380,6 +380,7 @@
 </template>
 
 <script setup lang="ts">
+import { minutosDesde } from '~/lib/relogio'
 import { reais, numeroBR } from '~/lib/moeda'
 import { itensDaComanda } from '~/lib/comanda'
 import { ref, computed, onMounted, onUnmounted } from 'vue'
@@ -428,7 +429,7 @@ function fmt(v: number) {
 
 function formatarTempo(data: string) {
   if (!data) return ''
-  const diff = Math.floor((Date.now() - new Date(data).getTime()) / 60000)
+  const diff = minutosDesde(data)
   if (diff < 60) return `${diff}min`
   const h = Math.floor(diff / 60), m = diff % 60
   return m > 0 ? `${h}h ${m}min` : `${h}h`
@@ -457,8 +458,10 @@ const quantidadeItensMesa = computed(() =>
 )
 
 // ── Mesas ─────────────────────────────────────────────────
+// Spinner só no 1º carregamento; o polling de 30 s troca a lista sem escondê-la
+let mesasCarregadas = false
 async function carregarMesas() {
-  loading.value = true
+  if (!mesasCarregadas) loading.value = true
   try {
     const rows = await api.get<any[]>('/mesas')
     // GET /mesas → { nome, garcom: { id, nome }, aberta_em, … }; a tela usa nome_mesa/garcom_id/data_abertura
@@ -466,7 +469,7 @@ async function carregarMesas() {
       .filter((m: any) => m.status === 'aberta' || m.status === 'fechando')
       .map((m: any) => ({ ...m, nome_mesa: m.nome, garcom_id: m.garcom?.id ?? null, data_abertura: m.aberta_em }))
   } catch {}
-  finally { loading.value = false }
+  finally { loading.value = false; mesasCarregadas = true }
 }
 
 async function carregarProdutos() {
@@ -477,7 +480,8 @@ async function carregarProdutos() {
 }
 
 async function carregarItensMesa(mesaId: number) {
-  loadingItens.value = true
+  // Recarregar depois de lançar um item não esconde a comanda (só a 1ª vez mostra o spinner)
+  loadingItens.value = !itensMesa.value.length
   try {
     itensMesa.value = itensDaComanda(await api.get<any>(`/mesas/${mesaId}/produtos`))
   } catch {
@@ -492,6 +496,7 @@ async function selecionarMesa(mesa: any) {
   buscaProduto.value    = ''
   categoriaAtiva.value  = 'Todos'
   carrinhoAberto.value  = false
+  itensMesa.value       = [] // outra mesa: não mostrar os itens da anterior enquanto carrega
   await carregarItensMesa(mesa.id)
 }
 

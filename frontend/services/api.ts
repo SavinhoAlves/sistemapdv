@@ -1,6 +1,7 @@
 import { useAuthStore } from '../stores/auth'
 import { useRouter, useRuntimeConfig } from '#imports'
 import { getTenantSlug } from '~/composables/useTenantSlug'
+import { ajustarRelogio } from '~/lib/relogio'
 
 let logoutEmAndamento = false
 let refreshPromise: Promise<boolean> | null = null
@@ -54,6 +55,7 @@ export function useApi() {
     }
 
     const response = await fetch(`${baseURL}${endpoint}`, { ...options, headers })
+    ajustarRelogio(response.headers.get('date'))
 
     if (response.status === 401) {
       if (!isAuthRoute && !_isRetry) {

@@ -121,7 +121,7 @@
       </div>
 
       <!-- SKELETON -->
-      <div v-if="carregando && !mesas.length" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+      <div v-if="!iniciado" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
         <div v-for="n in 6" :key="n" class="h-48 rounded-2xl bg-gray-100 dark:bg-white/5 animate-pulse" />
       </div>
 
@@ -237,6 +237,7 @@
 </template>
 
 <script setup lang="ts">
+import { minutosDesde as minutosNoServidor, agoraServidor } from '~/lib/relogio'
 import { EVENTOS, type PayloadItem } from '~/shared/eventos'
 import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue'
 import {
@@ -263,12 +264,14 @@ type Mesa = FichaCozinha
 
 const mesas             = ref<Mesa[]>([])
 const carregando        = ref(false)
+// Esqueleto só até a 1ª resposta; depois as buscas trocam os dados sem esconder a tela
+const iniciado          = ref(false)
 const semConexao        = ref(false)
 const tempoReal         = ref(false)
 const ultimaAtualizacao = ref('')
 const abaAtiva          = ref<'preparo' | 'prontos'>('preparo')
 
-const agora = ref(Date.now())
+const agora = ref(agoraServidor())
 
 function lsGet(chave: string): string | null {
   return process.client ? localStorage.getItem(chave) : null
@@ -325,7 +328,7 @@ const totalPreparo = computed(() => contar(['pendente', 'preparando']))
 const totalProntos = computed(() => contar(['pronto']))
 
 function minutosDesde(iso: string) {
-  return Math.floor((agora.value - new Date(iso).getTime()) / 60000)
+  return minutosNoServidor(iso, agora.value)
 }
 function tempoDecorrido(iso: string) {
   const diff = Math.floor((agora.value - new Date(iso).getTime()) / 1000)
@@ -432,6 +435,7 @@ async function buscar() {
     semConexao.value = true
   } finally {
     carregando.value = false
+    iniciado.value = true
   }
 }
 
@@ -509,7 +513,7 @@ onMounted(() => {
   }))
 
   timerPolling = setInterval(() => { if (!document.hidden) buscar() }, 20000)
-  timerRelogio = setInterval(() => { agora.value = Date.now() }, 1000)
+  timerRelogio = setInterval(() => { agora.value = agoraServidor() }, 1000)
 
   timerToken = setInterval(async () => {
     try {

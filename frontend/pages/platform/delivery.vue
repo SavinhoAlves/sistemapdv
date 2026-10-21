@@ -237,7 +237,7 @@ const lista = computed(() => {
 const linkCardapio = (slug: string) => (ehPainel() ? urlDoHost('app', `/cardapio/${slug}`) : `${window.location.origin}${useRuntimeConfig().app.baseURL}cardapio/${slug}`)
 
 function quando(iso: string) {
-  const min = Math.round((Date.now() - new Date(iso).getTime()) / 60000)
+  const min = Math.max(0, Math.round((Date.now() - new Date(iso).getTime()) / 60000))
   if (min < 1) return 'agora'
   if (min < 60) return `há ${min} min`
   if (min < 24 * 60) return `há ${Math.round(min / 60)} h`

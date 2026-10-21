@@ -243,7 +243,8 @@ export async function resumoCaixa(_tenantId: string, caixaId: string, tx: any = 
   })
 
   const porMetodo: Record<string, { recebido: number; estornado: number; liquido: number; qtd: number }> = {}
-  let qtdVendas = 0
+  // Venda = comanda/pedido distinto; uma conta paga em 2 formas é 1 venda
+  const pedidosVendidos = new Set<string>()
   let dinheiroRecebido = 0
   let dinheiroEstornado = 0
   let vendasLiquidas = 0
@@ -261,8 +262,8 @@ export async function resumoCaixa(_tenantId: string, caixaId: string, tx: any = 
       if (ehDinheiro) dinheiroEstornado += valor
     } else {
       porMetodo[nome].recebido += valor
-      porMetodo[nome].qtd++
-      qtdVendas++
+      porMetodo[nome].qtd++ // por método continua contando pagamentos
+      pedidosVendidos.add(p.pedidoId ?? p.id)
       vendasLiquidas += valor
       if (ehDinheiro) {
         // CORRETO: o valor aplicado é o que ficou na gaveta.
@@ -280,8 +281,8 @@ export async function resumoCaixa(_tenantId: string, caixaId: string, tx: any = 
   return {
     esperado_dinheiro: paraReais(esperadoDinheiro),
     total_vendas: paraReais(vendasLiquidas),
-    /** Pagamentos confirmados (não estornados) no caixa */
-    qtd_vendas: qtdVendas,
+    /** Vendas (comandas/pedidos distintos com pagamento não estornado) no caixa */
+    qtd_vendas: pedidosVendidos.size,
     valor_inicial: paraReais(inicial),
     suprimentos: paraReais(suprimentos),
     sangrias: paraReais(sangrias),

@@ -929,11 +929,15 @@ async function handleReimprimir() {
   imprimirHtml(html)
 }
 
-const carregarProdutos = async () => {
+// Só ao trocar de mesa limpa a lista e mostra o esqueleto; atualizações (item lançado,
+// pagamento, evento em tempo real) trocam os dados sem esconder a comanda
+const carregarProdutos = async (trocouMesa = false) => {
   if (!props.mesa?.id) return
   try {
-    loading.value  = true
-    produtos.value = []
+    if (trocouMesa) {
+      loading.value  = true
+      produtos.value = []
+    }
     // Uma chamada basta: a comanda traz itens (por rodada), conta e abatimentos
     const comanda = await api.get<any>(`/mesas/${props.mesa.id}/produtos`)
     produtos.value    = itensDaComanda(comanda) as any
@@ -956,7 +960,7 @@ watch(
     garcomRfid.value = null // limpa sempre que muda de mesa ou fecha
     if (aberto && mesaId) {
       fecharRadial()
-      carregarProdutos()
+      carregarProdutos(true)
     }
   },
   { immediate: true }
@@ -968,7 +972,7 @@ onBeforeUnmount(() => {
   fecharRadial()
 })
 
-defineExpose({ recarregar: carregarProdutos, lancarProdutos: emitirAbrirProdutosComRfid })
+defineExpose({ recarregar: () => carregarProdutos(), lancarProdutos: emitirAbrirProdutosComRfid })
 </script>
 
 <style scoped>

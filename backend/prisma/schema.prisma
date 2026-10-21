@@ -28,9 +28,9 @@ enum UserCargo {
 }
 
 enum MesaStatus {
-  aberta      // recebendo lançamentos
-  fechando    // conta impressa, aguardando pagamento — bloqueia novos itens
-  fechada     // quitada ou encerrada com justificativa
+  aberta // recebendo lançamentos
+  fechando // conta impressa, aguardando pagamento — bloqueia novos itens
+  fechada // quitada ou encerrada com justificativa
 }
 
 enum PedidoStatus {
@@ -89,40 +89,40 @@ enum EstoqueMovimentoTipo {
 // ── Tenant ─────────────────────────────────────────────────────────────────────
 
 model Tenant {
-  id                   String       @id @default(uuid())
+  id                    String                 @id @default(uuid())
   /// Código numérico do cliente (1001, 1002...): usado no login e no controle
-  codigo               Int          @unique @default(autoincrement())
-  nome                 String
-  slug                 String       @unique
-  cnpj                 String?      @unique
-  cpfResponsavel       String?      @map("cpf_responsavel")
-  contato              String?
-  responsavel          String?
-  telefone             String?
-  endereco             String?
-  cidade               String?
-  uf                   String?
-  observacoes          String?
-  vendaMobilePermitida Boolean      @default(true) @map("venda_mobile_permitida")
-  rfidDisponivel       Boolean      @default(false) @map("rfid_disponivel")
+  codigo                Int                    @unique @default(autoincrement())
+  nome                  String
+  slug                  String                 @unique
+  cnpj                  String?                @unique
+  cpfResponsavel        String?                @map("cpf_responsavel")
+  contato               String?
+  responsavel           String?
+  telefone              String?
+  endereco              String?
+  cidade                String?
+  uf                    String?
+  observacoes           String?
+  vendaMobilePermitida  Boolean                @default(true) @map("venda_mobile_permitida")
+  rfidDisponivel        Boolean                @default(false) @map("rfid_disponivel")
   /// restaurante, bar, lanchonete… (lib/tipoComercio.ts). Classifica e define o ponto de partida na criação.
-  tipoComercio         String?      @map("tipo_comercio")
+  tipoComercio          String?                @map("tipo_comercio")
   /// Exceção do superadmin aos recursos do plano: null segue o plano
-  rfidManual           Boolean?     @map("rfid_manual")
-  vendaMobileManual    Boolean?     @map("venda_mobile_manual")
+  rfidManual            Boolean?               @map("rfid_manual")
+  vendaMobileManual     Boolean?               @map("venda_mobile_manual")
   /// Pacote contratado. Com plano, os recursos acima seguem o plano.
-  planoId              String?      @map("plano_id")
-  plano                Plano?       @relation(fields: [planoId], references: [id], onDelete: SetNull)
+  planoId               String?                @map("plano_id")
+  plano                 Plano?                 @relation(fields: [planoId], references: [id], onDelete: SetNull)
   /// Obsoletos: a cobrança mora no Contrato desde a migração da assinatura.
   /// Ficam até o próximo deploy para a API antiga não quebrar durante a troca.
-  cobrancaDiaVencimento Int         @default(10) @map("cobranca_dia_vencimento")
-  cobrancaValor       Decimal?     @map("cobranca_valor") @db.Decimal(10, 2)
-  cobrancaIsento       Boolean      @default(false) @map("cobranca_isento")
-  cobrancaObs          String?      @map("cobranca_obs")
+  cobrancaDiaVencimento Int                    @default(10) @map("cobranca_dia_vencimento")
+  cobrancaValor         Decimal?               @map("cobranca_valor") @db.Decimal(10, 2)
+  cobrancaIsento        Boolean                @default(false) @map("cobranca_isento")
+  cobrancaObs           String?                @map("cobranca_obs")
   pagamentosMensalidade PagamentoMensalidade[]
-  status               TenantStatus @default(ativo)
-  createdAt            DateTime     @default(now()) @map("created_at")
-  updatedAt            DateTime     @updatedAt @map("updated_at")
+  status                TenantStatus           @default(ativo)
+  createdAt             DateTime               @default(now()) @map("created_at")
+  updatedAt             DateTime               @updatedAt @map("updated_at")
 
   usuarios             Usuario[]
   perfis               Perfil[]
@@ -137,6 +137,7 @@ model Tenant {
   auditoria            Auditoria[]
   configuracoes        Configuracoes?
   impressoras          Impressora[]
+  pedidosOnline        PedidoOnline[]
   movimentacoesEstoque MovimentacaoEstoque[]
   dispositivos         Dispositivo[]
   licencas             Licenca[]
@@ -144,11 +145,11 @@ model Tenant {
   contratoVersoes      ContratoVersao[]
   tickets              TicketSuporte[]
 
-  @@map("tenants")
-
   // relações adicionadas pelas correções do PDV
   abatimentos Abatimento[]
   pedidoItens PedidoItem[]
+
+  @@map("tenants")
 }
 
 // ── Platform User ──────────────────────────────────────────────────────────────
@@ -217,18 +218,18 @@ model Usuario {
   auditoria            Auditoria[]
   movimentacoesEstoque MovimentacaoEstoque[]
 
+  // relações adicionadas pelas correções do PDV
+  mesasEncerradas       Mesa[]       @relation("EncerradaPor")
+  abatimentosFeitos     Abatimento[] @relation("AbatimentoAutor")
+  abatimentosCancelados Abatimento[] @relation("AbatimentoCancelador")
+  itensLancados         PedidoItem[] @relation("ItemLancadoPor")
+  pagamentosEstornados  Pagamento[]  @relation("PagamentoEstornadoPor")
+
   @@unique([tenantId, codigo])
   @@unique([tenantId, email])
   @@unique([tenantId, cartaoRfid])
   @@index([tenantId])
   @@map("usuarios")
-
-  // relações adicionadas pelas correções do PDV
-  mesasEncerradas    Mesa[]        @relation("EncerradaPor")
-  abatimentosFeitos  Abatimento[]  @relation("AbatimentoAutor")
-  abatimentosCancelados Abatimento[] @relation("AbatimentoCancelador")
-  itensLancados      PedidoItem[]  @relation("ItemLancadoPor")
-  pagamentosEstornados Pagamento[] @relation("PagamentoEstornadoPor")
 }
 
 model RefreshToken {
@@ -250,13 +251,13 @@ model RefreshToken {
 // ── Perfis de Permissão ────────────────────────────────────────────────────────
 
 model Perfil {
-  id        String   @id @default(uuid())
-  tenantId  String   @map("tenant_id")
-  nome      String
-  descricao String?
-  permissoes Json    @default("{}")
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
+  id         String   @id @default(uuid())
+  tenantId   String   @map("tenant_id")
+  nome       String
+  descricao  String?
+  permissoes Json     @default("{}")
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
 
   tenant   Tenant    @relation(fields: [tenantId], references: [id])
   usuarios Usuario[]
@@ -295,8 +296,8 @@ model Produto {
   imagemUrl           String?  @map("imagem_url")
   tempoPreparoMinutos Int      @default(0) @map("tempo_preparo_minutos")
   ativo               Boolean  @default(true)
-  estoqueAtual        Decimal  @default(0) @db.Decimal(10, 3) @map("estoque_atual")
-  estoqueMinimo       Decimal  @default(0) @db.Decimal(10, 3) @map("estoque_minimo")
+  estoqueAtual        Decimal  @default(0) @map("estoque_atual") @db.Decimal(10, 3)
+  estoqueMinimo       Decimal  @default(0) @map("estoque_minimo") @db.Decimal(10, 3)
   gerenciarEstoque    Boolean  @default(false) @map("gerenciar_estoque")
   createdAt           DateTime @default(now()) @map("created_at")
   updatedAt           DateTime @updatedAt @map("updated_at")
@@ -373,24 +374,27 @@ model Pedido {
   mesaId      String?      @map("mesa_id")
   garcomId    String       @map("garcom_id")
   status      PedidoStatus @default(aberto)
-  taxaPct     Decimal      @default(0) @db.Decimal(5, 2) @map("taxa_pct")
+  taxaPct     Decimal      @default(0) @map("taxa_pct") @db.Decimal(5, 2)
+  /// Taxa de entrega (delivery). Entra no total, fora do desconto e da taxa de serviço.
+  taxaEntrega Decimal      @default(0) @map("taxa_entrega") @db.Decimal(10, 2)
 
   /// Nº sequencial por tenant, para a ficha impressa. Antes a venda direta
   /// gerava `F${Date.now()}` que não era persistido em lugar nenhum — não
   /// havia como localizar depois a venda pelo número dado ao cliente.
-  numero      Int
+  numero Int
 
   observacoes String?
-  fechadoEm   DateTime?    @map("fechado_em")
-  createdAt   DateTime     @default(now()) @map("created_at")
-  updatedAt   DateTime     @updatedAt @map("updated_at")
+  fechadoEm   DateTime? @map("fechado_em")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
 
-  tenant      Tenant       @relation(fields: [tenantId], references: [id])
-  mesa        Mesa?        @relation(fields: [mesaId], references: [id])
-  garcom      Usuario      @relation(fields: [garcomId], references: [id])
+  tenant      Tenant        @relation(fields: [tenantId], references: [id])
+  mesa        Mesa?         @relation(fields: [mesaId], references: [id])
+  garcom      Usuario       @relation(fields: [garcomId], references: [id])
   itens       PedidoItem[]
   pagamentos  Pagamento[]
   abatimentos Abatimento[]
+  online      PedidoOnline?
 
   @@unique([tenantId, numero])
   @@index([tenantId, status])
@@ -399,29 +403,29 @@ model Pedido {
 }
 
 model PedidoItem {
-  id            String           @id @default(uuid())
-  tenantId      String           @map("tenant_id")
-  pedidoId      String           @map("pedido_id")
-  produtoId     String           @map("produto_id")
+  id        String @id @default(uuid())
+  tenantId  String @map("tenant_id")
+  pedidoId  String @map("pedido_id")
+  produtoId String @map("produto_id")
 
   /// Nº da rodada dentro do pedido. Itens da mesma rodada saem na mesma ficha.
-  rodada        Int              @default(1)
+  rodada Int @default(1)
 
   quantidade    Int
-  precoUnitario Decimal          @db.Decimal(10, 2) @map("preco_unitario")
-  precoTotal    Decimal          @db.Decimal(10, 2) @map("preco_total")
+  precoUnitario Decimal          @map("preco_unitario") @db.Decimal(10, 2)
+  precoTotal    Decimal          @map("preco_total") @db.Decimal(10, 2)
   status        PedidoItemStatus @default(pendente)
   observacao    String?
 
   /// Quem lançou. Antes só o pedido tinha garçom; numa troca de turno não
   /// dava para saber quem lançou o quê.
-  lancadoPorId  String?          @map("lancado_por")
+  lancadoPorId String? @map("lancado_por")
 
-  canceladoPorId String?         @map("cancelado_por")
-  motivoCancelamento String?     @map("motivo_cancelamento")
+  canceladoPorId     String? @map("cancelado_por")
+  motivoCancelamento String? @map("motivo_cancelamento")
 
-  createdAt     DateTime         @default(now()) @map("created_at")
-  updatedAt     DateTime         @updatedAt @map("updated_at")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
   tenant     Tenant   @relation(fields: [tenantId], references: [id])
   pedido     Pedido   @relation(fields: [pedidoId], references: [id], onDelete: Cascade)
@@ -440,12 +444,12 @@ model Caixa {
   id                   String      @id @default(uuid())
   tenantId             String      @map("tenant_id")
   funcionarioId        String      @map("funcionario_id")
-  valorInicial         Decimal     @db.Decimal(10, 2) @map("valor_inicial")
-  valorFechamento      Decimal?    @db.Decimal(10, 2) @map("valor_fechamento")
+  valorInicial         Decimal     @map("valor_inicial") @db.Decimal(10, 2)
+  valorFechamento      Decimal?    @map("valor_fechamento") @db.Decimal(10, 2)
   dataAbertura         DateTime    @default(now()) @map("data_abertura")
   fechadoEm            DateTime?   @map("fechado_em")
   status               CaixaStatus @default(aberto)
-  valorContado         Decimal?    @db.Decimal(10, 2) @map("valor_contado")
+  valorContado         Decimal?    @map("valor_contado") @db.Decimal(10, 2)
   diferenca            Decimal?    @db.Decimal(10, 2)
   observacaoFechamento String?     @map("observacao_fechamento")
   fechadoPorId         String?     @map("fechado_por")
@@ -463,16 +467,16 @@ model Caixa {
 }
 
 model MovimentoCaixa {
-  id        String             @id @default(uuid())
-  tenantId  String             @map("tenant_id")
-  caixaId   String             @map("caixa_id")
-  tipo      MovimentoCaixaTipo
-  valor     Decimal            @db.Decimal(10, 2)
-  descricao String?
-  usuarioId String             @map("usuario_id")
+  id          String             @id @default(uuid())
+  tenantId    String             @map("tenant_id")
+  caixaId     String             @map("caixa_id")
+  tipo        MovimentoCaixaTipo
+  valor       Decimal            @db.Decimal(10, 2)
+  descricao   String?
+  usuarioId   String             @map("usuario_id")
   /// Pagamento de origem (tipo pagamento/estorno). Permite estornar pelo caixa.
-  pagamentoId String?        @map("pagamento_id")
-  createdAt DateTime           @default(now()) @map("created_at")
+  pagamentoId String?            @map("pagamento_id")
+  createdAt   DateTime           @default(now()) @map("created_at")
 
   tenant  Tenant  @relation(fields: [tenantId], references: [id])
   caixa   Caixa   @relation(fields: [caixaId], references: [id])
@@ -487,37 +491,37 @@ model MovimentoCaixa {
 // ── Pagamentos ─────────────────────────────────────────────────────────────────
 
 model Pagamento {
-  id        String          @id @default(uuid())
-  tenantId  String          @map("tenant_id")
-  mesaId    String?         @map("mesa_id")
-  pedidoId  String          @map("pedido_id")
-  metodoId  String          @map("metodo_id")
-  valor     Decimal         @db.Decimal(10, 2)
+  id            String          @id @default(uuid())
+  tenantId      String          @map("tenant_id")
+  mesaId        String?         @map("mesa_id")
+  pedidoId      String          @map("pedido_id")
+  metodoId      String          @map("metodo_id")
+  valor         Decimal         @db.Decimal(10, 2)
   /// Valor físico entregue pelo cliente. Antes só existia `troco`, e não dava
   /// para reconstruir a conferência da gaveta.
-  valorRecebido Decimal     @db.Decimal(10, 2) @map("valor_recebido")
-  troco     Decimal         @default(0) @db.Decimal(10, 2)
-  caixaId   String          @map("caixa_id")
-  usuarioId String          @map("usuario_id")
-  status    PagamentoStatus @default(confirmado)
+  valorRecebido Decimal         @map("valor_recebido") @db.Decimal(10, 2)
+  troco         Decimal         @default(0) @db.Decimal(10, 2)
+  caixaId       String          @map("caixa_id")
+  usuarioId     String          @map("usuario_id")
+  status        PagamentoStatus @default(confirmado)
 
   /// Enviada pelo cliente. Unique por tenant — o retry devolve o mesmo
   /// pagamento em vez de criar outro.
-  idempotencyKey String     @map("idempotency_key")
+  idempotencyKey String @map("idempotency_key")
 
-  estornadoEm     DateTime? @map("estornado_em")
-  estornadoPorId  String?   @map("estornado_por")
-  motivoEstorno   String?   @map("motivo_estorno")
+  estornadoEm    DateTime? @map("estornado_em")
+  estornadoPorId String?   @map("estornado_por")
+  motivoEstorno  String?   @map("motivo_estorno")
 
-  createdAt DateTime        @default(now()) @map("created_at")
+  createdAt DateTime @default(now()) @map("created_at")
 
-  tenant  Tenant          @relation(fields: [tenantId], references: [id])
-  mesa    Mesa?           @relation(fields: [mesaId], references: [id])
-  pedido  Pedido          @relation(fields: [pedidoId], references: [id])
-  metodo  MetodoPagamento @relation(fields: [metodoId], references: [id])
-  caixa   Caixa           @relation(fields: [caixaId], references: [id])
-  usuario Usuario         @relation(fields: [usuarioId], references: [id])
-  estornadoPor Usuario?   @relation("PagamentoEstornadoPor", fields: [estornadoPorId], references: [id])
+  tenant       Tenant          @relation(fields: [tenantId], references: [id])
+  mesa         Mesa?           @relation(fields: [mesaId], references: [id])
+  pedido       Pedido          @relation(fields: [pedidoId], references: [id])
+  metodo       MetodoPagamento @relation(fields: [metodoId], references: [id])
+  caixa        Caixa           @relation(fields: [caixaId], references: [id])
+  usuario      Usuario         @relation(fields: [usuarioId], references: [id])
+  estornadoPor Usuario?        @relation("PagamentoEstornadoPor", fields: [estornadoPorId], references: [id])
 
   @@unique([tenantId, idempotencyKey])
   @@index([tenantId, caixaId])
@@ -562,11 +566,19 @@ model Configuracoes {
   impressoraTipo         String  @default("usb") @map("impressora_tipo")
   impressoraHost         String? @map("impressora_host")
   impressoraPorta        Int?    @map("impressora_porta")
-  taxaServicoPct         Decimal @default(0) @db.Decimal(5, 2) @map("taxa_servico_pct")
+  taxaServicoPct         Decimal @default(0) @map("taxa_servico_pct") @db.Decimal(5, 2)
   modoVenda              String  @default("mesa") @map("modo_venda")
   rfidAtivo              Boolean @default(false) @map("rfid_ativo")
   /// Venda pelo celular (QR por funcionário). Só vale se o plano liberar; o admin pode desligar.
   vendaMobileAtiva       Boolean @default(true) @map("venda_mobile_ativa")
+  /// Cardápio online / delivery (o plano libera em Plano.delivery)
+  deliveryAtivo          Boolean @default(false) @map("delivery_ativo")
+  deliveryTaxa           Decimal @default(0) @map("delivery_taxa") @db.Decimal(10, 2)
+  deliveryPedidoMinimo   Decimal @default(0) @map("delivery_pedido_minimo") @db.Decimal(10, 2)
+  deliveryTempoMin       Int     @default(40) @map("delivery_tempo_min")
+  deliveryRetirada       Boolean @default(true) @map("delivery_retirada")
+  deliveryEntrega        Boolean @default(true) @map("delivery_entrega")
+  deliveryMensagem       String? @map("delivery_mensagem")
   mpAtivado              Boolean @default(false) @map("mp_ativado")
   mpAccessToken          String? @map("mp_access_token")
   mpDeviceId             String? @map("mp_device_id")
@@ -582,8 +594,8 @@ model Impressora {
   id        String   @id @default(uuid())
   tenantId  String   @map("tenant_id")
   nome      String
-  destino   String   // caixa | cozinha | bar
-  tipo      String   // navegador | rede | windows
+  destino   String // caixa | cozinha | bar
+  tipo      String // navegador | rede | windows
   host      String?
   porta     Int      @default(9100)
   largura   Int      @default(80)
@@ -684,25 +696,25 @@ enum ContratoStatus {
 }
 
 model Contrato {
-  id          String         @id @default(uuid())
-  tenantId    String         @map("tenant_id")
-  plano       String
-  valor       Decimal?       @db.Decimal(10, 2)
-  ciclo       ContratoCiclo  @default(mensal)
-  dataInicio  DateTime?      @map("data_inicio") @db.Date
-  dataFim     DateTime?      @map("data_fim") @db.Date
-  status      ContratoStatus @default(ativo)
-  observacoes String?
+  id                String         @id @default(uuid())
+  tenantId          String         @map("tenant_id")
+  plano             String
+  valor             Decimal?       @db.Decimal(10, 2)
+  ciclo             ContratoCiclo  @default(mensal)
+  dataInicio        DateTime?      @map("data_inicio") @db.Date
+  dataFim           DateTime?      @map("data_fim") @db.Date
+  status            ContratoStatus @default(ativo)
+  observacoes       String?
   /// Assinatura: o pagamento empurra o próximo vencimento um ciclo; a licença é derivada daqui
-  diaVencimento     Int       @default(10) @map("dia_vencimento")
-  proximoVencimento DateTime? @map("proximo_vencimento") @db.Date
+  diaVencimento     Int            @default(10) @map("dia_vencimento")
+  proximoVencimento DateTime?      @map("proximo_vencimento") @db.Date
   /// Teste grátis: liberado até o fim deste dia, sem tolerância
-  testeAte          DateTime? @map("teste_ate") @db.Date
-  isento            Boolean   @default(false)
-  ajusteMotivo      String?   @map("ajuste_motivo")
-  ajusteEm          DateTime? @map("ajuste_em")
-  createdAt   DateTime       @default(now()) @map("created_at")
-  updatedAt   DateTime       @updatedAt @map("updated_at")
+  testeAte          DateTime?      @map("teste_ate") @db.Date
+  isento            Boolean        @default(false)
+  ajusteMotivo      String?        @map("ajuste_motivo")
+  ajusteEm          DateTime?      @map("ajuste_em")
+  createdAt         DateTime       @default(now()) @map("created_at")
+  updatedAt         DateTime       @updatedAt @map("updated_at")
 
   tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
@@ -713,16 +725,16 @@ model Contrato {
 /// Cada mudança no texto do contrato gera uma versão nova; as antigas ficam
 /// guardadas para o PDF de qualquer versão sair igual ao que foi enviado.
 model ContratoVersao {
-  id         String    @id @default(uuid())
-  tenantId   String    @map("tenant_id")
-  numero     Int
+  id        String    @id @default(uuid())
+  tenantId  String    @map("tenant_id")
+  numero    Int
   /// Tudo o que o PDF precisa: contratada, contratante e condições
-  dados      Json
+  dados     Json
   /// sha256 de `dados`, para saber se uma edição mudou o contrato
-  hash       String
-  motivo     String?
-  enviadoEm  DateTime? @map("enviado_em")
-  createdAt  DateTime  @default(now()) @map("created_at")
+  hash      String
+  motivo    String?
+  enviadoEm DateTime? @map("enviado_em")
+  createdAt DateTime  @default(now()) @map("created_at")
 
   tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
@@ -755,18 +767,18 @@ model Plano {
 // ── Mensalidades (pagamentos dos restaurantes à plataforma) ───────────────────
 
 model PagamentoMensalidade {
-  id          String   @id @default(uuid())
-  tenantId    String   @map("tenant_id")
+  id            String    @id @default(uuid())
+  tenantId      String    @map("tenant_id")
   /// Mês de referência no formato AAAA-MM
-  competencia String
-  valor       Decimal  @db.Decimal(10, 2)
-  pagoEm      DateTime @map("pago_em") @db.Date
-  forma       String?
-  observacao  String?
+  competencia   String
+  valor         Decimal   @db.Decimal(10, 2)
+  pagoEm        DateTime  @map("pago_em") @db.Date
+  forma         String?
+  observacao    String?
   /// Período coberto pelo pagamento: [início, fim), fim = próximo vencimento
   periodoInicio DateTime? @map("periodo_inicio") @db.Date
   periodoFim    DateTime? @map("periodo_fim") @db.Date
-  createdAt   DateTime @default(now()) @map("created_at")
+  createdAt     DateTime  @default(now()) @map("created_at")
 
   tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
@@ -800,16 +812,16 @@ enum TicketStatus {
 }
 
 model TicketSuporte {
-  id          String           @id @default(uuid())
-  tenantId    String           @map("tenant_id")
-  tipo        TicketTipo       @default(outro)
-  prioridade  TicketPrioridade @default(media)
-  status      TicketStatus     @default(aberto)
-  titulo      String
-  descricao   String?
-  resolucao   String?
-  createdAt   DateTime         @default(now()) @map("created_at")
-  updatedAt   DateTime         @updatedAt @map("updated_at")
+  id         String           @id @default(uuid())
+  tenantId   String           @map("tenant_id")
+  tipo       TicketTipo       @default(outro)
+  prioridade TicketPrioridade @default(media)
+  status     TicketStatus     @default(aberto)
+  titulo     String
+  descricao  String?
+  resolucao  String?
+  createdAt  DateTime         @default(now()) @map("created_at")
+  updatedAt  DateTime         @updatedAt @map("updated_at")
 
   tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
@@ -819,34 +831,34 @@ model TicketSuporte {
 }
 
 enum AbatimentoTipo {
-  valor        // R$ fixo
-  percentual   // % sobre o líquido no momento da aplicação
-  cortesia     // item ou conta por conta da casa
+  valor // R$ fixo
+  percentual // % sobre o líquido no momento da aplicação
+  cortesia // item ou conta por conta da casa
 }
 
 model Abatimento {
-  id        String         @id @default(uuid())
-  tenantId  String         @map("tenant_id")
-  pedidoId  String         @map("pedido_id")
-  tipo      AbatimentoTipo @default(valor)
+  id       String         @id @default(uuid())
+  tenantId String         @map("tenant_id")
+  pedidoId String         @map("pedido_id")
+  tipo     AbatimentoTipo @default(valor)
 
   /// Valor em reais efetivamente abatido, já resolvido (percentual vira R$).
-  valor     Decimal        @db.Decimal(10, 2)
+  valor      Decimal  @db.Decimal(10, 2)
   /// Guardado só para exibição quando tipo = percentual.
-  percentual Decimal?      @db.Decimal(5, 2)
+  percentual Decimal? @db.Decimal(5, 2)
 
   motivo    String
-  usuarioId String         @map("usuario_id")
+  usuarioId String @map("usuario_id")
 
-  cancelado   Boolean   @default(false)
-  canceladoEm DateTime? @map("cancelado_em")
-  canceladoPorId String? @map("cancelado_por")
+  cancelado      Boolean   @default(false)
+  canceladoEm    DateTime? @map("cancelado_em")
+  canceladoPorId String?   @map("cancelado_por")
 
   createdAt DateTime @default(now()) @map("created_at")
 
-  tenant      Tenant   @relation(fields: [tenantId], references: [id])
-  pedido      Pedido   @relation(fields: [pedidoId], references: [id], onDelete: Cascade)
-  usuario     Usuario  @relation("AbatimentoAutor", fields: [usuarioId], references: [id])
+  tenant       Tenant   @relation(fields: [tenantId], references: [id])
+  pedido       Pedido   @relation(fields: [pedidoId], references: [id], onDelete: Cascade)
+  usuario      Usuario  @relation("AbatimentoAutor", fields: [usuarioId], references: [id])
   canceladoPor Usuario? @relation("AbatimentoCancelador", fields: [canceladoPorId], references: [id])
 
   @@index([tenantId])
@@ -861,4 +873,63 @@ model Sequencia {
 
   @@id([tenantId, nome])
   @@map("sequencias")
+}
+
+// ── Delivery: pedido feito pelo cliente no cardápio online ─────────────────────
+
+enum PedidoOnlineStatus {
+  recebido // chegou; o caixa aceita ou recusa
+  aceito // virou Pedido; itens na cozinha
+  pronto // cozinha terminou
+  em_rota // saiu para entrega
+  entregue // entregue/retirado e pago
+  recusado
+  cancelado
+}
+
+enum PedidoOnlineTipo {
+  entrega
+  retirada
+}
+
+model PedidoOnline {
+  id              String             @id @default(uuid())
+  tenantId        String             @map("tenant_id")
+  /// Código curto que o cliente usa para acompanhar (único na plataforma)
+  codigo          String             @unique
+  status          PedidoOnlineStatus @default(recebido)
+  tipo            PedidoOnlineTipo   @default(entrega)
+  clienteNome     String             @map("cliente_nome")
+  clienteTelefone String             @map("cliente_telefone")
+  endereco        String?
+  numero          String?
+  bairro          String?
+  complemento     String?
+  referencia      String?
+  /// Itens como o cliente pediu (nome e preço do momento): [{produtoId, nome, quantidade, preco, observacao}]
+  itens           Json
+  subtotal        Decimal            @db.Decimal(10, 2)
+  taxaEntrega     Decimal            @default(0) @map("taxa_entrega") @db.Decimal(10, 2)
+  total           Decimal            @db.Decimal(10, 2)
+  /// dinheiro | cartao | pix — pago na entrega/retirada
+  formaPagamento  String             @map("forma_pagamento")
+  trocoPara       Decimal?           @map("troco_para") @db.Decimal(10, 2)
+  observacao      String?
+  motivoRecusa    String?            @map("motivo_recusa")
+  pedidoId        String?            @unique @map("pedido_id")
+  aceitoPorId     String?            @map("aceito_por")
+  aceitoEm        DateTime?          @map("aceito_em")
+  prontoEm        DateTime?          @map("pronto_em")
+  saiuEm          DateTime?          @map("saiu_em")
+  entregueEm      DateTime?          @map("entregue_em")
+  canceladoEm     DateTime?          @map("cancelado_em")
+  createdAt       DateTime           @default(now()) @map("created_at")
+  updatedAt       DateTime           @updatedAt @map("updated_at")
+
+  tenant Tenant  @relation(fields: [tenantId], references: [id])
+  pedido Pedido? @relation(fields: [pedidoId], references: [id])
+
+  @@index([tenantId, status])
+  @@index([tenantId, createdAt])
+  @@map("pedidos_online")
 }

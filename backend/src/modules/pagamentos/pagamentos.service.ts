@@ -79,6 +79,7 @@ export async function registrarPagamento(tenantId: string, input: RegistrarPagam
           abatimentos: pedido.abatimentos,
           pagamentos: pedido.pagamentos,
           taxaPct: Number(pedido.taxaPct),
+          taxaEntrega: pedido.taxaEntrega,
         })
 
         if (conta.restanteCentavos === 0) {
@@ -324,6 +325,7 @@ async function respostaDePagamento(_tenantId: string, pagamento: any, repetido: 
         abatimentos: pedido.abatimentos,
         pagamentos: pedido.pagamentos,
         taxaPct: Number(pedido.taxaPct),
+        taxaEntrega: pedido.taxaEntrega,
       })
     : null
 

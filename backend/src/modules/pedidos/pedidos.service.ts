@@ -521,6 +521,7 @@ export async function comandaDaMesa(tenantId: string, mesaId: string) {
     abatimentos: pedido.abatimentos,
     pagamentos: pedido.pagamentos,
     taxaPct: Number(pedido.taxaPct),
+    taxaEntrega: pedido.taxaEntrega,
   })
 
   // Agrupa por rodada — é assim que a cozinha vê e é assim que o cupom imprime.
@@ -596,6 +597,7 @@ export async function filaCozinha(tenantId: string, horas = 6) {
           numero: true,
           mesaId: true,
           mesa: { select: { numero: true, nomeMesa: true, cliente: true } },
+          online: { select: { codigo: true, clienteNome: true, tipo: true } },
         },
       },
     },
@@ -609,14 +611,16 @@ export async function filaCozinha(tenantId: string, horas = 6) {
     const k = chave(item)
     if (!fichas.has(k)) {
       const mesa = item.pedido.mesa
+      const online = item.pedido.online
       fichas.set(k, {
         id: k,
         pedido_id: item.pedidoId,
         pedido_numero: item.pedido.numero,
         rodada: item.rodada,
         comanda_id: item.pedido.mesaId,
-        comanda_nome: mesa?.nomeMesa || (mesa ? `Mesa ${mesa.numero}` : 'Balcão'),
-        cliente: mesa?.cliente ?? null,
+        comanda_nome: mesa?.nomeMesa || (mesa ? `Mesa ${mesa.numero}` : online ? `${online.tipo === 'entrega' ? 'Delivery' : 'Retirada'} ${online.codigo}` : 'Balcão'),
+        cliente: mesa?.cliente ?? online?.clienteNome ?? null,
+        delivery: online ? online.tipo : null,
         lancada_por: item.lancadoPor?.nome ?? null,
         aberta_em: item.createdAt,
         itens: [],
@@ -718,6 +722,7 @@ async function contaDoPedido(tx: any, pedidoId: string) {
     abatimentos: pedido.abatimentos,
     pagamentos: pedido.pagamentos,
     taxaPct: Number(pedido.taxaPct),
+    taxaEntrega: pedido.taxaEntrega,
   })
 }
 

@@ -22,6 +22,7 @@ import { impressorasRoutes } from './modules/impressoras/impressoras.routes'
 import { vendasRoutes } from './modules/vendas/vendas.routes'
 import { integracoesRoutes } from './modules/integracoes/integracoes.routes'
 import { suporteRoutes } from './modules/suporte/suporte.routes'
+import { deliveryRoutes, deliveryPublicoRoutes } from './modules/delivery/delivery.routes'
 import { platformAuthRoutes } from './modules/platform/platform-auth.routes'
 import { platformTenantsRoutes } from './modules/platform/platform-tenants.routes'
 import { platformTicketsRoutes } from './modules/platform/platform-tickets.routes'
@@ -124,6 +125,8 @@ export async function buildApp() {
   await app.register(vendasRoutes,        { prefix: '/api/vendas' })
   await app.register(integracoesRoutes,   { prefix: '/api/integracoes' })
   await app.register(suporteRoutes,       { prefix: '/api/suporte' })
+  await app.register(deliveryRoutes,      { prefix: '/api/delivery' })
+  await app.register(deliveryPublicoRoutes, { prefix: '/api/publico' })
   await app.register(platformTenantsRoutes, { prefix: '/api/platform/tenants' })
   await app.register(platformTicketsRoutes, { prefix: '/api/platform/tickets' })
   await app.register(platformPlanosRoutes,  { prefix: '/api/platform/planos' })

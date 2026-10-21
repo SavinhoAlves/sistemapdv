@@ -130,7 +130,7 @@ export const useAuthStore = defineStore('auth', {
             id:         resposta.usuario.id,
             nome:       resposta.usuario.nome,
             cargo:      resposta.usuario.cargo,
-            perfil_id:  resposta.usuario.perfil_id ?? null,
+            perfil_id:  resposta.usuario.perfilId ?? null,
             permissoes: resposta.usuario.permissoes ?? null,
           }
           this.setAuth(resposta.accessToken ?? resposta.access_token, usuario, resposta.refreshToken ?? resposta.refresh_token)
@@ -173,7 +173,7 @@ export const useAuthStore = defineStore('auth', {
             id:         resp.auth.sub,
             nome:       resp.auth.nome,
             cargo:      resp.auth.cargo,
-            perfil_id:  resp.auth.perfil_id ?? null,
+            perfil_id:  resp.auth.perfilId ?? null,
             permissoes: resp.auth.permissoes ?? null,
           } as Usuario
           localStorage.setItem('auth_user', JSON.stringify(this.usuario))

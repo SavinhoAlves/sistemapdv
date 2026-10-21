@@ -242,7 +242,8 @@ export async function resumoCaixa(_tenantId: string, caixaId: string, tx: any = 
     include: { metodo: { select: { nome: true } } },
   })
 
-  const porMetodo: Record<string, { recebido: number; estornado: number; liquido: number }> = {}
+  const porMetodo: Record<string, { recebido: number; estornado: number; liquido: number; qtd: number }> = {}
+  let qtdVendas = 0
   let dinheiroRecebido = 0
   let dinheiroEstornado = 0
   let vendasLiquidas = 0
@@ -254,12 +255,14 @@ export async function resumoCaixa(_tenantId: string, caixaId: string, tx: any = 
     const estornado = p.status === 'estornado'
     const ehDinheiro = nome.toLowerCase().includes('dinheiro')
 
-    porMetodo[nome] ??= { recebido: 0, estornado: 0, liquido: 0 }
+    porMetodo[nome] ??= { recebido: 0, estornado: 0, liquido: 0, qtd: 0 }
     if (estornado) {
       porMetodo[nome].estornado += valor
       if (ehDinheiro) dinheiroEstornado += valor
     } else {
       porMetodo[nome].recebido += valor
+      porMetodo[nome].qtd++
+      qtdVendas++
       vendasLiquidas += valor
       if (ehDinheiro) {
         // CORRETO: o valor aplicado é o que ficou na gaveta.
@@ -277,6 +280,8 @@ export async function resumoCaixa(_tenantId: string, caixaId: string, tx: any = 
   return {
     esperado_dinheiro: paraReais(esperadoDinheiro),
     total_vendas: paraReais(vendasLiquidas),
+    /** Pagamentos confirmados (não estornados) no caixa */
+    qtd_vendas: qtdVendas,
     valor_inicial: paraReais(inicial),
     suprimentos: paraReais(suprimentos),
     sangrias: paraReais(sangrias),
@@ -291,6 +296,7 @@ export async function resumoCaixa(_tenantId: string, caixaId: string, tx: any = 
           recebido: paraReais(v.recebido),
           estornado: paraReais(v.estornado),
           liquido: paraReais(v.liquido),
+          qtd: v.qtd,
         },
       ]),
     ),

@@ -437,8 +437,9 @@ const fichaAtual = ref<any>(null)
 
 async function confirmarVenda() {
   if (!podePagar.value || processando.value) return
+  let operador: { nome?: string } | null = null
   try {
-    await identificarViaRfid('Passe o cartão para confirmar a venda')
+    operador = await identificarViaRfid('Passe o cartão para confirmar a venda')
   } catch {
     return // cancelado
   }
@@ -454,7 +455,19 @@ async function confirmarVenda() {
       metodoId:      metodoSelecionado.value.id,
       valorRecebido: metodoSelecionado.value.nome === 'Dinheiro' ? valorRecebidoNum.value : undefined,
     })
-    fichaAtual.value = resp.ficha
+    // A API devolve só o código da ficha e a conta; o cupom é montado com o carrinho
+    fichaAtual.value = {
+      numero:        resp.ficha,
+      created_at:    new Date().toISOString(),
+      operador:      operador?.nome ?? '',
+      itens:         carrinho.value.map(i => ({ ...i })),
+      total:         resp.conta?.bruto ?? subtotal.value,
+      desconto:      resp.conta?.desconto ?? 0,
+      total_liquido: resp.total,
+      metodo:        metodoSelecionado.value.nome,
+      valor_pago:    metodoSelecionado.value.nome === 'Dinheiro' ? valorRecebidoNum.value : resp.total,
+      troco:         resp.troco,
+    }
     carrinhoStore.limpar()
     carrinhoAberto.value = false
     await Promise.all([sincronizarCaixa(), carregarProdutos()])

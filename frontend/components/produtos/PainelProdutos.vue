@@ -254,8 +254,8 @@ const selecionarProduto = async (produto: Produto) => {
   adicionando.value = produto.id
   try {
     await api.post('/pedidos/adicionar', {
-      mesa_id:    props.mesa.id,
-      produto_id: produto.id,
+      mesaId:     props.mesa.id,
+      produtoId:  produto.id,
       quantidade: 1
     })
     toastStore.success(`${produto.nome} adicionado!`)

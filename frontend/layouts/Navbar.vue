@@ -259,7 +259,7 @@
               <Landmark :size="20" class="text-green-400" />
             </div>
             <h2 class="text-base font-black text-gray-900 dark:text-white">Caixa fechado</h2>
-            <p class="text-[11px] text-gray-500 dark:text-white/40 mt-0.5">Aberto em {{ resumoFechamento.caixa.data_abertura ? new Date(resumoFechamento.caixa.data_abertura).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : '—' }}</p>
+            <p class="text-[11px] text-gray-500 dark:text-white/40 mt-0.5">Aberto em {{ resumoFechamento.caixa.dataAbertura ? new Date(resumoFechamento.caixa.dataAbertura).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : '—' }}</p>
           </div>
 
           <!-- CONFERÊNCIA -->
@@ -268,10 +268,10 @@
               ? 'bg-green-500/10'
               : 'bg-red-500/10'">
             <div class="flex justify-between text-xs text-gray-500 dark:text-white/50 mb-1">
-              <span>Esperado em gaveta</span><span>R$ {{ fmtValor(resumoFechamento.totais.esperado_dinheiro) }}</span>
+              <span>Esperado em gaveta</span><span>R$ {{ fmtValor(resumoFechamento.totais?.esperadoDinheiro) }}</span>
             </div>
             <div class="flex justify-between text-xs text-gray-500 dark:text-white/50 mb-1">
-              <span>Contado</span><span>R$ {{ fmtValor(resumoFechamento.caixa.valor_contado) }}</span>
+              <span>Contado</span><span>R$ {{ fmtValor(resumoFechamento.caixa.valorContado) }}</span>
             </div>
             <div class="flex justify-between text-sm font-black"
               :class="Number(resumoFechamento.caixa.diferenca || 0) < -0.005
@@ -292,7 +292,7 @@
             </div>
             <div v-if="resumoFechamento.vendas" class="flex justify-between text-xs pt-1 border-t border-gray-200 dark:border-white/[0.06] mt-1">
               <span class="text-gray-500 dark:text-white/50">{{ resumoFechamento.vendas.quantidade }} vendas · ticket médio</span>
-              <span class="font-bold text-gray-900 dark:text-white">R$ {{ fmtValor(resumoFechamento.vendas.ticket_medio) }}</span>
+              <span class="font-bold text-gray-900 dark:text-white">R$ {{ fmtValor(resumoFechamento.vendas.ticketMedio) }}</span>
             </div>
           </div>
 
@@ -300,19 +300,19 @@
           <div class="bg-gray-50 dark:bg-white/5 rounded-2xl p-4 mb-5 space-y-1">
             <div class="flex justify-between text-xs">
               <span class="text-gray-500 dark:text-white/50">Saldo inicial</span>
-              <span class="font-bold text-gray-900 dark:text-white">R$ {{ fmtValor(resumoFechamento.totais.valor_inicial) }}</span>
+              <span class="font-bold text-gray-900 dark:text-white">R$ {{ fmtValor(resumoFechamento.totais?.valorInicial) }}</span>
             </div>
             <div class="flex justify-between text-xs">
               <span class="text-gray-500 dark:text-white/50">Entradas</span>
-              <span class="font-bold text-green-500 dark:text-green-400">+ R$ {{ fmtValor(resumoFechamento.totais.total_entradas) }}</span>
+              <span class="font-bold text-green-500 dark:text-green-400">+ R$ {{ fmtValor(resumoFechamento.totais?.entradas) }}</span>
             </div>
             <div class="flex justify-between text-xs">
               <span class="text-gray-500 dark:text-white/50">Saídas</span>
-              <span class="font-bold text-red-500 dark:text-red-400">− R$ {{ fmtValor(resumoFechamento.totais.total_saidas) }}</span>
+              <span class="font-bold text-red-500 dark:text-red-400">− R$ {{ fmtValor(resumoFechamento.totais?.saidas) }}</span>
             </div>
             <div class="flex justify-between text-sm font-black text-gray-900 dark:text-white pt-1 border-t border-gray-200 dark:border-white/[0.06]">
               <span>Saldo final</span>
-              <span>R$ {{ fmtValor(resumoFechamento.totais.saldo_atual) }}</span>
+              <span>R$ {{ fmtValor(resumoFechamento.totais?.saldoAtual) }}</span>
             </div>
           </div>
 
@@ -408,6 +408,7 @@
 </style>
 
 <script setup lang="ts">
+import { totaisDoResumo, vendasDoResumo, porMetodoDoResumo } from '~/lib/caixa'
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import {
@@ -578,13 +579,21 @@ const confirmarFechamento = async () => {
   fechandoCaixa.value = true
   fechamentoErro.value = ''
   try {
+    const abertoPor = caixaStore.caixaAtual?.funcionario?.nome ?? null
+    // A API exige caixaId/valorContado (fecharBody); com caixa_id/valor_contado o fechamento dava 400
     const resp = await api.post<any>('/caixa/fechar', {
-      caixa_id: caixaStore.caixaAtual?.id,
-      valor_contado: valor,
+      caixaId: caixaStore.caixaAtual?.id,
+      valorContado: valor,
       observacao: obsFechamento.value || undefined
     })
     modalConferencia.value = false
-    resumoFechamento.value = resp.resumo
+    // Resposta: o caixa fechado (camelCase) com `resumo` dentro
+    resumoFechamento.value = {
+      caixa: { ...resp, abertoPor, fechadoPor: authStore.usuario?.nome ?? null },
+      totais: totaisDoResumo(resp.resumo),
+      porMetodo: porMetodoDoResumo(resp.resumo),
+      vendas: vendasDoResumo(resp.resumo),
+    }
     toastStore.success('Caixa fechado com sucesso')
   } catch (error: any) {
     fechamentoErro.value = error?.message || 'Erro ao fechar o caixa'
@@ -639,27 +648,27 @@ const imprimirFechamento = async () => {
     ${logoHtml}
     <div class="centro titulo">${configStore.nome_restaurante}</div>
     <div class="centro bold">FECHAMENTO DE CAIXA</div>
-    <div class="centro">Sessão de ${fmtData(resumo.caixa.data_abertura)}</div>
+    <div class="centro">Sessão de ${fmtData(resumo.caixa.dataAbertura)}</div>
     <div class="sep"></div>
-    ${linha('Abertura', fmtData(resumo.caixa.data_abertura))}
-    ${linha('Fechamento', fmtData(resumo.caixa.fechado_em))}
-    ${resumo.caixa.operador ? linha('Aberto por', resumo.caixa.operador) : ''}
-    ${resumo.caixa.fechado_por_nome ? linha('Fechado por', resumo.caixa.fechado_por_nome) : ''}
+    ${linha('Abertura', fmtData(resumo.caixa.dataAbertura))}
+    ${linha('Fechamento', fmtData(resumo.caixa.fechadoEm))}
+    ${resumo.caixa.abertoPor ? linha('Aberto por', resumo.caixa.abertoPor) : ''}
+    ${resumo.caixa.fechadoPor ? linha('Fechado por', resumo.caixa.fechadoPor) : ''}
     <div class="sep"></div>
-    ${linha('Saldo inicial', 'R$ ' + fmtValor(resumo.totais.valor_inicial))}
-    ${linha('Entradas', '+R$ ' + fmtValor(resumo.totais.total_entradas))}
-    ${linha('Saidas', '-R$ ' + fmtValor(resumo.totais.total_saidas))}
-    ${linha('Saldo final', 'R$ ' + fmtValor(resumo.totais.saldo_atual), true)}
+    ${linha('Saldo inicial', 'R$ ' + fmtValor(resumo.totais?.valorInicial))}
+    ${linha('Entradas', '+R$ ' + fmtValor(resumo.totais?.entradas))}
+    ${linha('Saidas', '-R$ ' + fmtValor(resumo.totais?.saidas))}
+    ${linha('Saldo final', 'R$ ' + fmtValor(resumo.totais?.saldoAtual), true)}
     <div class="sep"></div>
     <div class="secao">VENDAS POR METODO</div>
     ${(resumo.porMetodo || []).map((m: any) => linha(`${m.metodo} (${m.qtd})`, 'R$ ' + fmtValor(m.total))).join('')}
-    ${resumo.vendas ? linha('Vendas / ticket medio', `${resumo.vendas.quantidade} / R$ ${fmtValor(resumo.vendas.ticket_medio)}`) : ''}
+    ${resumo.vendas ? linha('Vendas / ticket medio', `${resumo.vendas.quantidade} / R$ ${fmtValor(resumo.vendas.ticketMedio)}`) : ''}
     <div class="sep"></div>
     <div class="secao">CONFERENCIA (DINHEIRO)</div>
-    ${linha('Esperado em gaveta', 'R$ ' + fmtValor(resumo.totais.esperado_dinheiro))}
-    ${linha('Contado', 'R$ ' + fmtValor(resumo.caixa.valor_contado))}
+    ${linha('Esperado em gaveta', 'R$ ' + fmtValor(resumo.totais?.esperadoDinheiro))}
+    ${linha('Contado', 'R$ ' + fmtValor(resumo.caixa.valorContado))}
     ${linha('Diferenca', (dif >= 0 ? '+' : '-') + 'R$ ' + fmtValor(Math.abs(dif)), true)}
-    ${resumo.caixa.observacao_fechamento ? `<div class="sep"></div><div>Obs: ${resumo.caixa.observacao_fechamento}</div>` : ''}
+    ${resumo.caixa.observacaoFechamento ? `<div class="sep"></div><div>Obs: ${resumo.caixa.observacaoFechamento}</div>` : ''}
   </div>
   </body></html>`
 
@@ -688,7 +697,8 @@ const confirmarAbertura = async () => {
   abrindoCaixa.value = true
   saldoErro.value = ''
   try {
-    await api.post('/caixa/abrir', { usuario_id: usuarioRfid.value.id, valor_inicial: valor })
+    // A API lê camelCase (caixa.routes.ts → abrirBody); antes valor_inicial era ignorado e o caixa abria com R$ 0,00
+    await api.post('/caixa/abrir', { funcionarioId: usuarioRfid.value.id, valorInicial: valor })
     toastStore.success('Caixa aberto com sucesso')
     modalSaldoInicial.value = false
   } catch (error: any) {

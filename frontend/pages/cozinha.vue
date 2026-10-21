@@ -247,6 +247,7 @@ import Navbar from '~/layouts/Navbar.vue'
 import Sidebar from '~/components/Sidebar.vue'
 import { useApi } from '~/services/api'
 import { useSocket } from '~/services/socket'
+import { fichasDaCozinha, type ItemCozinha, type FichaCozinha } from '~/lib/cozinha'
 import { useToastStore } from '~/stores/toast'
 import { useAuthStore } from '~/stores/auth'
 
@@ -257,14 +258,8 @@ const socket     = useSocket()
 const toastStore = useToastStore()
 const authStore  = useAuthStore()
 
-interface Item {
-  id: number; pedido_id: number; produto: string; categoria: string | null
-  quantidade: number; status: string; observacao: string | null
-  created_at: string; updated_at: string
-}
-interface Mesa {
-  mesa_id: number; mesa_nome: string; cliente: string | null; itens: Item[]
-}
+type Item = ItemCozinha
+type Mesa = FichaCozinha
 
 const mesas             = ref<Mesa[]>([])
 const carregando        = ref(false)
@@ -419,8 +414,8 @@ let primeiraBusca = true
 async function buscar() {
   carregando.value = true
   try {
-    const dados = await api.get<Mesa[]>('/pedidos/cozinha')
-    mesas.value = Array.isArray(dados) ? dados : []
+    const dados = await api.get<any[]>('/pedidos/cozinha')
+    mesas.value = Array.isArray(dados) ? fichasDaCozinha(dados) : []
     semConexao.value = false
     ultimaAtualizacao.value = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
 

@@ -633,6 +633,8 @@ export async function filaCozinha(tenantId: string, horas = 6) {
       quantidade: item.quantidade,
       status: item.status,
       observacao: item.observacao,
+      lancado_em: item.createdAt,
+      atualizado_em: item.updatedAt,
     })
   }
 

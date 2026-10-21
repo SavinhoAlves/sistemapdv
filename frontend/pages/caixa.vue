@@ -26,8 +26,8 @@
               <div class="w-1 h-6 bg-orange-500 rounded-full shrink-0"></div>
               <div>
                 <h2 class="text-base font-black text-gray-900 dark:text-white">Painel do Caixa</h2>
-                <p v-if="aba === 'atual' && caixaAberto && caixaStore.caixaAtual?.data_abertura" class="text-xs text-gray-400 dark:text-white/40 mt-0.5">
-                  Aberto às {{ fmtHora(caixaStore.caixaAtual.data_abertura) }}
+                <p v-if="aba === 'atual' && caixaAberto && caixaStore.caixaAtual?.dataAbertura" class="text-xs text-gray-400 dark:text-white/40 mt-0.5">
+                  Aberto às {{ fmtHora(caixaStore.caixaAtual.dataAbertura) }}
                 </p>
               </div>
             </div>
@@ -81,35 +81,35 @@
               <div class="h-0.5 bg-gray-200 dark:bg-white/10"></div>
               <div class="p-4 sm:p-5">
                 <p class="text-[10px] font-black uppercase tracking-widest text-gray-500 dark:text-white/40">Saldo Inicial</p>
-                <p class="text-xl sm:text-2xl font-black text-gray-900 dark:text-white mt-2 leading-none">R$ {{ fmt(totaisCaixa?.valor_inicial) }}</p>
+                <p class="text-xl sm:text-2xl font-black text-gray-900 dark:text-white mt-2 leading-none">R$ {{ fmt(totaisCaixa?.valorInicial) }}</p>
               </div>
             </div>
             <div class="bg-white dark:bg-white/5 backdrop-blur-xl rounded-2xl border border-gray-200 dark:border-white/[0.08] overflow-hidden">
               <div class="h-0.5 bg-gradient-to-r from-green-400 to-emerald-500"></div>
               <div class="p-4 sm:p-5">
                 <p class="text-[10px] font-black uppercase tracking-widest text-gray-500 dark:text-white/40">Entradas</p>
-                <p class="text-xl sm:text-2xl font-black text-green-400 mt-2 leading-none">R$ {{ fmt(totaisCaixa?.total_entradas) }}</p>
+                <p class="text-xl sm:text-2xl font-black text-green-400 mt-2 leading-none">R$ {{ fmt(totaisCaixa?.entradas) }}</p>
               </div>
             </div>
             <div class="bg-white dark:bg-white/5 backdrop-blur-xl rounded-2xl border border-gray-200 dark:border-white/[0.08] overflow-hidden">
               <div class="h-0.5 bg-gradient-to-r from-red-400 to-red-500"></div>
               <div class="p-4 sm:p-5">
                 <p class="text-[10px] font-black uppercase tracking-widest text-gray-500 dark:text-white/40">Saídas</p>
-                <p class="text-xl sm:text-2xl font-black text-red-400 mt-2 leading-none">R$ {{ fmt(totaisCaixa?.total_saidas) }}</p>
+                <p class="text-xl sm:text-2xl font-black text-red-400 mt-2 leading-none">R$ {{ fmt(totaisCaixa?.saidas) }}</p>
               </div>
             </div>
             <div class="bg-white dark:bg-white/5 backdrop-blur-xl rounded-2xl border border-gray-200 dark:border-white/[0.08] overflow-hidden">
               <div class="h-0.5 bg-gradient-to-r from-emerald-400 to-teal-500"></div>
               <div class="p-4 sm:p-5">
                 <p class="text-[10px] font-black uppercase tracking-widest text-green-400">Dinheiro em Gaveta</p>
-                <p class="text-xl sm:text-2xl font-black text-green-400 mt-2 leading-none">R$ {{ fmt(totaisCaixa?.esperado_dinheiro) }}</p>
+                <p class="text-xl sm:text-2xl font-black text-green-400 mt-2 leading-none">R$ {{ fmt(totaisCaixa?.esperadoDinheiro) }}</p>
               </div>
             </div>
             <div class="bg-white dark:bg-white/5 backdrop-blur-xl rounded-2xl border border-gray-200 dark:border-white/[0.08] overflow-hidden">
               <div class="h-0.5 bg-gradient-to-r from-orange-400 to-amber-500"></div>
               <div class="p-4 sm:p-5">
                 <p class="text-[10px] font-black uppercase tracking-widest text-orange-400">Saldo Atual</p>
-                <p class="text-xl sm:text-2xl font-black text-orange-400 mt-2 leading-none">R$ {{ fmt(totaisCaixa?.saldo_atual) }}</p>
+                <p class="text-xl sm:text-2xl font-black text-orange-400 mt-2 leading-none">R$ {{ fmt(totaisCaixa?.saldoAtual) }}</p>
               </div>
             </div>
           </div>
@@ -125,7 +125,7 @@
                   <h3 class="text-xs font-black uppercase tracking-widest text-gray-600 dark:text-white/80">Vendas por Método</h3>
                 </div>
                 <span v-if="vendasResumo?.quantidade" class="text-[11px] font-bold text-gray-400 dark:text-white/40 truncate">
-                  {{ vendasResumo.quantidade }} vendas · ticket R$ {{ fmt(vendasResumo.ticket_medio) }}
+                  {{ vendasResumo.quantidade }} vendas · ticket R$ {{ fmt(vendasResumo.ticketMedio) }}
                 </span>
               </div>
               <div v-if="carregandoAdmin" class="p-4 space-y-2">
@@ -174,16 +174,16 @@
                 <div v-for="mesa in mesasAbertas" :key="mesa.id"
                   class="flex items-center justify-between px-5 py-3 hover:bg-gray-50 dark:hover:bg-white/5 transition-colors">
                   <div class="min-w-0">
-                    <p class="text-sm font-black text-gray-900 dark:text-white truncate">{{ mesa.nome_mesa }}</p>
+                    <p class="text-sm font-black text-gray-900 dark:text-white truncate">{{ mesa.nome }}</p>
                     <p class="text-[11px] text-gray-400 dark:text-white/40 mt-0.5">{{ mesa.cliente || '—' }}{{ mesa.garcom ? ` · ${mesa.garcom}` : '' }}</p>
                   </div>
-                  <p class="text-sm font-black text-orange-400 shrink-0 ml-3">R$ {{ fmt(mesa.total_liquido) }}</p>
+                  <p class="text-sm font-black text-orange-400 shrink-0 ml-3">R$ {{ fmt(mesa.restante) }}</p>
                 </div>
               </div>
               <div v-if="mesasAbertas.length" class="px-5 py-3 border-t border-gray-100 dark:border-white/[0.06] flex items-center justify-between">
                 <span class="text-xs font-bold text-gray-400 dark:text-white/40">Total em aberto</span>
                 <span class="text-sm font-black text-gray-900 dark:text-white">
-                  R$ {{ fmt(mesasAbertas.reduce((s: number, m: any) => s + Number(m.total_liquido || 0), 0)) }}
+                  R$ {{ fmt(mesasAbertas.reduce((s: number, m: any) => s + Number(m.restante || 0), 0)) }}
                 </span>
               </div>
             </div>
@@ -221,7 +221,7 @@
                 </div>
                 <div class="flex-1 min-w-0">
                   <p class="text-xs font-black text-gray-900 dark:text-white">{{ labelMovimento(mov.tipo) }}</p>
-                  <p class="text-[11px] text-gray-400 dark:text-white/40 truncate">{{ mov.descricao || '—' }} · {{ mov.operador || '—' }}</p>
+                  <p class="text-[11px] text-gray-400 dark:text-white/40 truncate">{{ mov.descricao || '—' }} · {{ mov.usuario?.nome || '—' }}</p>
                 </div>
                 <span
                   v-if="mov.tipo === 'pagamento' && mov.pagamento_status === 'estornado'"
@@ -239,7 +239,7 @@
                     :class="['pagamento','suprimento'].includes(mov.tipo) ? 'text-green-400' : 'text-red-400'">
                     {{ ['pagamento','suprimento'].includes(mov.tipo) ? '+' : '−' }} R$ {{ fmt(mov.valor) }}
                   </p>
-                  <p class="text-[10px] text-gray-400 dark:text-white/40">{{ fmtHora(mov.created_at) }}</p>
+                  <p class="text-[10px] text-gray-400 dark:text-white/40">{{ fmtHora(mov.createdAt) }}</p>
                 </div>
               </div>
             </div>
@@ -261,7 +261,7 @@
               class="w-full px-5 py-4 flex items-center justify-between gap-3 text-left hover:bg-gray-50 dark:hover:bg-white/5 transition-colors">
               <div class="min-w-0">
                 <div class="flex items-center gap-2">
-                  <p class="text-sm font-black text-gray-900 dark:text-white">Caixa #{{ cx.id }}</p>
+                  <p class="text-sm font-black text-gray-900 dark:text-white">Caixa de {{ fmtDataCurta(cx.dataAbertura) }}</p>
                   <span class="text-[9px] font-black uppercase rounded-md px-1.5 py-0.5"
                     :class="cx.status === 'aberto'
                       ? 'text-green-400 bg-green-500/10'
@@ -270,13 +270,13 @@
                   </span>
                 </div>
                 <p class="text-[11px] text-gray-400 dark:text-white/40 mt-0.5 truncate">
-                  {{ fmtDataCurta(cx.data_abertura) }} → {{ cx.fechado_em ? fmtDataCurta(cx.fechado_em) : 'em aberto' }} · {{ cx.operador || '—' }}
+                  {{ fmtDataCurta(cx.dataAbertura) }} → {{ cx.fechadoEm ? fmtDataCurta(cx.fechadoEm) : 'em aberto' }} · {{ cx.funcionario?.nome || '—' }}
                 </p>
               </div>
               <div class="flex items-center gap-4 shrink-0">
                 <div class="text-right hidden sm:block">
                   <p class="text-[10px] text-gray-400 dark:text-white/40 uppercase font-black">Fechamento</p>
-                  <p class="text-sm font-black text-gray-900 dark:text-white">R$ {{ fmt(cx.valor_fechamento) }}</p>
+                  <p class="text-sm font-black text-gray-900 dark:text-white">R$ {{ fmt(cx.valorContado ?? cx.valorFechamento) }}</p>
                 </div>
                 <div class="text-right">
                   <p class="text-[10px] text-gray-400 dark:text-white/40 uppercase font-black">Diferença</p>
@@ -299,19 +299,19 @@
                 <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
                   <div class="bg-gray-50 dark:bg-white/5 rounded-xl p-3">
                     <p class="text-[9px] font-black uppercase tracking-widest text-gray-500 dark:text-white/40">Saldo Inicial</p>
-                    <p class="text-sm font-black text-gray-900 dark:text-white mt-1">R$ {{ fmt(detalhes[cx.id].totais.valor_inicial) }}</p>
+                    <p class="text-sm font-black text-gray-900 dark:text-white mt-1">R$ {{ fmt(detalhes[cx.id].totais?.valorInicial) }}</p>
                   </div>
                   <div class="bg-gray-50 dark:bg-white/5 rounded-xl p-3">
                     <p class="text-[9px] font-black uppercase tracking-widest text-gray-500 dark:text-white/40">Entradas</p>
-                    <p class="text-sm font-black text-green-400 mt-1">R$ {{ fmt(detalhes[cx.id].totais.total_entradas) }}</p>
+                    <p class="text-sm font-black text-green-400 mt-1">R$ {{ fmt(detalhes[cx.id].totais?.entradas) }}</p>
                   </div>
                   <div class="bg-gray-50 dark:bg-white/5 rounded-xl p-3">
                     <p class="text-[9px] font-black uppercase tracking-widest text-gray-500 dark:text-white/40">Saídas</p>
-                    <p class="text-sm font-black text-red-400 mt-1">R$ {{ fmt(detalhes[cx.id].totais.total_saidas) }}</p>
+                    <p class="text-sm font-black text-red-400 mt-1">R$ {{ fmt(detalhes[cx.id].totais?.saidas) }}</p>
                   </div>
                   <div class="bg-gray-50 dark:bg-white/5 rounded-xl p-3">
                     <p class="text-[9px] font-black uppercase tracking-widest text-gray-500 dark:text-white/40">Dinheiro Esperado</p>
-                    <p class="text-sm font-black text-gray-900 dark:text-white mt-1">R$ {{ fmt(detalhes[cx.id].totais.esperado_dinheiro) }}</p>
+                    <p class="text-sm font-black text-gray-900 dark:text-white mt-1">R$ {{ fmt(detalhes[cx.id].totais?.esperadoDinheiro) }}</p>
                   </div>
                 </div>
 
@@ -342,8 +342,8 @@
                   </div>
                 </div>
 
-                <p v-if="detalhes[cx.id].caixa.observacao_fechamento" class="text-[11px] text-gray-400 dark:text-white/40 italic mt-4">
-                  Obs: {{ detalhes[cx.id].caixa.observacao_fechamento }}
+                <p v-if="detalhes[cx.id].caixa.observacaoFechamento" class="text-[11px] text-gray-400 dark:text-white/40 italic mt-4">
+                  Obs: {{ detalhes[cx.id].caixa.observacaoFechamento }}
                 </p>
               </template>
             </div>
@@ -434,6 +434,7 @@
 </template>
 
 <script setup lang="ts">
+import { totaisDoResumo, vendasDoResumo, porMetodoDoResumo } from '~/lib/caixa'
 import { ref, computed, onMounted, onUnmounted, reactive } from 'vue'
 import {
   LockKeyhole, RefreshCw, LayoutGrid, Wallet,
@@ -507,8 +508,8 @@ async function confirmarEstorno() {
 
 const historico      = ref<any[]>([])
 const carregandoHist = ref(false)
-const expandido      = ref<number | null>(null)
-const detalhes       = ref<Record<number, any>>({})
+const expandido      = ref<string | null>(null)
+const detalhes       = ref<Record<string, any>>({})
 
 function abrirHistorico() {
   aba.value = 'historico'
@@ -518,8 +519,9 @@ function abrirHistorico() {
 async function carregarHistorico() {
   carregandoHist.value = true
   try {
-    const rows = await api.get<any[]>('/caixa/historico')
-    historico.value = Array.isArray(rows) ? rows : []
+    // GET /caixa/historico → { itens, total, pagina, por_pagina }
+    const r = await api.get<any>('/caixa/historico')
+    historico.value = Array.isArray(r?.itens) ? r.itens : []
   } catch {
     toastStore.error('Erro ao carregar histórico')
   } finally {
@@ -527,12 +529,14 @@ async function carregarHistorico() {
   }
 }
 
-async function toggleDetalhe(id: number) {
+async function toggleDetalhe(id: string) {
   if (expandido.value === id) { expandido.value = null; return }
   expandido.value = id
   if (!detalhes.value[id]) {
     try {
-      detalhes.value[id] = await api.get<any>(`/caixa/historico/${id}`)
+      // GET /caixa/historico/:id → { caixa, movimentos, resumo }
+      const d = await api.get<any>(`/caixa/historico/${id}`)
+      detalhes.value[id] = { ...d, totais: totaisDoResumo(d.resumo), porMetodo: porMetodoDoResumo(d.resumo) }
     } catch {
       toastStore.error('Erro ao carregar detalhes do caixa')
     }
@@ -566,10 +570,11 @@ async function buscarAdmin(mostrarLoading = false) {
       api.get<any>('/caixa/movimentos'),
       api.get<any[]>('/caixa/mesas-abertas')
     ])
+    // GET /caixa/movimentos → { caixa, movimentos, resumo }
     movimentos.value   = mov?.movimentos || []
-    totaisCaixa.value  = mov?.totais || null
-    porMetodo.value    = mov?.porMetodo || []
-    vendasResumo.value = mov?.vendas || null
+    totaisCaixa.value  = totaisDoResumo(mov?.resumo)
+    porMetodo.value    = porMetodoDoResumo(mov?.resumo)
+    vendasResumo.value = vendasDoResumo(mov?.resumo)
     mesasAbertas.value = Array.isArray(mesas) ? mesas : []
   } catch {
     toastStore.error('Erro ao carregar dados do painel')

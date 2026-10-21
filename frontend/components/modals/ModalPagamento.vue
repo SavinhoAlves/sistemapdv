@@ -282,6 +282,7 @@
 </template>
 
 <script setup lang="ts">
+import { novoUUID } from '~/lib/uuid'
 import { ref, computed, watch } from 'vue'
 import {
   X, CheckCircle2, Loader2, XCircle, Wifi, Smartphone,
@@ -289,12 +290,10 @@ import {
 } from 'lucide-vue-next'
 import { useApi } from '~/services/api'
 import { useToastStore }       from '~/stores/toast'
-import { useCaixaStore }       from '~/stores/caixa'
 import { useIntegracoesStore } from '~/stores/integracoes'
 
 const api             = useApi()
 const toastStore      = useToastStore()
-const caixaStore      = useCaixaStore()
 const mpStore         = useIntegracoesStore()
 
 const props = defineProps<{
@@ -377,19 +376,25 @@ async function carregarMetodos() {
   }
 }
 
+// Mesma chave enquanto a tentativa não der certo: um retry (rede caiu) não cobra duas vezes
+let chave: string | null = null
+const chavePagamento = () => (chave ??= novoUUID())
+
 async function confirmar() {
   if (!podePagar.value || salvando.value || !props.mesa?.id) return
   salvando.value = true
   try {
     const ehDinheiro = metodoSelecionado.value!.nome === 'Dinheiro'
+    // A API exige camelCase e a chave de idempotência (pagamentos.routes.ts → pagarBody).
+    // Antes ia mesa_id/pedido_id/valor_pago sem a chave: todo pagamento de mesa dava 400.
     const res = await api.post<{ quitado: boolean; restante: number }>('/pagamentos', {
-      mesa_id:        props.mesa.id,
-      pedido_id:      props.pedidoId,
-      metodo_id:      metodoSelecionado.value!.id,
-      caixa_id:       caixaStore.caixaAtual?.id ?? null,
-      valor_pago:     cobranca.value,
-      valor_recebido: ehDinheiro ? valorRecebidoNum.value : cobranca.value
+      idempotencyKey: chavePagamento(),
+      pedidoId:       props.pedidoId,
+      metodoId:       metodoSelecionado.value!.id,
+      valorPago:      cobranca.value,
+      valorRecebido:  ehDinheiro ? valorRecebidoNum.value : cobranca.value
     })
+    chave = null
     if (res.quitado) {
       toastStore.success('Pagamento confirmado!')
       emit('pago')
@@ -471,12 +476,12 @@ async function confirmarAposMaquininha() {
   salvando.value = true
   try {
     const res = await api.post<{ quitado: boolean; restante: number }>('/pagamentos', {
-      mesa_id:    props.mesa.id,
-      pedido_id:  props.pedidoId,
-      metodo_id:  metodoSelecionado.value!.id,
-      caixa_id:   caixaStore.caixaAtual?.id ?? null,
-      valor_pago: cobranca.value
+      idempotencyKey: chavePagamento(),
+      pedidoId:       props.pedidoId,
+      metodoId:       metodoSelecionado.value!.id,
+      valorPago:      cobranca.value
     })
+    chave = null
     if (res.quitado) {
       toastStore.success('Pagamento aprovado pela maquininha!')
       emit('pago')

@@ -573,7 +573,13 @@ async function confirmarVenda() {
       metodoId:      metodoSelecionado.value.id,
       valorRecebido: metodoSelecionado.value.nome === 'Dinheiro' ? valorRecebidoNum.value : undefined,
     })
-    fichaAtual.value = resp.ficha
+    // A API devolve só o código da ficha e a conta; o cupom é montado com o carrinho
+    fichaAtual.value = {
+      numero:        resp.ficha,
+      itens:         carrinho.value.map(i => ({ ...i })),
+      total_liquido: resp.total,
+      troco:         resp.troco,
+    }
     carrinhoStore.limpar()
     carrinhoAberto.value = false
     carregarProdutos()

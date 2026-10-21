@@ -163,20 +163,16 @@ import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { ChefHat, Volume2, VolumeX, Maximize2, Minimize2, WifiOff, ArrowLeft } from 'lucide-vue-next'
 import { useApi } from '~/services/api'
 import { useSocket } from '~/services/socket'
+import { EVENTOS } from '~/shared/eventos'
+import { fichasDaCozinha, type ItemCozinha, type FichaCozinha } from '~/lib/cozinha'
 
 definePageMeta({ layout: false })
 
 const api    = useApi()
 const socket = useSocket()
 
-interface Item {
-  id: number; produto: string; categoria: string | null
-  quantidade: number; status: string; observacao: string | null
-  created_at: string; updated_at: string
-}
-interface Mesa {
-  mesa_id: number; mesa_nome: string; cliente: string | null; itens: Item[]
-}
+type Item = ItemCozinha
+type Mesa = FichaCozinha
 
 const mesas             = ref<Mesa[]>([])
 const carregando        = ref(false)
@@ -327,8 +323,8 @@ let primeiraBusca = true
 async function buscar() {
   carregando.value = true
   try {
-    const dados = await api.get<Mesa[]>('/pedidos/cozinha')
-    mesas.value = Array.isArray(dados) ? dados : []
+    const dados = await api.get<any[]>('/pedidos/cozinha')
+    mesas.value = Array.isArray(dados) ? fichasDaCozinha(dados) : []
     semConexao.value = false
     ultimaAtualizacao.value = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
 
@@ -364,9 +360,9 @@ onMounted(() => {
   atualizarRelogio()
 
   desinscrever.push(socket.on('connect', () => agendarBusca()))
-  desinscrever.push(socket.on('cozinha:novo_item', () => { tocarSom('novo'); agendarBusca() }))
-  desinscrever.push(socket.on('cozinha:item_status', () => agendarBusca()))
-  desinscrever.push(socket.on('cozinha:item_cancelado', () => { tocarSom('cancelado'); agendarBusca() }))
+  desinscrever.push(socket.on(EVENTOS.item.lancado, () => { tocarSom('novo'); agendarBusca() }))
+  desinscrever.push(socket.on(EVENTOS.item.statusAlterado, () => agendarBusca()))
+  desinscrever.push(socket.on(EVENTOS.item.removido, () => { tocarSom('cancelado'); agendarBusca() }))
 
   timerPolling = setInterval(() => { if (!document.hidden) buscar() }, 15000)
   timerAgora   = setInterval(() => { agora.value = Date.now() }, 1000)

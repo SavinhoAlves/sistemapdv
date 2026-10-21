@@ -287,6 +287,7 @@
 </template>
 
 <script setup lang="ts">
+import { itensDaComanda } from '~/lib/comanda'
 import { ref, computed, watch, nextTick, onBeforeUnmount } from 'vue'
 import { useCaixaStore } from '~/stores/caixa'
 import { useConfigStore }      from '~/stores/configuracoes'
@@ -757,10 +758,10 @@ async function adicionarItem(produto: ProdutoMesa) {
 
   try {
     await api.post('/pedidos/adicionar', {
-      mesa_id:    props.mesa.id,
-      produto_id: produto.produto_id,
+      mesaId:     props.mesa.id,
+      produtoId:  produto.produto_id,
       quantidade: 1,
-      ...(garcomRfid.value ? { garcom_id: garcomRfid.value.id } : {})
+      ...(garcomRfid.value ? { garcomId: garcomRfid.value.id } : {})
     })
   } catch {
     produto.quantidade--
@@ -928,14 +929,12 @@ const carregarProdutos = async () => {
   try {
     loading.value  = true
     produtos.value = []
-    const [itens, pedido] = await Promise.all([
-      api.get<ProdutoMesa[]>(`/mesas/${props.mesa.id}/produtos`),
-      api.get<{ abatimentos: Abatimento[]; taxa_pct: number; pago: number } | null>(`/pedidos/mesa/${props.mesa.id}`)
-    ])
-    produtos.value    = Array.isArray(itens) ? itens : []
-    abatimentos.value = pedido?.abatimentos ?? []
-    taxaPct.value     = Number(pedido?.taxa_pct ?? 0)
-    valorPago.value   = Number(pedido?.pago ?? 0)
+    // Uma chamada basta: a comanda traz itens (por rodada), conta e abatimentos
+    const comanda = await api.get<any>(`/mesas/${props.mesa.id}/produtos`)
+    produtos.value    = itensDaComanda(comanda) as any
+    abatimentos.value = comanda?.abatimentos ?? []
+    taxaPct.value     = Number(comanda?.conta?.taxa_pct ?? 0)
+    valorPago.value   = Number(comanda?.conta?.pago ?? 0)
   } catch (error) {
     console.error(error)
     produtos.value = []

@@ -31,7 +31,7 @@ export const useCaixaStore = defineStore('caixa', {
       try {
         this.loading = true
         const api = useApi()
-        const resposta = await api.post<any>('/caixa/abrir', { usuario_id: usuarioId })
+        const resposta = await api.post<any>('/caixa/abrir', { funcionarioId: usuarioId })
         await this.carregarStatus()
         return resposta
       } catch (error) {
@@ -45,7 +45,7 @@ export const useCaixaStore = defineStore('caixa', {
       try {
         this.loading = true
         const api = useApi()
-        const resposta = await api.post<any>('/caixa/fechar', { caixa_id: caixaId })
+        const resposta = await api.post<any>('/caixa/fechar', { caixaId })
         this.aberto     = false
         this.caixaAtual = null
         return resposta

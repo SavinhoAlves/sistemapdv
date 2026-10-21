@@ -232,7 +232,7 @@ function concluirLogin(res: any, slug: string, texto: string) {
   const raw = res.usuario
   if (!(res.accessToken || res.access_token) || !raw) return false
   setTenantSlug(slug)
-  const user = { id: raw.id, nome: raw.nome, cargo: raw.cargo, perfil_id: raw.perfil_id ?? null, permissoes: raw.permissoes ?? null }
+  const user = { id: raw.id, nome: raw.nome, cargo: raw.cargo, perfil_id: raw.perfilId ?? null, permissoes: raw.permissoes ?? null }
   authStore.setAuth(res.accessToken ?? res.access_token, user, res.refreshToken ?? res.refresh_token)
   showMsg('success', texto)
   navigateTo('/')

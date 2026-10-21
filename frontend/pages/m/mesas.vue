@@ -380,6 +380,7 @@
 </template>
 
 <script setup lang="ts">
+import { itensDaComanda } from '~/lib/comanda'
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import {
   Plus, X, Loader2, LayoutGrid, UtensilsCrossed,
@@ -459,7 +460,10 @@ async function carregarMesas() {
   loading.value = true
   try {
     const rows = await api.get<any[]>('/mesas')
-    mesasAbertas.value = (rows || []).filter((m: any) => m.status === 'aberta' || m.aberta)
+    // GET /mesas → { nome, garcom: { id, nome }, aberta_em, … }; a tela usa nome_mesa/garcom_id/data_abertura
+    mesasAbertas.value = (rows || [])
+      .filter((m: any) => m.status === 'aberta' || m.status === 'fechando')
+      .map((m: any) => ({ ...m, nome_mesa: m.nome, garcom_id: m.garcom?.id ?? null, data_abertura: m.aberta_em }))
   } catch {}
   finally { loading.value = false }
 }
@@ -474,8 +478,7 @@ async function carregarProdutos() {
 async function carregarItensMesa(mesaId: number) {
   loadingItens.value = true
   try {
-    const resp = await api.get<any[]>(`/mesas/${mesaId}/produtos`)
-    itensMesa.value = resp || []
+    itensMesa.value = itensDaComanda(await api.get<any>(`/mesas/${mesaId}/produtos`))
   } catch {
     itensMesa.value = []
   } finally {
@@ -503,10 +506,10 @@ async function incrementarItem(item: any) {
   ajustando.value = item.id
   try {
     await api.post('/pedidos/adicionar', {
-      mesa_id:    mesaSelecionada.value.id,
-      produto_id: item.produto_id,
+      mesaId:     mesaSelecionada.value.id,
+      produtoId:  item.produto_id,
       quantidade: 1,
-      garcom_id:  authStore.usuario?.id
+      garcomId:   authStore.usuario?.id
     })
     item.quantidade += 1
   } catch {
@@ -561,10 +564,10 @@ async function adicionarItemMesa(produto: any) {
   adicionando.value = produto.id
   try {
     await api.post('/pedidos/adicionar', {
-      mesa_id:    mesaSelecionada.value.id,
-      produto_id: produto.id,
+      mesaId:     mesaSelecionada.value.id,
+      produtoId:  produto.id,
       quantidade: 1,
-      ...(userId ? { garcom_id: userId } : {})
+      ...(userId ? { garcomId: userId } : {})
     })
     toastStore.success(`${produto.nome} adicionado!`)
     carregarItensMesa(mesaSelecionada.value.id)
@@ -580,7 +583,7 @@ async function abrirMesa() {
   abrindoMesa.value = true
   try {
     const nome = novaMesaNome.value.trim() || undefined
-    await api.post('/mesas/abrir', { nome_mesa: nome, ...(garcomId ? { garcom_id: garcomId } : {}) })
+    await api.post('/mesas/abrir', { nomeMesa: nome, ...(garcomId ? { garcomId } : {}) })
     toastStore.success('Mesa aberta!')
     modalNovaMesa.value = false
     novaMesaNome.value  = ''

@@ -5,6 +5,7 @@ import { emitir } from '../../sockets/socket'
 import { paraDecimal, paraCentavos, paraReais, centavosDoCliente } from '../../lib/money'
 import { calcularConta, includeParaConta, contaParaJson } from '../comandas/conta'
 import { proximoNumero } from '../comandas/sequencia'
+import { registrarAuditoria } from '../../lib/auditoria'
 
 /**
  * Venda direta (balcão).
@@ -46,6 +47,8 @@ interface VendaInput {
   metodoId: string
   valorRecebido?: number
   cliente?: string
+  desconto?: number
+  motivoDesconto?: string
   usuarioId: string
 }
 
@@ -158,13 +161,33 @@ export async function registrarVenda(tenantId: string, input: VendaInput) {
           where: { id: pedido.id },
           include: includeParaConta,
         })
-        const conta = calcularConta({
-          itens: comItens!.itens,
-          abatimentos: comItens!.abatimentos,
-          pagamentos: comItens!.pagamentos,
-          taxaPct: Number(comItens!.taxaPct),
-          taxaEntrega: comItens!.taxaEntrega,
+        const contaDe = (p: NonNullable<typeof comItens>) => calcularConta({
+          itens: p.itens,
+          abatimentos: p.abatimentos,
+          pagamentos: p.pagamentos,
+          taxaPct: Number(p.taxaPct),
+          taxaEntrega: p.taxaEntrega,
         })
+        let conta = contaDe(comItens!)
+
+        // Desconto do balcão: gravado como abatimento (linha com autor e
+        // motivo), igual ao desconto em mesa, para aparecer nos relatórios.
+        const descontoCent = input.desconto ? centavosDoCliente(input.desconto, 'Desconto') : 0
+        if (descontoCent > 0) {
+          if (descontoCent > conta.liquidoCentavos) throw erro(400, 'Desconto maior que o valor da venda')
+          const motivo = input.motivoDesconto?.trim() || 'Desconto no balcão'
+          await tx.abatimento.create({
+            data: { pedidoId: pedido.id, tipo: 'valor', valor: paraDecimal(descontoCent), motivo, usuarioId: input.usuarioId } as any,
+          })
+          await registrarAuditoria(tx, {
+            usuarioId: input.usuarioId,
+            acao: 'pedido.abatimento',
+            entidade: 'Pedido',
+            entidadeId: pedido.id,
+            detalhes: { tipo: 'valor', valor_centavos: descontoCent, percentual: null, motivo, liquido_antes: conta.liquidoCentavos },
+          })
+          conta = contaDe((await tx.pedido.findFirst({ where: { id: pedido.id }, include: includeParaConta }))!)
+        }
 
         const recebidoCent =
           input.valorRecebido !== undefined

@@ -31,6 +31,9 @@ const vendaBody = z.object({
   metodoId: z.string().uuid('metodoId inválido'),
   valorRecebido: z.number().nonnegative().optional(),
   cliente: z.string().trim().max(80).optional(),
+  // Desconto em R$ sobre o total (vira um abatimento, como na mesa)
+  desconto: z.number().nonnegative().optional(),
+  motivoDesconto: z.string().trim().max(120).optional(),
 })
 
 export async function vendasRoutes(app: FastifyInstance) {
@@ -42,6 +45,12 @@ export async function vendasRoutes(app: FastifyInstance) {
       const body = vendaBody.safeParse(request.body)
       if (!body.success) {
         return reply.status(400).send({ error: body.error.issues[0]?.message ?? 'Dados inválidos' })
+      }
+
+      // Desconto exige a mesma permissão do desconto em mesa
+      if (body.data.desconto) {
+        await requirePermissao('aplicarDesconto')(request, reply)
+        if (reply.sent) return reply
       }
 
       const auth = request.auth as TenantJwtPayload

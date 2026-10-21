@@ -318,7 +318,7 @@ export async function resumoCaixa(_tenantId: string, caixaId: string, tx: any = 
  * dentro de Promise.all. Com 40 comandas eram 41 queries a cada 30 s de
  * polling, multiplicado pelo número de dispositivos.
  */
-async function comandasComSaldo(tx: any) {
+async function comandasComSaldo(tx: any, incluirSemConsumo = false) {
   const mesas = await tx.mesa.findMany({
     where: { status: { in: ['aberta', 'fechando'] }, dataFechamento: null },
     orderBy: { numero: 'asc' },
@@ -370,11 +370,13 @@ async function comandasComSaldo(tx: any) {
         aberta_em: mesa.dataAbertura,
       }
     })
-    .filter((c: any) => c.restante > 0 || c.total > 0)
+    .filter((c: any) => incluirSemConsumo || c.restante > 0 || c.total > 0)
 }
 
+// Painel do caixa: todas as comandas abertas, inclusive sem consumo (mesmo número
+// da tela Mesas). O fechamento do caixa continua barrando só as com saldo.
 export async function mesasAbertas(_tenantId: string) {
-  return comandasComSaldo(prisma)
+  return comandasComSaldo(prisma, true)
 }
 
 // ── Histórico ──────────────────────────────────────────────────────────────

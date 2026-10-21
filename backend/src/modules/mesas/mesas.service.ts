@@ -86,7 +86,7 @@ export async function listar(tenantId: string, _cargo: string, _userId: string) 
         where: { status: { in: [...STATUS_ABERTOS] } },
         include: {
           ...includeParaConta,
-          itens: { select: { precoTotal: true, status: true, createdAt: true } },
+          itens: { select: { precoTotal: true, status: true, createdAt: true, produto: { select: { categoria: { select: { vaiCozinha: true } } } } } },
         },
       },
     },
@@ -108,7 +108,7 @@ export async function resumoDaComanda(
         where: { status: { in: [...STATUS_ABERTOS] } },
         include: {
           ...includeParaConta,
-          itens: { select: { precoTotal: true, status: true, createdAt: true } },
+          itens: { select: { precoTotal: true, status: true, createdAt: true, produto: { select: { categoria: { select: { vaiCozinha: true } } } } } },
         },
       },
     },
@@ -331,7 +331,10 @@ function montarResumo(mesa: any) {
 
   const itens = pedido?.itens ?? []
   const ativos = itens.filter((i: any) => i.status !== 'cancelado')
-  const prontos = ativos.filter((i: any) => i.status === 'pronto')
+  // Só o que a cozinha preparou: item de categoria sem cozinha nasce "pronto" e
+  // não aparece na Cozinha, então não conta como "pronto para entregar"
+  const daCozinha = (i: any) => i.produto?.categoria?.vaiCozinha !== false
+  const prontos = ativos.filter((i: any) => i.status === 'pronto' && daCozinha(i))
   const naCozinha = ativos.filter(
     (i: any) => i.status === 'pendente' || i.status === 'preparando',
   )

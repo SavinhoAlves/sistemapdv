@@ -23,6 +23,11 @@
             {{ f.rotulo }}<em>{{ contar(f.chave) }}</em>
           </button>
         </div>
+        <select v-model="filtroTipo" class="pf-inp" style="width:auto;min-width:11rem" aria-label="Filtrar por tipo de comércio">
+          <option value="">Todos os tipos</option>
+          <option v-for="t in TIPOS_COMERCIO" :key="t.id" :value="t.id">{{ t.rotulo }} ({{ contarTipo(t.id) }})</option>
+          <option value="-">Sem tipo ({{ contarTipo(null) }})</option>
+        </select>
         <input
           v-model="busca"
           class="pf-inp pf-search"
@@ -70,7 +75,7 @@
                   <span class="pf-av">{{ iniciais(t.nome) }}</span>
                   <div style="min-width:0">
                     <b>{{ t.nome }}</b>
-                    <small>Cód. {{ t.codigo }} · {{ t.slug }}<template v-if="t.responsavel"> · {{ t.responsavel }}</template></small>
+                    <small><template v-if="t.tipoComercio">{{ rotuloTipoComercio(t.tipoComercio) }} · </template>Cód. {{ t.codigo }} · {{ t.slug }}<template v-if="t.responsavel"> · {{ t.responsavel }}</template></small>
                     <div v-if="t.rfidDisponivel || t.vendaMobilePermitida" class="pf-tags" style="margin-top:4px">
                       <span v-if="t.rfidDisponivel" class="pf-tag">RFID</span>
                       <span v-if="t.vendaMobilePermitida" class="pf-tag">Celular</span>
@@ -138,6 +143,7 @@
 import { ref, reactive, computed, onMounted, onUnmounted } from 'vue'
 import { Plus, Monitor, ChevronDown, ChevronUp, ChevronsUpDown, Eye, MousePointer2 } from 'lucide-vue-next'
 import { usePlatformAuthStore } from '~/stores/platformAuth'
+import { TIPOS_COMERCIO, rotuloTipoComercio } from '~/lib/tiposComercio'
 import {
   usePlatformTenants, licencaPill, statusPill, iniciais, nomePlano,
   type Tenant, type ChaveStatus,
@@ -157,6 +163,8 @@ const FILTROS: { chave: 'todos' | ChaveStatus; rotulo: string }[] = [
   { chave: 'bloqueado', rotulo: 'Bloqueados' },
 ]
 const filtro = ref<'todos' | ChaveStatus>('todos')
+const filtroTipo = ref('')
+const contarTipo = (id: string | null) => tenants.value.filter(t => (t.tipoComercio ?? null) === id).length
 const busca  = ref('')
 
 type Coluna = 'nome' | 'plano' | 'licenca'
@@ -180,6 +188,7 @@ const lista = computed(() => {
     ordem.col === 'nome' ? t.nome : ordem.col === 'plano' ? nomePlano(t) : licencaPill(t)[0]
   return tenants.value
     .filter(t => filtro.value === 'todos' || statusPill(t)[2] === filtro.value)
+    .filter(t => !filtroTipo.value || (filtroTipo.value === '-' ? !t.tipoComercio : t.tipoComercio === filtroTipo.value))
     .filter(t => !q || [t.nome, t.slug, String(t.codigo ?? ''), t.responsavel ?? ''].some(v => v.toLowerCase().includes(q)))
     .sort((a, b) => chave(a).localeCompare(chave(b), 'pt-BR') * ordem.dir)
 })

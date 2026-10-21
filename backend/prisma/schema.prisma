@@ -105,6 +105,8 @@ model Tenant {
   observacoes          String?
   vendaMobilePermitida Boolean      @default(true) @map("venda_mobile_permitida")
   rfidDisponivel       Boolean      @default(false) @map("rfid_disponivel")
+  /// restaurante, bar, lanchonete… (lib/tipoComercio.ts). Classifica e define o ponto de partida na criação.
+  tipoComercio         String?      @map("tipo_comercio")
   /// Exceção do superadmin aos recursos do plano: null segue o plano
   rfidManual           Boolean?     @map("rfid_manual")
   vendaMobileManual    Boolean?     @map("venda_mobile_manual")

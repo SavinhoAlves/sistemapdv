@@ -60,6 +60,19 @@
                 />
               </div>
 
+              <!-- TIPO DE COMÉRCIO -->
+              <div>
+                <label for="tipo-comercio" class="block text-[10px] font-black uppercase tracking-widest text-gray-500 dark:text-white/40 mb-2">
+                  Tipo de comércio
+                </label>
+                <select id="tipo-comercio" v-model="form.tipo_comercio"
+                  class="w-full sm:w-80 h-12 px-4 rounded-2xl border border-gray-200 dark:border-white/10 !bg-gray-50 dark:!bg-white/[0.06] text-gray-900 dark:text-white font-bold text-sm outline-none focus:border-orange-500/70">
+                  <option :value="null">Não informado</option>
+                  <option v-for="t in TIPOS_COMERCIO" :key="t.id" :value="t.id">{{ t.rotulo }}</option>
+                </select>
+                <p class="text-[10px] text-gray-500 dark:text-white/40 mt-1.5">Ajuda o suporte a entender a sua operação. Mudar aqui não altera categorias nem produtos.</p>
+              </div>
+
               <!-- LOGOTIPO -->
               <div class="border-t border-gray-100 dark:border-white/[0.06] pt-6">
                 <label class="block text-[10px] font-black uppercase tracking-widest text-gray-500 dark:text-white/40 mb-4">Logotipo</label>
@@ -704,6 +717,7 @@ import {
 } from 'lucide-vue-next'
 import ConfigIntegracoes from '~/components/config/ConfigIntegracoes.vue'
 import ConfigAcesso from '~/components/config/ConfigAcesso.vue'
+import { TIPOS_COMERCIO } from '~/lib/tiposComercio'
 import { useAuthStore } from '~/stores/auth'
 import Navbar from '~/layouts/Navbar.vue'
 import Sidebar from '~/components/Sidebar.vue'
@@ -895,6 +909,7 @@ const form = reactive({
   impressora_host:          '',
   impressora_porta:         9100,
   taxa_servico_pct:         10,
+  tipo_comercio:            null as string | null,
 })
 
 onMounted(async () => {
@@ -911,6 +926,7 @@ onMounted(async () => {
   form.impressora_host          = configStore.impressora_host
   form.impressora_porta         = configStore.impressora_porta
   form.taxa_servico_pct         = configStore.taxa_servico_pct
+  form.tipo_comercio            = configStore.tipo_comercio
 
   await carregarImpressoras()
 
@@ -972,6 +988,7 @@ async function salvar() {
         impressora_host:          form.impressora_host.trim(),
         impressora_porta:         form.impressora_porta || 9100,
         taxa_servico_pct:         Math.min(30, Math.max(0, Number(form.taxa_servico_pct) || 0)),
+        tipo_comercio:            form.tipo_comercio,
     })
     tirarSnapshot()
     toastStore.success('Configurações salvas!')

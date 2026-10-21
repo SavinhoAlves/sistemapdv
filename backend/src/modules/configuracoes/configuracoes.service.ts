@@ -11,7 +11,13 @@ const DEFAULTS = {
   rfidAtivo: false,
 }
 
+/** Reclassifica o restaurante (não reaplica categorias: elas já podem estar em uso). */
+export async function definirTipoComercio(tenantId: string, tipo: string | null) {
+  await prisma.tenant.update({ where: { id: tenantId }, data: { tipoComercio: tipo } })
+}
+
 export async function buscar(tenantId: string) {
+  const tenant = await prisma.tenant.findUnique({ where: { id: tenantId }, select: { tipoComercio: true } })
   const config = await prisma.configuracoes.upsert({
     where: { tenantId },
     update: {},
@@ -24,6 +30,7 @@ export async function buscar(tenantId: string) {
   return {
     id: config.id,
     tenantId: config.tenantId,
+    tipoComercio: tenant?.tipoComercio ?? null,
     nomeRestaurante: config.nomeRestaurante,
     logoBase64: config.logoBase64,
     logoTamanho: config.logoTamanho,

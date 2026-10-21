@@ -33,6 +33,17 @@
             <input id="tm-slug" v-model="form.slug" class="pf-inp" placeholder="ex.: tarantela">
             <small style="color:var(--pf-muted)">Usado para entrar no sistema</small>
           </div>
+          <div class="pf-fld full">
+            <label class="pf-lab" for="tm-tipo">Tipo de comércio</label>
+            <select id="tm-tipo" v-model="form.tipoComercio" class="pf-inp">
+              <option value="">Não informar</option>
+              <option v-for="t in TIPOS_COMERCIO" :key="t.id" :value="t.id">{{ t.rotulo }}</option>
+            </select>
+            <small v-if="padraoTipo" style="color:var(--pf-muted)">
+              Já começa com {{ padraoTipo.categorias.length ? `as categorias ${padraoTipo.categorias.map(c => c.nome).join(', ')}` : 'nenhuma categoria' }};
+              taxa de serviço {{ padraoTipo.taxaServicoPct }}%; venda {{ { mesa: 'em mesas', direta: 'no balcão', ambos: 'em mesas e no balcão' }[padraoTipo.modoVenda] }}. O cliente muda tudo depois.
+            </small>
+          </div>
           <div class="pf-fld"><label class="pf-lab" for="tm-cnpj">CNPJ ou CPF</label><input id="tm-cnpj" v-model="form.cnpj" class="pf-inp" placeholder="00.000.000/0001-00"></div>
           <div class="pf-fld"><label class="pf-lab" for="tm-email">E-mail</label><input id="tm-email" v-model="form.contato" class="pf-inp" type="email" placeholder="contato@restaurante.com"></div>
           <div class="pf-fld"><label class="pf-lab" for="tm-tel">Telefone</label><input id="tm-tel" v-model="form.telefone" class="pf-inp" placeholder="(62) 9 9999-9999"></div>
@@ -88,6 +99,13 @@
         <div class="pf-form">
           <div class="pf-fld full"><label class="pf-lab" for="te-nome">Nome do restaurante *</label><input id="te-nome" v-model="form.nome" class="pf-inp" placeholder="Ex.: Restaurante Tarantela" @input="autoSlug"></div>
           <div class="pf-fld"><label class="pf-lab" for="te-slug">Login (identificador) *</label><input id="te-slug" v-model="form.slug" class="pf-inp" placeholder="ex.: tarantela"></div>
+          <div class="pf-fld">
+            <label class="pf-lab" for="te-tipo">Tipo de comércio</label>
+            <select id="te-tipo" v-model="form.tipoComercio" class="pf-inp">
+              <option value="">Não informado</option>
+              <option v-for="t in TIPOS_COMERCIO" :key="t.id" :value="t.id">{{ t.rotulo }}</option>
+            </select>
+          </div>
           <div class="pf-fld"><label class="pf-lab" for="te-cnpj">CNPJ ou CPF</label><input id="te-cnpj" v-model="form.cnpj" class="pf-inp" placeholder="00.000.000/0001-00"></div>
           <div class="pf-fld"><label class="pf-lab" for="te-resp">Responsável</label><input id="te-resp" v-model="form.responsavel" class="pf-inp"></div>
           <div class="pf-fld"><label class="pf-lab" for="te-cpfr">CPF do responsável</label><input id="te-cpfr" v-model="form.cpfResponsavel" class="pf-inp" placeholder="000.000.000-00"></div>
@@ -128,6 +146,7 @@
 </template>
 
 <script setup lang="ts">
+import { TIPOS_COMERCIO } from '~/lib/tiposComercio'
 import { Store, Check, Eye, EyeOff, Loader2 } from 'lucide-vue-next'
 import type { ContratoModelo } from './ContratoForm.vue'
 import type { Tenant } from '~/composables/usePlatformTenants'
@@ -143,8 +162,12 @@ const isEdit = computed(() => props.tenant !== null)
 // ── Estado do form ────────────────────────────────────────────────────────────
 const form = reactive({
   nome: '', slug: '', cnpj: '', responsavel: '', cpfResponsavel: '', contato: '',
-  telefone: '', endereco: '', cidade: '', uf: '', observacoes: '',
+  telefone: '', endereco: '', cidade: '', uf: '', observacoes: '', tipoComercio: '',
 })
+
+// Ponto de partida de cada tipo (categorias, taxa, modo de venda), para mostrar no cadastro
+const padroesTipo = ref<Record<string, { categorias: { nome: string }[]; taxaServicoPct: number; modoVenda: 'mesa' | 'direta' | 'ambos' }>>({})
+const padraoTipo = computed(() => (form.tipoComercio ? padroesTipo.value[form.tipoComercio] : null))
 const adminForm    = reactive({ email: '', senha: '', senhaConfirm: '' })
 const mostrarSenha = ref(false)
 
@@ -189,6 +212,7 @@ watch(() => props.modelValue, (open) => {
       nome: t.nome, slug: t.slug, cnpj: t.cnpj || '', responsavel: t.responsavel || '',
       cpfResponsavel: t.cpfResponsavel || '', contato: t.contato || '', telefone: t.telefone || '',
       endereco: t.endereco || '', cidade: t.cidade || '', uf: t.uf || '', observacoes: t.observacoes || '',
+      tipoComercio: t.tipoComercio || '',
     })
     const con = t.contratos?.[0]
     contrato.value = {
@@ -205,7 +229,8 @@ watch(() => props.modelValue, (open) => {
       diaVencimento: con?.diaVencimento ?? 10,
     }
   } else {
-    Object.assign(form, { nome: '', slug: '', cnpj: '', responsavel: '', cpfResponsavel: '', contato: '', telefone: '', endereco: '', cidade: '', uf: '', observacoes: '' })
+    Object.assign(form, { nome: '', slug: '', cnpj: '', responsavel: '', cpfResponsavel: '', contato: '', telefone: '', endereco: '', cidade: '', uf: '', observacoes: '', tipoComercio: '' })
+    if (!Object.keys(padroesTipo.value).length) platformFetch<any>('/platform/tenants/tipos-comercio').then(r => { padroesTipo.value = r }).catch(() => {})
     contrato.value = contratoVazio()
     Object.assign(adminForm, { email: '', senha: '', senhaConfirm: '' })
   }
@@ -233,6 +258,7 @@ const dadosPayload = () => ({
   nome: form.nome, slug: form.slug, cnpj: form.cnpj || null, cpfResponsavel: form.cpfResponsavel || null,
   responsavel: form.responsavel || null, contato: form.contato || null, telefone: form.telefone || null,
   endereco: form.endereco || null, cidade: form.cidade || null, uf: form.uf || null, observacoes: form.observacoes || null,
+  tipoComercio: form.tipoComercio || null,
 })
 
 async function salvar() {

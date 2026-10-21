@@ -4,6 +4,7 @@ import { requireTenant } from '../../middlewares/tenant.middleware'
 import { requirePermissao } from '../../middlewares/permission.middleware'
 import type { TenantJwtPayload } from '../../lib/jwt'
 import * as Service from './configuracoes.service'
+import { tipoValido } from '../../lib/tipoComercio'
 
 /**
  * Configurações do tenant.
@@ -44,6 +45,7 @@ const configBody = z.object({
 
   modo_venda: z.string().optional(),
   rfid_ativo: z.boolean().optional(),
+  tipo_comercio: z.string().nullable().optional(),
 })
 
 export async function configuracoesRoutes(app: FastifyInstance) {
@@ -62,6 +64,10 @@ export async function configuracoesRoutes(app: FastifyInstance) {
         return reply.status(400).send({ error: body.error.issues[0]?.message ?? 'Dados inválidos' })
       }
       const d = body.data
+      if (d.tipo_comercio !== undefined) {
+        if (d.tipo_comercio !== null && !tipoValido(d.tipo_comercio)) return reply.status(400).send({ error: 'Tipo de comércio inválido' })
+        await Service.definirTipoComercio(request.tenantId!, d.tipo_comercio)
+      }
       return Service.atualizar(request.tenantId!, {
         nomeRestaurante:       d.nome_restaurante,
         logoBase64:            d.logo_base64,

@@ -13,10 +13,16 @@
 </head>
 <body>
   <main>
-    <div class="icone"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18.5" cy="17.5" r="3.5"/><circle cx="5.5" cy="17.5" r="3.5"/><circle cx="15" cy="5" r="1"/><path d="M12 17.5V14l-3-3 4-3 2 3h2"/></svg></div>
+    <div class="icone"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m16 2-2.3 2.3a3 3 0 0 0 0 4.2l1.8 1.8a3 3 0 0 0 4.2 0L22 8"/><path d="M15 15 3.3 3.3a4.2 4.2 0 0 0 0 6l7.3 7.3c.7.7 2 .7 2.8 0L15 15Zm0 0 7 7"/><path d="m2.1 21.8 6.4-6.3"/><path d="m19 5-7 7"/></svg></div>
     <strong>Sem conexão com o restaurante</strong>
-    <p>Confira a internet do celular. Suas entregas continuam salvas no sistema.</p>
-    <button onclick="location.reload()">Tentar de novo</button>
+    <p>Confira a internet do celular. Pedidos e entregas continuam salvos no sistema.</p>
+    <button onclick="tentar()">Tentar de novo</button>
   </main>
+  <!-- Esta página fica dentro do app (localhost): recarregar só mostraria ela de novo.
+       "Tentar de novo" volta ao endereço do sistema, gravado em destino.js no build. -->
+  <script src="destino.js"></script>
+  <script>
+    function tentar() { location.href = window.PDV_URL || 'https://app.restaurantepdv.com.br/app/acesso' }
+  </script>
 </body>
 </html>

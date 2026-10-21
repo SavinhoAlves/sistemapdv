@@ -114,6 +114,12 @@
                     <div v-for="n in 4" :key="n" class="h-20 rounded-2xl bg-gray-100 dark:bg-white/5 animate-pulse" />
                   </div>
 
+                  <div v-else-if="!metodos.length" class="rounded-2xl border border-amber-500/30 bg-amber-500/10 p-4 text-sm text-amber-800 dark:text-amber-200" role="alert">
+                    <p class="font-black">{{ erroMetodos ? 'Não deu para carregar as formas de pagamento' : 'Nenhuma forma de pagamento ativa' }}</p>
+                    <p class="text-xs mt-1 opacity-80">{{ erroMetodos || 'Ative Dinheiro, Pix ou cartão em Admin › Métodos.' }}</p>
+                    <button v-if="erroMetodos" class="mt-3 h-9 px-4 rounded-xl border border-amber-500/40 text-xs font-black" @click="carregarMetodos">Tentar de novo</button>
+                  </div>
+
                   <div v-else class="grid grid-cols-2 gap-3">
                     <button
                       v-for="metodo in metodos"
@@ -310,6 +316,7 @@ interface Metodo { id: number; nome: string }
 type Estado = 'selecao' | 'aguardando' | 'erro'
 
 const metodos             = ref<Metodo[]>([])
+const erroMetodos         = ref('')
 const carregandoMetodos   = ref(false)
 const metodoSelecionado   = ref<Metodo | null>(null)
 const valorRecebido       = ref('')
@@ -366,11 +373,13 @@ function tipoMp(nome: string): string {
 
 async function carregarMetodos() {
   carregandoMetodos.value = true
+  erroMetodos.value = ''
   try {
     const rows = await api.get<Metodo[]>('/pagamentos/metodos')
     metodos.value = Array.isArray(rows) ? rows : []
-  } catch {
+  } catch (e: any) {
     metodos.value = []
+    erroMetodos.value = e?.message || 'Confira a conexão e tente de novo.'
   } finally {
     carregandoMetodos.value = false
   }

@@ -1,5 +1,6 @@
 import type { FastifyInstance } from 'fastify'
 import { tipoValido, aplicarPadraoComercio, TIPOS_COMERCIO } from '../../lib/tipoComercio'
+import { garantirMetodosPadrao } from '../../lib/metodosPadrao'
 import { requirePlatform, invalidateTenantCache } from '../../middlewares/tenant.middleware'
 import { prisma } from '../../lib/prisma'
 import { signAccessToken } from '../../lib/jwt'
@@ -255,6 +256,8 @@ export async function platformTenantsRoutes(app: FastifyInstance) {
         })
         // Ponto de partida do tipo: categorias, taxa de serviço e modo de venda
         if (tipoValido(tipoComercio)) await aplicarPadraoComercio(tx, t.id, tipoComercio, nome.trim())
+        // Dinheiro, Pix e cartões: sem eles o restaurante não consegue receber
+        await garantirMetodosPadrao(tx, t.id)
         await tx.contrato.create({
           data: {
             tenantId: t.id,

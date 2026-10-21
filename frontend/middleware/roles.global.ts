@@ -1,6 +1,7 @@
 import { useAuthStore } from '~/stores/auth'
+import { noApp, destinoNoCelular } from '~/lib/app'
 
-const ROTAS_PUBLICAS = ['/login', '/ativacao', '/logout', '/admin/login', '/m', '/platform', '/cardapio', '/pedido']
+const ROTAS_PUBLICAS = ['/acesso', '/login', '/ativacao', '/logout', '/admin/login', '/m', '/platform', '/cardapio', '/pedido']
 
 // Permissão mínima exigida por rota (undefined = rota desconhecida; null = qualquer autenticado)
 const PERMISSAO_POR_ROTA: Record<string, string | null> = {
@@ -30,10 +31,14 @@ export default defineNuxtRouteMiddleware((to) => {
   if (!process.client) return
 
   const authStore = useAuthStore()
-  if (!authStore.isAuthenticated) return navigateTo('/login')
+  const entrada = noApp() ? '/acesso' : '/login'
+  if (!authStore.isAuthenticated) return navigateTo(entrada)
 
   const usuario = authStore.usuario
-  if (!usuario) return navigateTo('/login')
+  if (!usuario) return navigateTo(entrada)
+
+  // No app da equipe cada cargo fica na sua tela de celular
+  if (noApp() && !to.path.startsWith(destinoNoCelular(usuario.cargo))) return navigateTo(destinoNoCelular(usuario.cargo))
 
   const rotaBase = '/' + to.path.split('/')[1]
   const destino  = DESTINO_PADRAO[usuario.cargo] ?? '/mesas'
@@ -44,7 +49,7 @@ export default defineNuxtRouteMiddleware((to) => {
     return
   }
 
-  // O entregador só usa a própria rota (app do entregador)
+  // O entregador só usa a própria rota (app da equipe)
   if (usuario.cargo === 'entregador' && rotaBase !== '/entregador') return navigateTo('/entregador')
 
   // Rotas mapeadas: verifica a permissão necessária

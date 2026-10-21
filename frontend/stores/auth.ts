@@ -1,5 +1,6 @@
 import { navigateTo, useRuntimeConfig } from 'nuxt/app'
 import { defineStore } from 'pinia'
+import { noApp } from '~/lib/app'
 import { getTenantSlug } from '~/composables/useTenantSlug'
 
 export interface Usuario {
@@ -110,6 +111,7 @@ export const useAuthStore = defineStore('auth', {
       localStorage.setItem('auth_token', token)
       localStorage.setItem('auth_user', JSON.stringify(usuario))
       if (refreshToken) localStorage.setItem('auth_refresh_token', refreshToken)
+      else localStorage.removeItem('auth_refresh_token')
     },
 
     async loginWithRfid(rfid: string) {
@@ -155,7 +157,8 @@ export const useAuthStore = defineStore('auth', {
         localStorage.removeItem('auth_user')
       }
 
-      navigateTo('/login')
+      // No app da equipe a saída volta para a tela de ler o QR
+      navigateTo(noApp() ? '/acesso' : '/login')
     },
 
     async refreshUsuario() {

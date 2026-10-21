@@ -1,4 +1,5 @@
 import { useAuthStore } from '../stores/auth'
+import { noApp, destinoNoCelular } from '../lib/app'
 
 export default defineNuxtRouteMiddleware((to) => {
   const auth = useAuthStore()
@@ -13,11 +14,17 @@ export default defineNuxtRouteMiddleware((to) => {
   // ela cuida da autenticação via token QR por conta própria.
   if (to.path === '/m' || to.path === '/m/') return
 
+  // Entrada do app da equipe (ler QR ou código e senha): decide sozinha para onde ir
+  if (to.path === '/acesso') {
+    if (!auth.token && process.client) auth.restoreSession()
+    return
+  }
+
   // Demais rotas mobile (/m/mesas, /m/vendas…): restaura sessão do
   // localStorage e redireciona para /m se não estiver autenticado.
   if (to.path.startsWith('/m/')) {
     if (!auth.token && process.client) auth.restoreSession()
-    if (!auth.token) return navigateTo('/m')
+    if (!auth.token) return navigateTo(noApp() ? '/acesso' : '/m')
     return
   }
 
@@ -32,8 +39,8 @@ export default defineNuxtRouteMiddleware((to) => {
   const isAuthenticated = !!auth.token
   const isLoginPage     = to.path === '/login' || to.path === '/admin/login'
 
-  if (!isAuthenticated && !isLoginPage) return navigateTo('/login')
-  if (isAuthenticated  && isLoginPage)  return navigateTo('/')
+  if (!isAuthenticated && !isLoginPage) return navigateTo(noApp() ? '/acesso' : '/login')
+  if (isAuthenticated  && isLoginPage)  return navigateTo(noApp() ? destinoNoCelular(auth.usuario?.cargo) : '/')
   if (isAuthenticated  && to.path === '/') return
 
   // Atualiza permissões em background a cada navegação

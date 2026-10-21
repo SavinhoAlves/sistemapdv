@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">PDV Entregador</string>
-    <string name="title_activity_main">PDV Entregador</string>
+    <string name="app_name">RestaurantePDV</string>
+    <string name="title_activity_main">RestaurantePDV</string>
     <string name="package_name">br.com.restaurantepdv.entregador</string>
     <string name="custom_url_scheme">br.com.restaurantepdv.entregador</string>
     <!-- Canal da notificação fixa enquanto a rota está em andamento (background-geolocation) -->

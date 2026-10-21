@@ -78,6 +78,7 @@
                 <button class="btn" type="submit" :disabled="loading"><span class="spin" /><span>{{ loading ? 'Entrando…' : PERFIL[perfil].btn }}</span></button>
               </form>
               <p class="help">{{ PERFIL[perfil].help }}</p>
+              <NuxtLink v-if="app" to="/acesso" class="link" style="display:block;margin-top:12px;text-align:center">Entrar lendo o QR code</NuxtLink>
             </div>
 
             <div v-else class="blocked" role="alert">
@@ -107,6 +108,7 @@
 
 <script setup lang="ts">
 import { navigateTo } from 'nuxt/app'
+import { noApp, destinoNoCelular } from '~/lib/app'
 import { ref, reactive, onMounted, onUnmounted, nextTick } from 'vue'
 import { useApi } from '~/services/api'
 import { useAuthStore } from '~/stores/auth'
@@ -228,14 +230,20 @@ function onRfidEnter() {
   if (code) loginRfid(code)
 }
 
+const app = noApp()
+
 function concluirLogin(res: any, slug: string, texto: string) {
   const raw = res.usuario
   if (!(res.accessToken || res.access_token) || !raw) return false
   setTenantSlug(slug)
   const user = { id: raw.id, nome: raw.nome, cargo: raw.cargo, perfil_id: raw.perfilId ?? null, permissoes: raw.permissoes ?? null }
-  authStore.setAuth(res.accessToken ?? res.access_token, user, res.refreshToken ?? res.refresh_token)
+  const token = res.accessToken ?? res.access_token
+  authStore.setAuth(token, user, res.refreshToken ?? res.refresh_token)
   showMsg('success', texto)
-  navigateTo('/')
+  // No app da equipe: entregador vai para as entregas; os demais passam por /m,
+  // que confere se a venda pelo celular está liberada e o caixa aberto
+  if (noApp()) navigateTo(raw.cargo === 'entregador' ? '/entregador' : { path: '/m', query: { t: token } })
+  else navigateTo('/')
   return true
 }
 
@@ -326,7 +334,7 @@ onMounted(async () => {
     if (platformAuth.isAuthenticated) return navigateTo('/platform')
   } else {
     authStore.restoreSession()
-    if (authStore.isAuthenticated) return navigateTo('/')
+    if (authStore.isAuthenticated) return navigateTo(noApp() ? destinoNoCelular(authStore.usuario?.cargo) : '/')
   }
 
   // Restaurante guardado no aparelho (para o crachá); se não existir mais, é descartado

@@ -148,3 +148,13 @@ export async function motivoSemCelular(tenantId: string): Promise<string | null>
   if (!a.caixaAberto) return 'Abra o caixa antes: o acesso pelo celular só funciona com o caixa aberto'
   return null
 }
+
+/**
+ * Entrada pelo QR (navegador ou app): o entregador depende do delivery no
+ * plano e não precisa de caixa aberto; os demais seguem a venda pelo celular.
+ */
+export async function motivoSemAcessoPeloQr(tenantId: string, cargo: string): Promise<string | null> {
+  if (cargo !== 'entregador') return motivoSemCelular(tenantId)
+  const t = await prisma.tenant.findUnique({ where: { id: tenantId }, select: { plano: { select: { delivery: true } } } })
+  return t?.plano?.delivery ? null : 'Delivery não está incluído no plano deste restaurante'
+}

@@ -101,7 +101,7 @@
             <ChevronLeft :size="18" class="text-white/60" />
           </button>
           <div class="min-w-0">
-            <p class="text-[10px] font-bold uppercase tracking-[0.14em] text-orange-500/70">Mesa aberta</p>
+            <p class="text-[10px] font-bold uppercase tracking-[0.14em] text-orange-500/70 truncate">Mesa aberta<template v-if="mesaSelecionada.garcom?.nome && mesaSelecionada.garcom_id !== authStore.usuario?.id"> · de {{ mesaSelecionada.garcom.nome }}</template></p>
             <h1 class="text-[20px] font-black text-white leading-tight truncate">{{ mesaSelecionada.nome_mesa || `Mesa ${mesaSelecionada.numero}` }}</h1>
           </div>
         </div>
@@ -540,26 +540,8 @@ async function decrementarItem(item: any) {
 async function adicionarItemMesa(produto: any) {
   if (!mesaSelecionada.value) return
 
+  // Qualquer garçom lança em qualquer mesa aberta: o item fica no nome de quem lançou
   const userId = authStore.usuario?.id
-
-  if (userId) {
-    const donoDaMesa = mesaSelecionada.value.garcom_id
-    if (donoDaMesa && donoDaMesa !== userId) {
-      const mesasDoGarcom = mesasAbertas.value.filter(m => m.garcom_id === userId)
-      if (mesasDoGarcom.length === 0) {
-        toastStore.warning('Você não tem mesa aberta. Abra uma mesa primeiro.')
-        return
-      }
-      if (mesasDoGarcom.length === 1) {
-        toastStore.info('Redirecionado para a sua mesa.')
-        await selecionarMesa(mesasDoGarcom[0])
-        return
-      }
-      voltarParaMesas()
-      toastStore.info('Selecione a sua mesa.')
-      return
-    }
-  }
 
   adicionando.value = produto.id
   try {

@@ -41,6 +41,7 @@
 <script setup lang="ts">
 import { Eye, MousePointer2, Loader2 } from 'lucide-vue-next'
 import { useAuthStore } from '~/stores/auth'
+import { ehPainel, urlDoHost } from '~/lib/hosts'
 
 interface Tenant {
   id: string; nome: string; slug: string
@@ -85,8 +86,18 @@ async function confirmar() {
       id: res.usuario.id, nome: res.usuario.nome, cargo: res.usuario.cargo,
     }, props.modo)
     emit('update:modelValue', false)
-    // A aba nova abre fora do roteador: precisa do baseURL (o sistema vive em /app)
-    if (novaAba) novaAba.location.href = useRuntimeConfig().app.baseURL + rota.value.replace(/^\//, '')
+    // A aba nova abre fora do roteador: precisa do baseURL
+    const caminho = useRuntimeConfig().app.baseURL + rota.value.replace(/^\//, '')
+    if (novaAba) {
+      // No painel.<domínio> o restaurante abre em app.<domínio>, que não enxerga o
+      // armazenamento do painel: a sessão vai no link, depois do # (não chega ao servidor)
+      novaAba.location.href = ehPainel()
+        ? urlDoHost('app', caminho) + '#suporte=' + encodeURIComponent(JSON.stringify({
+            token: res.access_token, tenant: res.tenantNome, modo: props.modo,
+            nome: res.usuario.nome, cargo: res.usuario.cargo, id: res.usuario.id,
+          }))
+        : caminho
+    }
   } catch (e: any) {
     novaAba?.close()
     toast.add({ title: 'Erro', description: e?.message || 'Não foi possível gerar token de suporte', color: 'red', icon: 'i-lucide-alert-circle', timeout: 3000 })

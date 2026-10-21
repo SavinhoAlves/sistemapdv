@@ -173,6 +173,7 @@ import { Bike, ExternalLink, Loader2, MapPin, RefreshCw, Settings2 } from 'lucid
 import MapaDelivery from '~/components/MapaDelivery.vue'
 import { usePlatformAuthStore } from '~/stores/platformAuth'
 import { moeda, iniciais } from '~/composables/usePlatformTenants'
+import { ehPainel, urlDoHost } from '~/lib/hosts'
 
 definePageMeta({ layout: false })
 
@@ -232,7 +233,8 @@ const lista = computed(() => {
     .sort((a, b) => b.emAndamento - a.emAndamento || b.valorMes - a.valorMes || a.nome.localeCompare(b.nome, 'pt-BR'))
 })
 
-const linkCardapio = (slug: string) => `${window.location.origin}${useRuntimeConfig().app.baseURL}cardapio/${slug}`
+// O cardápio é do app.<domínio> (no painel o endereço da página é outro)
+const linkCardapio = (slug: string) => (ehPainel() ? urlDoHost('app', `/cardapio/${slug}`) : `${window.location.origin}${useRuntimeConfig().app.baseURL}cardapio/${slug}`)
 
 function quando(iso: string) {
   const min = Math.round((Date.now() - new Date(iso).getTime()) / 60000)

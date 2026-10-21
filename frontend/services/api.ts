@@ -114,7 +114,7 @@ export function useApi() {
     },
 
     caixa: {
-      abrir:            (valor_inicial: number) => request('/caixa/abrir',    { method: 'POST', body: JSON.stringify({ valor_inicial }) }),
+      abrir:            (valorInicial: number)  => request('/caixa/abrir',    { method: 'POST', body: JSON.stringify({ valorInicial }) }),
       fechar:           ()                      => request('/caixa/fechar',   { method: 'POST' }),
       movimentos:       ()                      => request('/caixa/movimentos'),
       adicionarMovimento: (dados: any)          => request('/caixa/movimento', { method: 'POST', body: JSON.stringify(dados) })

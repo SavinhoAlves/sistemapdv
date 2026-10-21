@@ -15,7 +15,7 @@
         <div>
           <h1 class="text-2xl font-black text-gray-900 dark:text-white">Produtos</h1>
           <p class="text-sm text-gray-500 dark:text-white/40">
-            Mesa #{{ mesa?.nome_mesa || mesa?.numero || '-' }}
+            {{ mesa?.nome_mesa || (mesa?.numero ? `Mesa ${mesa.numero}` : '-') }}
           </p>
         </div>
       </div>
@@ -120,7 +120,7 @@
 
             <div class="mt-4 flex justify-between items-center">
               <span class="text-lg font-black text-orange-400">
-                R$ {{ Number(produto.preco || 0).toFixed(2) }}
+                {{ reais(Number(produto.preco || 0)) }}
               </span>
               <div
                 class="w-10 h-10 rounded-xl flex items-center justify-center font-black text-white transition-colors"
@@ -144,6 +144,7 @@
 </template>
 
 <script setup lang="ts">
+import { reais } from '~/lib/moeda'
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useApi } from '~/services/api'
 import { useToastStore } from '~/stores/toast'
@@ -226,7 +227,7 @@ const secoes = computed(() => {
 
   const mapa = new Map<string, Produto[]>()
   for (const p of lista) {
-    const chave = p.categoria || 'Sem categoria'
+    const chave = p.categoria || 'Outros'
     if (!mapa.has(chave)) mapa.set(chave, [])
     mapa.get(chave)!.push(p)
   }

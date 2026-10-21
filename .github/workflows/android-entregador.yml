@@ -1,12 +1,12 @@
-# App Android do entregador → APK assinado, publicado em Releases.
-# Rodar: aba Actions › "Android entregador (APK)" › Run workflow.
+# App Android da equipe (garçom e entregador) → APK assinado, publicado em Releases.
+# Rodar: aba Actions › "App da equipe Android (APK)" › Run workflow.
 #
 # Segredos (Settings › Secrets and variables › Actions):
 #   ENTREGADOR_KEYSTORE_BASE64    chave de assinatura (.p12) em base64
 #   ENTREGADOR_KEYSTORE_PASSWORD  senha da chave
 # A MESMA chave precisa assinar todas as versões, senão o Android não deixa atualizar o app.
 #
-# O app abre https://app.restaurantepdv.com.br/app/entregador; a variável PDV_URL
+# O app abre https://app.restaurantepdv.com.br/acesso; a variável PDV_URL
 # (Settings › Variables) troca o endereço sem mexer no código.
 
 name: App da equipe Android (APK)

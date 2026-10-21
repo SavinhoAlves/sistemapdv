@@ -440,6 +440,7 @@
 </template>
 
 <script setup lang="ts">
+import { numeroBR } from '~/lib/moeda'
 import { ref, computed, onMounted } from 'vue'
 import { storeToRefs } from 'pinia'
 import {
@@ -474,7 +475,7 @@ const processando    = ref(false)
 const fichaAtual     = ref<any>(null)
 
 function fmt(v: number) {
-  return Number(v || 0).toFixed(2).replace('.', ',')
+  return numeroBR(v)
 }
 
 function getMetodoIcon(m: any) {

@@ -6,7 +6,8 @@ const DEFAULTS = {
   impressoraCopias: 1,
   impressoraAutoImprimir: false,
   impressoraTipo: 'usb',
-  taxaServicoPct: 0,
+  // Padrão de mercado; o restaurante muda em Configurações › Estabelecimento
+  taxaServicoPct: 10,
   modoVenda: 'mesa',
   rfidAtivo: false,
 }

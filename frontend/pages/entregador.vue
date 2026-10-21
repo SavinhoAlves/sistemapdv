@@ -56,8 +56,11 @@
           <a :href="`tel:${p.clienteTelefone}`" class="h-11 rounded-xl ent-chip text-xs font-black flex items-center justify-center gap-1.5"><Phone :size="14" /> Ligar</a>
           <a :href="`https://wa.me/55${p.clienteTelefone}`" target="_blank" rel="noopener" class="h-11 rounded-xl ent-chip text-xs font-black flex items-center justify-center gap-1.5"><MessageCircle :size="14" /> WhatsApp</a>
         </div>
-        <button v-if="p.status === 'em_rota'" class="mt-2 w-full h-12 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black flex items-center justify-center gap-2 disabled:opacity-50"
-          :disabled="ocupado" @click="entreguei(p)">
+        <p v-if="p.status === 'em_rota' && p.codigoBloqueado" class="mt-2 rounded-xl bg-amber-500/10 border border-amber-500/30 px-3 py-2.5 text-xs font-bold text-amber-700 dark:text-amber-300">
+          Código bloqueado por tentativas erradas. Peça ao caixa para concluir esta entrega.
+        </p>
+        <button v-else-if="p.status === 'em_rota'" class="mt-2 w-full h-12 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black flex items-center justify-center gap-2 disabled:opacity-50"
+          :disabled="ocupado" @click="p.exigeCodigo ? pedirCodigo(p) : entreguei(p)">
           <CheckCircle2 :size="18" /> Entreguei
         </button>
       </article>
@@ -73,6 +76,21 @@
         <p class="text-[11px] ent-mudo mt-2">Acerte o dinheiro e as maquininhas no caixa ao voltar.</p>
       </section>
     </main>
+  
+    <!-- Código de entrega -->
+    <div v-if="codigoDe" class="fixed inset-0 z-50 bg-black/60 flex items-end sm:items-center justify-center p-4" @click.self="codigoDe = null">
+      <form class="w-full max-w-sm rounded-3xl ent-cartao p-6" role="dialog" aria-modal="true" aria-labelledby="cod-t" @submit.prevent="confirmarCodigo">
+        <h2 id="cod-t" class="text-lg font-black">Código de entrega</h2>
+        <p class="text-sm ent-mudo mt-1">Peça a {{ codigoDe.clienteNome.split(' ')[0] }} os 4 números que aparecem no acompanhamento do pedido.</p>
+        <input v-model="codigoDigitado" inputmode="numeric" autocomplete="one-time-code" maxlength="4" pattern="[0-9]*" autofocus aria-label="Código de 4 números"
+          class="mt-4 w-full h-16 rounded-2xl ent-chip text-center text-3xl font-black tracking-[0.5em] tabular-nums outline-none" />
+        <p v-if="erroCodigo" class="mt-2 text-sm font-bold text-red-500" role="alert">{{ erroCodigo }}</p>
+        <div class="mt-4 grid grid-cols-2 gap-2">
+          <button type="button" class="h-12 rounded-xl ent-chip font-black" @click="codigoDe = null">Cancelar</button>
+          <button type="submit" class="h-12 rounded-xl bg-emerald-600 text-white font-black disabled:opacity-50" :disabled="ocupado">Confirmar</button>
+        </div>
+      </form>
+    </div>
   </div>
 </template>
 
@@ -151,11 +169,29 @@ async function iniciarRota() {
   } catch (e: any) { toast.error(e?.message || 'Não deu para iniciar') }
   finally { ocupado.value = false }
 }
-async function entreguei(p: any) {
+async function entreguei(p: any, codigo?: string) {
   ocupado.value = true
-  try { rota.value = await api.post(`/entregador/pedidos/${p.id}/entregue`); toast.success(`Entregue para ${p.clienteNome.split(' ')[0]}`) }
-  catch (e: any) { toast.error(e?.message || 'Não deu para confirmar') }
-  finally { ocupado.value = false }
+  try {
+    rota.value = await api.post(`/entregador/pedidos/${p.id}/entregue`, codigo ? { codigo } : undefined)
+    toast.success(`Entregue para ${p.clienteNome.split(' ')[0]}`)
+    return true
+  } catch (e: any) {
+    if (codigo) erroCodigo.value = e?.message || 'Código incorreto'
+    else toast.error(e?.message || 'Não deu para confirmar')
+    if (e?.status === 423 || /bloqueado/i.test(e?.message ?? '')) { codigoDe.value = null; carregar() }
+    return false
+  } finally { ocupado.value = false }
+}
+
+// Código de entrega: o cliente informa os 4 dígitos que aparecem no acompanhamento
+const codigoDe = ref<any>(null)
+const codigoDigitado = ref('')
+const erroCodigo = ref('')
+function pedirCodigo(p: any) { codigoDe.value = p; codigoDigitado.value = ''; erroCodigo.value = '' }
+async function confirmarCodigo() {
+  const c = codigoDigitado.value.replace(/\D/g, '')
+  if (c.length !== 4) { erroCodigo.value = 'O código tem 4 números'; return }
+  if (await entreguei(codigoDe.value, c)) codigoDe.value = null
 }
 async function sair() { await rastreio.parar(); navigateTo('/logout') }
 

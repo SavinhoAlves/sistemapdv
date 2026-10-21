@@ -932,6 +932,10 @@ model PedidoOnline {
   ordemRota           Int?               @map("ordem_rota")
   /// O entregador marcou como entregue; o pagamento é acertado no caixa (entregue)
   entregaConfirmadaEm DateTime?          @map("entrega_confirmada_em")
+  /// 4 dígitos que o cliente informa ao entregador (só entrega; nulo em pedidos antigos)
+  codigoEntrega       String?            @map("codigo_entrega") @db.VarChar(4)
+  /// Erros ao digitar o código; no limite, só o caixa conclui
+  tentativasCodigo    Int                @default(0) @map("tentativas_codigo")
   aceitoPorId         String?            @map("aceito_por")
   aceitoEm            DateTime?          @map("aceito_em")
   prontoEm            DateTime?          @map("pronto_em")

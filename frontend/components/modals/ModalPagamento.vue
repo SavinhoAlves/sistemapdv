@@ -54,12 +54,12 @@
                 <!-- RESUMO -->
                 <div class="bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/[0.06] rounded-2xl p-5">
                   <p class="text-xs font-black uppercase tracking-widest text-gray-500 dark:text-white/40 mb-1">
-                    Mesa #{{ mesa?.nome_mesa || mesa?.numero || mesa?.id }}
+                    {{ mesa?.nome_mesa || (mesa?.numero ? `Mesa ${mesa.numero}` : 'Mesa') }}
                   </p>
                   <div class="flex items-end justify-between">
                     <span class="text-sm text-gray-500 dark:text-white/50">Total a pagar</span>
                     <span class="text-4xl font-black text-gray-900 dark:text-white">
-                      R$ {{ total.toFixed(2) }}
+                      {{ reais(total) }}
                     </span>
                   </div>
                 </div>
@@ -90,7 +90,7 @@
                       Cobrando agora (1 de {{ pessoas }})
                     </span>
                     <span class="text-xl font-black text-blue-400">
-                      R$ {{ cobranca.toFixed(2) }}
+                      {{ reais(cobranca) }}
                     </span>
                   </div>
                 </div>
@@ -112,6 +112,12 @@
 
                   <div v-if="carregandoMetodos" class="grid grid-cols-2 gap-3">
                     <div v-for="n in 4" :key="n" class="h-20 rounded-2xl bg-gray-100 dark:bg-white/5 animate-pulse" />
+                  </div>
+
+                  <div v-else-if="!metodos.length" class="rounded-2xl border border-amber-500/30 bg-amber-500/10 p-4 text-sm text-amber-800 dark:text-amber-200" role="alert">
+                    <p class="font-black">{{ erroMetodos ? 'Não deu para carregar as formas de pagamento' : 'Nenhuma forma de pagamento ativa' }}</p>
+                    <p class="text-xs mt-1 opacity-80">{{ erroMetodos || 'Ative Dinheiro, Pix ou cartão em Admin › Métodos.' }}</p>
+                    <button v-if="erroMetodos" class="mt-3 h-9 px-4 rounded-xl border border-amber-500/40 text-xs font-black" @click="carregarMetodos">Tentar de novo</button>
                   </div>
 
                   <div v-else class="grid grid-cols-2 gap-3">
@@ -154,13 +160,13 @@
                       class="flex justify-between items-center bg-green-950/30 rounded-2xl p-4"
                     >
                       <span class="text-sm font-bold text-green-400">Troco</span>
-                      <span class="text-2xl font-black text-green-400">R$ {{ troco.toFixed(2) }}</span>
+                      <span class="text-2xl font-black text-green-400">{{ reais(troco) }}</span>
                     </div>
                     <div
                       v-if="valorRecebidoNum > 0 && valorRecebidoNum < cobranca"
                       class="bg-red-950/30 rounded-2xl p-3 text-center text-sm font-bold text-red-400"
                     >
-                      Valor insuficiente — faltam R$ {{ (cobranca - valorRecebidoNum).toFixed(2) }}
+                      Valor insuficiente — faltam {{ reais((cobranca - valorRecebidoNum)) }}
                     </div>
                   </div>
                 </Transition>
@@ -221,7 +227,7 @@
                 <div class="text-center space-y-2">
                   <p class="text-xl font-black text-gray-900 dark:text-white">Aguardando pagamento</p>
                   <p class="text-sm text-gray-500 dark:text-white/50">
-                    <span class="font-bold">R$ {{ total.toFixed(2) }}</span> via
+                    <span class="font-bold">{{ reais(total) }}</span> via
                     <span class="font-bold">{{ metodoSelecionado?.nome }}</span>
                   </p>
                   <p class="text-xs text-gray-400 dark:text-white/40">O cliente deve pagar na maquininha</p>
@@ -282,6 +288,7 @@
 </template>
 
 <script setup lang="ts">
+import { reais } from '~/lib/moeda'
 import { novoUUID } from '~/lib/uuid'
 import { ref, computed, watch } from 'vue'
 import {
@@ -310,6 +317,7 @@ interface Metodo { id: number; nome: string }
 type Estado = 'selecao' | 'aguardando' | 'erro'
 
 const metodos             = ref<Metodo[]>([])
+const erroMetodos         = ref('')
 const carregandoMetodos   = ref(false)
 const metodoSelecionado   = ref<Metodo | null>(null)
 const valorRecebido       = ref('')
@@ -366,11 +374,13 @@ function tipoMp(nome: string): string {
 
 async function carregarMetodos() {
   carregandoMetodos.value = true
+  erroMetodos.value = ''
   try {
     const rows = await api.get<Metodo[]>('/pagamentos/metodos')
     metodos.value = Array.isArray(rows) ? rows : []
-  } catch {
+  } catch (e: any) {
     metodos.value = []
+    erroMetodos.value = e?.message || 'Confira a conexão e tente de novo.'
   } finally {
     carregandoMetodos.value = false
   }
@@ -399,7 +409,7 @@ async function confirmar() {
       toastStore.success('Pagamento confirmado!')
       emit('pago')
     } else {
-      toastStore.success(`Parte registrada — restam R$ ${Number(res.restante).toFixed(2)}`)
+      toastStore.success(`Parte registrada — restam ${reais(Number(res.restante))}`)
       valorRecebido.value     = ''
       metodoSelecionado.value = null
       emit('parcial')
@@ -486,7 +496,7 @@ async function confirmarAposMaquininha() {
       toastStore.success('Pagamento aprovado pela maquininha!')
       emit('pago')
     } else {
-      toastStore.success(`Parte aprovada — restam R$ ${Number(res.restante).toFixed(2)}`)
+      toastStore.success(`Parte aprovada — restam ${reais(Number(res.restante))}`)
       metodoSelecionado.value = null
       estado.value = 'selecao'
       emit('parcial')

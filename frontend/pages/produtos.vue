@@ -227,7 +227,7 @@
           <!-- RODAPÉ -->
           <div class="mt-4 flex items-center justify-between pt-3 border-t border-gray-100 dark:border-white/[0.06]">
             <span class="text-lg font-black text-orange-500">
-              R$ {{ Number(p.preco).toFixed(2) }}
+              {{ reais(Number(p.preco)) }}
             </span>
             <div class="flex gap-1.5">
               <button
@@ -277,7 +277,7 @@
                   </div>
                 </td>
                 <td class="px-4 py-3 text-gray-400 dark:text-white/50 text-xs font-medium">{{ p.categoria || '—' }}</td>
-                <td class="px-4 py-3 text-right font-black text-orange-500">R$ {{ Number(p.preco).toFixed(2) }}</td>
+                <td class="px-4 py-3 text-right font-black text-orange-500">{{ reais(Number(p.preco)) }}</td>
                 <td class="px-4 py-3 text-center">
                   <button
                     v-if="controlaEstoque(p)"
@@ -344,6 +344,7 @@
 </template>
 
 <script setup lang="ts">
+import { reais } from '~/lib/moeda'
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { storeToRefs } from 'pinia'
 import { Search, Plus, Package, LayoutGrid, List, Boxes, TriangleAlert, Tag, ChefHat } from 'lucide-vue-next'

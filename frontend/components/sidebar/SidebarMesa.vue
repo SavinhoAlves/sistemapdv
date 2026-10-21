@@ -95,12 +95,14 @@
                 class="sm-taxa"
                 role="switch"
                 :aria-checked="taxaPct > 0"
-                :disabled="alternandoTaxa || !pedidoId"
+                :disabled="alternandoTaxa || !pedidoId || semPercentual"
+                :title="semPercentual ? 'Configure o percentual em Configurações › Estabelecimento' : undefined"
                 @click="alternarTaxa"
               >
                 <span class="sm-chave" :class="{ on: taxaPct > 0 }"><i /></span>
-                Taxa de serviço{{ taxaPct > 0 ? ` (${taxaPct}%)` : '' }}
+                Taxa de serviço{{ taxaPct > 0 ? ` (${taxaPct}%)` : semPercentual ? '' : ` (${configStore.taxa_servico_pct}%)` }}
               </button>
+              <p v-if="semPercentual" class="text-[10px] text-gray-500 dark:text-white/40 mt-1">Configure o percentual em Configurações › Estabelecimento</p>
             </dt>
             <dd v-if="taxaPct > 0" class="pdv-valor">+ {{ moeda(taxaValor) }}</dd>
           </div>
@@ -287,6 +289,7 @@
 </template>
 
 <script setup lang="ts">
+import { reais } from '~/lib/moeda'
 import { itensDaComanda } from '~/lib/comanda'
 import { ref, computed, watch, nextTick, onBeforeUnmount } from 'vue'
 import { useCaixaStore } from '~/stores/caixa'
@@ -418,6 +421,8 @@ const totalLiquido   = computed(() => Math.max(0, totalGeral.value - desconto.va
 
 // ─── Taxa de serviço + pagamentos parciais ────────────────
 const taxaPct       = ref(0)
+// Sem percentual configurado não há o que ligar (desligar continua possível)
+const semPercentual = computed(() => taxaPct.value === 0 && !(Number(configStore.taxa_servico_pct) > 0))
 const valorPago     = ref(0)
 const alternandoTaxa = ref(false)
 
@@ -461,7 +466,7 @@ async function confirmarAbater() {
   try {
     await api.patch(`/pedidos/${pedidoId.value}/abater`, { valor: valorAbaterNum.value })
     abatimentos.value.push({ id: Date.now(), valor: valorAbaterNum.value, motivo: 'Abatimento' })
-    toastStore.success(`R$ ${valorAbaterNum.value.toFixed(2)} abatido do pedido`)
+    toastStore.success(`${reais(valorAbaterNum.value)} abatido do pedido`)
     fecharModalAbater()
   } catch (err: any) {
     toastStore.error(err?.message || 'Erro ao abater valor')
@@ -507,7 +512,7 @@ async function confirmarDesconto() {
   try {
     await api.patch(`/pedidos/${pedidoId.value}/abater`, { valor: valorDescontoCalc.value, motivo })
     abatimentos.value.push({ id: Date.now(), valor: valorDescontoCalc.value, motivo })
-    toastStore.success(`${motivo} de R$ ${valorDescontoCalc.value.toFixed(2)} aplicado`)
+    toastStore.success(`${motivo} de ${reais(valorDescontoCalc.value)} aplicado`)
     fecharModalDesconto()
   } catch (err: any) {
     toastStore.error(err?.message || 'Erro ao aplicar desconto')
@@ -589,28 +594,28 @@ async function imprimir() {
     `<tr>
       <td>${p.nome}</td>
       <td style="text-align:center">${p.quantidade}</td>
-      <td style="text-align:right">R$ ${Number(p.preco_unitario).toFixed(2)}</td>
-      <td style="text-align:right">R$ ${Number(p.total).toFixed(2)}</td>
+      <td style="text-align:right">${reais(Number(p.preco_unitario))}</td>
+      <td style="text-align:right">${reais(Number(p.total))}</td>
     </tr>`
   ).join('')
 
   const linhasAbat = abats.map(a =>
     `<tr style="color:#7c3aed">
       <td colspan="3">${a.motivo || 'Abatimento'}</td>
-      <td style="text-align:right">− R$ ${Number(a.valor).toFixed(2)}</td>
+      <td style="text-align:right">− ${reais(Number(a.valor))}</td>
     </tr>`
   ).join('')
 
   const linhaTaxa = taxaPct.value > 0
     ? `<tr>
         <td colspan="3">Taxa de serviço (${taxaPct.value}%)</td>
-        <td style="text-align:right">+ R$ ${taxaValor.value.toFixed(2)}</td>
+        <td style="text-align:right">+ ${reais(taxaValor.value)}</td>
       </tr>`
     : ''
   const linhaPago = valorPago.value > 0
     ? `<tr>
         <td colspan="3">Já pago</td>
-        <td style="text-align:right">− R$ ${valorPago.value.toFixed(2)}</td>
+        <td style="text-align:right">− ${reais(valorPago.value)}</td>
       </tr>`
     : ''
 
@@ -640,7 +645,7 @@ async function imprimir() {
     <h1>${nomeRest}</h1>
     <div style="font-size:11px;color:#888;margin-top:1px">CONTA DA MESA</div>
   </div>
-  <div class="sub">Mesa #${mesa?.nome_mesa || mesa?.numero || mesa?.id} &nbsp;|&nbsp; ${data}</div>
+  <div class="sub">${mesa?.nome_mesa || (mesa?.numero ? `Mesa ${mesa.numero}` : 'Mesa')} &nbsp;|&nbsp; ${data}</div>
   <table>
     <thead><tr>
       <th style="text-align:left">Item</th>
@@ -655,13 +660,13 @@ async function imprimir() {
     <tbody>
       <tr class="total">
         <td colspan="3">Subtotal</td>
-        <td style="text-align:right">R$ ${total.toFixed(2)}</td>
+        <td style="text-align:right">${reais(total)}</td>
       </tr>
       ${linhasAbat}
       ${linhaTaxa}
       ${linhaPago}
       ${(abats.length || taxaPct.value > 0 || valorPago.value > 0)
-        ? `<tr class="liquido"><td colspan="3">Total a pagar</td><td style="text-align:right">R$ ${restante.value.toFixed(2)}</td></tr>`
+        ? `<tr class="liquido"><td colspan="3">Total a pagar</td><td style="text-align:right">${reais(restante.value)}</td></tr>`
         : ''}
     </tbody>
   </table>

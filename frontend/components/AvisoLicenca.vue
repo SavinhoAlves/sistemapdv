@@ -11,7 +11,7 @@ import { computed, ref } from 'vue'
 import { AlertTriangle, X } from 'lucide-vue-next'
 
 /** Aviso que /api/sistema/status-licenca manda: mensalidade na tolerância ou teste acabando. */
-export interface AvisoLicencaDados { tipo: 'tolerancia' | 'teste'; dias: number; liberadoAte: string }
+export interface AvisoLicencaDados { tipo: 'tolerancia' | 'teste' | 'vencendo'; dias: number; liberadoAte: string; bloqueioEm?: string }
 
 const aviso = useState<AvisoLicencaDados | null>('licenca_aviso', () => null)
 
@@ -32,6 +32,8 @@ const visivel = computed(() => !!aviso.value && !dispensadoHoje.value)
 const texto = computed(() => {
   const a = aviso.value
   if (!a) return ''
+  if (a.tipo === 'vencendo')
+    return `A mensalidade vence ${emDias(a.dias)} (${data(a.liberadoAte)}).${a.bloqueioEm ? ` Sem pagamento, o acesso é bloqueado em ${data(a.bloqueioEm)}.` : ''}`
   return a.tipo === 'tolerancia'
     ? `A mensalidade está vencida. O acesso será bloqueado ${emDias(a.dias)} (${data(a.liberadoAte)}) se o pagamento não for registrado.`
     : `O período de teste termina ${emDias(a.dias)} (${data(a.liberadoAte)}). Fale com o suporte para continuar usando o sistema.`

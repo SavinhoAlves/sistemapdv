@@ -3,6 +3,17 @@ import { requireTenant } from '../../middlewares/tenant.middleware'
 import { requirePermissao } from '../../middlewares/permission.middleware'
 import type { TenantJwtPayload } from '../../lib/jwt'
 import * as Service from './produtos.service'
+import { prisma } from '../../lib/prisma'
+
+/**
+ * A categoria é obrigatória: é ela que diz se o item vai para a cozinha
+ * (Categoria.vaiCozinha). Confere também que é deste restaurante.
+ */
+async function categoriaInvalida(categoriaId: unknown): Promise<string | null> {
+  if (typeof categoriaId !== 'string' || !categoriaId) return 'Selecione a categoria do produto'
+  const existe = await prisma.categoria.findFirst({ where: { id: categoriaId }, select: { id: true } })
+  return existe ? null : 'Categoria não encontrada'
+}
 
 export async function produtosRoutes(app: FastifyInstance) {
   // GET /api/produtos
@@ -15,6 +26,8 @@ export async function produtosRoutes(app: FastifyInstance) {
     const body = request.body as any
     if (!body.nome?.trim()) return reply.status(400).send({ error: 'nome é obrigatório' })
     if (body.preco === undefined || body.preco === null) return reply.status(400).send({ error: 'preco é obrigatório' })
+    const semCategoria = await categoriaInvalida(body.categoriaId)
+    if (semCategoria) return reply.status(400).send({ error: semCategoria })
     try {
       const produto = await Service.criar(request.tenantId!, {
         nome: body.nome,
@@ -39,6 +52,11 @@ export async function produtosRoutes(app: FastifyInstance) {
     const { id } = request.params as any
     const body = request.body as any
     const auth = request.auth as TenantJwtPayload
+    // Na edição a categoria pode ficar como está (ausente), mas não ser tirada
+    if (body.categoriaId !== undefined) {
+      const semCategoria = await categoriaInvalida(body.categoriaId)
+      if (semCategoria) return reply.status(400).send({ error: semCategoria })
+    }
     try {
       const produto = await Service.atualizar(
         request.tenantId!,

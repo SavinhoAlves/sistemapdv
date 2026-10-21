@@ -1,5 +1,6 @@
 import type { FastifyInstance } from 'fastify'
 import { tipoValido, aplicarPadraoComercio, TIPOS_COMERCIO } from '../../lib/tipoComercio'
+import { garantirMetodosPadrao } from '../../lib/metodosPadrao'
 import { requirePlatform, invalidateTenantCache } from '../../middlewares/tenant.middleware'
 import { prisma } from '../../lib/prisma'
 import { signAccessToken } from '../../lib/jwt'
@@ -97,7 +98,7 @@ export async function platformTenantsRoutes(app: FastifyInstance) {
       // Receita mensal: quem paga (sem teste, isentos, suspensos ou rescindidos)
       if (['em_dia', 'tolerancia', 'bloqueado'].includes(r.situacao) && r.valor) {
         const m = valorMensalDoCiclo(r.valor, r.ciclo)
-        const nome = t.plano?.nome ?? con?.plano ?? 'Sem plano'
+        const nome = t.plano?.nome ?? (con?.plano ? `${con.plano} (sem pacote)` : 'Sem plano')
         mrr += m
         porPlano[nome] ??= { count: 0, mrr: 0 }
         porPlano[nome].count++
@@ -255,6 +256,8 @@ export async function platformTenantsRoutes(app: FastifyInstance) {
         })
         // Ponto de partida do tipo: categorias, taxa de serviço e modo de venda
         if (tipoValido(tipoComercio)) await aplicarPadraoComercio(tx, t.id, tipoComercio, nome.trim())
+        // Dinheiro, Pix e cartões: sem eles o restaurante não consegue receber
+        await garantirMetodosPadrao(tx, t.id)
         await tx.contrato.create({
           data: {
             tenantId: t.id,

@@ -150,10 +150,9 @@
             id="saldoInput"
             name="saldoInput"
             v-model="saldoInicial"
-            type="number"
-            min="0.01"
-            step="0.01"
-            placeholder="0,00"
+            type="text"
+            inputmode="decimal"
+            placeholder="Ex.: 100,00"
             autofocus
             @keyup.enter="confirmarAbertura"
             class="w-full h-12 px-4 bg-gray-50 dark:bg-white/[0.06] border rounded-2xl text-gray-900 dark:text-white font-bold text-base outline-none transition-all mb-1"
@@ -408,6 +407,7 @@
 </style>
 
 <script setup lang="ts">
+import { numeroBR } from '~/lib/moeda'
 import { totaisDoResumo, vendasDoResumo, porMetodoDoResumo } from '~/lib/caixa'
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
@@ -424,6 +424,7 @@ import { useImpressorasStore } from '~/stores/impressoras'
 import { useNavItems }    from '~/composables/useNavItems'
 import { useApi }         from '~/services/api'
 import ModalRfidAuth      from '~/components/modals/ModalRfidAuth.vue'
+import { lerValor } from '~/lib/valor'
 
 const router      = useRouter()
 const route       = useRoute()
@@ -563,7 +564,7 @@ const fechamentoErro   = ref('')
 const fechandoCaixa    = ref(false)
 const resumoFechamento = ref<any>(null)
 
-const fmtValor = (v: any) => Number(v || 0).toFixed(2)
+const fmtValor = (v: any) => numeroBR(v)
 
 const cancelarFechamento = () => {
   modalConferencia.value = false
@@ -689,11 +690,11 @@ const imprimirFechamento = async () => {
 }
 
 const confirmarAbertura = async () => {
-  const valor = Number(saldoInicial.value)
-  if (!saldoInicial.value || isNaN(valor) || valor <= 0) {
-    saldoErro.value = 'Informe o saldo inicial do caixa'
-    return
-  }
+  // 0 é válido (caixa sem troco); só vazio, inválido ou negativo é recusado
+  const valor = lerValor(saldoInicial.value)
+  if (valor === null) { saldoErro.value = 'Informe o saldo inicial do caixa (pode ser 0)'; return }
+  if (Number.isNaN(valor)) { saldoErro.value = 'Valor inválido. Use números, por exemplo 100,00'; return }
+  if (valor < 0) { saldoErro.value = 'O saldo inicial não pode ser negativo'; return }
   abrindoCaixa.value = true
   saldoErro.value = ''
   try {

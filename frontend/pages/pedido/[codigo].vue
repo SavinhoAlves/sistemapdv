@@ -46,6 +46,13 @@
           </template>
         </section>
 
+        <!-- Código de entrega: o cliente diz ao entregador, que digita no app -->
+        <section v-if="p.codigoEntrega" class="mt-4 rounded-3xl cdp-cartao p-5 text-center" aria-label="Código de entrega">
+          <p class="text-xs font-black uppercase tracking-widest cdp-mudo">Código de entrega</p>
+          <p class="mt-2 text-4xl font-black tracking-[0.35em] tabular-nums" style="color:#ea580c">{{ p.codigoEntrega }}</p>
+          <p class="mt-2 text-xs cdp-mudo">Informe este código ao entregador quando receber o pedido.</p>
+        </section>
+
         <!-- Em rota: mapa com o entregador e quantas entregas faltam antes -->
         <section v-if="p.rota" class="mt-4 rounded-3xl cdp-cartao p-4">
           <p class="text-sm font-black">

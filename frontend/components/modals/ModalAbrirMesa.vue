@@ -231,11 +231,12 @@ const abrirMesa = async () => {
 
     const api = useApi()
 
+    // A API lê camelCase (mesas.routes.ts → abrirBody); com nome_mesa/garcom_id
+    // o nome digitado era ignorado e a mesa saía como "Mesa <número>"
     const resposta = await api.mesas.abrirMesa({
-      cliente:    form.cliente,
-      nome_mesa:  form.nome_mesa.trim() || null,
-      garcom_id:  garcomId,
-      caixa_id:   caixaStore.caixaAtual?.id ?? null
+      cliente:  form.cliente?.trim() || undefined,
+      nomeMesa: form.nome_mesa.trim() || undefined,
+      garcomId: garcomId || undefined,
     })
 
     toastStore.success(

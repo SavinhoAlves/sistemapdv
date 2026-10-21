@@ -44,7 +44,8 @@
 import { ref, nextTick, onMounted, onUnmounted } from 'vue'
 import { UtensilsCrossed, ScanLine, KeyRound } from 'lucide-vue-next'
 import { useAuthStore } from '~/stores/auth'
-import { tokenDoQr, destinoNoCelular } from '~/lib/app'
+import { registerPlugin } from '@capacitor/core'
+import { tokenDoQr, destinoNoCelular, noApp } from '~/lib/app'
 
 definePageMeta({ layout: false })
 
@@ -58,15 +59,48 @@ let fluxo: MediaStream | null = null
 let quadro = 0
 let tela: HTMLCanvasElement | null = null
 
+// Leitor nativo do Google (app 1.2+): abre a câmera fora da página, sem pedir
+// permissão no WebView. Apps antigos não têm o plugin e caem no leitor da página.
+const LeitorNativo = registerPlugin<any>('BarcodeScanner')
+
+async function lerNoApp(): Promise<boolean> {
+  if (!noApp()) return false
+  try {
+    const { available } = await LeitorNativo.isGoogleBarcodeScannerModuleAvailable()
+    if (!available) {
+      erro.value = 'Preparando o leitor de QR (só na primeira vez)… tente de novo em alguns segundos.'
+      await LeitorNativo.installGoogleBarcodeScannerModule()
+      return true
+    }
+    const { barcodes } = await LeitorNativo.scan({ formats: ['QR_CODE'] })
+    const texto = barcodes?.[0]?.rawValue
+    if (texto) {
+      const t = tokenDoQr(texto)
+      if (t) { erro.value = ''; navigateTo({ path: '/m', query: { t } }) }
+      else erro.value = 'Esse QR não é de acesso ao RestaurantePDV.'
+    }
+    return true
+  } catch (e: any) {
+    const msg = String(e?.message || e)
+    if (/not implemented|unimplemented/i.test(msg)) return false // app sem o plugin
+    if (!/cancel/i.test(msg)) erro.value = 'Não deu para abrir o leitor de QR. Entre com código e senha.'
+    return true
+  }
+}
+
 async function abrirLeitor() {
   erro.value = ''
+  if (await lerNoApp()) return
   if (!navigator.mediaDevices?.getUserMedia) { erro.value = 'Este aparelho não deixa usar a câmera aqui. Entre com código e senha.'; return }
   try {
     fluxo = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' }, audio: false })
   } catch (e: any) {
-    erro.value = e?.name === 'NotAllowedError'
-      ? 'A câmera foi bloqueada. Libere a câmera para o app nas configurações do celular.'
-      : 'Não deu para abrir a câmera. Entre com código e senha.'
+    // No app 1.1 o Android recusa a câmera dentro da página: o 1.2 usa o leitor do Google
+    erro.value = noApp()
+      ? 'Atualize o app RestaurantePDV para a versão mais nova para ler o QR, ou entre com código e senha.'
+      : e?.name === 'NotAllowedError'
+        ? 'A câmera foi bloqueada. Libere a câmera para este site nas configurações do navegador.'
+        : 'Não deu para abrir a câmera. Entre com código e senha.'
     return
   }
   lendo.value = true

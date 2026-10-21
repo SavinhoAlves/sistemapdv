@@ -1,0 +1,60 @@
+# Central da plataforma na raiz (painel.restaurantepdv.com.br/restaurantes…). O mesmo build do sistema decide pelo endereço.
+server {
+    listen 80;
+    listen [::]:80;
+    server_name painel.restaurantepdv.com.br;
+
+    root /var/www/restaurantepdv/app;
+    index index.html;
+    client_max_body_size 10m;
+    # Redirecionamentos relativos: mantêm https e o endereço que o navegador usou
+    absolute_redirect off;
+
+    # API Fastify (somente local)
+    location /api/ {
+        proxy_pass http://127.0.0.1:3001;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    # Socket.IO (WebSocket)
+    location /socket.io/ {
+        proxy_pass http://127.0.0.1:3001;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_read_timeout 3600s;
+    }
+
+    # Endereços antigos com /app (app instalado, QRs, favoritos) vão para a raiz
+    location = /app { return 301 /$is_args$args; }
+    location /app/ {
+        rewrite ^/app/(.*)$ /$1 permanent;
+    }
+
+    # Arquivos com hash: cache longo
+    location /_nuxt/ {
+        expires 1y;
+        add_header Cache-Control "public, immutable";
+        try_files $uri =404;
+    }
+
+    # SPA: qualquer rota cai no index
+    location / {
+        try_files $uri $uri/ /index.html;
+        add_header Cache-Control "no-cache";
+    }
+
+    listen [::]:443 ssl; # managed by Certbot
+    listen 443 ssl; # managed by Certbot
+    ssl_certificate /etc/letsencrypt/live/restaurantepdv.com.br/fullchain.pem; # managed by Certbot
+    ssl_certificate_key /etc/letsencrypt/live/restaurantepdv.com.br/privkey.pem; # managed by Certbot
+    include /etc/letsencrypt/options-ssl-nginx.conf; # managed by Certbot
+    ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem; # managed by Certbot
+}

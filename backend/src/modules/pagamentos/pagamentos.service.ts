@@ -4,6 +4,7 @@ import { EVENTOS } from '../../lib/eventos'
 import { emitir } from '../../sockets/socket'
 import { paraDecimal, paraReais, centavosDoCliente } from '../../lib/money'
 import { calcularConta, includeParaConta, contaParaJson } from '../comandas/conta'
+import { garantirMetodosPadrao } from '../../lib/metodosPadrao'
 import { registrarAuditoria } from '../../lib/auditoria'
 
 /**
@@ -294,11 +295,15 @@ export async function estornarPagamento(
 
 // ── Métodos de pagamento ───────────────────────────────────────────────────
 
-export async function listarMetodos(_tenantId: string) {
+// Restaurantes criados antes das formas padrão ficavam sem nenhuma e o modal
+// de pagamento abria vazio: a primeira listagem cria as padrão.
+export async function listarMetodos(tenantId: string) {
+  await garantirMetodosPadrao(prisma, tenantId)
   return prisma.metodoPagamento.findMany({ where: { ativo: true }, orderBy: { nome: 'asc' } })
 }
 
-export async function todosMetodos(_tenantId: string) {
+export async function todosMetodos(tenantId: string) {
+  await garantirMetodosPadrao(prisma, tenantId)
   return prisma.metodoPagamento.findMany({ orderBy: { nome: 'asc' } })
 }
 

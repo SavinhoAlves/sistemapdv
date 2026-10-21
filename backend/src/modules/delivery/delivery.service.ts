@@ -35,6 +35,10 @@ function novoCodigo() {
 
 const erro = (status: number, mensagem: string) => Object.assign(new Error(mensagem), { status })
 
+/** Código de entrega: 4 dígitos que o cliente vê no acompanhamento e diz ao entregador. */
+const codigoDeEntrega = () => String(crypto.randomInt(0, 10000)).padStart(4, '0')
+const MAX_TENTATIVAS_CODIGO = 5
+
 // ─── Situação do cardápio ──────────────────────────────────────────────────────
 
 async function tenantPorSlug(slug: string) {
@@ -155,6 +159,7 @@ export async function criarPedido(slug: string, d: NovoPedidoOnline) {
         data: {
           tenantId: tenant.id,
           codigo: novoCodigo(),
+          codigoEntrega: d.tipo === 'entrega' ? codigoDeEntrega() : null,
           tipo: d.tipo,
           clienteNome: d.clienteNome.trim().slice(0, 80),
           clienteTelefone: d.clienteTelefone.replace(/\D/g, '').slice(0, 13),
@@ -228,6 +233,8 @@ export async function acompanhar(codigo: string) {
     subtotal: Number(po.subtotal), taxaEntrega: Number(po.taxaEntrega), total: Number(po.total),
     formaPagamento: po.formaPagamento, trocoPara: po.trocoPara === null ? null : Number(po.trocoPara),
     motivoRecusa: po.motivoRecusa,
+    // Só enquanto a entrega está em andamento: o cliente diz ao entregador
+    codigoEntrega: ['aceito', 'pronto', 'em_rota'].includes(po.status) && !po.entregaConfirmadaEm ? po.codigoEntrega : null,
     linhaDoTempo: { recebido: po.createdAt, aceito: po.aceitoEm, pronto: po.prontoEm ?? prontoPelaCozinha(po), em_rota: po.saiuEm, entregue: po.entregaConfirmadaEm ?? po.entregueEm },
   }
 }
@@ -271,6 +278,8 @@ function paraCaixa(po: ComPedido) {
     pedidoNumero: po.pedido?.numero ?? null,
     criadoEm: po.createdAt, aceitoEm: po.aceitoEm, saiuEm: po.saiuEm, entregueEm: po.entregueEm,
     entregador: po.entregador, ordemRota: po.ordemRota, entregaConfirmadaEm: po.entregaConfirmadaEm,
+    // O código em si só aparece para o cliente (acompanhamento)
+    exigeCodigo: Boolean(po.codigoEntrega), codigoBloqueado: po.tentativasCodigo >= MAX_TENTATIVAS_CODIGO,
     destino: po.destinoLat != null && po.destinoLng != null ? { lat: po.destinoLat, lng: po.destinoLng } : null,
   }
 }
@@ -630,15 +639,49 @@ export async function iniciarRota(tenantId: string, usuarioId: string) {
 }
 
 /** O entregador confirmou a entrega. O pagamento é acertado no caixa (concluir). */
-export async function confirmarEntrega(tenantId: string, usuarioId: string, id: string) {
+export async function confirmarEntrega(tenantId: string, usuarioId: string, id: string, codigo?: string) {
   const po = await buscar(tenantId, id)
   if (po.entregadorId !== usuarioId) throw erro(403, 'Esta entrega não está com você')
   if (po.status !== 'em_rota') throw erro(409, 'Inicie a rota antes de confirmar a entrega')
   if (po.entregaConfirmadaEm) return minhaRota(tenantId, usuarioId)
+
+  // Pedido com código: só conclui com o código que o cliente informa
+  if (po.codigoEntrega) {
+    if (po.tentativasCodigo >= MAX_TENTATIVAS_CODIGO) throw erro(423, 'Código bloqueado por tentativas erradas. Peça ao caixa para concluir a entrega.')
+    if ((codigo ?? '').replace(/\D/g, '') !== po.codigoEntrega) {
+      const { tentativasCodigo } = await prisma.pedidoOnline.update({ where: { id }, data: { tentativasCodigo: { increment: 1 } } })
+      const restam = MAX_TENTATIVAS_CODIGO - tentativasCodigo
+      throw erro(400, restam > 0 ? `Código incorreto. Confira com o cliente (${restam} ${restam === 1 ? 'tentativa' : 'tentativas'}).` : 'Código bloqueado por tentativas erradas. Peça ao caixa para concluir a entrega.')
+    }
+  }
+
   await prisma.pedidoOnline.update({ where: { id }, data: { entregaConfirmadaEm: new Date(), ordemRota: null } })
   await recalcularRota(tenantId, usuarioId)
+
+  // Código conferido: registra o pagamento na forma escolhida pelo cliente e marca
+  // como entregue, sem o caixa precisar concluir. Sem forma correspondente, fica para o caixa.
+  if (po.codigoEntrega) {
+    const metodo = await metodoDaForma(po.formaPagamento)
+    if (metodo) {
+      await concluir(tenantId, id, {
+        metodoId: metodo.id, idempotencyKey: `entrega-${id}`,
+        valorRecebido: po.formaPagamento === 'dinheiro' && po.trocoPara != null ? Number(po.trocoPara) : undefined,
+      }, usuarioId)
+      return minhaRota(tenantId, usuarioId)
+    }
+  }
   emitir(tenantId).delivery(EVENTOS.delivery.atualizado, payload(await buscar(tenantId, id)))
   return minhaRota(tenantId, usuarioId)
+}
+
+/** Forma de pagamento do cardápio (dinheiro, pix, cartao) → forma ativa do restaurante. */
+async function metodoDaForma(forma: string) {
+  const ativos = await prisma.metodoPagamento.findMany({ where: { ativo: true }, orderBy: { nome: 'asc' } })
+  const tem = (m: { nome: string }, t: string) => m.nome.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').includes(t)
+  if (forma === 'dinheiro') return ativos.find((m) => tem(m, 'dinheiro')) ?? null
+  if (forma === 'pix') return ativos.find((m) => tem(m, 'pix')) ?? null
+  if (forma === 'cartao') return ativos.find((m) => tem(m, 'credito')) ?? ativos.find((m) => tem(m, 'cart')) ?? ativos.find((m) => tem(m, 'debito')) ?? null
+  return null
 }
 
 /** Posição do GPS (o app manda a cada ~15 s com a rota em andamento). */

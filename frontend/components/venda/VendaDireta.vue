@@ -454,6 +454,7 @@ async function confirmarVenda() {
       })),
       metodoId:      metodoSelecionado.value.id,
       valorRecebido: metodoSelecionado.value.nome === 'Dinheiro' ? valorRecebidoNum.value : undefined,
+      desconto:      descontoNum.value > 0 ? descontoNum.value : undefined,
     })
     // A API devolve só o código da ficha e a conta; o cupom é montado com o carrinho
     fichaAtual.value = {

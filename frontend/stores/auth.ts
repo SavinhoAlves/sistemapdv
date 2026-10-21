@@ -29,10 +29,14 @@ export const useAuthStore = defineStore('auth', {
     isCozinha:       (state) => state.usuario?.cargo === 'cozinha',
     isCaixa:         (state) => state.usuario?.cargo === 'caixa',
     funcionario:     (state) => state.usuario,
+    /**
+     * Mesma regra da API (permission.middleware): o token traz as permissões
+     * efetivas (padrão da função + perfil). Chave ausente: só o administrador passa.
+     */
     temPermissao:    (state) => (perm: string): boolean => {
-      if (state.usuario?.cargo === 'administrador') return true
-      if (!state.usuario?.permissoes) return false
-      return Boolean(state.usuario.permissoes[perm])
+      const v = state.usuario?.permissoes?.[perm]
+      if (typeof v === 'boolean') return v
+      return state.usuario?.cargo === 'administrador'
     }
   },
 

@@ -1,6 +1,6 @@
 import type { FastifyInstance } from 'fastify'
 import { requireTenant } from '../../middlewares/tenant.middleware'
-import { requirePermissao } from '../../middlewares/permission.middleware'
+import { requirePermissao, PERMISSOES_CARGO } from '../../middlewares/permission.middleware'
 import * as Service from './perfis.service'
 
 export async function perfisRoutes(app: FastifyInstance) {
@@ -42,6 +42,17 @@ export async function perfisRoutes(app: FastifyInstance) {
       if (err.code === 'P2025') return reply.status(404).send({ error: 'Perfil não encontrado' })
       throw err
     }
+  })
+
+  // GET /api/perfis/funcoes — permissões padrão de cada função (cargo), base dos perfis
+  app.get('/funcoes', { preHandler: [requireTenant] }, async () => PERMISSOES_CARGO)
+
+  // DELETE /api/perfis/:id — quem usava o perfil volta ao padrão da função
+  app.delete('/:id', { preHandler: [requireTenant, requirePermissao('gerenciarPerfis')] }, async (request, reply) => {
+    const { id } = request.params as any
+    const ok = await Service.excluir(request.tenantId!, id)
+    if (!ok) return reply.status(404).send({ error: 'Perfil não encontrado' })
+    return { success: true }
   })
 
   // POST /api/perfis/seed

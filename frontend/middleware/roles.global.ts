@@ -10,6 +10,7 @@ const PERMISSAO_POR_ROTA: Record<string, string | null> = {
   '/caixa':         'gerenciarCaixa',
   '/cozinha':       'verCozinha',
   '/produtos':      'gerenciarProdutos',
+  '/estoque':       'gerenciarProdutos',
   '/relatorios':    'verRelatorios',
   '/configuracoes': 'gerenciarConfiguracoes',
 }

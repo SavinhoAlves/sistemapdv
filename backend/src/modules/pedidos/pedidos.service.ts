@@ -372,6 +372,8 @@ export async function cancelarItem(
 export async function definirTaxaServico(tenantId: string, pedidoId: string, aplicar: boolean) {
   const cfg = await prisma.configuracoes.findFirst({ select: { taxaServicoPct: true } })
   const pct = aplicar ? Number(cfg?.taxaServicoPct ?? 0) : 0
+  // Com 0% "ligar" gravava 0 e a tela respondia "removida" a cada clique
+  if (aplicar && pct <= 0) throw erro(400, 'Configure o percentual da taxa de serviço em Configurações › Estabelecimento')
 
   const pedido = await prisma.pedido.update({
     where: { id: pedidoId },

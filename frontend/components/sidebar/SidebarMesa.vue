@@ -95,12 +95,14 @@
                 class="sm-taxa"
                 role="switch"
                 :aria-checked="taxaPct > 0"
-                :disabled="alternandoTaxa || !pedidoId"
+                :disabled="alternandoTaxa || !pedidoId || semPercentual"
+                :title="semPercentual ? 'Configure o percentual em Configurações › Estabelecimento' : undefined"
                 @click="alternarTaxa"
               >
                 <span class="sm-chave" :class="{ on: taxaPct > 0 }"><i /></span>
-                Taxa de serviço{{ taxaPct > 0 ? ` (${taxaPct}%)` : '' }}
+                Taxa de serviço{{ taxaPct > 0 ? ` (${taxaPct}%)` : semPercentual ? '' : ` (${configStore.taxa_servico_pct}%)` }}
               </button>
+              <p v-if="semPercentual" class="text-[10px] text-gray-500 dark:text-white/40 mt-1">Configure o percentual em Configurações › Estabelecimento</p>
             </dt>
             <dd v-if="taxaPct > 0" class="pdv-valor">+ {{ moeda(taxaValor) }}</dd>
           </div>
@@ -418,6 +420,8 @@ const totalLiquido   = computed(() => Math.max(0, totalGeral.value - desconto.va
 
 // ─── Taxa de serviço + pagamentos parciais ────────────────
 const taxaPct       = ref(0)
+// Sem percentual configurado não há o que ligar (desligar continua possível)
+const semPercentual = computed(() => taxaPct.value === 0 && !(Number(configStore.taxa_servico_pct) > 0))
 const valorPago     = ref(0)
 const alternandoTaxa = ref(false)
 

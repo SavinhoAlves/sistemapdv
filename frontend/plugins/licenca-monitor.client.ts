@@ -1,4 +1,5 @@
 import { getTenantSlug } from '~/composables/useTenantSlug'
+import { ehPainel } from '~/lib/hosts'
 
 const ROTAS_LIVRES = ['/acesso', '/ativacao', '/login', '/m', '/platform', '/cardapio', '/pedido']
 const POLL_MS = 30_000
@@ -13,7 +14,7 @@ export default defineNuxtPlugin(() => {
   const aviso = useState<unknown>('licenca_aviso', () => null)
 
   setInterval(async () => {
-    if (ROTAS_LIVRES.some(r => router.currentRoute.value.path.startsWith(r))) return
+    if (ehPainel() || ROTAS_LIVRES.some(r => router.currentRoute.value.path.startsWith(r))) return
 
     try {
       const res = await $fetch<any>(

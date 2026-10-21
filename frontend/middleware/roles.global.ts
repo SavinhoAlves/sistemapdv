@@ -1,5 +1,6 @@
 import { useAuthStore } from '~/stores/auth'
 import { noApp, destinoNoCelular } from '~/lib/app'
+import { ehPainel } from '~/lib/hosts'
 
 const ROTAS_PUBLICAS = ['/acesso', '/login', '/ativacao', '/logout', '/admin/login', '/m', '/platform', '/cardapio', '/pedido']
 
@@ -27,7 +28,7 @@ const DESTINO_PADRAO: Record<string, string> = {
 }
 
 export default defineNuxtRouteMiddleware((to) => {
-  if (ROTAS_PUBLICAS.some(r => to.path.startsWith(r))) return
+  if (ROTAS_PUBLICAS.some(r => to.path.startsWith(r)) || ehPainel()) return
   if (!process.client) return
 
   const authStore = useAuthStore()

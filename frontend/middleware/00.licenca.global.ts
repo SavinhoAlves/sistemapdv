@@ -1,10 +1,12 @@
 import { getTenantSlug } from '~/composables/useTenantSlug'
+import { ehPainel } from '~/lib/hosts'
 
 const ROTAS_LIVRES = ['/acesso', '/ativacao', '/login', '/m', '/platform', '/cardapio', '/pedido']
 const CACHE_TTL = 60 * 1000
 
 export default defineNuxtRouteMiddleware(async (to) => {
   if (ROTAS_LIVRES.some(r => to.path.startsWith(r))) return
+  if (ehPainel()) return // painel.<domínio>: só a Central, sem licença de restaurante
   if (!process.client) return
 
   const config = useRuntimeConfig()

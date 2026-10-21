@@ -36,9 +36,10 @@ export default defineNuxtConfig({
   },
 
   app: {
-    // O sistema vive em /app; o "/" do endereço fica para o site de acesso.
-    // Dá para trocar no build com NUXT_APP_BASE_URL.
-    baseURL: '/app/',
+    // Sistema na raiz de app.<domínio> e Central na raiz de painel.<domínio>
+    // (o site de apresentação fica no domínio principal). Endereços antigos
+    // com /app/ são redirecionados pelo nginx. Dá para trocar com NUXT_APP_BASE_URL.
+    baseURL: '/',
     // Suaviza a troca de páginas (evita o "piscar" ao navegar entre menus)
     pageTransition: { name: 'page' },
     head: {

@@ -18,8 +18,8 @@
 
       <div class="side">
         <div class="top">
-          <!-- O site de acesso fica na raiz do endereço; o sistema vive em /app -->
-          <a class="back" href="/"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6l-6 6 6 6" /></svg><span>Voltar ao início</span></a>
+          <!-- O site de apresentação fica no domínio principal (restaurantepdv.com.br) -->
+          <a class="back" :href="linkInicio"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6l-6 6 6 6" /></svg><span>Voltar ao início</span></a>
         </div>
 
         <main class="center">
@@ -109,6 +109,7 @@
 <script setup lang="ts">
 import { navigateTo } from 'nuxt/app'
 import { noApp, destinoNoCelular } from '~/lib/app'
+import { ehApp, ehPainel, urlDoHost } from '~/lib/hosts'
 import { ref, reactive, onMounted, onUnmounted, nextTick } from 'vue'
 import { useApi } from '~/services/api'
 import { useAuthStore } from '~/stores/auth'
@@ -129,10 +130,14 @@ const PERFIL = {
   cli: { desc: 'Acesse o sistema do seu restaurante: caixa, mesas e cozinha.', label: 'Código ou usuário', ph: 'Ex.: 1001-1 ou joao', btn: 'Entrar no sistema', help: 'Problemas para acessar? Fale com o gerente da loja.' },
   ges: { desc: 'Acesso ao painel da plataforma: restaurantes, cobrança, planos e demonstrações.', label: 'E-mail', ph: 'admin@restaurantepdv.com.br', btn: 'Entrar no painel', help: 'Problemas para acessar? Fale com outro administrador.' },
 }
-const perfil = ref<Perfil>(route.query.acesso === 'plataforma' ? 'ges' : 'cli')
+// painel.<domínio> é só da plataforma; app.<domínio> só do restaurante (a outra aba troca de endereço)
+const perfil = ref<Perfil>(ehPainel() || route.query.acesso === 'plataforma' ? 'ges' : 'cli')
+const linkInicio = (ehApp() || ehPainel()) ? urlDoHost('', '/') : '/'
 
 function setPerfil(p: Perfil) {
   if (perfil.value === p) return
+  if (p === 'ges' && ehApp()) return navigateTo(urlDoHost('painel', '/login'), { external: true })
+  if (p === 'cli' && ehPainel()) return navigateTo(urlDoHost('app', '/login'), { external: true })
   perfil.value = p
   hideMsg()
   if (p === 'ges') modo.value = 'manual'

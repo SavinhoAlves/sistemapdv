@@ -1,11 +1,12 @@
 import { useAuthStore } from '../stores/auth'
 import { noApp, destinoNoCelular } from '../lib/app'
+import { ehPainel } from '../lib/hosts'
 
 export default defineNuxtRouteMiddleware((to) => {
   const auth = useAuthStore()
 
   // Rotas da plataforma central (super admin) — gerenciam própria autenticação
-  if (to.path.startsWith('/platform')) return
+  if (to.path.startsWith('/platform') || ehPainel()) return
 
   // Páginas do cliente final (cardápio online e acompanhamento): sem login
   if (to.path.startsWith('/cardapio') || to.path.startsWith('/pedido')) return

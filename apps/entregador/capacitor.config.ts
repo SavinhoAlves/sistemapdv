@@ -2,14 +2,14 @@ import type { CapacitorConfig } from '@capacitor/cli'
 import { writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 
-// App da equipe (garçom e entregador). Abre a tela /app/acesso do servidor por
+// App da equipe (garçom e entregador). Abre a tela /acesso do servidor por
 // dentro (server.url): ler o QR ou entrar com código e senha, e cada cargo vai
 // para a sua tela. Mudanças de tela chegam sem publicar APK novo. O app nativo
 // só acrescenta o GPS do entregador em segundo plano
 // (@capacitor-community/background-geolocation) e a câmera para ler o QR.
 //
 // PDV_URL troca o endereço no build (outro domínio ou ambiente de teste).
-const serverUrl = process.env.PDV_URL || 'https://app.restaurantepdv.com.br/app/acesso'
+const serverUrl = process.env.PDV_URL || 'https://app.restaurantepdv.com.br/acesso'
 
 // A tela "Sem conexão" (offline.html) roda dentro do app; o botão "Tentar de novo"
 // precisa saber o endereço do sistema para voltar a ele.

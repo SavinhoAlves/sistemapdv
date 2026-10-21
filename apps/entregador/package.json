@@ -2,7 +2,7 @@
   "name": "pdv-entregador",
   "private": true,
   "version": "1.0.0",
-  "description": "App Android da equipe do RestaurantePDV (garçom e entregador): abre /app/acesso do servidor, lê o QR de acesso e envia o GPS do entregador com a tela apagada.",
+  "description": "App Android da equipe do RestaurantePDV (garçom e entregador): abre /acesso do servidor, lê o QR de acesso e envia o GPS do entregador com a tela apagada.",
   "scripts": {
     "sync": "cap sync android"
   },

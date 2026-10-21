@@ -39,10 +39,14 @@ let mapa: import('leaflet').Map | null = null
 let camada: import('leaflet').LayerGroup | null = null
 let ajustado = false
 
+// Ícones em SVG (traço branco, desenho do Lucide): emoji não existe em todo aparelho
+const svg = (d: string) => `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">${d}</svg>`
+const SVG_MOTO = svg('<circle cx="18.5" cy="17.5" r="3.5"/><circle cx="5.5" cy="17.5" r="3.5"/><circle cx="15" cy="5" r="1"/><path d="M12 17.5V14l-3-3 4-3 2 3h2"/>')
+const SVG_TALHERES = svg('<path d="m16 2-2.3 2.3a3 3 0 0 0 0 4.2l1.8 1.8a3 3 0 0 0 4.2 0L22 8"/><path d="M15 15 3.3 3.3a4.2 4.2 0 0 0 0 6l7.3 7.3c.7.7 2 .7 2.8 0L15 15Zm0 0 7 7"/><path d="m2.1 21.8 6.4-6.3"/><path d="m19 5-7 7"/>')
 const CORES: Record<Marcador['tipo'], string> = { restaurante: '#ea580c', entregador: '#0284c7', parada: '#111827', destino: '#16a34a', feito: '#9ca3af' }
 function icone(m: Marcador) {
   const cor = CORES[m.tipo]
-  const conteudo = m.tipo === 'entregador' ? '🛵' : m.tipo === 'restaurante' ? '🍽' : (m.rotulo ?? '')
+  const conteudo = m.tipo === 'entregador' ? SVG_MOTO : m.tipo === 'restaurante' ? SVG_TALHERES : (m.rotulo ?? '')
   const tam = m.tipo === 'entregador' || m.tipo === 'restaurante' ? 34 : 28
   return L!.divIcon({
     className: 'md-icone',

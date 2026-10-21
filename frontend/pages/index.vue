@@ -45,6 +45,9 @@
         </div>
       </div>
 
+      <!-- GRÁFICO -->
+      <GraficoFaturamento :por-hora="stats.porHora" :ultimos7-dias="stats.ultimos7Dias" :carregando="carregando" />
+
       <!-- LINHA INFERIOR -->
       <div class="grid grid-cols-1 lg:grid-cols-3 gap-5">
 
@@ -82,9 +85,9 @@
               </div>
               <div class="flex-1 min-w-0">
                 <p class="text-sm font-bold text-gray-800 dark:text-white/85 truncate">
-                  {{ pag.nome_mesa || 'Venda #' + pag.id }}
+                  {{ pag.nomeMesa || 'Venda direta' }}
                 </p>
-                <p class="text-xs text-gray-400 dark:text-white/30">{{ pag.metodo }} · {{ fmtHora(pag.created_at) }}</p>
+                <p class="text-xs text-gray-400 dark:text-white/30">{{ pag.metodo }} · {{ fmtHora(pag.createdAt) }}</p>
               </div>
               <div class="text-right shrink-0">
                 <p class="text-sm font-black text-gray-900 dark:text-white tabular-nums">R$&nbsp;{{ fmtMoeda(pag.valor) }}</p>
@@ -116,11 +119,11 @@
               <div class="space-y-2 pt-2 border-t border-gray-100 dark:border-white/[0.05]">
                 <div class="flex justify-between text-xs">
                   <span class="text-gray-400 dark:text-white/30 font-medium">Abertura</span>
-                  <span class="font-bold text-gray-600 dark:text-white/70">{{ fmtDataHora(caixaStore.caixaAtual.data_abertura) }}</span>
+                  <span class="font-bold text-gray-600 dark:text-white/70">{{ fmtDataHora(caixaStore.caixaAtual.dataAbertura) }}</span>
                 </div>
                 <div class="flex justify-between text-xs">
                   <span class="text-gray-400 dark:text-white/30 font-medium">Valor inicial</span>
-                  <span class="font-bold text-gray-600 dark:text-white/70 tabular-nums">R$&nbsp;{{ fmtMoeda(caixaStore.caixaAtual.valor_inicial) }}</span>
+                  <span class="font-bold text-gray-600 dark:text-white/70 tabular-nums">R$&nbsp;{{ fmtMoeda(caixaStore.caixaAtual.valorInicial) }}</span>
                 </div>
               </div>
             </div>
@@ -195,7 +198,9 @@ const stats = ref({
   pedidosHoje:        0,
   ticketMedio:        0,
   pagamentosRecentes: [] as any[],
-  metodosPie:         [] as any[]
+  metodosPie:         [] as any[],
+  porHora:            [] as { hora: number; total: number; qtd: number }[],
+  ultimos7Dias:       [] as { dia: string; total: number; qtd: number }[],
 })
 
 const usuarioNome = computed(() => authStore.usuario?.nome?.split(' ')[0] || 'Operador')

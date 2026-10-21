@@ -1,4 +1,5 @@
 import type { FastifyInstance } from 'fastify'
+import { tipoValido, aplicarPadraoComercio, TIPOS_COMERCIO } from '../../lib/tipoComercio'
 import { requirePlatform, invalidateTenantCache } from '../../middlewares/tenant.middleware'
 import { prisma } from '../../lib/prisma'
 import { signAccessToken } from '../../lib/jwt'
@@ -212,9 +213,10 @@ export async function platformTenantsRoutes(app: FastifyInstance) {
   // POST / — cria o restaurante com administrador e assinatura (contrato + licença derivada)
   app.post('/', { preHandler: requirePlatform }, async (request, reply) => {
     const body = request.body as any
-    const { nome, slug, cnpj, cpfResponsavel, responsavel, contato, telefone, endereco, cidade, uf, observacoes, adminEmail, adminSenha } = body
+    const { nome, slug, cnpj, cpfResponsavel, responsavel, contato, telefone, endereco, cidade, uf, observacoes, adminEmail, adminSenha, tipoComercio } = body
 
     if (typeof nome !== 'string' || !nome.trim()) return reply.status(400).send({ error: 'Nome é obrigatório' })
+    if (tipoComercio != null && tipoComercio !== '' && !tipoValido(tipoComercio)) return reply.status(400).send({ error: 'Tipo de comércio inválido' })
     if (typeof adminEmail !== 'string' || !adminEmail.trim()) return reply.status(400).send({ error: 'E-mail do administrador é obrigatório' })
     if (typeof adminSenha !== 'string' || adminSenha.length < 6) return reply.status(400).send({ error: 'Senha do administrador deve ter no mínimo 6 caracteres' })
 
@@ -248,8 +250,11 @@ export async function platformTenantsRoutes(app: FastifyInstance) {
             contato: texto(contato), telefone: texto(telefone), endereco: texto(endereco), cidade: texto(cidade),
             uf: texto(uf)?.toUpperCase() ?? null, observacoes: texto(observacoes),
             planoId: plano?.id ?? null,
+            tipoComercio: tipoValido(tipoComercio) ? tipoComercio : null,
           },
         })
+        // Ponto de partida do tipo: categorias, taxa de serviço e modo de venda
+        if (tipoValido(tipoComercio)) await aplicarPadraoComercio(tx, t.id, tipoComercio, nome.trim())
         await tx.contrato.create({
           data: {
             tenantId: t.id,
@@ -300,12 +305,16 @@ export async function platformTenantsRoutes(app: FastifyInstance) {
   })
 
   // PUT /:id — editar dados do tenant
+  // GET /api/platform/tenants/tipos-comercio — tipos e o ponto de partida de cada um
+  app.get('/tipos-comercio', { preHandler: requirePlatform }, async () => TIPOS_COMERCIO)
+
   app.put('/:id', { preHandler: requirePlatform }, async (request, reply) => {
     const { id } = request.params as { id: string }
     const body = request.body as any
-    const { nome, slug, cnpj, cpfResponsavel, responsavel, contato, telefone, endereco, cidade, uf, observacoes } = body
+    const { nome, slug, cnpj, cpfResponsavel, responsavel, contato, telefone, endereco, cidade, uf, observacoes, tipoComercio } = body
 
     if (typeof nome !== 'string' || !nome.trim()) return reply.status(400).send({ error: 'Nome é obrigatório' })
+    if (tipoComercio != null && tipoComercio !== '' && !tipoValido(tipoComercio)) return reply.status(400).send({ error: 'Tipo de comércio inválido' })
 
     try {
       const tenant = await prisma.tenant.update({
@@ -322,6 +331,8 @@ export async function platformTenantsRoutes(app: FastifyInstance) {
           cidade:               typeof cidade === 'string' ? cidade.trim() || null : null,
           uf:                   typeof uf === 'string' ? uf.trim().toUpperCase() || null : null,
           observacoes:          typeof observacoes === 'string' ? observacoes.trim() || null : null,
+          // Editar só reclassifica: não mexe em categorias nem configurações já em uso
+          ...(tipoComercio !== undefined ? { tipoComercio: tipoValido(tipoComercio) ? tipoComercio : null } : {}),
         },
       })
       // Nome, documento e endereço vão no contrato

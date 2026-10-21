@@ -34,6 +34,7 @@ export interface Tenant {
   responsavel: string | null; cpfResponsavel: string | null; telefone: string | null
   endereco: string | null; cidade: string | null; uf: string | null; observacoes: string | null
   status: string; rfidDisponivel: boolean; vendaMobilePermitida: boolean; createdAt: string
+  tipoComercio?: string | null
   planoId?: string | null; plano?: { id: string; nome: string; valor: string | number } | null
   licencas: Licenca[]; contratos: Contrato[]
   assinatura?: Assinatura

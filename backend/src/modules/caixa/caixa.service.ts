@@ -348,6 +348,7 @@ async function comandasComSaldo(tx: any) {
         abatimentos: pedido.abatimentos,
         pagamentos: pedido.pagamentos,
         taxaPct: Number(pedido.taxaPct),
+        taxaEntrega: pedido.taxaEntrega,
       })
       return {
         id: mesa.id,

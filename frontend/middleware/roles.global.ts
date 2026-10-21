@@ -1,6 +1,6 @@
 import { useAuthStore } from '~/stores/auth'
 
-const ROTAS_PUBLICAS = ['/login', '/ativacao', '/logout', '/admin/login', '/m', '/platform']
+const ROTAS_PUBLICAS = ['/login', '/ativacao', '/logout', '/admin/login', '/m', '/platform', '/cardapio', '/pedido']
 
 // Permissão mínima exigida por rota (undefined = rota desconhecida; null = qualquer autenticado)
 const PERMISSAO_POR_ROTA: Record<string, string | null> = {
@@ -8,8 +8,10 @@ const PERMISSAO_POR_ROTA: Record<string, string | null> = {
   '/mesas':         'adicionarPedido',
   '/vendas':        'adicionarPedido',
   '/caixa':         'gerenciarCaixa',
+  '/delivery':      'gerenciarCaixa',
   '/cozinha':       'verCozinha',
   '/produtos':      'gerenciarProdutos',
+  '/estoque':       'gerenciarProdutos',
   '/relatorios':    'verRelatorios',
   '/configuracoes': 'gerenciarConfiguracoes',
 }

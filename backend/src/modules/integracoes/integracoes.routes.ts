@@ -46,6 +46,15 @@ export async function integracoesRoutes(app: FastifyInstance) {
     }
   })
 
+  // DELETE /api/integracoes/mp — remove a integração e apaga as credenciais
+  app.delete('/mp', { preHandler: [requireTenant, requirePermissao('gerenciarConfiguracoes')] }, async (request) => {
+    await prisma.configuracoes.updateMany({
+      where: { tenantId: request.tenantId! },
+      data: { mpAtivado: false, mpAccessToken: null, mpDeviceId: null },
+    })
+    return { success: true }
+  })
+
   // GET /api/integracoes/mp/dispositivos
   app.get('/mp/dispositivos', { preHandler: [requireTenant] }, async (request, reply) => {
     try {

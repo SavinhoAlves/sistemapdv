@@ -1,16 +1,17 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 
+/** Formato de GET /api/produtos (produtos.service.ts → listar). */
 export interface Produto {
-  id: number
+  id: string
   nome: string
   preco: number
   categoria: string | null
-  categoria_id: number | null
-  ativo: number
-  gerenciar_estoque: number
-  estoque_atual: number
-  estoque_minimo: number
+  categoriaId: string | null
+  ativo: boolean
+  gerenciarEstoque: boolean
+  estoqueAtual: number
+  estoqueMinimo: number
 }
 
 export const useProdutosStore = defineStore('produtos', () => {

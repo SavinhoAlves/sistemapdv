@@ -21,7 +21,7 @@ import { paraCentavos, paraReais, percentual, type Centavos } from '../../lib/mo
  *     descontos = Σ abatimentos
  *     liquido   = max(0, bruto − descontos)
  *     taxa      = round(liquido × pct)
- *     total     = liquido + taxa
+ *     total     = liquido + taxa + entrega   (entrega: taxa de delivery, fora do desconto e da taxa de serviço)
  *     restante  = max(0, total − pagamentos confirmados)
  *
  * Toda aritmética em centavos inteiros. Nenhum float em nenhum ponto.
@@ -32,6 +32,8 @@ export interface EntradaConta {
   abatimentos: Array<{ valor: unknown; cancelado?: boolean }>
   pagamentos: Array<{ valor: unknown; status: string }>
   taxaPct: number
+  /** Taxa de entrega do pedido de delivery (Pedido.taxaEntrega). */
+  taxaEntrega?: unknown
 }
 
 export interface Conta {
@@ -40,6 +42,7 @@ export interface Conta {
   liquidoCentavos: Centavos
   taxaPct: number
   taxaCentavos: Centavos
+  entregaCentavos: Centavos
   totalCentavos: Centavos
   pagoCentavos: Centavos
   restanteCentavos: Centavos
@@ -61,7 +64,8 @@ export function calcularConta(entrada: EntradaConta): Conta {
 
   const taxaPct = Number.isFinite(entrada.taxaPct) ? entrada.taxaPct : 0
   const taxa = percentual(liquido, taxaPct)
-  const total = liquido + taxa
+  const entrega = entrada.taxaEntrega != null ? paraCentavos(entrada.taxaEntrega as any) : 0
+  const total = liquido + taxa + entrega
 
   const pago = entrada.pagamentos
     .filter((p) => p.status === 'confirmado')
@@ -75,6 +79,7 @@ export function calcularConta(entrada: EntradaConta): Conta {
     liquidoCentavos: liquido,
     taxaPct,
     taxaCentavos: taxa,
+    entregaCentavos: entrega,
     totalCentavos: total,
     pagoCentavos: pago,
     restanteCentavos: restante,
@@ -92,6 +97,7 @@ export function contaParaJson(c: Conta) {
     liquido: paraReais(c.liquidoCentavos),
     taxa_pct: c.taxaPct,
     taxa: paraReais(c.taxaCentavos),
+    entrega: paraReais(c.entregaCentavos),
     total: paraReais(c.totalCentavos),
     pago: paraReais(c.pagoCentavos),
     restante: paraReais(c.restanteCentavos),
@@ -101,6 +107,7 @@ export function contaParaJson(c: Conta) {
       desconto: c.descontoCentavos,
       liquido: c.liquidoCentavos,
       taxa: c.taxaCentavos,
+      entrega: c.entregaCentavos,
       total: c.totalCentavos,
       pago: c.pagoCentavos,
       restante: c.restanteCentavos,

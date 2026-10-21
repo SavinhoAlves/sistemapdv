@@ -95,12 +95,12 @@
             :key="p.id"
             @click="adicionarAoCarrinho(p)"
             class="relative rounded-[20px] p-4 flex flex-col items-center text-center transition-all active:scale-[0.95] overflow-visible"
-            :style="p.gerenciar_estoque && p.estoque_atual <= 0
+            :style="p.gerenciarEstoque && p.estoqueAtual <= 0
               ? 'background:#161619; border:1px solid rgba(255,255,255,0.05); opacity:0.4; cursor:not-allowed;'
               : qtdNoCarrinho(p.id)
                 ? 'background:rgba(249,115,22,0.05); border:1px solid rgba(249,115,22,0.22);'
                 : 'background:#161619; border:1px solid rgba(255,255,255,0.06);'"
-            :disabled="p.gerenciar_estoque && p.estoque_atual <= 0"
+            :disabled="p.gerenciarEstoque && p.estoqueAtual <= 0"
           >
             <!-- Badge de quantidade no carrinho -->
             <div
@@ -114,7 +114,7 @@
 
             <!-- Badge esgotado -->
             <span
-              v-if="p.gerenciar_estoque && p.estoque_atual <= 0"
+              v-if="p.gerenciarEstoque && p.estoqueAtual <= 0"
               class="text-[9px] font-black px-2 py-0.5 rounded-[6px] mb-2"
               style="background: rgba(239,68,68,0.12); color: rgb(248,113,113);"
             >Esgotado</span>
@@ -516,22 +516,22 @@ function qtdNoCarrinho(produtoId: number): number {
 }
 
 function adicionarAoCarrinho(p: any) {
-  if (p.gerenciar_estoque && p.estoque_atual <= 0) {
+  if (p.gerenciarEstoque && p.estoqueAtual <= 0) {
     toastStore.warning(`${p.nome} está sem estoque`)
     return
   }
   const idx = carrinho.value.findIndex(i => i.produto_id === p.id)
   if (idx >= 0) carrinho.value[idx].quantidade++
   else carrinho.value.push({ produto_id: p.id, nome_produto: p.nome, preco_unit: Number(p.preco), quantidade: 1 })
-  if (p.gerenciar_estoque) p.estoque_atual--
+  if (p.gerenciarEstoque) p.estoqueAtual--
 }
 
 function incrementar(idx: number) {
   const item = carrinho.value[idx]
   const prod = todosProdutos.value.find(p => p.id === item.produto_id)
-  if (prod?.gerenciar_estoque) {
-    if (prod.estoque_atual <= 0) { toastStore.warning('Estoque insuficiente'); return }
-    prod.estoque_atual--
+  if (prod?.gerenciarEstoque) {
+    if (prod.estoqueAtual <= 0) { toastStore.warning('Estoque insuficiente'); return }
+    prod.estoqueAtual--
   }
   item.quantidade++
 }
@@ -539,7 +539,7 @@ function incrementar(idx: number) {
 function decrementar(idx: number) {
   const item = carrinho.value[idx]
   const prod = todosProdutos.value.find(p => p.id === item.produto_id)
-  if (prod?.gerenciar_estoque) prod.estoque_atual++
+  if (prod?.gerenciarEstoque) prod.estoqueAtual++
   if (item.quantidade <= 1) carrinho.value.splice(idx, 1)
   else item.quantidade--
 }
@@ -547,14 +547,14 @@ function decrementar(idx: number) {
 function removerTudo(idx: number) {
   const item = carrinho.value[idx]
   const prod = todosProdutos.value.find(p => p.id === item.produto_id)
-  if (prod?.gerenciar_estoque) prod.estoque_atual += item.quantidade
+  if (prod?.gerenciarEstoque) prod.estoqueAtual += item.quantidade
   carrinho.value.splice(idx, 1)
 }
 
 function limparCarrinho() {
   for (const item of carrinho.value) {
     const prod = todosProdutos.value.find(p => p.id === item.produto_id)
-    if (prod?.gerenciar_estoque) prod.estoque_atual += item.quantidade
+    if (prod?.gerenciarEstoque) prod.estoqueAtual += item.quantidade
   }
   carrinho.value = []
 }

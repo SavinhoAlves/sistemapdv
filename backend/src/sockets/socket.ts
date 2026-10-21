@@ -9,6 +9,7 @@ import {
   type PayloadItem,
   type PayloadPagamento,
   type PayloadCaixa,
+  type PayloadDelivery,
 } from '../lib/eventos'
 
 /**
@@ -138,6 +139,11 @@ export function emitir(tenantId: string) {
     },
 
     caixa(evento: string, payload: PayloadCaixa) {
+      if (!io) return semIo()
+      io.to(salas.todos(tenantId)).emit(evento, payload)
+    },
+
+    delivery(evento: string, payload: PayloadDelivery) {
       if (!io) return semIo()
       io.to(salas.todos(tenantId)).emit(evento, payload)
     },

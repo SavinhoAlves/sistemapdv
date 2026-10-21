@@ -6,6 +6,9 @@ export default defineNuxtRouteMiddleware((to) => {
   // Rotas da plataforma central (super admin) — gerenciam própria autenticação
   if (to.path.startsWith('/platform')) return
 
+  // Páginas do cliente final (cardápio online e acompanhamento): sem login
+  if (to.path.startsWith('/cardapio') || to.path.startsWith('/pedido')) return
+
   // Página de autenticação mobile (/m ou /m/) — deixa passar sempre,
   // ela cuida da autenticação via token QR por conta própria.
   if (to.path === '/m' || to.path === '/m/') return

@@ -99,13 +99,13 @@
               </span>
 
               <span
-                v-if="produto.gerenciar_estoque && (produto.estoque_atual ?? 0) <= 0"
+                v-if="produto.gerenciarEstoque && (produto.estoqueAtual ?? 0) <= 0"
                 class="text-[10px] text-red-400 font-black"
               >
                 SEM ESTOQUE
               </span>
               <span
-                v-else-if="produto.gerenciar_estoque && (produto.estoque_atual ?? 0) <= (produto.estoque_minimo ?? 0)"
+                v-else-if="produto.gerenciarEstoque && (produto.estoqueAtual ?? 0) <= (produto.estoqueMinimo ?? 0)"
                 class="text-[10px] text-orange-400 font-black"
               >
                 BAIXO
@@ -115,7 +115,7 @@
             <h3 class="mt-3 font-black text-lg leading-tight text-gray-900 dark:text-white">{{ produto.nome }}</h3>
 
             <p class="text-xs mt-2 text-gray-500 dark:text-white/40">
-              Estoque: {{ produto.estoque_atual ?? 0 }}
+              Estoque: {{ produto.estoqueAtual ?? 0 }}
             </p>
 
             <div class="mt-4 flex justify-between items-center">
@@ -155,15 +155,15 @@ const caixaStore  = useCaixaStore()
 const caixaAberto = computed(() => caixaStore.aberto)
 
 interface Produto {
-  id: number
+  id: string
   nome: string
   preco: number
-  categoria?: string
-  categoria_id?: number | null
-  ativo?: number
-  estoque_atual?: number
-  estoque_minimo?: number
-  gerenciar_estoque?: number
+  categoria?: string | null
+  categoriaId?: string | null
+  ativo?: boolean
+  estoqueAtual?: number
+  estoqueMinimo?: number
+  gerenciarEstoque?: boolean
 }
 
 const props = defineProps({ mesa: Object })
@@ -237,7 +237,7 @@ const secoes = computed(() => {
 defineExpose({ recarregar: carregarProdutos })
 
 const semEstoque = (p: Produto) =>
-  !!p.gerenciar_estoque && (p.estoque_atual ?? 0) <= 0
+  !!p.gerenciarEstoque && (p.estoqueAtual ?? 0) <= 0
 
 const adicionando = ref<number | null>(null)
 

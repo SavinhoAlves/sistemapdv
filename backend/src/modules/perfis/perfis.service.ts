@@ -43,6 +43,16 @@ export async function atualizar(tenantId: string, id: string, data: PerfilData) 
   })
 }
 
+export async function excluir(tenantId: string, id: string) {
+  const perfil = await prisma.perfil.findFirst({ where: { id, tenantId } })
+  if (!perfil) return false
+  await prisma.$transaction([
+    prisma.usuario.updateMany({ where: { tenantId, perfilId: id }, data: { perfilId: null } }),
+    prisma.perfil.delete({ where: { id, tenantId } }),
+  ])
+  return true
+}
+
 const PERFIS_PADRAO: Array<{ nome: string; descricao: string; permissoes: Record<string, boolean> }> = [
   {
     nome: 'Garçom',

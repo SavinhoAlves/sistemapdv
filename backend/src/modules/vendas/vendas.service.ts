@@ -163,6 +163,7 @@ export async function registrarVenda(tenantId: string, input: VendaInput) {
           abatimentos: comItens!.abatimentos,
           pagamentos: comItens!.pagamentos,
           taxaPct: Number(comItens!.taxaPct),
+          taxaEntrega: comItens!.taxaEntrega,
         })
 
         const recebidoCent =
@@ -253,6 +254,7 @@ function montarResposta(pedido: any, pagamento: any, repetido: boolean) {
     abatimentos: pedido.abatimentos,
     pagamentos: pedido.pagamentos,
     taxaPct: Number(pedido.taxaPct),
+    taxaEntrega: pedido.taxaEntrega,
   })
   return {
     pedido_id: pedido.id,

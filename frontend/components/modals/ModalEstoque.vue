@@ -9,7 +9,7 @@
           <p class="text-sm text-gray-500 dark:text-white/50 mt-0.5">
             Estoque atual:
             <b class="text-gray-900 dark:text-white">{{ estoqueAtual }}</b>
-            <span v-if="produto?.estoque_minimo > 0" class="text-gray-400 dark:text-white/30"> · mín. {{ produto.estoque_minimo }}</span>
+            <span v-if="produto?.estoqueMinimo > 0" class="text-gray-400 dark:text-white/30"> · mín. {{ produto.estoqueMinimo }}</span>
           </p>
         </div>
         <button @click="fechar"
@@ -54,7 +54,7 @@
         <div class="flex items-center justify-between gap-3">
           <p class="text-sm text-gray-500 dark:text-white/50">
             <template v-if="novoEstoque !== null">
-              Ficará com <b :class="novoEstoque <= (produto?.estoque_minimo || 0) ? 'text-orange-500' : 'text-gray-900 dark:text-white'">{{ novoEstoque }}</b> em estoque
+              Ficará com <b :class="novoEstoque <= (produto?.estoqueMinimo || 0) ? 'text-orange-500' : 'text-gray-900 dark:text-white'">{{ novoEstoque }}</b> em estoque
             </template>
           </p>
           <button @click="confirmar" :disabled="salvando || novoEstoque === null || novoEstoque < 0"
@@ -82,18 +82,15 @@
                 {{ rotuloTipo(m.tipo) }}
               </span>
               <span class="text-sm font-black shrink-0 w-12 text-right"
-                :class="m.quantidade > 0 ? 'text-green-400' : 'text-red-400'">
-                {{ m.quantidade > 0 ? '+' : '' }}{{ m.quantidade }}
+                :class="m.tipo === 'entrada' ? 'text-green-400' : 'text-red-400'">
+                {{ m.tipo === 'entrada' ? '+' : '−' }}{{ m.quantidade }}
               </span>
               <div class="flex-1 min-w-0">
                 <p class="text-xs text-gray-500 dark:text-white/60 truncate">{{ m.motivo || '—' }}</p>
                 <p class="text-[10px] text-gray-400 dark:text-white/30">
-                  {{ formatarData(m.created_at) }}<template v-if="m.usuario"> · {{ m.usuario }}</template>
+                  {{ formatarData(m.createdAt) }}<template v-if="m.usuario?.nome"> · {{ m.usuario.nome }}</template>
                 </p>
               </div>
-              <span v-if="m.estoque_resultante !== null" class="text-[10px] text-gray-400 dark:text-white/30 shrink-0">
-                = {{ m.estoque_resultante }}
-              </span>
             </div>
           </div>
         </div>
@@ -180,12 +177,15 @@ async function confirmar() {
   if (salvando.value || novoEstoque.value === null || novoEstoque.value < 0) return
   salvando.value = true
   try {
+    // A API registra só entrada e saída: o ajuste (contagem) vira a diferença para o estoque atual
+    const delta = novoEstoque.value - estoqueAtual.value
+    if (delta === 0) { toastStore.success('O estoque já está nesse valor'); return }
     const resp = await api.post<any>(`/produtos/${props.produto.id}/estoque`, {
-      tipo: tipo.value,
-      quantidade: quantidade.value,
-      motivo: motivo.value.trim() || null
+      tipo: delta > 0 ? 'entrada' : 'saida',
+      quantidade: Math.abs(delta),
+      motivo: motivo.value.trim() || (tipo.value === 'ajuste' ? 'Ajuste de inventário' : null)
     })
-    estoqueAtual.value = resp.estoque_atual
+    estoqueAtual.value = resp.estoqueAtual
     quantidade.value = null
     motivo.value = ''
     toastStore.success('Estoque atualizado')
@@ -206,7 +206,7 @@ watch(() => props.produto, (p) => {
   tipo.value = 'entrada'
   quantidade.value = null
   motivo.value = ''
-  estoqueAtual.value = Number(p?.estoque_atual) || 0
+  estoqueAtual.value = Number(p?.estoqueAtual) || 0
   if (p?.id) carregarHistorico()
 }, { immediate: true })
 </script>

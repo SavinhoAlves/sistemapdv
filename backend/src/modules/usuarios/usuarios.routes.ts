@@ -110,7 +110,7 @@ export async function usuariosRoutes(app: FastifyInstance) {
       const result = await Service.gerarMobileToken(request.tenantId!, id)
       return result
     } catch (err: any) {
-      if (err.status === 404) return reply.status(404).send({ error: err.message })
+      if (err.status === 404 || err.status === 409) return reply.status(err.status).send({ error: err.message })
       throw err
     }
   })

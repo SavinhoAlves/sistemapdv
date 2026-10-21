@@ -212,6 +212,7 @@ export async function encerrar(tenantId: string, mesaId: string, input: Encerrar
           abatimentos: pedido.abatimentos,
           pagamentos: pedido.pagamentos,
           taxaPct: Number(pedido.taxaPct),
+          taxaEntrega: pedido.taxaEntrega,
         })
       : null
 
@@ -324,6 +325,7 @@ function montarResumo(mesa: any) {
         abatimentos: pedido.abatimentos,
         pagamentos: pedido.pagamentos,
         taxaPct: Number(pedido.taxaPct),
+        taxaEntrega: pedido.taxaEntrega,
       })
     : calcularConta({ itens: [], abatimentos: [], pagamentos: [], taxaPct: 0 })
 

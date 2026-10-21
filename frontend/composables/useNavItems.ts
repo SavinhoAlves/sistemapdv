@@ -1,9 +1,10 @@
 import { computed } from 'vue'
 import {
   BarChart2, LayoutGrid, ShoppingCart, Package, Landmark,
-  FileText, ShieldCheck, Settings, ChefHat, Boxes, LifeBuoy
+  FileText, ShieldCheck, Settings, ChefHat, Boxes, LifeBuoy, Bike
 } from 'lucide-vue-next'
 import { useAuthStore } from '~/stores/auth'
+import { useConfigStore } from '~/stores/configuracoes'
 
 export interface NavItem {
   rota: string
@@ -11,15 +12,20 @@ export interface NavItem {
   icon: any
 }
 
-// Ordem e mapeamento permissão → rota
-const MAPA_PERMISSOES: { perms: string[], rota: string, label: string, icon: any }[] = [
-  { perms: ['abrirMesa', 'fecharMesa', 'adicionarPedido', 'cancelarItemPedido'], rota: '/mesas',         label: 'Mesas',         icon: LayoutGrid   },
-  { perms: ['adicionarPedido'],                                                   rota: '/vendas',        label: 'Vendas',        icon: ShoppingCart },
-  { perms: ['gerenciarProdutos'],                                                 rota: '/produtos',      label: 'Produtos',      icon: Package      },
-  { perms: ['gerenciarCaixa'],                                                    rota: '/caixa',         label: 'Caixa',         icon: Landmark     },
-  { perms: ['verCozinha'],                                                        rota: '/cozinha',       label: 'Cozinha',       icon: ChefHat      },
-  { perms: ['verRelatorios'],                                                     rota: '/relatorios',    label: 'Relatórios',    icon: FileText     },
-  { perms: ['gerenciarConfiguracoes'],                                            rota: '/configuracoes', label: 'Configurações', icon: Settings     },
+// Ordem do menu e a permissão que libera cada rota (mesma de middleware/roles.global.ts)
+const MAPA: { rota: string; label: string; icon: any; libera: (tem: (p: string) => boolean, modo: string, admin: boolean, delivery: boolean) => boolean }[] = [
+  { rota: '/',              label: 'Dashboard',     icon: BarChart2,    libera: t => t('verRelatorios') || t('verDashboard') },
+  { rota: '/mesas',         label: 'Mesas',         icon: LayoutGrid,   libera: (t, m) => m !== 'direta' && ['abrirMesa', 'fecharMesa', 'adicionarPedido', 'cancelarItemPedido'].some(t) },
+  { rota: '/vendas',        label: 'Vendas',        icon: ShoppingCart, libera: (t, m) => m !== 'mesas' && t('adicionarPedido') },
+  { rota: '/produtos',      label: 'Produtos',      icon: Package,      libera: t => t('gerenciarProdutos') },
+  { rota: '/estoque',       label: 'Estoque',       icon: Boxes,        libera: t => t('gerenciarProdutos') },
+  { rota: '/caixa',         label: 'Caixa',         icon: Landmark,     libera: t => t('gerenciarCaixa') },
+  { rota: '/delivery',      label: 'Delivery',      icon: Bike,         libera: (t, _m, _a, delivery) => delivery && t('gerenciarCaixa') },
+  { rota: '/cozinha',       label: 'Cozinha',       icon: ChefHat,      libera: t => t('verCozinha') },
+  { rota: '/relatorios',    label: 'Relatórios',    icon: FileText,     libera: t => t('verRelatorios') },
+  { rota: '/admin',         label: 'Admin',         icon: ShieldCheck,  libera: (_t, _m, admin) => admin },
+  { rota: '/configuracoes', label: 'Configurações', icon: Settings,     libera: t => t('gerenciarConfiguracoes') },
+  { rota: '/suporte',       label: 'Suporte',       icon: LifeBuoy,     libera: (_t, _m, admin) => admin },
 ]
 
 export function useNavItems() {
@@ -27,66 +33,13 @@ export function useNavItems() {
 
   const navItems = computed<NavItem[]>(() => calcularItens())
 
+  /** Menu pelas permissões efetivas do token (padrão da função + perfil), como a API decide. */
   function calcularItens(): NavItem[] {
-    const cargo      = authStore.usuario?.cargo
-    const permissoes = authStore.usuario?.permissoes
-
-    // Administrador sempre vê tudo
-    if (cargo === 'administrador') return [
-      { rota: '/',              label: 'Dashboard',     icon: BarChart2    },
-      { rota: '/mesas',         label: 'Mesas',         icon: LayoutGrid   },
-      { rota: '/vendas',        label: 'Vendas',        icon: ShoppingCart },
-      { rota: '/produtos',      label: 'Produtos',      icon: Package      },
-      { rota: '/estoque',       label: 'Estoque',       icon: Boxes        },
-      { rota: '/caixa',         label: 'Caixa',         icon: Landmark     },
-      { rota: '/cozinha',       label: 'Cozinha',       icon: ChefHat      },
-      { rota: '/relatorios',    label: 'Relatórios',    icon: FileText     },
-      { rota: '/admin',         label: 'Admin',         icon: ShieldCheck  },
-      { rota: '/configuracoes', label: 'Configurações', icon: Settings     },
-      { rota: '/suporte',       label: 'Suporte',       icon: LifeBuoy     }
-    ]
-
-    // Com perfil atribuído: nav baseada nas permissões e modo de operação do perfil
-    if (permissoes && Object.keys(permissoes).length > 0) {
-      const modo  = (permissoes.modo_venda as string) || 'ambos'
-      const itens: NavItem[] = []
-      const vistas = new Set<string>()
-
-      // Dashboard visível se tiver ao menos uma permissão ativa
-      const temAlguma = Object.values(permissoes).some(v => v === true)
-      if (temAlguma) {
-        itens.push({ rota: '/', label: 'Dashboard', icon: BarChart2 })
-        vistas.add('/')
-      }
-
-      for (const { perms, rota, label, icon } of MAPA_PERMISSOES) {
-        if (vistas.has(rota)) continue
-        // Filtra por modo de operação do perfil
-        if (rota === '/mesas'  && modo === 'direta') continue
-        if (rota === '/vendas' && modo === 'mesas')  continue
-        if (perms.some(p => permissoes[p])) {
-          itens.push({ rota, label, icon })
-          vistas.add(rota)
-        }
-      }
-
-      return itens
-    }
-
-    // Sem perfil: fallback pelos defaults do cargo
-    if (cargo === 'garcom') return [
-      { rota: '/mesas',    label: 'Mesas',    icon: LayoutGrid   },
-      { rota: '/vendas',   label: 'Vendas',   icon: ShoppingCart },
-      { rota: '/produtos', label: 'Produtos', icon: Package      }
-    ]
-    if (cargo === 'caixa') return [
-      { rota: '/caixa', label: 'Caixa', icon: Landmark }
-    ]
-    if (cargo === 'cozinha') return [
-      { rota: '/cozinha', label: 'Cozinha', icon: ChefHat }
-    ]
-
-    return []
+    const admin = authStore.usuario?.cargo === 'administrador'
+    const modo  = (authStore.usuario?.permissoes?.modo_venda as string) || 'ambos'
+    const tem   = (p: string) => authStore.temPermissao(p)
+    const delivery = useConfigStore().delivery_disponivel
+    return MAPA.filter(i => i.libera(tem, modo, admin, delivery)).map(({ rota, label, icon }) => ({ rota, label, icon }))
   }
 
   return { navItems }

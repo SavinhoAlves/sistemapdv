@@ -30,6 +30,12 @@ export const EVENTOS = {
     fechado: 'caixa:fechado',
     movimentado: 'caixa:movimentado',
   },
+  delivery: {
+    /** pedido novo do cardápio online, aguardando o caixa */
+    recebido: 'delivery:recebido',
+    /** aceito, recusado, pronto, em rota, entregue */
+    atualizado: 'delivery:atualizado',
+  },
 } as const
 
 /**
@@ -78,6 +84,15 @@ export interface PayloadPagamento {
   valorCentavos: number
   restanteCentavos: number
   quitado: boolean
+}
+
+export interface PayloadDelivery {
+  id: string
+  codigo: string
+  status: string
+  tipo: 'entrega' | 'retirada'
+  clienteNome: string
+  totalCentavos: number
 }
 
 export interface PayloadCaixa {

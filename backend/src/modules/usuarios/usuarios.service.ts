@@ -3,6 +3,8 @@ import bcrypt from 'bcryptjs'
 import os from 'os'
 import { signAccessToken } from '../../lib/jwt'
 import type { TenantJwtPayload } from '../../lib/jwt'
+import { getPermissoes } from '../auth/auth.service'
+import { motivoSemCelular } from '../configuracoes/configuracoes.service'
 
 const SALT_ROUNDS = 10
 
@@ -147,6 +149,11 @@ export async function gerarMobileToken(tenantId: string, id: string) {
     include: { perfil: { select: { permissoes: true } } },
   })
   if (!usuario) throw Object.assign(new Error('Usuário não encontrado'), { status: 404 })
+  if (!usuario.ativo) throw Object.assign(new Error('Funcionário desativado'), { status: 409 })
+
+  // Plano, chave em Configurações → Acesso e caixa aberto: sem isso o QR seria recusado no celular
+  const motivo = await motivoSemCelular(tenantId)
+  if (motivo) throw Object.assign(new Error(motivo), { status: 409 })
 
   const tenant = await prisma.tenant.findUnique({ where: { id: tenantId }, select: { slug: true } })
 
@@ -158,7 +165,7 @@ export async function gerarMobileToken(tenantId: string, id: string) {
     slug: tenant?.slug ?? '',
     cargo: usuario.cargo,
     perfilId: usuario.perfilId,
-    permissoes: (usuario.perfil?.permissoes as Record<string, boolean>) ?? {},
+    permissoes: await getPermissoes(usuario.cargo, usuario.perfilId, tenantId),
   }
 
   // Token com validade de 10h para uso mobile

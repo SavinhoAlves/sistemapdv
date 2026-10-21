@@ -15,18 +15,8 @@
     <Navbar />
 
     <!-- CAIXA FECHADO -->
-    <div v-if="!caixaAberto" class="flex-1 flex flex-col items-center justify-center gap-5 text-center p-8">
-      <div class="w-20 h-20 rounded-3xl bg-gray-100 dark:bg-white/5 border border-gray-200 dark:border-white/[0.08] flex items-center justify-center">
-        <LockKeyhole :size="32" class="text-gray-300 dark:text-white/20" />
-      </div>
-      <div>
-        <h3 class="text-xl font-black text-gray-400 dark:text-white/60">Caixa fechado</h3>
-        <p class="text-sm text-gray-500 dark:text-white/40 mt-1.5 max-w-xs">
-          {{ isAdmin
-            ? 'Use o botão "Abrir Caixa" na barra superior para iniciar as vendas.'
-            : 'O administrador precisa abrir o caixa para iniciar as vendas.' }}
-        </p>
-      </div>
+    <div v-if="!caixaAberto" class="flex-1 relative">
+      <CaixaFechado acao="iniciar as vendas" />
     </div>
 
     <!-- POS DE VENDA DIRETA -->
@@ -38,7 +28,6 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { LockKeyhole } from 'lucide-vue-next'
 import Navbar from '~/layouts/Navbar.vue'
 import Sidebar from '~/components/Sidebar.vue'
 import VendaDireta from '~/components/venda/VendaDireta.vue'
@@ -58,7 +47,6 @@ const authStore    = useAuthStore()
 const configStore  = useConfigStore()
 const socket       = useSocket()
 
-const isAdmin     = computed(() => authStore.usuario?.cargo === 'administrador')
 const caixaAberto = computed(() => caixaStore.aberto)
 
 // ── Gate RFID ──────────────────────────────────────────────

@@ -12,17 +12,30 @@
         </div>
         <div>
           <h1 class="text-2xl font-black text-gray-900 dark:text-white">Configurações</h1>
-          <p class="text-sm text-gray-500 dark:text-white/50 mt-0.5">Personalize o sistema e as fichas impressas</p>
+          <p class="text-sm text-gray-500 dark:text-white/50 mt-0.5">Estabelecimento, impressão, integrações e acesso</p>
+        </div>
+      </div>
+
+      <!-- ══ SEÇÕES ══ -->
+      <div class="mb-6 border-b border-gray-200 dark:border-white/[0.08] overflow-x-auto" role="tablist" aria-label="Seções das configurações">
+        <div class="flex gap-1 min-w-max">
+          <button v-for="s in secoesVisiveis" :key="s.valor" role="tab" :aria-selected="secao === s.valor"
+            class="relative h-11 px-4 text-sm font-bold whitespace-nowrap flex items-center gap-2 transition-colors"
+            :class="secao === s.valor ? 'text-gray-900 dark:text-white' : 'text-gray-400 dark:text-white/40 hover:text-gray-700 dark:hover:text-white/70'"
+            @click="irPara(s.valor)">
+            <component :is="s.icone" :size="15" /> {{ s.rotulo }}
+            <span v-if="secao === s.valor" class="absolute inset-x-3 -bottom-px h-0.5 rounded-full bg-orange-500" />
+          </button>
         </div>
       </div>
 
       <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
 
         <!-- ══ COLUNA ESQUERDA: formulário ══ -->
-        <div class="lg:col-span-2 space-y-6">
+        <div class="space-y-6" :class="comPrevia ? 'lg:col-span-2' : 'lg:col-span-3'">
 
           <!-- ══ CARD: IDENTIDADE ══ -->
-          <div class="bg-white dark:bg-white/5 backdrop-blur-xl rounded-2xl border border-gray-200 dark:border-white/[0.08] overflow-hidden">
+          <div v-show="secao === 'estabelecimento'" class="bg-white dark:bg-white/5 backdrop-blur-xl rounded-2xl border border-gray-200 dark:border-white/[0.08] overflow-hidden">
             <div class="px-6 py-5 border-b border-gray-100 dark:border-white/[0.06] flex items-center gap-3">
               <div class="size-8 rounded-xl bg-gradient-to-br from-orange-500 to-orange-700 shadow-sm shadow-orange-900/50 flex items-center justify-center shrink-0">
                 <UtensilsCrossed :size="14" class="text-white" />
@@ -45,6 +58,19 @@
                   type="text" maxlength="100" placeholder="Ex: Restaurante do Chef"
                   class="w-full h-12 px-4 rounded-2xl border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/[0.06] text-gray-900 dark:text-white font-bold text-sm outline-none focus:border-orange-500/70 transition-all placeholder:text-gray-400 dark:placeholder:text-white/25"
                 />
+              </div>
+
+              <!-- TIPO DE COMÉRCIO -->
+              <div>
+                <label for="tipo-comercio" class="block text-[10px] font-black uppercase tracking-widest text-gray-500 dark:text-white/40 mb-2">
+                  Tipo de comércio
+                </label>
+                <select id="tipo-comercio" v-model="form.tipo_comercio"
+                  class="w-full sm:w-80 h-12 px-4 rounded-2xl border border-gray-200 dark:border-white/10 !bg-gray-50 dark:!bg-white/[0.06] text-gray-900 dark:text-white font-bold text-sm outline-none focus:border-orange-500/70">
+                  <option :value="null">Não informado</option>
+                  <option v-for="t in TIPOS_COMERCIO" :key="t.id" :value="t.id">{{ t.rotulo }}</option>
+                </select>
+                <p class="text-[10px] text-gray-500 dark:text-white/40 mt-1.5">Ajuda o suporte a entender a sua operação. Mudar aqui não altera categorias nem produtos.</p>
               </div>
 
               <!-- LOGOTIPO -->
@@ -136,28 +162,18 @@
             </div>
           </div>
 
-          <!-- ══ CARD: FICHAS ══ -->
-          <div class="bg-white dark:bg-white/5 backdrop-blur-xl rounded-2xl border border-gray-200 dark:border-white/[0.08] overflow-hidden">
+          <!-- ══ CARD: ATENDIMENTO ══ -->
+          <div v-show="secao === 'estabelecimento'" class="bg-white dark:bg-white/5 backdrop-blur-xl rounded-2xl border border-gray-200 dark:border-white/[0.08] overflow-hidden">
             <div class="px-6 py-5 border-b border-gray-100 dark:border-white/[0.06] flex items-center gap-3">
-              <div class="size-8 rounded-xl bg-gradient-to-br from-blue-600 to-blue-900 shadow-sm shadow-blue-900/50 flex items-center justify-center shrink-0">
-                <FileText :size="14" class="text-white" />
+              <div class="size-8 rounded-xl bg-gradient-to-br from-amber-500 to-amber-700 shadow-sm shadow-amber-900/50 flex items-center justify-center shrink-0">
+                <Percent :size="14" class="text-white" />
               </div>
               <div>
-                <h2 class="text-sm font-black text-gray-900 dark:text-white">Fichas</h2>
-                <p class="text-[11px] text-gray-500 dark:text-white/40 mt-0.5">Texto exibido ao final de cada ficha impressa</p>
+                <h2 class="text-sm font-black text-gray-900 dark:text-white">Atendimento</h2>
+                <p class="text-[11px] text-gray-500 dark:text-white/40 mt-0.5">Regras aplicadas na conta das mesas</p>
               </div>
             </div>
             <div class="p-6 grid grid-cols-1 sm:grid-cols-2 gap-6">
-              <div>
-                <label for="mensagem-ficha" class="block text-[10px] font-black uppercase tracking-widest text-gray-500 dark:text-white/40 mb-2">
-                  Mensagem de rodapé
-                </label>
-                <input
-                  id="mensagem-ficha" v-model="form.mensagem_ficha"
-                  type="text" maxlength="200" placeholder="Ex: Obrigado pela preferência!"
-                  class="w-full h-12 px-4 rounded-2xl border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/[0.06] text-gray-900 dark:text-white font-bold text-sm outline-none focus:border-orange-500/70 transition-all placeholder:text-gray-400 dark:placeholder:text-white/25"
-                />
-              </div>
               <div>
                 <label for="taxa-servico" class="block text-[10px] font-black uppercase tracking-widest text-gray-500 dark:text-white/40 mb-2">
                   Taxa de serviço (%)
@@ -172,8 +188,33 @@
             </div>
           </div>
 
+          <!-- ══ CARD: FICHAS ══ -->
+          <div v-show="secao === 'impressao'" class="bg-white dark:bg-white/5 backdrop-blur-xl rounded-2xl border border-gray-200 dark:border-white/[0.08] overflow-hidden">
+            <div class="px-6 py-5 border-b border-gray-100 dark:border-white/[0.06] flex items-center gap-3">
+              <div class="size-8 rounded-xl bg-gradient-to-br from-blue-600 to-blue-900 shadow-sm shadow-blue-900/50 flex items-center justify-center shrink-0">
+                <FileText :size="14" class="text-white" />
+              </div>
+              <div>
+                <h2 class="text-sm font-black text-gray-900 dark:text-white">Fichas</h2>
+                <p class="text-[11px] text-gray-500 dark:text-white/40 mt-0.5">Texto exibido ao final de cada ficha impressa</p>
+              </div>
+            </div>
+            <div class="p-6">
+              <div>
+                <label for="mensagem-ficha" class="block text-[10px] font-black uppercase tracking-widest text-gray-500 dark:text-white/40 mb-2">
+                  Mensagem de rodapé
+                </label>
+                <input
+                  id="mensagem-ficha" v-model="form.mensagem_ficha"
+                  type="text" maxlength="200" placeholder="Ex: Obrigado pela preferência!"
+                  class="w-full h-12 px-4 rounded-2xl border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/[0.06] text-gray-900 dark:text-white font-bold text-sm outline-none focus:border-orange-500/70 transition-all placeholder:text-gray-400 dark:placeholder:text-white/25"
+                />
+              </div>
+            </div>
+          </div>
+
           <!-- ══ CARD: IMPRESSORA ══ -->
-          <div class="bg-white dark:bg-white/5 backdrop-blur-xl rounded-2xl border border-gray-200 dark:border-white/[0.08] overflow-hidden">
+          <div v-show="secao === 'impressao'" class="bg-white dark:bg-white/5 backdrop-blur-xl rounded-2xl border border-gray-200 dark:border-white/[0.08] overflow-hidden">
             <div class="px-6 py-5 border-b border-gray-100 dark:border-white/[0.06] flex items-center gap-3">
               <div class="size-8 rounded-xl bg-gradient-to-br from-violet-600 to-violet-900 shadow-sm shadow-violet-900/50 flex items-center justify-center shrink-0">
                 <Printer :size="14" class="text-white" />
@@ -340,7 +381,7 @@
           </div>
 
           <!-- ══ CARD: IMPRESSORAS MÚLTIPLAS ══ -->
-          <div class="bg-white dark:bg-white/5 backdrop-blur-xl rounded-2xl border border-gray-200 dark:border-white/[0.08] overflow-hidden">
+          <div v-show="secao === 'impressao'" class="bg-white dark:bg-white/5 backdrop-blur-xl rounded-2xl border border-gray-200 dark:border-white/[0.08] overflow-hidden">
             <div class="px-6 py-5 border-b border-gray-100 dark:border-white/[0.06] flex items-center justify-between gap-3">
               <div class="flex items-center gap-3">
                 <div class="size-8 rounded-xl bg-gradient-to-br from-indigo-600 to-indigo-900 shadow-sm shadow-indigo-900/50 flex items-center justify-center shrink-0">
@@ -560,178 +601,14 @@
             </div>
           </div>
 
-          <!-- ══ CARD: INTEGRAÇÕES ══ -->
-          <div class="bg-white dark:bg-white/5 backdrop-blur-xl rounded-2xl border border-gray-200 dark:border-white/[0.08] overflow-hidden">
-            <div class="px-6 py-5 border-b border-gray-100 dark:border-white/[0.06] flex items-center gap-3">
-              <div class="size-8 rounded-xl bg-gradient-to-br from-emerald-600 to-emerald-900 shadow-sm shadow-emerald-900/50 flex items-center justify-center shrink-0">
-                <Plug :size="14" class="text-white" />
-              </div>
-              <div>
-                <h2 class="text-sm font-black text-gray-900 dark:text-white">Integrações</h2>
-                <p class="text-[11px] text-gray-500 dark:text-white/40 mt-0.5">Conecte uma maquininha para enviar cobranças automaticamente</p>
-              </div>
-            </div>
+          <!-- ══ DELIVERY (cardápio online) ══ -->
+          <ConfigDelivery v-if="secao === 'delivery'" />
 
-            <div class="p-6 space-y-6">
+          <!-- ══ INTEGRAÇÕES ══ -->
+          <ConfigIntegracoes v-if="secao === 'integracoes'" />
 
-              <!-- MERCADO PAGO POINT -->
-              <div class="rounded-2xl border border-gray-200 dark:border-white/[0.08] overflow-hidden">
-
-                <!-- cabeçalho da integração -->
-                <div class="flex items-center justify-between gap-4 px-5 py-4 bg-gray-50 dark:bg-white/[0.04]">
-                  <div class="flex items-center gap-3">
-                    <div class="w-9 h-9 rounded-xl bg-[#009EE3]/10 flex items-center justify-center shrink-0">
-                      <CreditCard :size="16" class="text-[#009EE3]" />
-                    </div>
-                    <div>
-                      <p class="text-sm font-black text-gray-900 dark:text-white">Mercado Pago Point</p>
-                      <p class="text-[11px] text-gray-500 dark:text-white/40">Débito, crédito e Pix direto na maquininha</p>
-                    </div>
-                  </div>
-                  <button
-                    @click="mp.ativado = !mp.ativado"
-                    class="shrink-0 w-12 h-6 rounded-full transition-all relative"
-                    :class="mp.ativado ? 'bg-emerald-500' : 'bg-gray-200 dark:bg-white/10'"
-                  >
-                    <span class="absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all"
-                      :class="mp.ativado ? 'left-[26px]' : 'left-0.5'" />
-                  </button>
-                </div>
-
-                <!-- campos (visíveis só quando ativado) -->
-                <Transition name="slide-down-mp">
-                  <div v-if="mp.ativado" class="p-5 space-y-4 border-t border-gray-100 dark:border-white/[0.06]">
-
-                    <!-- Access Token -->
-                    <div>
-                      <label for="mp-access-token" class="block text-[10px] font-black uppercase tracking-widest text-gray-500 dark:text-white/40 mb-2">
-                        Access Token
-                      </label>
-                      <div class="flex gap-2">
-                        <div class="relative flex-1">
-                          <input
-                            id="mp-access-token"
-                            name="mp-access-token"
-                            v-model="mp.access_token"
-                            :type="mostrarToken ? 'text' : 'password'"
-                            :placeholder="mpStore.mp.token_salvo ? `Token salvo (•••• ${mpStore.mp.token_sufixo})` : 'APP_USR-...'"
-                            class="w-full h-11 px-4 pr-10 rounded-xl border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/[0.06] text-gray-900 dark:text-white text-sm outline-none focus:border-emerald-400/70 transition-all font-mono placeholder:text-gray-400 dark:placeholder:text-white/25"
-                          />
-                          <button
-                            @click="mostrarToken = !mostrarToken"
-                            type="button"
-                            class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-white/30 hover:text-gray-600 dark:hover:text-white/60"
-                          >
-                            <Eye v-if="!mostrarToken" :size="15" />
-                            <EyeOff v-else :size="15" />
-                          </button>
-                        </div>
-                      </div>
-                      <p class="text-[10px] text-gray-400 dark:text-white/40 mt-1.5">
-                        Obtenha em <span class="font-mono">mercadopago.com.br → Credenciais → Access Token de produção</span>
-                      </p>
-                    </div>
-
-                    <!-- Dispositivo -->
-                    <div>
-                      <label for="mp-device-id" class="block text-[10px] font-black uppercase tracking-widest text-gray-500 dark:text-white/40 mb-2">
-                        Maquininha (Device ID)
-                      </label>
-                      <div class="flex gap-2">
-                        <div class="relative flex-1">
-                          <select
-                            v-if="mp.dispositivos.length > 0"
-                            id="mp-device-id"
-                            name="mp-device-id"
-                            v-model="mp.device_id"
-                            class="w-full h-11 px-4 rounded-xl border border-gray-200 dark:border-white/10 !bg-gray-50 dark:!bg-white/[0.06] text-gray-900 dark:text-white text-sm outline-none focus:border-emerald-400/70 transition-all appearance-none"
-                          >
-                            <option value="">Selecione a maquininha</option>
-                            <option v-for="d in mp.dispositivos" :key="d.id" :value="d.id">
-                              {{ d.id }} {{ d.pos_id ? `· ${d.pos_id}` : '' }}
-                            </option>
-                          </select>
-                          <input
-                            v-else
-                            id="mp-device-id"
-                            name="mp-device-id"
-                            v-model="mp.device_id"
-                            placeholder="PAX_A910__SMARTPOS123456"
-                            class="w-full h-11 px-4 rounded-xl border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/[0.06] text-gray-900 dark:text-white text-sm outline-none focus:border-emerald-400/70 transition-all font-mono placeholder:text-gray-400 dark:placeholder:text-white/25"
-                          />
-                        </div>
-                        <button
-                          @click="buscarDispositivos"
-                          :disabled="mp.buscandoDispositivos"
-                          class="h-11 px-4 rounded-xl bg-gray-100 dark:bg-white/[0.06] hover:bg-gray-200 dark:hover:bg-white/10 text-gray-500 dark:text-white/60 text-xs font-black transition-all shrink-0 flex items-center gap-1.5 disabled:opacity-50"
-                        >
-                          <Loader2 v-if="mp.buscandoDispositivos" :size="13" class="animate-spin" />
-                          <RefreshCw v-else :size="13" />
-                          Buscar
-                        </button>
-                      </div>
-                      <p v-if="mp.erroDispositivos" class="text-[10px] text-red-500 mt-1.5">{{ mp.erroDispositivos }}</p>
-                      <p class="text-[10px] text-gray-400 dark:text-white/40 mt-1.5">
-                        Clique em "Buscar" após salvar o token para listar as maquininhas vinculadas à conta.
-                      </p>
-                    </div>
-
-                    <!-- Status da integração -->
-                    <div
-                      v-if="mpStore.mp.token_salvo && mpStore.mp.device_id"
-                      class="flex items-center gap-2 text-xs font-bold text-emerald-500 dark:text-emerald-400 bg-emerald-500/10 rounded-xl px-4 py-3"
-                    >
-                      <CheckCircle :size="14" />
-                      Integração configurada — maquininha pronta para receber cobranças
-                    </div>
-
-                  </div>
-                </Transition>
-
-              </div>
-
-            </div>
-          </div>
-
-          <!-- ══ CARD: ACESSO ══ -->
-          <div class="bg-white dark:bg-white/5 backdrop-blur-xl rounded-2xl border border-gray-200 dark:border-white/[0.08] overflow-hidden">
-            <div class="px-6 py-5 border-b border-gray-100 dark:border-white/[0.06] flex items-center gap-3">
-              <div class="size-8 rounded-xl bg-gradient-to-br from-violet-600 to-violet-900 shadow-sm shadow-violet-900/50 flex items-center justify-center shrink-0">
-                <ShieldCheck :size="14" class="text-white" />
-              </div>
-              <div>
-                <h2 class="text-sm font-black text-gray-900 dark:text-white">Acesso</h2>
-                <p class="text-[11px] text-gray-500 dark:text-white/40 mt-0.5">Métodos de autenticação disponíveis no login</p>
-              </div>
-            </div>
-            <div class="p-6">
-              <div class="flex items-center justify-between gap-4" :class="!rfidDisponivel ? 'opacity-50' : ''">
-                <div class="flex items-center gap-3">
-                  <div class="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
-                    :class="rfidDisponivel && form.rfid_ativo ? 'bg-violet-500/10' : 'bg-gray-100 dark:bg-white/[0.06]'">
-                    <CreditCard :size="16" :class="rfidDisponivel && form.rfid_ativo ? 'text-violet-500' : 'text-gray-400 dark:text-white/30'" />
-                  </div>
-                  <div>
-                    <p class="text-sm font-black text-gray-900 dark:text-white">Autenticação por cartão RFID</p>
-                    <p v-if="rfidDisponivel" class="text-[11px] text-gray-500 dark:text-white/40 mt-0.5">Exibe a aba de cartão na tela de login e permite entrada por leitora</p>
-                    <p v-else class="text-[11px] text-amber-500 dark:text-amber-400 mt-0.5">Não disponível no seu plano — entre em contato para habilitar</p>
-                  </div>
-                </div>
-                <button
-                  :disabled="!rfidDisponivel"
-                  @click="rfidDisponivel && (form.rfid_ativo = !form.rfid_ativo)"
-                  class="shrink-0 w-12 h-6 rounded-full transition-all relative"
-                  :class="[
-                    rfidDisponivel && form.rfid_ativo ? 'bg-violet-500' : 'bg-gray-200 dark:bg-white/10',
-                    !rfidDisponivel ? 'cursor-not-allowed' : 'cursor-pointer'
-                  ]"
-                >
-                  <span class="absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all"
-                    :class="rfidDisponivel && form.rfid_ativo ? 'left-[26px]' : 'left-0.5'" />
-                </button>
-              </div>
-            </div>
-          </div>
+          <!-- ══ ACESSO (administrador e suporte da plataforma) ══ -->
+          <ConfigAcesso v-if="secao === 'acesso' && isAdmin" />
 
           <!-- espaço para a floating bar não cobrir o último card -->
           <div class="pb-4" />
@@ -739,7 +616,7 @@
         </div>
 
         <!-- ══ COLUNA DIREITA: preview sticky ══ -->
-        <div class="lg:sticky lg:top-20">
+        <div v-if="comPrevia" class="lg:sticky lg:top-20">
           <div class="bg-white dark:bg-white/5 backdrop-blur-xl rounded-2xl border border-gray-200 dark:border-white/[0.08] overflow-hidden">
             <div class="px-6 py-5 border-b border-gray-100 dark:border-white/[0.06] flex items-center gap-3">
               <div class="size-8 rounded-xl bg-gradient-to-br from-emerald-600 to-emerald-900 shadow-sm shadow-emerald-900/50 flex items-center justify-center shrink-0">
@@ -838,13 +715,17 @@
 <script setup lang="ts">
 import { ref, reactive, computed, watch, onMounted } from 'vue'
 import {
-  ImageIcon, Upload, Trash2, Save, Loader2, UtensilsCrossed, Printer, FileText, Eye, EyeOff,
-  Minus, Plus, Plug, CreditCard, RefreshCw, CheckCircle, Ruler, ShieldCheck, ChevronDown, Settings, Search
+  ImageIcon, Upload, Trash2, Save, Loader2, UtensilsCrossed, Printer, FileText, Eye,
+  Minus, Plus, Plug, Ruler, ChevronDown, Settings, Search, Percent, Store, KeyRound, Bike
 } from 'lucide-vue-next'
+import ConfigIntegracoes from '~/components/config/ConfigIntegracoes.vue'
+import ConfigAcesso from '~/components/config/ConfigAcesso.vue'
+import ConfigDelivery from '~/components/config/ConfigDelivery.vue'
+import { TIPOS_COMERCIO } from '~/lib/tiposComercio'
+import { useAuthStore } from '~/stores/auth'
 import Navbar from '~/layouts/Navbar.vue'
 import Sidebar from '~/components/Sidebar.vue'
 import { useConfigStore }      from '~/stores/configuracoes'
-import { useIntegracoesStore } from '~/stores/integracoes'
 import { useImpressorasStore, type Impressora } from '~/stores/impressoras'
 import { useToastStore }       from '~/stores/toast'
 import { useApi }              from '~/services/api'
@@ -852,15 +733,30 @@ import { useApi }              from '~/services/api'
 definePageMeta({ layout: false })
 
 const configStore      = useConfigStore()
-const mpStore          = useIntegracoesStore()
 const impressorasStore = useImpressorasStore()
 const toastStore       = useToastStore()
 const api              = useApi()
 
+// ══ SEÇÕES (espelhadas em ?secao= para recarregar no mesmo lugar) ══
+const authStore = useAuthStore()
+const route     = useRoute()
+const isAdmin   = computed(() => authStore.usuario?.cargo === 'administrador')
+const SECOES = [
+  { valor: 'estabelecimento', rotulo: 'Estabelecimento', icone: Store },
+  { valor: 'impressao',       rotulo: 'Impressão',       icone: Printer },
+  { valor: 'delivery',        rotulo: 'Delivery',        icone: Bike },
+  { valor: 'integracoes',     rotulo: 'Integrações',     icone: Plug },
+  { valor: 'acesso',          rotulo: 'Acesso',          icone: KeyRound, admin: true },
+] as const
+type Secao = typeof SECOES[number]['valor']
+const secoesVisiveis = computed(() => SECOES.filter(s => !('admin' in s) || isAdmin.value))
+const secaoInicial = secoesVisiveis.value.find(s => s.valor === route.query.secao)?.valor ?? 'estabelecimento'
+const secao = ref<Secao>(secaoInicial)
+const comPrevia = computed(() => secao.value === 'estabelecimento' || secao.value === 'impressao')
+function irPara(s: Secao) { secao.value = s; navigateTo({ query: { ...route.query, secao: s } }, { replace: true }) }
+
 const inputLogoRef    = ref<HTMLInputElement | null>(null)
 const salvando        = ref(false)
-const mostrarToken    = ref(false)
-const rfidDisponivel  = ref(false)
 
 // ══ DETECÇÃO DE MUDANÇAS ══
 const formInicial   = ref<Record<string, any>>({})
@@ -975,15 +871,6 @@ async function testarImpressoraById(id: string) {
 }
 
 
-const mp = reactive({
-  ativado:             false,
-  access_token:        '',
-  device_id:           null as string | null,
-  dispositivos:        [] as any[],
-  buscandoDispositivos: false,
-  erroDispositivos:    ''
-})
-
 const larguras = [
   { value: 58, label: '58 mm', desc: 'Bobina pequena' },
   { value: 80, label: '80 mm', desc: 'Bobina padrão' }
@@ -1027,20 +914,10 @@ const form = reactive({
   impressora_host:          '',
   impressora_porta:         9100,
   taxa_servico_pct:         10,
-  rfid_ativo:               true
+  tipo_comercio:            null as string | null,
 })
 
 onMounted(async () => {
-  // Verifica se o super admin liberou RFID para este tenant
-  try {
-    const runtimeConfig = useRuntimeConfig()
-    const slug = (runtimeConfig.public as any).tenantSlug || ''
-    const cfgPublica = await api.get<{ rfid_disponivel: boolean }>(`/sistema/config-publica?slug=${slug}`)
-    rfidDisponivel.value = cfgPublica.rfid_disponivel === true
-  } catch {
-    rfidDisponivel.value = false
-  }
-
   await configStore.carregar()
   form.nome_restaurante         = configStore.nome_restaurante
   form.logo_base64              = configStore.logo_base64
@@ -1054,31 +931,13 @@ onMounted(async () => {
   form.impressora_host          = configStore.impressora_host
   form.impressora_porta         = configStore.impressora_porta
   form.taxa_servico_pct         = configStore.taxa_servico_pct
-  form.rfid_ativo               = configStore.rfid_ativo
-
-  await mpStore.carregar()
-  mp.ativado   = mpStore.mp.ativado
-  mp.device_id = mpStore.mp.device_id
+  form.tipo_comercio            = configStore.tipo_comercio
 
   await carregarImpressoras()
 
   tirarSnapshot()
   formCarregado.value = true
 })
-
-async function buscarDispositivos() {
-  mp.buscandoDispositivos = true
-  mp.erroDispositivos     = ''
-  try {
-    const data = await mpStore.listarDispositivos()
-    mp.dispositivos = data?.devices ?? []
-    if (mp.dispositivos.length === 0) mp.erroDispositivos = 'Nenhuma maquininha encontrada nesta conta'
-  } catch (e: any) {
-    mp.erroDispositivos = e?.message || 'Erro ao buscar dispositivos'
-  } finally {
-    mp.buscandoDispositivos = false
-  }
-}
 
 function onLogoChange(e: Event) {
   const file = (e.target as HTMLInputElement).files?.[0]
@@ -1120,8 +979,8 @@ async function salvar() {
   }
   salvando.value = true
   try {
-    await Promise.all([
-      configStore.salvar({
+    // RFID e integrações salvam na própria seção (Acesso / Integrações), não aqui
+    await configStore.salvar({
         nome_restaurante:         form.nome_restaurante.trim(),
         logo_base64:              form.logo_base64,
         logo_tamanho:             form.logo_tamanho,
@@ -1134,17 +993,8 @@ async function salvar() {
         impressora_host:          form.impressora_host.trim(),
         impressora_porta:         form.impressora_porta || 9100,
         taxa_servico_pct:         Math.min(30, Math.max(0, Number(form.taxa_servico_pct) || 0)),
-        rfid_ativo:               form.rfid_ativo
-      }),
-      mpStore.salvar({
-        ativado:      mp.ativado,
-        access_token: mp.access_token || undefined,
-        device_id:    mp.device_id || null
-      })
-    ])
-    mp.access_token = ''
-    mpStore.carregado = false
-    await mpStore.carregar()
+        tipo_comercio:            form.tipo_comercio,
+    })
     tirarSnapshot()
     toastStore.success('Configurações salvas!')
   } catch (e: any) {

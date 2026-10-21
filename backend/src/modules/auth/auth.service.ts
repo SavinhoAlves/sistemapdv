@@ -1,5 +1,6 @@
 import bcrypt from 'bcryptjs'
 import { prisma } from '../../lib/prisma'
+import { PERMISSOES_CARGO } from '../../middlewares/permission.middleware'
 import {
   signAccessToken,
   generateRefreshToken,
@@ -7,16 +8,23 @@ import {
   refreshTokenExpiry,
 } from '../../lib/jwt'
 
-async function getPermissoes(
+/**
+ * Permissões efetivas: padrão da função (cargo) + ajustes do perfil
+ * personalizado. Antes o token levava só o perfil — sem perfil ia vazio, e o
+ * frontend escondia telas que a API (que cai no padrão do cargo) liberava.
+ * Valores não booleanos do perfil (ex.: modo_venda) seguem junto.
+ */
+export async function getPermissoes(
   cargo: string,
   perfilId: string | null,
   tenantId: string
 ): Promise<Record<string, boolean>> {
-  if (!perfilId) return {}
+  const padrao = PERMISSOES_CARGO[cargo] ?? {}
+  if (!perfilId) return { ...padrao }
   const perfil = await prisma.perfil.findFirst({
     where: { id: perfilId, tenantId },
   })
-  return (perfil?.permissoes as Record<string, boolean>) ?? {}
+  return { ...padrao, ...((perfil?.permissoes as Record<string, boolean>) ?? {}) }
 }
 
 /** Busca o restaurante pelo código numérico (1001) ou pelo slug. */

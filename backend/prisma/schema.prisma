@@ -563,6 +563,8 @@ model Configuracoes {
   taxaServicoPct         Decimal @default(0) @db.Decimal(5, 2) @map("taxa_servico_pct")
   modoVenda              String  @default("mesa") @map("modo_venda")
   rfidAtivo              Boolean @default(false) @map("rfid_ativo")
+  /// Venda pelo celular (QR por funcionário). Só vale se o plano liberar; o admin pode desligar.
+  vendaMobileAtiva       Boolean @default(true) @map("venda_mobile_ativa")
   mpAtivado              Boolean @default(false) @map("mp_ativado")
   mpAccessToken          String? @map("mp_access_token")
   mpDeviceId             String? @map("mp_device_id")

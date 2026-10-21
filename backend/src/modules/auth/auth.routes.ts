@@ -92,7 +92,9 @@ export async function authRoutes(app: FastifyInstance) {
     if (!slug) return reply.send({ ativo: true })
     try {
       const tenant = await prisma.tenant.findUnique({ where: { slug } })
-      return reply.send({ ativo: tenant ? tenant.vendaMobilePermitida : false })
+      if (!tenant?.vendaMobilePermitida) return reply.send({ ativo: false })
+      const cfg = await prisma.configuracoes.findFirst({ where: { tenantId: tenant.id }, select: { vendaMobileAtiva: true } })
+      return reply.send({ ativo: cfg?.vendaMobileAtiva ?? true })
     } catch {
       return reply.send({ ativo: true })
     }
@@ -109,6 +111,10 @@ export async function authRoutes(app: FastifyInstance) {
       const tenant = await prisma.tenant.findUnique({ where: { id: payload.tenantId } })
       if (!tenant || !tenant.vendaMobilePermitida) {
         return reply.status(403).send({ error: 'Acesso mobile não permitido para este restaurante' })
+      }
+      const cfg = await prisma.configuracoes.findFirst({ where: { tenantId: tenant.id }, select: { vendaMobileAtiva: true } })
+      if (cfg && !cfg.vendaMobileAtiva) {
+        return reply.status(403).send({ error: 'Venda pelo celular desligada pelo administrador' })
       }
 
       const caixaAberto = await prisma.caixa.findFirst({

@@ -2,6 +2,7 @@ import type { FastifyInstance } from 'fastify'
 import { z } from 'zod'
 import { requireTenant } from '../../middlewares/tenant.middleware'
 import { requirePermissao } from '../../middlewares/permission.middleware'
+import type { TenantJwtPayload } from '../../lib/jwt'
 import * as Service from './configuracoes.service'
 
 /**
@@ -79,4 +80,26 @@ export async function configuracoesRoutes(app: FastifyInstance) {
       })
     },
   )
+
+  // Acesso (RFID e venda pelo celular): só administrador — o suporte da
+  // plataforma entra como o administrador do restaurante
+  const soAdmin = async (request: any, reply: any) => {
+    if ((request.auth as TenantJwtPayload)?.cargo !== 'administrador')
+      return reply.status(403).send({ error: 'Só o administrador altera o acesso' })
+  }
+
+  // GET /api/configuracoes/acesso
+  app.get('/acesso', { preHandler: [requireTenant, soAdmin] }, async (request) => Service.acesso(request.tenantId!))
+
+  // PUT /api/configuracoes/acesso
+  app.put('/acesso', { preHandler: [requireTenant, soAdmin] }, async (request, reply) => {
+    const body = z.object({ rfidAtivo: z.boolean().optional(), vendaMobileAtiva: z.boolean().optional() }).safeParse(request.body)
+    if (!body.success) return reply.status(400).send({ error: 'Dados inválidos' })
+    try {
+      return await Service.atualizarAcesso(request.tenantId!, body.data)
+    } catch (err: any) {
+      if (err.status) return reply.status(err.status).send({ error: err.message })
+      throw err
+    }
+  })
 }

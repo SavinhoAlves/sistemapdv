@@ -14,7 +14,7 @@ import {
  * frontend escondia telas que a API (que cai no padrão do cargo) liberava.
  * Valores não booleanos do perfil (ex.: modo_venda) seguem junto.
  */
-async function getPermissoes(
+export async function getPermissoes(
   cargo: string,
   perfilId: string | null,
   tenantId: string

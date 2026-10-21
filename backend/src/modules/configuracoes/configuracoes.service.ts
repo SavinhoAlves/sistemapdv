@@ -89,3 +89,53 @@ export async function atualizar(tenantId: string, data: AtualizarConfigData) {
 
   return buscar(tenantId)
 }
+
+// ─── Acesso: recursos do plano que o administrador liga/desliga ────────────────
+
+/**
+ * RFID e venda pelo celular dependem do plano (tenant.rfidDisponivel /
+ * vendaMobilePermitida, derivados do plano em platform/assinatura.ts). O
+ * administrador decide se usa (rfidAtivo / vendaMobileAtiva). O QR do
+ * celular só vale com caixa aberto.
+ */
+export async function acesso(tenantId: string) {
+  const [tenant, cfg, caixa] = await Promise.all([
+    prisma.tenant.findUnique({
+      where: { id: tenantId },
+      select: { rfidDisponivel: true, vendaMobilePermitida: true, plano: { select: { nome: true } } },
+    }),
+    buscar(tenantId).then(() => prisma.configuracoes.findFirst({ where: { tenantId } })),
+    prisma.caixa.findFirst({ where: { tenantId, status: 'aberto' }, select: { id: true } }),
+  ])
+  return {
+    plano: tenant?.plano?.nome ?? null,
+    rfid:        { disponivel: Boolean(tenant?.rfidDisponivel),       ativo: Boolean(cfg?.rfidAtivo) },
+    vendaMobile: { disponivel: Boolean(tenant?.vendaMobilePermitida), ativa: Boolean(cfg?.vendaMobileAtiva) },
+    caixaAberto: Boolean(caixa),
+  }
+}
+
+export async function atualizarAcesso(tenantId: string, data: { rfidAtivo?: boolean; vendaMobileAtiva?: boolean }) {
+  const atual = await acesso(tenantId)
+  if (data.rfidAtivo && !atual.rfid.disponivel)
+    throw Object.assign(new Error('RFID não está incluído no seu plano'), { status: 403 })
+  if (data.vendaMobileAtiva && !atual.vendaMobile.disponivel)
+    throw Object.assign(new Error('Venda pelo celular não está incluída no seu plano'), { status: 403 })
+  await prisma.configuracoes.updateMany({
+    where: { tenantId },
+    data: {
+      ...(data.rfidAtivo !== undefined ? { rfidAtivo: data.rfidAtivo } : {}),
+      ...(data.vendaMobileAtiva !== undefined ? { vendaMobileAtiva: data.vendaMobileAtiva } : {}),
+    },
+  })
+  return acesso(tenantId)
+}
+
+/** Venda pelo celular liberada agora: plano + chave do admin + caixa aberto. Devolve o motivo quando não. */
+export async function motivoSemCelular(tenantId: string): Promise<string | null> {
+  const a = await acesso(tenantId)
+  if (!a.vendaMobile.disponivel) return 'Venda pelo celular não está incluída no plano deste restaurante'
+  if (!a.vendaMobile.ativa) return 'Venda pelo celular está desligada em Configurações → Acesso'
+  if (!a.caixaAberto) return 'Abra o caixa antes: o acesso pelo celular só funciona com o caixa aberto'
+  return null
+}

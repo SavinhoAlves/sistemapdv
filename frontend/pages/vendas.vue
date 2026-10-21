@@ -37,6 +37,7 @@ import { useCaixaStore }   from '~/stores/caixa'
 import { useAuthStore }    from '~/stores/auth'
 import { useConfigStore }  from '~/stores/configuracoes'
 import { useSocket } from '~/services/socket'
+import { aoMudarCaixa } from '~/lib/eventosCaixa'
 
 definePageMeta({ layout: false })
 
@@ -100,7 +101,7 @@ onMounted(async () => {
   await atualizarStatusCaixa()
 
   // Conexão do socket é gerenciada globalmente em plugins/socket.client.ts
-  pararDeEscutar = socket.on('caixa:atualizado', atualizarStatusCaixa)
+  pararDeEscutar = aoMudarCaixa(socket, atualizarStatusCaixa)
 })
 
 onUnmounted(() => {

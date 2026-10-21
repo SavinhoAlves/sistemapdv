@@ -184,6 +184,7 @@ import { useAuthStore } from '~/stores/auth'
 import { useCaixaStore } from '~/stores/caixa'
 import { useApi } from '~/services/api'
 import { useSocket } from '~/services/socket'
+import { aoMudarCaixa } from '~/lib/eventosCaixa'
 
 const router     = useRouter()
 const authStore  = useAuthStore()
@@ -317,8 +318,7 @@ onMounted(() => {
 
   // Tempo real via socket (conexão é gerenciada globalmente em
   // plugins/socket.client.ts); o polling acima continua como rede de segurança
-  desinscrever.push(socket.on('caixa:atualizado', () => carregar(false)))
-  desinscrever.push(socket.on('mesas:atualizado', () => carregar(false)))
+  desinscrever.push(aoMudarCaixa(socket, () => carregar(false)))
 })
 
 onUnmounted(() => {

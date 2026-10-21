@@ -436,7 +436,8 @@
 <script setup lang="ts">
 import { numeroBR } from '~/lib/moeda'
 import { totaisDoResumo, vendasDoResumo, porMetodoDoResumo } from '~/lib/caixa'
-import { ref, computed, onMounted, onUnmounted, reactive } from 'vue'
+import { ref, computed, onMounted, onUnmounted, reactive, watch } from 'vue'
+import { aoMudarCaixa } from '~/lib/eventosCaixa'
 import {
   LockKeyhole, RefreshCw, LayoutGrid, Wallet,
   ArrowLeftRight, ArrowUpRight, ArrowDownLeft,
@@ -618,6 +619,17 @@ async function atualizarDados() {
   if (isAdmin.value && caixaAberto.value) buscarAdmin()
 }
 
+// Outro caixa (fechou e abriu, aqui ou em outra tela): limpa o que era do anterior
+// e busca de novo. Antes os cartões e movimentos do caixa fechado ficavam na tela.
+function limparPainel() {
+  movimentos.value = []; totaisCaixa.value = null; porMetodo.value = []; vendasResumo.value = null; mesasAbertas.value = []
+}
+watch(() => caixaStore.caixaAtual?.id ?? null, (novo, antigo) => {
+  if (novo === antigo) return
+  limparPainel()
+  if (novo && isAdmin.value) buscarAdmin(true)
+})
+
 let pollingTimer: ReturnType<typeof setInterval> | null = null
 const desinscrever: Array<() => void> = []
 
@@ -633,7 +645,7 @@ onMounted(async () => {
 
   // Tempo real via socket (conexão é gerenciada globalmente em
   // plugins/socket.client.ts); o polling acima continua como rede de segurança
-  desinscrever.push(socket.on('caixa:atualizado', () => atualizarDados()))
+  desinscrever.push(aoMudarCaixa(socket, () => atualizarDados()))
 })
 
 onUnmounted(() => {

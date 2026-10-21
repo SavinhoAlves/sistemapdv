@@ -74,7 +74,7 @@ export async function entregadorRoutes(app: FastifyInstance) {
   app.get('/rota', ent, async (request) => Service.minhaRota(request.tenantId!, usuario(request)))
   app.post('/rota/iniciar', ent, async (request, reply) => responder(reply, () => Service.iniciarRota(request.tenantId!, usuario(request))))
   app.post('/pedidos/:id/entregue', ent, async (request, reply) =>
-    responder(reply, () => Service.confirmarEntrega(request.tenantId!, usuario(request), (request.params as any).id)))
+    responder(reply, () => Service.confirmarEntrega(request.tenantId!, usuario(request), (request.params as any).id, (request.body as any)?.codigo)))
   // Posição: o app manda a cada ~15 s; limite folgado por usuário
   app.post('/posicao', { ...ent, config: { rateLimit: { max: 30, timeWindow: '1 minute' } } }, async (request, reply) => {
     const b = z.object({

@@ -22,7 +22,7 @@ export async function usuariosRoutes(app: FastifyInstance) {
     if (!body.nome?.trim()) return reply.status(400).send({ error: 'nome é obrigatório' })
     if (!body.cargo) return reply.status(400).send({ error: 'cargo é obrigatório' })
 
-    const cargosValidos = ['administrador', 'garcom', 'caixa', 'cozinha']
+    const cargosValidos = ['administrador', 'garcom', 'caixa', 'cozinha', 'entregador']
     if (!cargosValidos.includes(body.cargo))
       return reply.status(400).send({ error: `cargo deve ser um de: ${cargosValidos.join(', ')}` })
     if (loginInvalido(body.login)) return reply.status(400).send({ error: MSG_LOGIN })
@@ -52,7 +52,7 @@ export async function usuariosRoutes(app: FastifyInstance) {
     const body = request.body as any
 
     if (body.cargo) {
-      const cargosValidos = ['administrador', 'garcom', 'caixa', 'cozinha']
+      const cargosValidos = ['administrador', 'garcom', 'caixa', 'cozinha', 'entregador']
       if (!cargosValidos.includes(body.cargo))
         return reply.status(400).send({ error: `cargo deve ser um de: ${cargosValidos.join(', ')}` })
     }

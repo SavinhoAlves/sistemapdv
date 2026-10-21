@@ -53,6 +53,8 @@ const MODELOS_COM_TENANT = new Set([
   'movimentacaoEstoque',
   'dispositivo',
   'licenca',
+  'pedidoOnline',
+  'entregadorPosicao',
 ])
 
 const LEITURAS = new Set([

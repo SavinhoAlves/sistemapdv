@@ -40,15 +40,46 @@ export async function deliveryRoutes(app: FastifyInstance) {
     return responder(reply, () => Service.concluir(request.tenantId!, id(request), b.data, usuario(request)))
   })
 
+  // ── Entregadores, atribuição e mapa ──
+  app.get('/entregadores', caixa, async (request) => Service.entregadores(request.tenantId!))
+  app.get('/mapa', caixa, async (request) => Service.mapa(request.tenantId!))
+  app.post('/pedidos/:id/atribuir', caixa, async (request, reply) => {
+    const b = z.object({ entregadorId: z.string().uuid().nullable() }).safeParse(request.body)
+    if (!b.success) return reply.status(400).send({ error: 'Entregador inválido' })
+    return responder(reply, () => Service.atribuir(request.tenantId!, id(request), b.data.entregadorId))
+  })
+  app.post('/config/localizar', cfg, async (request, reply) => responder(reply, () => Service.localizarRestaurante(request.tenantId!)))
+
   app.get('/config', cfg, async (request) => Service.config(request.tenantId!))
   app.put('/config', cfg, async (request, reply) => {
     const b = z.object({
       ativo: z.boolean().optional(), entrega: z.boolean().optional(), retirada: z.boolean().optional(),
       taxaEntrega: z.number().min(0).max(500).optional(), pedidoMinimo: z.number().min(0).max(5000).optional(),
       tempoMin: z.number().int().min(5).max(240).optional(), mensagem: z.string().max(200).nullable().optional(),
+      local: z.object({ lat: z.number().min(-90).max(90), lng: z.number().min(-180).max(180) }).nullable().optional(),
     }).safeParse(request.body)
     if (!b.success) return reply.status(400).send({ error: primeiro(b.error) })
     return responder(reply, () => Service.salvarConfig(request.tenantId!, b.data))
+  })
+}
+
+/** App do entregador (/api/entregador): a própria rota, posição GPS e confirmação de entrega. */
+export async function entregadorRoutes(app: FastifyInstance) {
+  const ent = { preHandler: [requireTenant, requirePermissao('fazerEntregas')] }
+  const usuario = (r: any) => (r.auth as TenantJwtPayload).sub
+
+  app.get('/rota', ent, async (request) => Service.minhaRota(request.tenantId!, usuario(request)))
+  app.post('/rota/iniciar', ent, async (request, reply) => responder(reply, () => Service.iniciarRota(request.tenantId!, usuario(request))))
+  app.post('/pedidos/:id/entregue', ent, async (request, reply) =>
+    responder(reply, () => Service.confirmarEntrega(request.tenantId!, usuario(request), (request.params as any).id)))
+  // Posição: o app manda a cada ~15 s; limite folgado por usuário
+  app.post('/posicao', { ...ent, config: { rateLimit: { max: 30, timeWindow: '1 minute' } } }, async (request, reply) => {
+    const b = z.object({
+      lat: z.number().min(-90).max(90), lng: z.number().min(-180).max(180),
+      precisao: z.number().nonnegative().max(100000).optional(), velocidade: z.number().min(0).max(100).nullable().optional(),
+    }).safeParse(request.body)
+    if (!b.success) return reply.status(400).send({ error: 'Posição inválida' })
+    return Service.registrarPosicao(request.tenantId!, usuario(request), { ...b.data, velocidade: b.data.velocidade ?? undefined })
   })
 }
 

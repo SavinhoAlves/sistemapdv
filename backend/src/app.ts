@@ -64,6 +64,7 @@ export async function buildApp() {
     max: 200,
     timeWindow: '1 minute',
     keyGenerator: (req) => req.ip,
+    errorResponseBuilder: () => ({ status: 429, error: 'Muitas requisições. Aguarde um instante e tente de novo.' }),
   })
 
   // ── Decorators ─────────────────────────────────────────────────────────────
@@ -101,7 +102,13 @@ export async function buildApp() {
       max: 10,
       timeWindow: '1 minute',
       keyGenerator: (req) => req.ip,
+      // Só o que tenta senha/PIN/crachá. Leituras (/me, /restaurante, /mobile-status)
+      // rodam a cada página aberta e ficam no limite global — antes 10 navegações
+      // em 1 minuto já davam erro e derrubavam o carregamento das telas.
+      allowList: (req) => req.method === 'GET',
+      // `status` é o que o tratador de erros lê; sem ele o bloqueio saía como 500
       errorResponseBuilder: () => ({
+        status: 429,
         error: 'Muitas tentativas. Aguarde 1 minuto antes de tentar novamente.',
       }),
     })

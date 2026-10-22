@@ -31,17 +31,24 @@ async function consultar(q: string): Promise<Coordenadas | null> {
   }
 }
 
-/** Tenta o endereço completo e, sem resultado, sem o número (rua + bairro + cidade). */
+/**
+ * Tenta o endereço completo; sem resultado, sem o número; e por fim só rua +
+ * cidade. O bairro que o cliente digita ("Centro") muitas vezes não existe no
+ * OpenStreetMap e fazia a busca inteira falhar — o pedido ficava sem pino.
+ */
 export function geocodificar(partes: { rua?: string | null; numero?: string | null; bairro?: string | null; cidade?: string | null; uf?: string | null }) {
   const juntar = (xs: (string | null | undefined)[]) => xs.map((x) => x?.trim()).filter(Boolean).join(', ')
   const completo = juntar([partes.rua && partes.numero ? `${partes.rua}, ${partes.numero}` : partes.rua, partes.bairro, partes.cidade, partes.uf, 'Brasil'])
   const semNumero = juntar([partes.rua, partes.bairro, partes.cidade, partes.uf, 'Brasil'])
+  const semBairro = juntar([partes.rua, partes.cidade, partes.uf, 'Brasil'])
   const chave = completo.toLowerCase()
   if (cache.has(chave)) return Promise.resolve(cache.get(chave)!)
 
   const tarefa = fila.then(async () => {
     let c = await consultar(completo)
     if (!c && semNumero !== completo) c = await consultar(semNumero)
+    // Só com a cidade conhecida: sem ela, "Rua X, Brasil" acharia qualquer cidade
+    if (!c && partes.cidade && semBairro !== semNumero) c = await consultar(semBairro)
     if (cache.size > 5000) cache.clear()
     cache.set(chave, c)
     return c

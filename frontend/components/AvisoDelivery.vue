@@ -1,7 +1,7 @@
 <template>
   <!-- Pedido do cardápio online chega para quem está no caixa/balcão, em qualquer tela -->
   <div v-if="ativo" ref="raiz" class="relative">
-    <button class="nb__caixa relative" :class="novos.length ? 'av-dlv--novo' : ''" :aria-expanded="aberto"
+    <button class="av-dlv" :class="novos.length ? 'av-dlv--novo' : ''" :aria-expanded="aberto"
       :aria-label="novos.length ? `${novos.length} pedido(s) de delivery esperando` : 'Pedidos de delivery'" @click="alternar">
       <Bike :size="14" class="shrink-0" />
       <span class="hidden sm:inline">Delivery</span>
@@ -122,6 +122,9 @@ onBeforeUnmount(() => { desinscrever.forEach(f => f()); clearInterval(timer); do
 </script>
 
 <style scoped>
+/* Estilo próprio: o .nb__caixa da Navbar estreita o 1º span (bolinha de status) e quebrava o texto */
+.av-dlv { display: inline-flex; align-items: center; gap: 6px; height: 36px; padding: 0 12px; border-radius: var(--r-controle, 10px); border: 1px solid var(--linha); background: var(--sup-elevado); color: var(--txt-2); font-size: var(--t-micro, 12px); font-weight: 700; white-space: nowrap; }
+.av-dlv:hover { color: var(--txt); }
 .av-dlv--novo { background: #f97316; color: #fff; border-color: #f97316; animation: av-pulso 1.6s ease-in-out infinite; }
 @keyframes av-pulso { 0%, 100% { box-shadow: 0 0 0 0 rgb(249 115 22 / 0.5); } 50% { box-shadow: 0 0 0 6px rgb(249 115 22 / 0); } }
 @media (prefers-reduced-motion: reduce) { .av-dlv--novo { animation: none; } }

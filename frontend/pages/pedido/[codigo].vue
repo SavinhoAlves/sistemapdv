@@ -53,17 +53,21 @@
           <p class="mt-2 text-xs cdp-mudo">Informe este código ao entregador quando receber o pedido.</p>
         </section>
 
-        <!-- Em rota: mapa com o entregador e quantas entregas faltam antes -->
+        <!-- Mapa: do aceite até a entrega. Em rota, o entregador ao vivo e a rota até você -->
         <section v-if="p.rota" class="mt-4 rounded-3xl cdp-cartao p-4">
-          <p class="text-sm font-black">
-            {{ p.rota.entregador.nome }} está a caminho
-          </p>
-          <p class="text-sm cdp-mudo mt-0.5">
-            {{ p.rota.paradasAntes === 0 ? 'Sua entrega é a próxima.' : p.rota.paradasAntes === 1 ? 'Falta 1 entrega antes da sua.' : `Faltam ${p.rota.paradasAntes} entregas antes da sua.` }}
-            <template v-if="p.rota.entregador.posicao"> Posição de {{ hora(p.rota.entregador.posicao.em) }}.</template>
-          </p>
-          <MapaDelivery v-if="marcadores.length" class="mt-3" :marcadores="marcadores" :trajeto="trajeto" altura="260px"
-            descricao="Mapa com a posição do entregador e o seu endereço" />
+          <template v-if="p.rota.emRota">
+            <p class="text-sm font-black">{{ p.rota.entregador.nome }} está a caminho</p>
+            <p class="text-sm cdp-mudo mt-0.5">
+              {{ p.rota.paradasAntes === 0 ? 'Sua entrega é a próxima.' : p.rota.paradasAntes === 1 ? 'Falta 1 entrega antes da sua.' : `Faltam ${p.rota.paradasAntes} entregas antes da sua.` }}
+              <template v-if="p.rota.entregador.posicao"> Posição de {{ hora(p.rota.entregador.posicao.em) }}.</template>
+            </p>
+          </template>
+          <template v-else>
+            <p class="text-sm font-black">Caminho da entrega</p>
+            <p class="text-sm cdp-mudo mt-0.5">Quando o pedido sair, você acompanha o entregador aqui, ao vivo.</p>
+          </template>
+          <MapaDelivery v-if="marcadores.length" class="mt-3" :marcadores="marcadores" :rotas="rotas" altura="260px"
+            descricao="Mapa com a rota até o seu endereço" />
         </section>
 
         <!-- Itens -->
@@ -147,12 +151,17 @@ const marcadores = computed(() => {
   const m: any[] = []
   if (r.restaurante) m.push({ id: 'r', tipo: 'restaurante', ...r.restaurante, titulo: p.value.restaurante.nome })
   if (r.destino) m.push({ id: 'd', tipo: 'destino', ...r.destino, rotulo: '★', titulo: 'Seu endereço' })
-  if (r.entregador.posicao) m.push({ id: 'e', tipo: 'entregador', lat: r.entregador.posicao.lat, lng: r.entregador.posicao.lng, titulo: r.entregador.nome })
+  if (r.entregador?.posicao) m.push({ id: 'e', tipo: 'entregador', lat: r.entregador.posicao.lat, lng: r.entregador.posicao.lng, titulo: r.entregador.nome })
   return m
 })
-const trajeto = computed(() => {
+// Rota destacada: do entregador (ou do restaurante, antes de sair) até o cliente.
+// Com entregas antes da sua, a linha fica cinza: ele ainda passa em outros endereços.
+const rotas = computed(() => {
   const r = p.value?.rota
-  return r?.entregador.posicao && r.destino && r.paradasAntes === 0 ? { de: r.entregador.posicao, para: r.destino } : null
+  if (!r?.destino) return []
+  const de = r.entregador?.posicao ?? r.restaurante
+  if (!de) return []
+  return [{ id: 'cliente', pontos: [{ lat: de.lat, lng: de.lng }, r.destino], destaque: r.emRota && r.paradasAntes === 0 }]
 })
 
 let timer: ReturnType<typeof setInterval> | null = null

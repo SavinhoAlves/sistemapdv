@@ -34,7 +34,7 @@
 
       <!-- Mapa: entregadores ao vivo, rastro de 30 min e entregas em andamento -->
       <div v-if="visao === 'mapa'" class="grid grid-cols-1 lg:grid-cols-[1fr_18rem] gap-4">
-        <MapaDelivery :marcadores="marcadoresMapa" :rastros="mapaDados?.rastros?.map((r: any) => ({ id: r.entregadorId, pontos: r.pontos })) ?? []" altura="min(70vh, 640px)"
+        <MapaDelivery :marcadores="marcadoresMapa" :rotas="rotasMapa" :rastros="mapaDados?.rastros?.map((r: any) => ({ id: r.entregadorId, pontos: r.pontos })) ?? []" altura="min(70vh, 640px)"
           vazio="Marque o local do restaurante em Configurações → Delivery para ver o mapa" />
         <aside class="space-y-2">
           <h2 class="text-xs font-black uppercase tracking-widest text-gray-500 dark:text-white/45">Entregadores</h2>
@@ -103,10 +103,18 @@
                 <option value="">Sem entregador</option>
                 <option v-for="e in entregadores" :key="e.id" :value="e.id">{{ e.nome }}{{ e.entregas ? ` (${e.entregas})` : '' }}</option>
               </select>
-              <span v-if="p.ordemRota && p.status === 'em_rota'" class="shrink-0 text-gray-400 dark:text-white/40">{{ p.ordemRota }}ª parada</span>
+              <span v-if="p.ordemRota && p.status === 'em_rota' && rotaDe(p.entregador?.id).length > 1" class="shrink-0 text-gray-400 dark:text-white/40">{{ p.ordemRota }}ª parada</span>
             </label>
-            <p v-if="p.entregaConfirmadaEm" class="mt-2 text-[11px] font-bold text-emerald-600 dark:text-emerald-400">Entregue por {{ p.entregador?.nome?.split(' ')[0] ?? 'entregador' }} às {{ hora(p.entregaConfirmadaEm) }} · acertar pagamento</p>
+            <p v-if="p.entregaConfirmadaEm" class="mt-2 text-[11px] font-bold text-emerald-600 dark:text-emerald-400">Entregue por {{ p.entregador?.nome?.split(' ')[0] ?? 'entregador' }} às {{ hora(p.entregaConfirmadaEm) }}<template v-if="p.status !== 'entregue'"> · acertar pagamento</template></p>
             <p v-else-if="p.tipo === 'entrega' && !p.destino && ativo(p)" class="mt-1 text-[10px] text-gray-400 dark:text-white/35">Endereço sem pino no mapa</p>
+
+            <!-- Mapa do pedido: rota do entregador com as paradas, este pedido em destaque -->
+            <button v-if="p.tipo === 'entrega' && p.destino && ativo(p)" class="mt-2 text-[11px] font-black text-orange-600 dark:text-orange-400 flex items-center gap-1"
+              :aria-expanded="mapaAberto === p.id" @click="abrirMapaCard(p)">
+              <MapPin :size="12" /> {{ mapaAberto === p.id ? 'Esconder mapa' : 'Ver no mapa' }}
+            </button>
+            <MapaDelivery v-if="mapaAberto === p.id" class="mt-2" altura="200px" :marcadores="marcadoresCard(p)" :rotas="rotasCard(p)"
+              :descricao="`Mapa do pedido ${p.codigo}`" vazio="Sem local no mapa" />
 
             <!-- Ações -->
             <div v-if="p.status === 'recebido'" class="mt-3 grid grid-cols-[1fr_auto] gap-2">
@@ -236,6 +244,54 @@ async function carregarMapa() { try { mapaDados.value = await api.get('/delivery
 function trocarVisao(v: 'quadro' | 'mapa') { visao.value = v; if (v === 'mapa') carregarMapa() }
 const atribuir = (p: any, entregadorId: string) =>
   acao(p, () => api.post(`/delivery/pedidos/${p.id}/atribuir`, { entregadorId: entregadorId || null }), entregadorId ? 'Entregador definido' : 'Entregador removido').then(() => carregar())
+// ── Rotas: as entregas ativas de cada entregador, na ordem da rota ──
+const ATIVOS_ROTA = ['aceito', 'pronto', 'em_rota']
+function rotaDe(entregadorId?: string | null) {
+  if (!entregadorId) return []
+  return pedidos.value
+    .filter(x => x.entregador?.id === entregadorId && x.tipo === 'entrega' && ATIVOS_ROTA.includes(x.status) && !x.entregaConfirmadaEm)
+    .sort((a, b) => (a.ordemRota ?? 999) - (b.ordemRota ?? 999))
+}
+const origem = (entregadorId?: string | null) => {
+  const pos = entregadores.value.find(e => e.id === entregadorId)?.posicao
+  const r = mapaDados.value?.restaurante
+  return pos ? { lat: pos.lat, lng: pos.lng } : r ? { lat: r.lat, lng: r.lng } : null
+}
+const rotasMapa = computed(() => entregadores.value.map((e) => {
+  const paradas = rotaDe(e.id).filter(x => x.destino).map(x => x.destino)
+  const de = origem(e.id)
+  return { id: e.id, pontos: de ? [de, ...paradas] : paradas, destaque: e.emRota }
+}).filter(r => r.pontos.length > 1))
+
+// Mapa no card do pedido
+const mapaAberto = ref<string | null>(null)
+async function abrirMapaCard(p: any) {
+  mapaAberto.value = mapaAberto.value === p.id ? null : p.id
+  if (mapaAberto.value && !mapaDados.value) await carregarMapa()
+}
+function marcadoresCard(p: any) {
+  const m: any[] = []
+  const r = mapaDados.value?.restaurante
+  if (r) m.push({ id: 'r', tipo: 'restaurante', lat: r.lat, lng: r.lng, titulo: r.nome })
+  const ent = entregadores.value.find(e => e.id === p.entregador?.id)
+  if (ent?.posicao) m.push({ id: ent.id, tipo: 'entregador', lat: ent.posicao.lat, lng: ent.posicao.lng, titulo: ent.nome })
+  const paradas = p.entregador ? rotaDe(p.entregador.id) : [p]
+  const varias = paradas.length > 1
+  paradas.forEach((x, i) => {
+    if (!x.destino) return
+    const n = x.ordemRota ?? i + 1
+    m.push(x.id === p.id
+      ? { id: x.id, tipo: 'destino', ...x.destino, rotulo: varias ? String(n) : '★', titulo: `${x.codigo} · ${x.clienteNome}` }
+      : { id: x.id, tipo: 'parada', ...x.destino, rotulo: String(n), titulo: `${n}. ${x.codigo} · ${x.bairro ?? ''}` })
+  })
+  return m
+}
+function rotasCard(p: any) {
+  const paradas = (p.entregador ? rotaDe(p.entregador.id) : [p]).filter((x: any) => x.destino).map((x: any) => x.destino)
+  const de = origem(p.entregador?.id)
+  return de && paradas.length ? [{ id: p.id, pontos: [de, ...paradas], destaque: p.status === 'em_rota' }] : []
+}
+
 const marcadoresMapa = computed(() => {
   const d = mapaDados.value
   if (!d) return []

@@ -14,22 +14,25 @@ import 'leaflet/dist/leaflet.css'
 /**
  * Mapa do delivery (Leaflet + OpenStreetMap, gratuito).
  * Marcadores em HTML (sem imagens): restaurante, entregadores e paradas
- * numeradas. `trajeto` liga dois pontos pela rua (OSRM público); se o
- * serviço falhar, a linha vai reta.
+ * numeradas. `rotas` liga as paradas em ordem pela rua (OSRM público), com a
+ * linha destacada (contorno branco + laranja, como nos apps de entrega); se o
+ * serviço falhar, a linha vai reta entre as paradas. `trajeto` (2 pontos) ainda vale.
  */
 export interface PontoMapa { lat: number; lng: number }
+export interface RotaMapa { id: string; pontos: PontoMapa[]; destaque?: boolean }
 export interface Marcador extends PontoMapa { id: string; tipo: 'restaurante' | 'entregador' | 'parada' | 'destino' | 'feito'; rotulo?: string; titulo?: string }
 
 const props = withDefaults(defineProps<{
   marcadores: Marcador[]
   rastros?: { id: string; pontos: [number, number][] }[]
   trajeto?: { de: PontoMapa; para: PontoMapa } | null
+  rotas?: RotaMapa[]
   altura?: string
   descricao?: string
   vazio?: string
   /** Clique no mapa devolve as coordenadas (marcar o local do restaurante) */
   marcavel?: boolean
-}>(), { altura: '320px', descricao: 'Mapa das entregas', vazio: 'Sem pontos no mapa ainda', rastros: () => [], trajeto: null })
+}>(), { altura: '320px', descricao: 'Mapa das entregas', vazio: 'Sem pontos no mapa ainda', rastros: () => [], trajeto: null, rotas: () => [] })
 const emit = defineEmits<{ (e: 'marcar', p: PontoMapa): void }>()
 
 const el = ref<HTMLElement | null>(null)
@@ -55,32 +58,41 @@ function icone(m: Marcador) {
   })
 }
 
-async function rotaPelaRua(a: PontoMapa, b: PontoMapa): Promise<[number, number][] | null> {
+// Rota pela rua com várias paradas em ordem (OSRM aceita até ~25 pontos)
+async function rotaPelaRua(pontos: PontoMapa[]): Promise<[number, number][] | null> {
   try {
-    const url = `https://router.project-osrm.org/route/v1/driving/${a.lng},${a.lat};${b.lng},${b.lat}?overview=full&geometries=geojson`
+    const coords = pontos.slice(0, 25).map(p => `${p.lng},${p.lat}`).join(';')
+    const url = `https://router.project-osrm.org/route/v1/driving/${coords}?overview=full&geometries=geojson`
     const r = await fetch(url, { signal: AbortSignal.timeout(5000) })
     const j = await r.json()
     return j.routes?.[0]?.geometry?.coordinates?.map(([lng, lat]: [number, number]) => [lat, lng]) ?? null
   } catch { return null }
 }
 
-let ultimoTrajeto = ''
+// Geometria pela rua já consultada, por sequência de pontos (~100 m de precisão):
+// o entregador andando não refaz a consulta a cada posição
+const cacheRua = new Map<string, [number, number][] | null>()
+const chaveRota = (pts: PontoMapa[]) => pts.map(p => `${p.lat.toFixed(3)},${p.lng.toFixed(3)}`).join('>')
+const todasRotas = computed<RotaMapa[]>(() => [
+  ...props.rotas,
+  ...(props.trajeto ? [{ id: 'trajeto', pontos: [props.trajeto.de, props.trajeto.para], destaque: true }] : []),
+].filter(r => r.pontos.length > 1))
+
+let geracao = 0
 async function desenhar() {
   if (!L || !mapa || !camada) return
+  const minha = ++geracao
   camada.clearLayers()
   for (const r of props.rastros) if (r.pontos.length > 1) L.polyline(r.pontos, { color: '#0284c7', weight: 3, opacity: 0.5, dashArray: '4 6' }).addTo(camada)
-  if (props.trajeto) {
-    const { de, para } = props.trajeto
-    const chave = `${de.lat.toFixed(4)},${de.lng.toFixed(4)}>${para.lat.toFixed(4)},${para.lng.toFixed(4)}`
-    const reta: [number, number][] = [[de.lat, de.lng], [para.lat, para.lng]]
-    const linha = L.polyline(reta, { color: '#ea580c', weight: 4, opacity: 0.8 }).addTo(camada)
-    // Só consulta a rota pela rua quando o trecho mudou
-    if (chave !== ultimoTrajeto) {
-      ultimoTrajeto = chave
-      const pelaRua = await rotaPelaRua(de, para)
-      if (pelaRua) linha.setLatLngs(pelaRua)
-    }
-  }
+  // Linhas primeiro (com o traçado reto), marcadores por cima; a rua chega depois
+  const linhas = todasRotas.value.map((rota) => {
+    const reta = rota.pontos.map(p => [p.lat, p.lng] as [number, number])
+    const forte = rota.destaque !== false
+    // Contorno branco por baixo + linha colorida: destaca a rota sobre o mapa
+    const contorno = L!.polyline(reta, { color: '#ffffff', weight: forte ? 10 : 7, opacity: 0.9, lineCap: 'round', lineJoin: 'round' }).addTo(camada!)
+    const linha = L!.polyline(reta, { color: forte ? '#ea580c' : '#6b7280', weight: forte ? 6 : 4, opacity: forte ? 0.95 : 0.7, lineCap: 'round', lineJoin: 'round' }).addTo(camada!)
+    return { rota, contorno, linha }
+  })
   for (const m of props.marcadores) {
     const mk = L.marker([m.lat, m.lng], { icon: icone(m), title: m.titulo ?? '', zIndexOffset: m.tipo === 'entregador' ? 1000 : 0 }).addTo(camada)
     if (m.titulo) mk.bindTooltip(m.titulo, { direction: 'top', offset: [0, -14] })
@@ -89,6 +101,13 @@ async function desenhar() {
     ajustado = true
     if (props.marcadores.length === 1) mapa.setView([props.marcadores[0].lat, props.marcadores[0].lng], 15)
     else mapa.fitBounds(L.latLngBounds(props.marcadores.map(m => [m.lat, m.lng] as [number, number])), { padding: [36, 36], maxZoom: 16 })
+  }
+  for (const { rota, contorno, linha } of linhas) {
+    const chave = chaveRota(rota.pontos)
+    if (!cacheRua.has(chave)) cacheRua.set(chave, await rotaPelaRua(rota.pontos))
+    if (minha !== geracao) return // outro redesenho começou enquanto esperava a rua
+    const pelaRua = cacheRua.get(chave)
+    if (pelaRua) { contorno.setLatLngs(pelaRua); linha.setLatLngs(pelaRua) }
   }
 }
 
@@ -106,7 +125,7 @@ onMounted(async () => {
   if (props.marcavel) mapa.on('click', (e: any) => emit('marcar', { lat: e.latlng.lat, lng: e.latlng.lng }))
   desenhar()
 })
-watch(() => [props.marcadores, props.rastros, props.trajeto], desenhar, { deep: true })
+watch(() => [props.marcadores, props.rastros, props.trajeto, props.rotas], desenhar, { deep: true })
 onUnmounted(() => { mapa?.remove(); mapa = null })
 </script>
 

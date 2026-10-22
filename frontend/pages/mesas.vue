@@ -243,11 +243,11 @@ watch(viewMode, v => { if (typeof localStorage !== 'undefined') localStorage.set
 
 const moeda = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' })
 
-const ordemEstados: ChaveEstado[] = ['pronto', 'cozinha', 'conta', 'atencao', 'parado']
+const ordemEstados: ChaveEstado[] = ['pronto', 'enviar', 'cozinha', 'conta', 'atencao', 'parado']
 const filtro = ref<ChaveEstado | null>(null)
 
 const contagem = computed(() => {
-  const c: Record<ChaveEstado, number> = { pronto: 0, cozinha: 0, conta: 0, atencao: 0, parado: 0 }
+  const c: Record<ChaveEstado, number> = { pronto: 0, enviar: 0, cozinha: 0, conta: 0, atencao: 0, parado: 0 }
   for (const m of mesas.value) c[chaveEstado(m)]++
   return c
 })
@@ -503,7 +503,7 @@ button.salao__linha:focus-visible { outline: 2px solid var(--acao); outline-offs
 .s--pronto  { background: var(--st-pronto-bg);  color: var(--st-pronto); }
 .s--cozinha { background: var(--st-cozinha-bg); color: var(--st-cozinha); }
 .s--conta   { background: var(--st-conta-bg);   color: var(--st-conta); }
-.s--atencao { background: var(--st-atencao-bg); color: var(--st-atencao); }
+.s--atencao, .s--enviar { background: var(--st-atencao-bg); color: var(--st-atencao); }
 
 .salao__vender {
   display: inline-flex; align-items: center; gap: 6px;

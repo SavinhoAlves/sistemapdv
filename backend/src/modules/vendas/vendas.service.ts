@@ -6,6 +6,7 @@ import { paraDecimal, paraCentavos, paraReais, centavosDoCliente } from '../../l
 import { calcularConta, includeParaConta, contaParaJson } from '../comandas/conta'
 import { proximoNumero } from '../comandas/sequencia'
 import { registrarAuditoria } from '../../lib/auditoria'
+import { vaiParaCozinha } from '../../lib/cozinha'
 
 /**
  * Venda direta (balcão).
@@ -148,7 +149,7 @@ export async function registrarVenda(tenantId: string, input: VendaInput) {
               quantidade: qtd,
               precoUnitario: produto.preco,
               precoTotal: paraDecimal(unitCent * qtd),
-              status: produto.categoria?.vaiCozinha ? 'pendente' : 'pronto',
+              status: vaiParaCozinha(produto) ? 'pendente' : 'pronto',
               observacao: item.observacao?.trim() || null,
               lancadoPorId: input.usuarioId,
             } as any,

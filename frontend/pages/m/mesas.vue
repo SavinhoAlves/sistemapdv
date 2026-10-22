@@ -241,7 +241,10 @@
                   :style="idx < itensMesa.length - 1 ? 'border-bottom: 1px solid rgba(255,255,255,0.04);' : ''"
                 >
                   <!-- Esquerda: nome -->
-                  <p class="flex-1 min-w-0 text-[13px] font-semibold text-white/85 truncate">{{ item.produto_nome || item.nome }}</p>
+                  <div class="flex-1 min-w-0">
+                    <p class="text-[13px] font-semibold text-white/85 truncate">{{ item.produto_nome || item.nome }}</p>
+                    <p v-if="item.status === 'rascunho'" class="text-[10px] font-black uppercase tracking-wide text-amber-400">Não enviado à cozinha</p>
+                  </div>
 
                   <!-- Centro: stepper -->
                   <div class="flex items-center gap-1.5 shrink-0 mx-3">
@@ -287,6 +290,18 @@
             </div>
 
             <!-- Footer: ações -->
+            <!-- Modo "pelo botão": manda à cozinha os itens que estão esperando -->
+            <div v-if="paraEnviar > 0" class="px-5 pt-3 shrink-0" style="border-top: 1px solid rgba(255,255,255,0.05);">
+              <button
+                @click="enviarPedido"
+                :disabled="enviando"
+                class="w-full h-[52px] rounded-[16px] text-white font-black text-[14px] flex items-center justify-center gap-2 active:scale-[0.98] disabled:opacity-50"
+                style="background: #16a34a; box-shadow: 0 6px 20px rgba(22,163,74,0.3);"
+              >
+                <ChefHat :size="17" />
+                {{ enviando ? 'Enviando…' : `Enviar pedido (${paraEnviar} ${paraEnviar === 1 ? 'item' : 'itens'})` }}
+              </button>
+            </div>
             <div
               class="px-5 pt-3 flex gap-3 shrink-0"
               style="border-top: 1px solid rgba(255,255,255,0.05); padding-bottom: max(20px, env(safe-area-inset-bottom));"
@@ -380,12 +395,14 @@
 </template>
 
 <script setup lang="ts">
+import { minutosDesde } from '~/lib/relogio'
 import { reais, numeroBR } from '~/lib/moeda'
 import { itensDaComanda } from '~/lib/comanda'
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import {
   Plus, X, Loader2, LayoutGrid, UtensilsCrossed,
-  ShoppingBag, Search, ChevronLeft, Printer
+  ShoppingBag, Search, ChevronLeft, Printer,
+  ChefHat,
 } from 'lucide-vue-next'
 import { useApi } from '~/services/api'
 import { useAuthStore } from '~/stores/auth'
@@ -428,7 +445,7 @@ function fmt(v: number) {
 
 function formatarTempo(data: string) {
   if (!data) return ''
-  const diff = Math.floor((Date.now() - new Date(data).getTime()) / 60000)
+  const diff = minutosDesde(data)
   if (diff < 60) return `${diff}min`
   const h = Math.floor(diff / 60), m = diff % 60
   return m > 0 ? `${h}h ${m}min` : `${h}h`
@@ -452,13 +469,32 @@ const totalMesa = computed(() =>
   itensMesa.value.reduce((s, i) => s + (i.preco_unitario || 0) * i.quantidade, 0)
 )
 
+// ── Enviar pedido (modo "pelo botão") ──────────────────────
+const paraEnviar = computed(() => itensMesa.value.filter((i: any) => i.status === 'rascunho').reduce((s: number, i: any) => s + i.quantidade, 0))
+const enviando   = ref(false)
+async function enviarPedido() {
+  if (!mesaSelecionada.value || enviando.value) return
+  enviando.value = true
+  try {
+    const r = await api.post<{ enviados: number }>(`/pedidos/mesa/${mesaSelecionada.value.id}/enviar`)
+    toastStore.success(`${r.enviados} ${r.enviados === 1 ? 'item enviado' : 'itens enviados'} para a cozinha`)
+    await carregarItensMesa(mesaSelecionada.value.id)
+  } catch (e: any) {
+    toastStore.error(e?.message || 'Não deu para enviar')
+  } finally {
+    enviando.value = false
+  }
+}
+
 const quantidadeItensMesa = computed(() =>
   itensMesa.value.reduce((s, i) => s + i.quantidade, 0)
 )
 
 // ── Mesas ─────────────────────────────────────────────────
+// Spinner só no 1º carregamento; o polling de 30 s troca a lista sem escondê-la
+let mesasCarregadas = false
 async function carregarMesas() {
-  loading.value = true
+  if (!mesasCarregadas) loading.value = true
   try {
     const rows = await api.get<any[]>('/mesas')
     // GET /mesas → { nome, garcom: { id, nome }, aberta_em, … }; a tela usa nome_mesa/garcom_id/data_abertura
@@ -466,7 +502,7 @@ async function carregarMesas() {
       .filter((m: any) => m.status === 'aberta' || m.status === 'fechando')
       .map((m: any) => ({ ...m, nome_mesa: m.nome, garcom_id: m.garcom?.id ?? null, data_abertura: m.aberta_em }))
   } catch {}
-  finally { loading.value = false }
+  finally { loading.value = false; mesasCarregadas = true }
 }
 
 async function carregarProdutos() {
@@ -477,7 +513,8 @@ async function carregarProdutos() {
 }
 
 async function carregarItensMesa(mesaId: number) {
-  loadingItens.value = true
+  // Recarregar depois de lançar um item não esconde a comanda (só a 1ª vez mostra o spinner)
+  loadingItens.value = !itensMesa.value.length
   try {
     itensMesa.value = itensDaComanda(await api.get<any>(`/mesas/${mesaId}/produtos`))
   } catch {
@@ -492,6 +529,7 @@ async function selecionarMesa(mesa: any) {
   buscaProduto.value    = ''
   categoriaAtiva.value  = 'Todos'
   carrinhoAberto.value  = false
+  itensMesa.value       = [] // outra mesa: não mostrar os itens da anterior enquanto carrega
   await carregarItensMesa(mesa.id)
 }
 
@@ -552,7 +590,7 @@ async function adicionarItemMesa(produto: any) {
       quantidade: 1,
       ...(userId ? { garcomId: userId } : {})
     })
-    toastStore.success(`${produto.nome} adicionado!`)
+    toastStore.success(configStore.envio_cozinha_modo === 'botao' ? `${produto.nome} adicionado — toque em Enviar pedido` : `${produto.nome} adicionado!`)
     carregarItensMesa(mesaSelecionada.value.id)
   } catch {
     toastStore.error('Erro ao adicionar item')
@@ -658,7 +696,7 @@ onMounted(async () => {
     return
   }
 
-  await Promise.all([carregarMesas(), carregarProdutos()])
+  await Promise.all([carregarMesas(), carregarProdutos(), configStore.carregar()])
 
   const userId = authStore.usuario?.id
   if (userId && authStore.usuario?.cargo === 'garcom') {

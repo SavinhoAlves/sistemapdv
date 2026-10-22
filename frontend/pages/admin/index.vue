@@ -55,7 +55,7 @@
                 :class="cat.vaiCozinha
                   ? 'bg-orange-500/10 text-orange-400 hover:bg-orange-500/20'
                   : 'text-gray-300 dark:text-white/20 hover:bg-gray-100 dark:hover:bg-white/5 hover:text-gray-400 dark:hover:text-white/40'">
-                <ChefHat :size="12" />
+                <ChefHat :size="12" /> {{ cat.vaiCozinha ? 'Cozinha' : 'Balcão' }}
               </button>
               <button @click="abrirModalCat(cat)"
                 class="h-7 w-7 rounded-lg flex items-center justify-center text-gray-400 dark:text-white/40 hover:bg-gray-100 dark:hover:bg-white/[0.06] transition-all">
@@ -130,6 +130,13 @@
               <label for="cNome" class="block text-[10px] font-black uppercase tracking-widest text-gray-500 dark:text-white/40 mb-2">Nome *</label>
               <input id="cNome" v-model="catForm.nome" type="text" placeholder="Ex: Bebidas"
                 class="w-full h-11 px-4 bg-gray-50 dark:bg-white/[0.06] border border-gray-200 dark:border-white/10 rounded-xl text-gray-900 dark:text-white text-sm outline-none focus:border-orange-500 transition-all placeholder:text-gray-400 dark:placeholder:text-white/25" />
+              <label class="mt-4 flex items-start gap-3 rounded-xl border border-gray-200 dark:border-white/10 p-3 cursor-pointer">
+                <input v-model="catForm.vaiCozinha" type="checkbox" class="mt-0.5 accent-orange-500" />
+                <span>
+                  <span class="block text-sm font-black text-gray-900 dark:text-white">Vai para a cozinha</span>
+                  <span class="block text-[11px] text-gray-500 dark:text-white/45">Itens desta categoria aparecem na tela da Cozinha. Desligue para bebidas e itens que saem direto do balcão.</span>
+                </span>
+              </label>
               <div v-if="erroCat" class="mt-2 text-xs text-red-500 font-bold">{{ erroCat }}</div>
             </div>
 
@@ -242,7 +249,7 @@ const categorias   = ref<any[]>([])
 const modalCat     = ref(false)
 const salvandoCat  = ref(false)
 const erroCat      = ref('')
-const catForm      = reactive({ id: null as string | null, nome: '' })
+const catForm      = reactive({ id: null as string | null, nome: '', vaiCozinha: true })
 
 async function carregarCategorias() {
   try { categorias.value = await api.get<any[]>('/categorias') } catch {}
@@ -265,6 +272,7 @@ function abrirModalCat(c: any) {
   erroCat.value = ''
   catForm.id   = c?.id ?? null
   catForm.nome = c?.nome ?? ''
+  catForm.vaiCozinha = c?.vaiCozinha ?? true
   modalCat.value = true
 }
 
@@ -272,8 +280,10 @@ async function salvarCategoria() {
   if (!catForm.nome.trim()) { erroCat.value = 'Nome é obrigatório'; return }
   salvandoCat.value = true; erroCat.value = ''
   try {
-    if (catForm.id) await api.put(`/categorias/${catForm.id}`, { nome: catForm.nome })
-    else await api.post('/categorias', { nome: catForm.nome })
+    if (catForm.id) {
+      await api.put(`/categorias/${catForm.id}`, { nome: catForm.nome })
+      await api.patch(`/categorias/${catForm.id}/cozinha`, { vaiCozinha: catForm.vaiCozinha })
+    } else await api.post('/categorias', { nome: catForm.nome, vaiCozinha: catForm.vaiCozinha })
     toastStore.success(catForm.id ? 'Categoria atualizada!' : 'Categoria criada!')
     modalCat.value = false
     await carregarCategorias()

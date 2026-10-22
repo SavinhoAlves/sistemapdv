@@ -9,6 +9,9 @@ import { prisma } from '../../lib/prisma'
  * A categoria é obrigatória: é ela que diz se o item vai para a cozinha
  * (Categoria.vaiCozinha). Confere também que é deste restaurante.
  */
+/** Exceção do produto à categoria: categoria (segue), sempre ou nunca vai para a cozinha. */
+const envioValido = (v: unknown) => (v === 'categoria' || v === 'sempre' || v === 'nunca' ? v : undefined)
+
 async function categoriaInvalida(categoriaId: unknown): Promise<string | null> {
   if (typeof categoriaId !== 'string' || !categoriaId) return 'Selecione a categoria do produto'
   const existe = await prisma.categoria.findFirst({ where: { id: categoriaId }, select: { id: true } })
@@ -39,6 +42,7 @@ export async function produtosRoutes(app: FastifyInstance) {
         gerenciarEstoque: body.gerenciarEstoque,
         estoqueAtual: body.estoqueAtual !== undefined ? Number(body.estoqueAtual) : undefined,
         estoqueMinimo: body.estoqueMinimo !== undefined ? Number(body.estoqueMinimo) : undefined,
+        envioCozinha: envioValido(body.envioCozinha),
       })
       return reply.status(201).send(produto)
     } catch (err: any) {
@@ -72,6 +76,7 @@ export async function produtosRoutes(app: FastifyInstance) {
           estoqueAtual: body.estoqueAtual !== undefined ? Number(body.estoqueAtual) : undefined,
           estoqueMinimo: body.estoqueMinimo !== undefined ? Number(body.estoqueMinimo) : undefined,
           ativo: body.ativo,
+          envioCozinha: envioValido(body.envioCozinha),
         },
         auth.sub,
       )

@@ -44,11 +44,26 @@ enum PedidoStatus {
 }
 
 enum PedidoItemStatus {
+  /// Lançado mas ainda não enviado à cozinha (restaurante no modo "pelo botão")
+  rascunho
   pendente
   preparando
   pronto
   entregue
   cancelado
+}
+
+/// Produto: segue a categoria ou é exceção (sempre/nunca vai para a cozinha)
+enum EnvioCozinha {
+  categoria
+  sempre
+  nunca
+}
+
+/// Restaurante: itens vão à cozinha ao lançar ou só pelo botão "Enviar pedido"
+enum ModoEnvioCozinha {
+  automatico
+  botao
 }
 
 enum CaixaStatus {
@@ -303,6 +318,8 @@ model Produto {
   estoqueAtual        Decimal  @default(0) @map("estoque_atual") @db.Decimal(10, 3)
   estoqueMinimo       Decimal  @default(0) @map("estoque_minimo") @db.Decimal(10, 3)
   gerenciarEstoque    Boolean  @default(false) @map("gerenciar_estoque")
+  /// Exceção à categoria: "categoria" segue Categoria.vaiCozinha
+  envioCozinha        EnvioCozinha @default(categoria) @map("envio_cozinha")
   createdAt           DateTime @default(now()) @map("created_at")
   updatedAt           DateTime @updatedAt @map("updated_at")
 
@@ -419,6 +436,8 @@ model PedidoItem {
   precoUnitario Decimal          @map("preco_unitario") @db.Decimal(10, 2)
   precoTotal    Decimal          @map("preco_total") @db.Decimal(10, 2)
   status        PedidoItemStatus @default(pendente)
+  /// Quando foi para a cozinha (modo "pelo botão"); nulo = no lançamento
+  enviadoEm     DateTime?        @map("enviado_em")
   observacao    String?
 
   /// Quem lançou. Antes só o pedido tinha garçom; numa troca de turno não
@@ -572,6 +591,7 @@ model Configuracoes {
   impressoraPorta        Int?    @map("impressora_porta")
   taxaServicoPct         Decimal @default(0) @map("taxa_servico_pct") @db.Decimal(5, 2)
   modoVenda              String  @default("mesa") @map("modo_venda")
+  envioCozinhaModo       ModoEnvioCozinha @default(automatico) @map("envio_cozinha_modo")
   rfidAtivo              Boolean @default(false) @map("rfid_ativo")
   /// Venda pelo celular (QR por funcionário). Só vale se o plano liberar; o admin pode desligar.
   vendaMobileAtiva       Boolean @default(true) @map("venda_mobile_ativa")

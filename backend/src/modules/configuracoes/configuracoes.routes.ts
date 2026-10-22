@@ -44,6 +44,7 @@ const configBody = z.object({
   taxa_servico_pct: z.number().min(0).max(30, 'Taxa de serviço acima de 30%').optional(),
 
   modo_venda: z.string().optional(),
+  envio_cozinha_modo: z.enum(['automatico', 'botao']).optional(),
   rfid_ativo: z.boolean().optional(),
   tipo_comercio: z.string().nullable().optional(),
 })
@@ -82,6 +83,7 @@ export async function configuracoesRoutes(app: FastifyInstance) {
         impressoraPorta:       d.impressora_porta,
         taxaServicoPct:        d.taxa_servico_pct,
         modoVenda:             d.modo_venda,
+        envioCozinhaModo:      d.envio_cozinha_modo,
         rfidAtivo:             d.rfid_ativo,
       })
     },

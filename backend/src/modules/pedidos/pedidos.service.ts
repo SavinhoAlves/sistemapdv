@@ -5,6 +5,7 @@ import { paraDecimal, paraCentavos, centavosDoCliente } from '../../lib/money'
 import { calcularConta, includeParaConta, contaParaJson } from '../comandas/conta'
 import { proximoNumero } from '../comandas/sequencia'
 import { registrarAuditoria } from '../../lib/auditoria'
+import { vaiParaCozinha, produtoDaCozinha, camposCozinha } from '../../lib/cozinha'
 
 /**
  * Pedidos — lançamento de itens na comanda.
@@ -120,14 +121,17 @@ export async function lancarItem(tenantId: string, input: LancarItemInput) {
     if (ultima._max.rodada) {
       const daFicha = await tx.pedidoItem.findMany({
         where: { pedidoId: pedido.id, rodada: ultima._max.rodada },
-        select: { lancadoPorId: true, createdAt: true, status: true, produto: { select: { categoria: { select: { vaiCozinha: true } } } } },
+        select: { lancadoPorId: true, createdAt: true, status: true, produto: { select: camposCozinha } },
       })
       const recente = daFicha.every((i) => i.lancadoPorId === usuarioId && Date.now() - i.createdAt.getTime() < JUNTAR_MS)
-      const naoComecou = daFicha.every((i) => i.status === 'pendente' || (i.status === 'pronto' && i.produto.categoria?.vaiCozinha === false))
+      const naoComecou = daFicha.every((i) => i.status === 'pendente' || i.status === 'rascunho' || (i.status === 'pronto' && !vaiParaCozinha(i.produto)))
       if (daFicha.length && recente && naoComecou) rodada = ultima._max.rodada
     }
 
-    const vaiCozinha = produto.categoria?.vaiCozinha ?? true
+    const vaiCozinha = vaiParaCozinha(produto)
+    // Modo "pelo botão": item de cozinha fica em rascunho até "Enviar pedido"
+    const cfgEnvio = await tx.configuracoes.findFirst({ select: { envioCozinhaModo: true } })
+    const statusInicial = !vaiCozinha ? 'pronto' : cfgEnvio?.envioCozinhaModo === 'botao' ? 'rascunho' : 'pendente'
     const precoUnitario = produto.preco
     const precoTotalCent = paraCentavos(precoUnitario) * quantidade
 
@@ -139,7 +143,7 @@ export async function lancarItem(tenantId: string, input: LancarItemInput) {
     const igual = await tx.pedidoItem.findFirst({
       where: {
         pedidoId: pedido.id, produtoId, observacao: obs, precoUnitario,
-        status: vaiCozinha ? 'pendente' : 'pronto',
+        status: statusInicial,
       },
       orderBy: { createdAt: 'desc' },
     })
@@ -161,7 +165,7 @@ export async function lancarItem(tenantId: string, input: LancarItemInput) {
             precoUnitario,
             // Sempre unitário × quantidade. Sem increment sobre preço atual.
             precoTotal: paraDecimal(precoTotalCent),
-            status: vaiCozinha ? 'pendente' : 'pronto',
+            status: statusInicial,
             observacao: obs,
             lancadoPorId: usuarioId,
           } as any,
@@ -624,7 +628,7 @@ export async function filaCozinha(tenantId: string, horas = 6) {
     where: {
       status: { in: ['pendente', 'preparando', 'pronto'] },
       createdAt: { gte: desde },
-      produto: { categoria: { vaiCozinha: true } },
+      produto: produtoDaCozinha,
     },
     include: {
       produto: { select: { nome: true, categoria: { select: { nome: true } } } },
@@ -660,7 +664,7 @@ export async function filaCozinha(tenantId: string, horas = 6) {
         cliente: mesa?.cliente ?? online?.clienteNome ?? null,
         delivery: online ? online.tipo : null,
         lancada_por: item.lancadoPor?.nome ?? null,
-        aberta_em: item.createdAt,
+        aberta_em: item.enviadoEm ?? item.createdAt,
         itens: [],
       })
     }
@@ -671,7 +675,7 @@ export async function filaCozinha(tenantId: string, horas = 6) {
       quantidade: item.quantidade,
       status: item.status,
       observacao: item.observacao,
-      lancado_em: item.createdAt,
+      lancado_em: item.enviadoEm ?? item.createdAt,
       atualizado_em: item.updatedAt,
     })
   }
@@ -682,6 +686,7 @@ export async function filaCozinha(tenantId: string, horas = 6) {
 // ── Status de item (cozinha) ───────────────────────────────────────────────
 
 const TRANSICOES: Record<string, string[]> = {
+  rascunho: ['pendente', 'cancelado'],
   pendente: ['preparando', 'cancelado'],
   preparando: ['pronto', 'cancelado'],
   pronto: ['entregue'],
@@ -764,6 +769,44 @@ async function contaDoPedido(tx: any, pedidoId: string) {
     taxaPct: Number(pedido.taxaPct),
     taxaEntrega: pedido.taxaEntrega,
   })
+}
+
+// ── Enviar pedido (modo "pelo botão") ─────────────────────────────────────
+
+/**
+ * Manda para a cozinha tudo o que está em rascunho na comanda, numa ficha só.
+ * O tempo da cozinha conta a partir do envio (enviadoEm).
+ */
+export async function enviarParaCozinha(tenantId: string, mesaId: string, usuarioId: string) {
+  const resultado = await prisma.$transaction(async (tx) => {
+    const pedido = await tx.pedido.findFirst({ where: { mesaId, status: { in: [...STATUS_ABERTOS] } } })
+    if (!pedido) throw erro(404, 'Comanda sem pedido aberto')
+    const rascunhos = await tx.pedidoItem.findMany({
+      where: { pedidoId: pedido.id, status: 'rascunho' },
+      include: { produto: { select: { nome: true } } },
+    })
+    if (!rascunhos.length) throw erro(409, 'Nada para enviar: todos os itens já foram para a cozinha')
+    const ultima = await tx.pedidoItem.aggregate({ where: { pedidoId: pedido.id, status: { not: 'rascunho' } }, _max: { rodada: true } })
+    const rodada = (ultima._max.rodada ?? 0) + 1
+    const agora = new Date()
+    await tx.pedidoItem.updateMany({ where: { id: { in: rascunhos.map((i) => i.id) } }, data: { status: 'pendente', rodada, enviadoEm: agora } })
+    await registrarAuditoria(tx, {
+      usuarioId, acao: 'pedido.enviado_cozinha', entidade: 'Pedido', entidadeId: pedido.id,
+      detalhes: { rodada, itens: rascunhos.map((i) => ({ produto: i.produto.nome, quantidade: i.quantidade })) },
+    })
+    return { pedido, rascunhos, rodada }
+  })
+
+  // Um aviso por item: a cozinha toca o som e busca de novo; Mesas atualiza a comanda
+  for (const i of resultado.rascunhos) {
+    emitir(tenantId).item(EVENTOS.item.lancado, {
+      comandaId: mesaId, pedidoId: resultado.pedido.id, itemId: i.id, produtoId: i.produtoId,
+      produtoNome: i.produto.nome, quantidade: i.quantidade, status: 'pendente', vaiCozinha: true,
+      rodada: resultado.rodada, totalCentavos: 0,
+    } as any)
+  }
+  await notificarComanda(tenantId, mesaId)
+  return { enviados: resultado.rascunhos.reduce((s, i) => s + i.quantidade, 0), rodada: resultado.rodada }
 }
 
 async function notificarComanda(tenantId: string, mesaId: string | null) {

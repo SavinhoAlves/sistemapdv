@@ -81,9 +81,20 @@
             </button>
           </div>
 
-          <div v-if="!novaCategoria && categoriaAtual?.vaiCozinha" class="mt-1.5 flex items-center gap-1 text-[11px] font-black text-orange-400">
+        </div>
+
+        <!-- ENVIAR PARA A COZINHA: segue a categoria ou é exceção -->
+        <div>
+          <label for="prod-cozinha" class="text-xs font-bold text-gray-500 dark:text-white/40 block mb-1">Enviar para a cozinha</label>
+          <select id="prod-cozinha" v-model="form.envioCozinha"
+            class="w-full h-11 border border-gray-200 dark:border-white/10 rounded-xl px-3 outline-none !bg-gray-50 dark:!bg-white/[0.06] text-gray-900 dark:text-white focus:border-orange-500/70 transition-colors">
+            <option value="categoria">Segue a categoria{{ categoriaAtual ? (categoriaAtual.vaiCozinha ? ' (vai)' : ' (não vai)') : '' }}</option>
+            <option value="sempre">Sempre vai para a cozinha</option>
+            <option value="nunca">Nunca vai (sai direto do balcão)</option>
+          </select>
+          <div class="mt-1.5 flex items-center gap-1 text-[11px] font-black" :class="vaiCozinha ? 'text-orange-400' : 'text-gray-400 dark:text-white/35'">
             <ChefHat :size="12" />
-            Vai para a cozinha
+            {{ vaiCozinha ? 'Este produto aparece na Cozinha' : 'Este produto não passa pela Cozinha' }}
           </div>
         </div>
 
@@ -205,7 +216,8 @@ const form = reactive({
   ativo: true,
   estoqueAtual: 0,
   estoqueMinimo: 5,
-  gerenciarEstoque: true
+  gerenciarEstoque: true,
+  envioCozinha: 'categoria'
 })
 
 const categorias        = ref([])
@@ -214,6 +226,7 @@ const nomeNovaCategoria = ref('')
 const criandoCategoria  = ref(false)
 
 const categoriaAtual = computed(() => categorias.value.find(c => c.id === form.categoriaId))
+const vaiCozinha = computed(() => form.envioCozinha === 'sempre' || (form.envioCozinha !== 'nunca' && (categoriaAtual.value?.vaiCozinha ?? true)))
 
 async function carregarCategorias() {
   try {
@@ -273,6 +286,7 @@ watch(
     nomeNovaCategoria.value = ''
     if (val) {
       Object.assign(form, val)
+      form.envioCozinha = val.envioCozinha ?? 'categoria'
       precoTexto.value = numeroBR(val.preco)
     } else {
       precoTexto.value = ''
@@ -284,7 +298,8 @@ watch(
         ativo: true,
         estoqueAtual: 0,
         estoqueMinimo: 5,
-        gerenciarEstoque: true
+        gerenciarEstoque: true,
+        envioCozinha: 'categoria'
       })
     }
   },

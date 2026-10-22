@@ -87,7 +87,7 @@
                     class="mt-3 flex justify-between items-center bg-blue-950/30 rounded-2xl px-4 py-3"
                   >
                     <span class="text-sm font-bold text-blue-400">
-                      Cobrando agora (1 de {{ pessoas }})
+                      Cobrando agora ({{ Math.min(pagas + 1, pessoas) }} de {{ pessoas }})
                     </span>
                     <span class="text-xl font-black text-blue-400">
                       {{ reais(cobranca) }}
@@ -330,11 +330,20 @@ let   pollingInterval: ReturnType<typeof setInterval> | null = null
 
 const valorRecebidoNum = computed(() => parseFloat(valorRecebido.value) || 0)
 
+// Divisão: a parcela sai do saldo em aberto (props.total) dividido pelas partes que
+// faltam. Antes, depois de pagar a 1ª parte, continuava "1 de 2" e repetia o valor.
 const pessoas  = ref(1)
+const pagas    = ref(0)
+const faltam   = computed(() => Math.max(1, pessoas.value - pagas.value))
+// Saldo devolvido pela API logo após a parte paga, até a comanda recarregar o total
+const saldoApi = ref<number | null>(null)
+watch(() => props.total, () => { saldoApi.value = null })
+const saldo    = computed(() => saldoApi.value ?? props.total)
 const cobranca = computed(() => {
-  if (pessoas.value <= 1) return props.total
-  return Math.min(props.total, Math.ceil((props.total * 100) / pessoas.value) / 100)
+  if (pessoas.value <= 1 || faltam.value <= 1) return saldo.value
+  return Math.min(saldo.value, Math.ceil((saldo.value * 100) / faltam.value) / 100)
 })
+watch(pessoas, () => { pagas.value = 0 })
 
 const troco = computed(() => Math.max(0, valorRecebidoNum.value - cobranca.value))
 
@@ -412,6 +421,8 @@ async function confirmar() {
       toastStore.success(`Parte registrada — restam ${reais(Number(res.restante))}`)
       valorRecebido.value     = ''
       metodoSelecionado.value = null
+      pagas.value++
+      saldoApi.value = Number(res.restante)
       emit('parcial')
     }
   } catch (err: any) {
@@ -499,6 +510,8 @@ async function confirmarAposMaquininha() {
       toastStore.success(`Parte aprovada — restam ${reais(Number(res.restante))}`)
       metodoSelecionado.value = null
       estado.value = 'selecao'
+      pagas.value++
+      saldoApi.value = Number(res.restante)
       emit('parcial')
     }
   } catch (err: any) {
@@ -526,6 +539,7 @@ watch(() => props.aberto, (v) => {
     metodoSelecionado.value = null
     valorRecebido.value     = ''
     pessoas.value           = 1
+    pagas.value             = 0
     estado.value            = 'selecao'
     erroMaquininha.value    = ''
     intentIdAtual.value     = null

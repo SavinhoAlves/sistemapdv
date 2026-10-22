@@ -10,6 +10,7 @@ import { verificarAcessoTenant } from '../../middlewares/tenant.middleware'
 import { registrarPagamento } from '../pagamentos/pagamentos.service'
 import { geocodificar, distancia, type Coordenadas } from '../../lib/geocodificar'
 import { hojeLocal, inicioDoDia } from '../../lib/fuso'
+import { vaiParaCozinha, camposCozinha } from '../../lib/cozinha'
 
 /**
  * Delivery pelo cardápio online.
@@ -195,7 +196,7 @@ export async function acompanhar(codigo: string) {
     include: {
       entregador: { select: { id: true, nome: true } },
       tenant: { select: { nome: true, slug: true } },
-      pedido: { select: { itens: { select: { status: true, produto: { select: { categoria: { select: { vaiCozinha: true } } } } } } } },
+      pedido: { select: { itens: { select: { status: true, produto: { select: camposCozinha } } } } },
     },
   }))
   if (!po) throw erro(404, 'Pedido não encontrado')
@@ -243,9 +244,9 @@ export async function acompanhar(codigo: string) {
 
 
 /** Itens da cozinha todos prontos (ou não há cozinha): o pedido está pronto. */
-function prontoPelaCozinha(po: { aceitoEm: Date | null; pedido?: { itens: { status: string; produto: { categoria: { vaiCozinha: boolean } | null } }[] } | null }) {
+function prontoPelaCozinha(po: { aceitoEm: Date | null; pedido?: { itens: { status: string; produto: { envioCozinha: string; categoria: { vaiCozinha: boolean } | null } }[] } | null }) {
   if (!po.pedido) return null
-  const daCozinha = po.pedido.itens.filter((i) => i.status !== 'cancelado' && i.produto.categoria?.vaiCozinha)
+  const daCozinha = po.pedido.itens.filter((i) => i.status !== 'cancelado' && vaiParaCozinha(i.produto))
   return daCozinha.every((i) => i.status === 'pronto' || i.status === 'entregue') ? po.aceitoEm : null
 }
 
@@ -261,7 +262,7 @@ const payload = (po: any) => ({
 })
 
 const includeCaixa = {
-  pedido: { select: { numero: true, itens: { select: { status: true, produto: { select: { categoria: { select: { vaiCozinha: true } } } } } } } },
+  pedido: { select: { numero: true, itens: { select: { status: true, produto: { select: camposCozinha } } } } },
   entregador: { select: { id: true, nome: true } },
 } as const
 
@@ -320,7 +321,7 @@ export async function aceitar(tenantId: string, id: string, usuarioId: string) {
     const itens = po.itens as ItemPedidoOnline[]
     const produtos = await tx.produto.findMany({
       where: { tenantId, id: { in: itens.map((i) => i.produtoId) } },
-      select: { id: true, nome: true, gerenciarEstoque: true, categoria: { select: { vaiCozinha: true } } },
+      select: { id: true, nome: true, gerenciarEstoque: true, ...camposCozinha },
     })
     const porId = new Map(produtos.map((p) => [p.id, p]))
 
@@ -350,7 +351,7 @@ export async function aceitar(tenantId: string, id: string, usuarioId: string) {
           data: { produtoId: p.id, tipo: 'saida', quantidade: i.quantidade, motivo: `Delivery ${po.codigo}`, usuarioId } as any,
         })
       }
-      const vaiCozinha = Boolean(p.categoria?.vaiCozinha)
+      const vaiCozinha = vaiParaCozinha(p)
       const item = await tx.pedidoItem.create({
         data: {
           pedidoId: pedido.id, produtoId: p.id, rodada, quantidade: i.quantidade,

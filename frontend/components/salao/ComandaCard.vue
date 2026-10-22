@@ -49,6 +49,7 @@ const estado = computed(() => {
   const chave = chaveEstado(c, props.limiteParadaMin)
   const selo = {
     pronto:  c.qtd_prontos === 1 ? '1 pronto para entregar' : `${c.qtd_prontos} prontos para entregar`,
+    enviar:  `${c.qtd_para_enviar} para enviar à cozinha`,
     conta:   c.pago > 0 ? `Pago ${moeda.format(c.pago)} de ${moeda.format(c.total)}` : 'Conta pedida',
     cozinha: `${c.qtd_na_cozinha} na cozinha`,
     atencao: `Sem lançamento há ${duracao(minutosParada.value)}`,
@@ -211,7 +212,7 @@ const vazia = computed(() => props.comanda.qtd_itens === 0)
 .comanda--pronto  .comanda__selo { background: var(--st-pronto-bg);  color: var(--st-pronto); }
 .comanda--cozinha .comanda__selo { background: var(--st-cozinha-bg); color: var(--st-cozinha); }
 .comanda--conta   .comanda__selo { background: var(--st-conta-bg);   color: var(--st-conta); }
-.comanda--atencao .comanda__selo { background: var(--st-atencao-bg); color: var(--st-atencao); }
+.comanda--atencao .comanda__selo, .comanda--enviar .comanda__selo { background: var(--st-atencao-bg); color: var(--st-atencao); }
 
 .comanda__pe {
   display: flex;

@@ -171,6 +171,7 @@
 </template>
 
 <script setup lang="ts">
+import { agoraServidor } from '~/lib/relogio'
 import { ref, reactive, computed } from 'vue'
 import { Search, Plus, QrCode, X } from 'lucide-vue-next'
 import { useApi } from '~/services/api'
@@ -200,7 +201,7 @@ const lista = computed(() => {
 })
 const iniciais = (n: string) => n.trim().split(/\s+/).slice(0, 2).map(p => p[0]).join('').toUpperCase()
 function relativo(iso: string) {
-  const min = Math.round((Date.now() - new Date(iso).getTime()) / 60000)
+  const min = Math.max(0, Math.round((agoraServidor() - new Date(iso).getTime()) / 60000))
   if (min < 1) return 'agora'
   if (min < 60) return `há ${min} min`
   if (min < 1440) return `há ${Math.round(min / 60)} h`

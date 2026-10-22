@@ -4,6 +4,7 @@
     <div class="pf-boxm">
       <div class="pf-fld">
         <span class="pf-lab">Plano *</span>
+        <small v-if="planosVisiveis.length && !m.planoId" style="color:var(--pf-muted)">Toque no plano para escolher</small>
         <div v-if="planosVisiveis.length" class="pf-rotas">
           <button v-for="pl in planosVisiveis" :key="pl.id" type="button" :class="{ sel: m.planoId === pl.id }" @click="escolherPlano(pl)">
             <span>{{ pl.nome }} · {{ moeda(pl.valor) }}/mês</span>
@@ -162,6 +163,17 @@ function escolherPlano(pl: Plano) {
 function usarValorDoPlano() { valorManual.value = false; if (valorDoPlano.value !== null) m.value.valor = valorDoPlano.value }
 
 watch([valorDoPlano, valorManual], ([v, manual]) => { if (!manual && v !== null) m.value.valor = v }, { immediate: true })
+
+// Contrato antigo (plano só como texto): já marca o plano de mesmo nome, em vez de parecer
+// escolhido sem estar. Sem valor no contrato, passa a usar o do plano.
+watch(planosVisiveis, (pls) => {
+  if (m.value.planoId || !m.value.plano.trim()) return
+  const nome = m.value.plano.trim().toLowerCase()
+  const pl = pls.find(x => x.nome.trim().toLowerCase() === nome)
+  if (!pl) return
+  m.value.planoId = pl.id
+  if (!(Number(String(m.value.valor).replace(',', '.')) > 0)) valorManual.value = false
+}, { immediate: true })
 
 // ── Teste: 7 dias a partir do início (seg → dom); 1º vencimento no dia seguinte ──
 function somarDias(iso: string, dias: number) {

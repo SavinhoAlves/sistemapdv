@@ -4,12 +4,14 @@ import { requireTenant } from '../../middlewares/tenant.middleware'
 import { requirePermissao } from '../../middlewares/permission.middleware'
 import type { TenantJwtPayload } from '../../lib/jwt'
 import * as Service from './delivery.service'
+import { chavePublicaPush, inscrever, desinscrever } from '../../lib/push'
 
 /** Configurações do delivery: usadas pelo restaurante e pelo Platform. */
 export const configBody = z.object({
   ativo: z.boolean().optional(), entrega: z.boolean().optional(), retirada: z.boolean().optional(),
   taxaEntrega: z.number().min(0).max(500).optional(), pedidoMinimo: z.number().min(0).max(5000).optional(),
   tempoMin: z.number().int().min(5).max(240).optional(), mensagem: z.string().max(200).nullable().optional(),
+  mensagemWhatsapp: z.string().max(1000).nullable().optional(),
   local: z.object({ lat: z.number().min(-90).max(90), lng: z.number().min(-180).max(180) }).nullable().optional(),
 })
 
@@ -72,6 +74,25 @@ export async function entregadorRoutes(app: FastifyInstance) {
   const usuario = (r: any) => (r.auth as TenantJwtPayload).sub
 
   app.get('/rota', ent, async (request) => Service.minhaRota(request.tenantId!, usuario(request)))
+
+  // Notificação push: chave pública e inscrição do aparelho
+  app.get('/push/chave', ent, async () => ({ chave: chavePublicaPush() }))
+  const inscricao = z.object({
+    endpoint: z.string().url().max(1000),
+    keys: z.object({ p256dh: z.string().min(1).max(200), auth: z.string().min(1).max(100) }),
+  })
+  app.post('/push', ent, async (request, reply) => {
+    const b = inscricao.safeParse(request.body)
+    if (!b.success) return reply.status(400).send({ error: 'Inscrição inválida' })
+    await inscrever(request.tenantId!, usuario(request), b.data)
+    return { ok: true }
+  })
+  app.post('/push/sair', ent, async (request, reply) => {
+    const endpoint = (request.body as any)?.endpoint
+    if (typeof endpoint !== 'string') return reply.status(400).send({ error: 'Inscrição inválida' })
+    await desinscrever(request.tenantId!, usuario(request), endpoint)
+    return { ok: true }
+  })
   app.post('/rota/iniciar', ent, async (request, reply) => responder(reply, () => Service.iniciarRota(request.tenantId!, usuario(request))))
   app.post('/pedidos/:id/entregue', ent, async (request, reply) =>
     responder(reply, () => Service.confirmarEntrega(request.tenantId!, usuario(request), (request.params as any).id, (request.body as any)?.codigo)))

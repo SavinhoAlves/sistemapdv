@@ -639,7 +639,7 @@ export async function filaCozinha(tenantId: string, horas = 6) {
           numero: true,
           mesaId: true,
           mesa: { select: { numero: true, nomeMesa: true, cliente: true } },
-          online: { select: { codigo: true, clienteNome: true, tipo: true } },
+          online: { select: { codigo: true, clienteNome: true, tipo: true, observacao: true } },
         },
       },
     },
@@ -663,6 +663,9 @@ export async function filaCozinha(tenantId: string, horas = 6) {
         comanda_nome: mesa?.nomeMesa || (mesa ? `Mesa ${mesa.numero}` : online ? `${online.tipo === 'entrega' ? 'Delivery' : 'Retirada'} ${online.codigo}` : 'Balcão'),
         cliente: mesa?.cliente ?? online?.clienteNome ?? null,
         delivery: online ? online.tipo : null,
+        // Tipo para o cartão da cozinha e a observação geral do pedido (cardápio online)
+        tipo: online ? online.tipo : mesa ? 'mesa' : 'balcao',
+        observacao: online?.observacao ?? null,
         lancada_por: item.lancadoPor?.nome ?? null,
         aberta_em: item.enviadoEm ?? item.createdAt,
         itens: [],

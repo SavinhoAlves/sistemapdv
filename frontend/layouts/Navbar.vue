@@ -16,6 +16,9 @@
       <!-- DIREITA -->
       <div class="flex items-center gap-2 shrink-0">
 
+        <!-- Pedidos do cardápio online: chegam para quem está no caixa/balcão -->
+        <AvisoDelivery />
+
         <!-- STATUS CAIXA (só admin) -->
         <template v-if="isAdmin">
           <button
@@ -424,6 +427,7 @@ import { useImpressorasStore } from '~/stores/impressoras'
 import { useNavItems }    from '~/composables/useNavItems'
 import { useApi }         from '~/services/api'
 import ModalRfidAuth      from '~/components/modals/ModalRfidAuth.vue'
+import AvisoDelivery      from '~/components/AvisoDelivery.vue'
 import { lerValor } from '~/lib/valor'
 
 const router      = useRouter()

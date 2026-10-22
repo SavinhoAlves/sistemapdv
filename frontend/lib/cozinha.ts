@@ -10,8 +10,10 @@ export interface ItemCozinha {
   quantidade: number; status: string; observacao: string | null
   created_at: string; updated_at: string
 }
+export type TipoFicha = 'mesa' | 'balcao' | 'entrega' | 'retirada'
 export interface FichaCozinha {
   mesa_id: string; mesa_nome: string; cliente: string | null; itens: ItemCozinha[]
+  tipo: TipoFicha; pedido_numero: number | null; observacao: string | null; lancada_por: string | null
 }
 
 export function fichasDaCozinha(dados: any[]): FichaCozinha[] {
@@ -19,6 +21,10 @@ export function fichasDaCozinha(dados: any[]): FichaCozinha[] {
     mesa_id: f.id,
     mesa_nome: f.comanda_nome,
     cliente: f.cliente ?? null,
+    tipo: (f.tipo ?? (f.delivery ? f.delivery : f.comanda_id ? 'mesa' : 'balcao')) as TipoFicha,
+    pedido_numero: f.pedido_numero ?? null,
+    observacao: f.observacao ?? null,
+    lancada_por: f.lancada_por ?? null,
     itens: (f.itens ?? []).map((i: any) => ({
       id: i.id,
       pedido_id: f.pedido_id,

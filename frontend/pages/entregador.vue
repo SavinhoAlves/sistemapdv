@@ -43,7 +43,7 @@
       </button>
 
       <!-- Mapa da rota -->
-      <MapaDelivery v-if="pendentes.length" :marcadores="marcadores" :trajeto="trajeto" altura="240px" descricao="Mapa da sua rota" vazio="Os endereços ainda estão sendo localizados" />
+      <MapaDelivery v-if="pendentes.length" :marcadores="marcadores" :rotas="rotas" altura="260px" descricao="Mapa da sua rota" vazio="Os endereços ainda estão sendo localizados" />
 
       <!-- Paradas -->
       <p v-if="!carregando && !pendentes.length" class="text-center ent-mudo py-16 text-sm">
@@ -52,7 +52,8 @@
 
       <article v-for="(p, i) in pendentes" :key="p.id" class="rounded-2xl ent-cartao p-4" :class="i === 0 && emRota ? 'ring-2 ring-orange-500' : ''">
         <div class="flex items-start gap-3">
-          <span class="size-8 rounded-full flex items-center justify-center text-sm font-black shrink-0" :class="i === 0 && emRota ? 'bg-orange-500 text-white' : 'ent-chip'">{{ i + 1 }}</span>
+          <!-- Número da parada só quando há mais de uma -->
+          <span v-if="varias" class="size-8 rounded-full flex items-center justify-center text-sm font-black shrink-0" :class="i === 0 && emRota ? 'bg-orange-500 text-white' : 'ent-chip'">{{ i + 1 }}</span>
           <div class="flex-1 min-w-0">
             <p class="font-black leading-tight">{{ p.clienteNome }}</p>
             <p class="text-sm mt-1">{{ p.endereco }}, {{ p.numero }}<template v-if="p.complemento"> · {{ p.complemento }}</template></p>
@@ -161,13 +162,22 @@ const marcadores = computed(() => {
   const r = rota.value?.restaurante
   if (r?.local) m.push({ id: 'r', tipo: 'restaurante', ...r.local, titulo: r.nome })
   if (rastreio.ultima.value) m.push({ id: 'eu', tipo: 'entregador', lat: rastreio.ultima.value.lat, lng: rastreio.ultima.value.lng, titulo: 'Você' })
-  pendentes.value.forEach((p: any, i: number) => { if (p.destino) m.push({ id: p.id, tipo: 'parada', ...p.destino, rotulo: String(i + 1), titulo: `${i + 1}. ${p.clienteNome}` }) })
+  // Paradas numeradas na ordem da rota; com uma só, o pino é o destino (sem "1")
+  pendentes.value.forEach((p: any, i: number) => {
+    if (!p.destino) return
+    m.push(varias.value
+      ? { id: p.id, tipo: 'parada', ...p.destino, rotulo: String(i + 1), titulo: `${i + 1}. ${p.clienteNome}` }
+      : { id: p.id, tipo: 'destino', ...p.destino, rotulo: '★', titulo: p.clienteNome })
+  })
   return m
 })
-const trajeto = computed(() => {
-  const proxima = pendentes.value.find((p: any) => p.destino)
+const varias = computed(() => pendentes.value.length > 1)
+// Rota destacada passando por todas as paradas, na ordem, a partir de onde ele está
+// (ou do restaurante, antes de sair)
+const rotas = computed(() => {
   const de = rastreio.ultima.value ?? rota.value?.restaurante?.local
-  return emRota.value && proxima && de ? { de: { lat: de.lat, lng: de.lng }, para: proxima.destino } : null
+  const paradas = pendentes.value.filter((p: any) => p.destino).map((p: any) => p.destino)
+  return de && paradas.length ? [{ id: 'rota', pontos: [{ lat: de.lat, lng: de.lng }, ...paradas], destaque: emRota.value }] : []
 })
 
 function linkNavegar(p: any) {

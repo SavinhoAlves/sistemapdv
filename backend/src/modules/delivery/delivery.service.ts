@@ -205,10 +205,12 @@ export async function acompanhar(codigo: string) {
   const cfg = await comTenant(po.tenantId, async () => await prisma.configuracoes.findFirst({
     where: { tenantId: po.tenantId }, select: { nomeRestaurante: true, deliveryTempoMin: true, logoBase64: true, deliveryLat: true, deliveryLng: true },
   }))
-  // Em rota: onde está o entregador e quantas entregas faltam antes desta
+  // Mapa do cliente: do aceite até a entrega. Em rota, onde está o entregador e
+  // quantas entregas faltam antes desta (só a contagem: os endereços dos outros nunca saem daqui)
   let rota: any = null
-  if (po.status === 'em_rota' && po.entregadorId && !po.entregaConfirmadaEm) {
-    const [posicao, antes] = await comTenant(po.tenantId, async () => Promise.all([
+  if (po.tipo === 'entrega' && ['aceito', 'pronto', 'em_rota'].includes(po.status) && !po.entregaConfirmadaEm) {
+    const emRota = po.status === 'em_rota' && po.entregadorId
+    const [posicao, antes] = emRota ? await comTenant(po.tenantId, async () => Promise.all([
       prisma.entregadorPosicao.findFirst({
         where: { tenantId: po.tenantId, usuarioId: po.entregadorId!, createdAt: { gte: new Date(Date.now() - 15 * 60000) } },
         orderBy: { createdAt: 'desc' }, select: { lat: true, lng: true, createdAt: true },
@@ -216,9 +218,10 @@ export async function acompanhar(codigo: string) {
       prisma.pedidoOnline.count({
         where: { tenantId: po.tenantId, entregadorId: po.entregadorId, status: 'em_rota', entregaConfirmadaEm: null, ordemRota: { lt: po.ordemRota ?? 0 } },
       }),
-    ]))
+    ])) : [null, 0]
     rota = {
-      entregador: { nome: po.entregador?.nome.split(' ')[0] ?? 'Entregador', posicao: posicao ? { lat: posicao.lat, lng: posicao.lng, em: posicao.createdAt } : null },
+      emRota: Boolean(emRota),
+      entregador: emRota ? { nome: po.entregador?.nome.split(' ')[0] ?? 'Entregador', posicao: posicao ? { lat: posicao.lat, lng: posicao.lng, em: posicao.createdAt } : null } : null,
       paradasAntes: antes,
       destino: po.destinoLat != null ? { lat: po.destinoLat, lng: po.destinoLng } : null,
       restaurante: cfg?.deliveryLat != null ? { lat: cfg.deliveryLat, lng: cfg.deliveryLng } : null,
@@ -492,6 +495,21 @@ export async function concluir(tenantId: string, id: string, d: { metodoId: stri
     }
   }
   await prisma.pedido.update({ where: { id: po.pedidoId }, data: { status: 'fechado', fechadoEm: new Date() } })
+  // Entregue e pago: o que ainda estava na cozinha sai da tela (antes ficava "em preparo" para sempre)
+  const naCozinha = await prisma.pedidoItem.findMany({
+    where: { pedidoId: po.pedidoId, status: { notIn: ['cancelado', 'entregue'] } },
+    select: { id: true, produtoId: true, quantidade: true, rodada: true, produto: { select: { nome: true } } },
+  })
+  if (naCozinha.length) {
+    await prisma.pedidoItem.updateMany({ where: { id: { in: naCozinha.map((i) => i.id) } }, data: { status: 'entregue' } })
+    const e = emitir(tenantId)
+    for (const i of naCozinha) {
+      e.item(EVENTOS.item.statusAlterado, {
+        comandaId: po.pedidoId, pedidoId: po.pedidoId, itemId: i.id, produtoId: i.produtoId, produtoNome: i.produto.nome,
+        quantidade: i.quantidade, status: 'entregue', vaiCozinha: true, rodada: i.rodada, totalCentavos: conta.totalCentavos,
+      })
+    }
+  }
   const atualizado = await prisma.pedidoOnline.update({
     where: { id }, data: { status: 'entregue', entregueEm: new Date(), prontoEm: po.prontoEm ?? new Date(), ordemRota: null }, include: includeCaixa,
   })

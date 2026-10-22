@@ -26,7 +26,7 @@
           <div class="flex-1 min-w-0">
             <p class="text-sm font-black text-red-300 uppercase">Item cancelado</p>
             <p class="text-sm text-gray-900 dark:text-white font-bold truncate">
-              {{ alerta.quantidade }}x {{ alerta.produto }} · Mesa {{ alerta.mesa_id }}
+              {{ alerta.quantidade }}x {{ alerta.produto }} · {{ alerta.onde }}
               <span v-if="!alerta.removido_tudo" class="text-red-300 font-medium">(reduzida a quantidade)</span>
             </p>
           </div>
@@ -144,19 +144,24 @@
           class="bg-white dark:bg-white/5 backdrop-blur-xl border rounded-2xl overflow-hidden transition-all shadow-lg shadow-gray-200/50 dark:shadow-black/30"
           :class="abaAtiva === 'preparo' && mesaAtrasada(mesa) ? 'border-red-500/40 shadow-red-900/20' : 'border-gray-200 dark:border-white/[0.08]'">
 
-          <!-- Cabeçalho da mesa -->
-          <div class="px-4 py-3 border-b border-gray-100 dark:border-white/[0.06] flex items-center justify-between">
-            <div>
-              <p class="text-base font-black text-gray-900 dark:text-white">{{ mesa.mesa_nome }}</p>
-              <p v-if="mesa.cliente" class="text-[11px] text-gray-500 dark:text-white/40">{{ mesa.cliente }}</p>
+          <!-- Cabeçalho: de onde vem (mesa, balcão, delivery, retirada), quem é e há quanto tempo -->
+          <div class="px-4 py-3 border-b border-gray-100 dark:border-white/[0.06] flex items-start justify-between gap-3">
+            <div class="min-w-0">
+              <span class="inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md" :class="TIPO[mesa.tipo].classe">
+                <component :is="TIPO[mesa.tipo].icone" :size="11" /> {{ TIPO[mesa.tipo].rotulo }}
+              </span>
+              <p class="mt-1 text-lg font-black leading-tight text-gray-900 dark:text-white truncate">{{ tituloFicha(mesa) }}</p>
+              <p v-if="subtituloFicha(mesa)" class="text-xs text-gray-500 dark:text-white/45 truncate">{{ subtituloFicha(mesa) }}</p>
             </div>
-            <span class="text-[10px] font-black px-2 py-1 rounded-lg"
-              :class="abaAtiva === 'preparo' && mesaAtrasada(mesa)
-                ? 'bg-red-500/20 text-red-400'
-                : 'bg-gray-100 dark:bg-white/[0.06] text-gray-500 dark:text-white/40'">
-              {{ mesa.itens.length }} item(ns)
-            </span>
+            <div class="text-right shrink-0">
+              <p class="text-xl font-black tabular-nums leading-none" :class="classeRelogio(mesa)">{{ tempoFicha(mesa) }}</p>
+              <p class="text-[10px] font-bold text-gray-400 dark:text-white/35 mt-1">{{ totalItens(mesa) }} {{ totalItens(mesa) === 1 ? 'item' : 'itens' }}</p>
+            </div>
           </div>
+          <!-- Observação geral do pedido (cardápio online) -->
+          <p v-if="mesa.observacao" class="mx-3 mt-3 px-3 py-2 rounded-xl bg-orange-500/10 border border-orange-500/25 text-xs font-bold text-orange-600 dark:text-orange-300 flex gap-1.5">
+            <MessageSquareText :size="14" class="shrink-0 mt-px" /> {{ mesa.observacao }}
+          </p>
 
           <!-- Itens -->
           <div class="p-3 space-y-2">
@@ -164,23 +169,26 @@
               class="p-3 rounded-xl border transition-all"
               :class="classeCard(item)">
 
-              <div class="flex items-center gap-3">
-                <!-- Status dot -->
-                <div class="shrink-0 w-2.5 h-2.5 rounded-full" :class="classeDot(item)" />
+              <div class="flex items-start gap-3">
+                <!-- Quantidade em destaque (a cor mostra a etapa) -->
+                <span class="shrink-0 min-w-9 h-9 px-1.5 rounded-lg flex items-center justify-center text-base font-black tabular-nums" :class="classeQtd(item)">{{ item.quantidade }}×</span>
 
                 <div class="flex-1 min-w-0">
                   <div class="flex items-center gap-2">
-                    <p class="text-sm font-black text-gray-900 dark:text-white truncate">{{ item.quantidade }}x {{ item.produto }}</p>
+                    <p class="text-sm font-black text-gray-900 dark:text-white leading-snug">{{ item.produto }}</p>
                     <span v-if="ehNovo(item)"
-                      class="text-[9px] font-black uppercase bg-yellow-400 text-neutral-900 px-1.5 py-0.5 rounded-md shrink-0 animate-pulse">
+                      class="text-[9px] font-black uppercase bg-yellow-400 text-neutral-900 px-1.5 py-0.5 rounded-md shrink-0">
                       Novo
                     </span>
                   </div>
-                  <p v-if="item.observacao" class="text-[11px] text-orange-400 mt-0.5 truncate">{{ item.observacao }}</p>
-                  <p class="text-[11px] mt-0.5" :class="classeTempo(item)">
-                    <template v-if="item.status === 'pronto'">pronto há {{ tempoDecorrido(item.updated_at) }}</template>
-                    <template v-else>{{ tempoDecorrido(item.created_at) }}</template>
-                    <span v-if="item.categoria" class="text-gray-400 dark:text-white/25"> · {{ item.categoria }}</span>
+                  <!-- Observação inteira: é o que a cozinha não pode perder -->
+                  <p v-if="item.observacao" class="text-xs font-bold text-orange-600 dark:text-orange-300 mt-0.5 break-words flex gap-1">
+                    <MessageSquareText :size="13" class="shrink-0 mt-px" /> {{ item.observacao }}
+                  </p>
+                  <p class="text-[11px] mt-0.5 text-gray-400 dark:text-white/35">
+                    <span v-if="item.status === 'pronto'" class="text-green-500 font-bold">pronto há {{ tempoDecorrido(item.updated_at) }}</span>
+                    <template v-else>{{ ROTULO_STATUS[item.status] ?? item.status }}</template>
+                    <template v-if="item.categoria"> · {{ item.categoria }}</template>
                   </p>
                 </div>
               </div>
@@ -242,7 +250,7 @@ import { EVENTOS, type PayloadItem } from '~/shared/eventos'
 import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue'
 import {
   RefreshCw, ChefHat, Maximize2, Minimize2, Volume2, VolumeX,
-  Undo2, WifiOff, X, Monitor
+  Undo2, WifiOff, X, Monitor, UtensilsCrossed, Store, Bike, ShoppingBag, MessageSquareText
 } from 'lucide-vue-next'
 import Navbar from '~/layouts/Navbar.vue'
 import Sidebar from '~/components/Sidebar.vue'
@@ -346,6 +354,39 @@ function classeTempo(item: Item) {
   if (m >= 10) return 'text-amber-400 font-bold'
   return 'text-gray-400 dark:text-white/40'
 }
+// ── Cartão: tipo, título e tempo da ficha ──
+const TIPO = {
+  mesa:     { rotulo: 'Mesa',     icone: UtensilsCrossed, classe: 'bg-gray-100 dark:bg-white/[0.08] text-gray-600 dark:text-white/60' },
+  balcao:   { rotulo: 'Balcão',   icone: Store,           classe: 'bg-violet-500/15 text-violet-600 dark:text-violet-300' },
+  entrega:  { rotulo: 'Delivery', icone: Bike,            classe: 'bg-orange-500/15 text-orange-600 dark:text-orange-300' },
+  retirada: { rotulo: 'Retirada', icone: ShoppingBag,     classe: 'bg-sky-500/15 text-sky-600 dark:text-sky-300' },
+} as const
+const ROTULO_STATUS: Record<string, string> = { pendente: 'Na fila', preparando: 'Preparando' }
+// Delivery e retirada: o cliente vira o título; o código do pedido fica embaixo
+function tituloFicha(m: Mesa) {
+  if ((m.tipo === 'entrega' || m.tipo === 'retirada') && m.cliente) return m.cliente
+  return m.tipo === 'balcao' && m.pedido_numero ? `Balcão nº ${m.pedido_numero}` : m.mesa_nome
+}
+function subtituloFicha(m: Mesa) {
+  if (m.tipo === 'entrega' || m.tipo === 'retirada') return m.mesa_nome.replace(/^(Delivery|Retirada)\s*/, 'Pedido ')
+  return [m.cliente, m.lancada_por ? `por ${m.lancada_por.split(' ')[0]}` : null].filter(Boolean).join(' · ')
+}
+const totalItens = (m: Mesa) => m.itens.reduce((s, i) => s + i.quantidade, 0)
+// Tempo desde o item mais antigo do cartão (em preparo) ou desde o pronto (prontos)
+function tempoFicha(m: Mesa) {
+  const campo = abaAtiva.value === 'prontos' ? 'updated_at' : 'created_at'
+  return tempoDecorrido(m.itens.reduce((a, i) => (i[campo] < a ? i[campo] : a), m.itens[0][campo]))
+}
+function classeRelogio(m: Mesa) {
+  if (abaAtiva.value === 'prontos') return 'text-green-500'
+  const min = Math.max(...m.itens.map(i => minutosDesde(i.created_at)))
+  return min >= 15 ? 'text-red-500' : min >= 10 ? 'text-amber-500' : 'text-gray-900 dark:text-white'
+}
+function classeQtd(item: Item) {
+  if (item.status === 'pronto')     return 'bg-green-500 text-white'
+  if (item.status === 'preparando') return 'bg-blue-500 text-white'
+  return 'bg-gray-900 dark:bg-white text-white dark:text-neutral-900'
+}
 function classeDot(item: Item) {
   if (item.status === 'pronto')     return 'bg-green-400'
   if (item.status === 'preparando') return 'bg-blue-400'
@@ -397,12 +438,14 @@ function destravarAudio() {
   document.removeEventListener('pointerdown', destravarAudio)
 }
 
-interface Cancelamento { id: number; produto: string; quantidade: number; mesa_id: number; removido_tudo: boolean }
+interface Cancelamento { id: number; produto: string; quantidade: number; onde: string; removido_tudo: boolean }
 const cancelamentos = ref<Cancelamento[]>([])
 let cancelSeq = 0
 
 function registrarCancelamento(d: any) {
-  const alerta = { id: ++cancelSeq, produto: d.produto, quantidade: d.quantidade, mesa_id: d.mesa_id, removido_tudo: !!d.removido_tudo }
+  // O evento traz o id da comanda/pedido: mostra o nome do cartão (antes saía "Mesa 3f2a…")
+  const ficha = mesas.value.find(m => m.itens.some(i => i.pedido_id === d.mesa_id) || m.mesa_id.startsWith(`${d.mesa_id}:`))
+  const alerta = { id: ++cancelSeq, produto: d.produto, quantidade: d.quantidade, onde: ficha ? tituloFicha(ficha) : 'pedido', removido_tudo: !!d.removido_tudo }
   cancelamentos.value.push(alerta)
   tocarSom('cancelado')
   setTimeout(() => dispensarCancelamento(alerta.id), 60000)

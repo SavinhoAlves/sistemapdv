@@ -342,8 +342,10 @@ export async function aceitar(tenantId: string, id: string, usuarioId: string) {
       } as any,
     })
 
+    // Todos os itens na mesma rodada: o pedido vira UMA ficha na cozinha
+    // (antes cada produto ganhava uma rodada e virava um cartão separado)
     const lancados: any[] = []
-    let rodada = 1
+    const rodada = 1
     for (const i of itens) {
       const p = porId.get(i.produtoId)
       if (!p) throw erro(409, `${i.nome} não existe mais no cardápio`)
@@ -369,7 +371,6 @@ export async function aceitar(tenantId: string, id: string, usuarioId: string) {
         } as any,
       })
       lancados.push({ item, produtoNome: p.nome, vaiCozinha, rodada })
-      rodada++
     }
 
     const atualizado = await tx.pedidoOnline.update({

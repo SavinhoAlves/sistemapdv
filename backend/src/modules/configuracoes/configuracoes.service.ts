@@ -47,6 +47,7 @@ export async function buscar(tenantId: string) {
     impressoraPorta: config.impressoraPorta,
     taxaServicoPct: Number(config.taxaServicoPct),
     modoVenda: config.modoVenda,
+    envioCozinhaModo: config.envioCozinhaModo,
     rfidAtivo: Boolean(config.rfidAtivo),
     vendaMobilePermitida: true, // fixo até integração com central
   }
@@ -66,6 +67,7 @@ interface AtualizarConfigData {
   impressoraPorta?: number | null
   taxaServicoPct?: number
   modoVenda?: string
+  envioCozinhaModo?: 'automatico' | 'botao'
   rfidAtivo?: boolean
 }
 
@@ -85,6 +87,7 @@ export async function atualizar(tenantId: string, data: AtualizarConfigData) {
   if (data.impressoraPorta !== undefined) sanitized.impressoraPorta = data.impressoraPorta
   if (data.taxaServicoPct !== undefined) sanitized.taxaServicoPct = Number(data.taxaServicoPct)
   if (data.modoVenda !== undefined) sanitized.modoVenda = data.modoVenda
+  if (data.envioCozinhaModo !== undefined) sanitized.envioCozinhaModo = data.envioCozinhaModo
   if (data.rfidAtivo !== undefined) sanitized.rfidAtivo = Boolean(data.rfidAtivo)
 
   const config = await prisma.configuracoes.upsert({

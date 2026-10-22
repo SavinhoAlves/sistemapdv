@@ -5,6 +5,7 @@ import { paraReais } from '../../lib/money'
 import { calcularConta, includeParaConta, contaParaJson } from '../comandas/conta'
 import { proximoNumero } from '../comandas/sequencia'
 import { registrarAuditoria } from '../../lib/auditoria'
+import { vaiParaCozinha, camposCozinha } from '../../lib/cozinha'
 
 /**
  * Comandas.
@@ -86,7 +87,7 @@ export async function listar(tenantId: string, _cargo: string, _userId: string) 
         where: { status: { in: [...STATUS_ABERTOS] } },
         include: {
           ...includeParaConta,
-          itens: { select: { precoTotal: true, status: true, createdAt: true, produto: { select: { categoria: { select: { vaiCozinha: true } } } } } },
+          itens: { select: { precoTotal: true, quantidade: true, status: true, createdAt: true, produto: { select: camposCozinha } } },
         },
       },
     },
@@ -108,7 +109,7 @@ export async function resumoDaComanda(
         where: { status: { in: [...STATUS_ABERTOS] } },
         include: {
           ...includeParaConta,
-          itens: { select: { precoTotal: true, status: true, createdAt: true, produto: { select: { categoria: { select: { vaiCozinha: true } } } } } },
+          itens: { select: { precoTotal: true, quantidade: true, status: true, createdAt: true, produto: { select: camposCozinha } } },
         },
       },
     },
@@ -333,7 +334,7 @@ function montarResumo(mesa: any) {
   const ativos = itens.filter((i: any) => i.status !== 'cancelado')
   // Só o que a cozinha preparou: item de categoria sem cozinha nasce "pronto" e
   // não aparece na Cozinha, então não conta como "pronto para entregar"
-  const daCozinha = (i: any) => i.produto?.categoria?.vaiCozinha !== false
+  const daCozinha = (i: any) => !i.produto || vaiParaCozinha(i.produto)
   const prontos = ativos.filter((i: any) => i.status === 'pronto' && daCozinha(i))
   const naCozinha = ativos.filter(
     (i: any) => i.status === 'pendente' || i.status === 'preparando',
@@ -361,6 +362,8 @@ function montarResumo(mesa: any) {
     qtd_itens: ativos.reduce((s: number, i: any) => s + (i.quantidade ?? 1), 0),
     qtd_prontos: prontos.length,
     qtd_na_cozinha: naCozinha.length,
+    // Lançados e ainda não enviados (modo "pelo botão")
+    qtd_para_enviar: ativos.filter((i: any) => i.status === 'rascunho').reduce((s: number, i: any) => s + (i.quantidade ?? 1), 0),
 
     aberta_em: mesa.dataAbertura,
     ultimo_lancamento_em: ultimoLancamento,

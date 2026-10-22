@@ -5,7 +5,7 @@ import { minutosDesde as minutosNoServidor } from '~/lib/relogio'
  * que o número no filtro bata sempre com a cor dos cards.
  */
 
-export type ChaveEstado = 'pronto' | 'conta' | 'cozinha' | 'atencao' | 'parado'
+export type ChaveEstado = 'pronto' | 'enviar' | 'conta' | 'cozinha' | 'atencao' | 'parado'
 
 export interface ComandaResumo {
   id: string
@@ -20,6 +20,8 @@ export interface ComandaResumo {
   qtd_itens: number
   qtd_prontos: number
   qtd_na_cozinha: number
+  /** Lançados e ainda não enviados à cozinha (modo "pelo botão") */
+  qtd_para_enviar?: number
   aberta_em: string | null
   ultimo_lancamento_em: string | null
 }
@@ -28,6 +30,7 @@ export const LIMITE_PARADA_MIN = 45
 
 export const ROTULO_ESTADO: Record<ChaveEstado, string> = {
   pronto:  'Pronto p/ entregar',
+  enviar:  'Enviar à cozinha',
   cozinha: 'Na cozinha',
   conta:   'Conta pedida',
   atencao: 'Sem movimento',
@@ -48,6 +51,8 @@ export function duracao(min: number) {
 /** Prato pronto esperando ganha de tudo: é o único que degrada a cada minuto. */
 export function chaveEstado(c: ComandaResumo, limiteParadaMin = LIMITE_PARADA_MIN): ChaveEstado {
   if (c.qtd_prontos > 0) return 'pronto'
+  // Pedido parado na comanda sem ir para a cozinha: o garçom precisa tocar em Enviar
+  if ((c.qtd_para_enviar ?? 0) > 0) return 'enviar'
   if (c.status === 'fechando') return 'conta'
   if (c.qtd_na_cozinha > 0) return 'cozinha'
   if (minutosDesde(c.ultimo_lancamento_em ?? c.aberta_em) >= limiteParadaMin) return 'atencao'

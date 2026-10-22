@@ -241,7 +241,10 @@
                   :style="idx < itensMesa.length - 1 ? 'border-bottom: 1px solid rgba(255,255,255,0.04);' : ''"
                 >
                   <!-- Esquerda: nome -->
-                  <p class="flex-1 min-w-0 text-[13px] font-semibold text-white/85 truncate">{{ item.produto_nome || item.nome }}</p>
+                  <div class="flex-1 min-w-0">
+                    <p class="text-[13px] font-semibold text-white/85 truncate">{{ item.produto_nome || item.nome }}</p>
+                    <p v-if="item.status === 'rascunho'" class="text-[10px] font-black uppercase tracking-wide text-amber-400">Não enviado à cozinha</p>
+                  </div>
 
                   <!-- Centro: stepper -->
                   <div class="flex items-center gap-1.5 shrink-0 mx-3">
@@ -287,6 +290,18 @@
             </div>
 
             <!-- Footer: ações -->
+            <!-- Modo "pelo botão": manda à cozinha os itens que estão esperando -->
+            <div v-if="paraEnviar > 0" class="px-5 pt-3 shrink-0" style="border-top: 1px solid rgba(255,255,255,0.05);">
+              <button
+                @click="enviarPedido"
+                :disabled="enviando"
+                class="w-full h-[52px] rounded-[16px] text-white font-black text-[14px] flex items-center justify-center gap-2 active:scale-[0.98] disabled:opacity-50"
+                style="background: #16a34a; box-shadow: 0 6px 20px rgba(22,163,74,0.3);"
+              >
+                <ChefHat :size="17" />
+                {{ enviando ? 'Enviando…' : `Enviar pedido (${paraEnviar} ${paraEnviar === 1 ? 'item' : 'itens'})` }}
+              </button>
+            </div>
             <div
               class="px-5 pt-3 flex gap-3 shrink-0"
               style="border-top: 1px solid rgba(255,255,255,0.05); padding-bottom: max(20px, env(safe-area-inset-bottom));"
@@ -386,7 +401,8 @@ import { itensDaComanda } from '~/lib/comanda'
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import {
   Plus, X, Loader2, LayoutGrid, UtensilsCrossed,
-  ShoppingBag, Search, ChevronLeft, Printer
+  ShoppingBag, Search, ChevronLeft, Printer,
+  ChefHat,
 } from 'lucide-vue-next'
 import { useApi } from '~/services/api'
 import { useAuthStore } from '~/stores/auth'
@@ -452,6 +468,23 @@ const produtosFiltrados = computed(() => {
 const totalMesa = computed(() =>
   itensMesa.value.reduce((s, i) => s + (i.preco_unitario || 0) * i.quantidade, 0)
 )
+
+// ── Enviar pedido (modo "pelo botão") ──────────────────────
+const paraEnviar = computed(() => itensMesa.value.filter((i: any) => i.status === 'rascunho').reduce((s: number, i: any) => s + i.quantidade, 0))
+const enviando   = ref(false)
+async function enviarPedido() {
+  if (!mesaSelecionada.value || enviando.value) return
+  enviando.value = true
+  try {
+    const r = await api.post<{ enviados: number }>(`/pedidos/mesa/${mesaSelecionada.value.id}/enviar`)
+    toastStore.success(`${r.enviados} ${r.enviados === 1 ? 'item enviado' : 'itens enviados'} para a cozinha`)
+    await carregarItensMesa(mesaSelecionada.value.id)
+  } catch (e: any) {
+    toastStore.error(e?.message || 'Não deu para enviar')
+  } finally {
+    enviando.value = false
+  }
+}
 
 const quantidadeItensMesa = computed(() =>
   itensMesa.value.reduce((s, i) => s + i.quantidade, 0)
@@ -557,7 +590,7 @@ async function adicionarItemMesa(produto: any) {
       quantidade: 1,
       ...(userId ? { garcomId: userId } : {})
     })
-    toastStore.success(`${produto.nome} adicionado!`)
+    toastStore.success(configStore.envio_cozinha_modo === 'botao' ? `${produto.nome} adicionado — toque em Enviar pedido` : `${produto.nome} adicionado!`)
     carregarItensMesa(mesaSelecionada.value.id)
   } catch {
     toastStore.error('Erro ao adicionar item')
@@ -663,7 +696,7 @@ onMounted(async () => {
     return
   }
 
-  await Promise.all([carregarMesas(), carregarProdutos()])
+  await Promise.all([carregarMesas(), carregarProdutos(), configStore.carregar()])
 
   const userId = authStore.usuario?.id
   if (userId && authStore.usuario?.cargo === 'garcom') {

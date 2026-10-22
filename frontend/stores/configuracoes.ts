@@ -15,6 +15,8 @@ interface Config {
   impressora_porta: number
   taxa_servico_pct: number
   modo_venda: 'mesas' | 'direta' | 'ambos'
+  /** Itens vão à cozinha ao lançar (automatico) ou pelo botão "Enviar pedido" */
+  envio_cozinha_modo: 'automatico' | 'botao'
   rfid_ativo: boolean
   venda_mobile_permitida: boolean
   tipo_comercio: string | null
@@ -36,6 +38,7 @@ export const useConfigStore = defineStore('configuracoes', {
     impressora_porta:         9100,
     taxa_servico_pct:         10,
     modo_venda:               'mesas' as 'mesas' | 'direta' | 'ambos',
+    envio_cozinha_modo:       'automatico' as 'automatico' | 'botao',
     rfid_ativo:               false,
     venda_mobile_permitida:   true,
     tipo_comercio:            null,
@@ -88,6 +91,7 @@ export const useConfigStore = defineStore('configuracoes', {
         this.impressora_porta         = Number(impressoraPorta)       || 9100
         this.taxa_servico_pct         = Number(taxaServicoPct ?? 10)
         this.modo_venda               = (['mesas','direta','ambos'].includes(modoVenda) ? modoVenda : 'mesas') as 'mesas' | 'direta' | 'ambos'
+        this.envio_cozinha_modo       = d.envioCozinhaModo === 'botao' ? 'botao' : 'automatico'
         this.rfid_ativo               = rfidAtivo                    ?? false
         this.venda_mobile_permitida   = vendaMobilePermitida         ?? true
         this.tipo_comercio            = d.tipoComercio ?? d.tipo_comercio ?? null

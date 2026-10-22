@@ -10,11 +10,11 @@ export async function categoriasRoutes(app: FastifyInstance) {
   })
 
   app.post('/', { preHandler: [requireTenant, requirePermissao('gerenciarProdutos')] }, async (request, reply) => {
-    const { nome } = request.body as any
+    const { nome, vaiCozinha } = request.body as any
     if (typeof nome !== 'string' || !nome.trim()) return reply.status(400).send({ error: 'nome é obrigatório' })
     try {
-      const cat = await Service.criar(request.tenantId!, nome)
-      return reply.status(201).send({ success: true, id: cat.id, nome: cat.nome })
+      const cat = await Service.criar(request.tenantId!, nome, typeof vaiCozinha === 'boolean' ? vaiCozinha : true)
+      return reply.status(201).send({ success: true, id: cat.id, nome: cat.nome, vaiCozinha: cat.vaiCozinha })
     } catch (err: any) {
       if (err.code === 'P2002') return reply.status(409).send({ error: 'Já existe uma categoria com esse nome' })
       throw err

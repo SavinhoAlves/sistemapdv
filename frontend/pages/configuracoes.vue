@@ -185,6 +185,20 @@
                 />
                 <p class="text-[10px] text-gray-500 dark:text-white/40 mt-1.5">Percentual sugerido ao aplicar a taxa na conta da mesa (opcional para o cliente).</p>
               </div>
+              <fieldset class="sm:col-span-2">
+                <legend class="block text-[10px] font-black uppercase tracking-widest text-gray-500 dark:text-white/40 mb-2">Envio para a cozinha</legend>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <label v-for="o in OPCOES_ENVIO" :key="o.valor" class="flex items-start gap-3 rounded-2xl border p-4 cursor-pointer transition-colors"
+                    :class="form.envio_cozinha_modo === o.valor ? 'border-orange-500 bg-orange-500/5' : 'border-gray-200 dark:border-white/10'">
+                    <input v-model="form.envio_cozinha_modo" type="radio" name="envio-cozinha" :value="o.valor" class="mt-0.5 accent-orange-500" />
+                    <span>
+                      <span class="block text-sm font-black text-gray-900 dark:text-white">{{ o.rotulo }}</span>
+                      <span class="block text-[11px] text-gray-500 dark:text-white/45 mt-0.5">{{ o.desc }}</span>
+                    </span>
+                  </label>
+                </div>
+                <p class="text-[10px] text-gray-500 dark:text-white/40 mt-1.5">O que vai para a cozinha é definido pela categoria (Admin › Categorias) e, se precisar, pela exceção no cadastro do produto.</p>
+              </fieldset>
             </div>
           </div>
 
@@ -714,6 +728,11 @@
 
 <script setup lang="ts">
 import { ref, reactive, computed, watch, onMounted } from 'vue'
+
+const OPCOES_ENVIO = [
+  { valor: 'automatico', rotulo: 'Automático ao lançar', desc: 'O item de cozinha aparece na Cozinha assim que é lançado na comanda.' },
+  { valor: 'botao', rotulo: 'Pelo botão "Enviar pedido"', desc: 'Os itens ficam na comanda como "não enviados" até o garçom tocar em Enviar pedido.' },
+] as const
 import {
   ImageIcon, Upload, Trash2, Save, Loader2, UtensilsCrossed, Printer, FileText, Eye,
   Minus, Plus, Plug, Ruler, ChevronDown, Settings, Search, Percent, Store, KeyRound, Bike
@@ -914,6 +933,7 @@ const form = reactive({
   impressora_host:          '',
   impressora_porta:         9100,
   taxa_servico_pct:         10,
+  envio_cozinha_modo:       'automatico' as 'automatico' | 'botao',
   tipo_comercio:            null as string | null,
 })
 
@@ -931,6 +951,7 @@ onMounted(async () => {
   form.impressora_host          = configStore.impressora_host
   form.impressora_porta         = configStore.impressora_porta
   form.taxa_servico_pct         = configStore.taxa_servico_pct
+  form.envio_cozinha_modo       = configStore.envio_cozinha_modo
   form.tipo_comercio            = configStore.tipo_comercio
 
   await carregarImpressoras()
@@ -993,6 +1014,7 @@ async function salvar() {
         impressora_host:          form.impressora_host.trim(),
         impressora_porta:         form.impressora_porta || 9100,
         taxa_servico_pct:         Math.min(30, Math.max(0, Number(form.taxa_servico_pct) || 0)),
+        envio_cozinha_modo:       form.envio_cozinha_modo,
         tipo_comercio:            form.tipo_comercio,
     })
     tirarSnapshot()

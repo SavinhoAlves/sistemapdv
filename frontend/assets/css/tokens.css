@@ -238,7 +238,7 @@ html.light {
 .pdv-faixa--cozinha { background: var(--st-cozinha); }
 .pdv-faixa--pronto  { background: var(--st-pronto); }
 .pdv-faixa--conta   { background: var(--st-conta); }
-.pdv-faixa--atencao { background: var(--st-atencao); }
+.pdv-faixa--atencao, .pdv-faixa--enviar { background: var(--st-atencao); }
 
 /* ── Cupom ──────────────────────────────────────────────────────────────────
    A comanda na tela imita o cupom impresso: mesma ordem, mesmo agrupamento

@@ -64,7 +64,7 @@ const abaterBody = z
   })
 
 const statusBody = z.object({
-  status: z.enum(['pendente', 'preparando', 'pronto', 'entregue', 'cancelado']),
+  status: z.enum(['rascunho', 'pendente', 'preparando', 'pronto', 'entregue', 'cancelado']),
 })
 
 export async function pedidosRoutes(app: FastifyInstance) {
@@ -87,6 +87,16 @@ export async function pedidosRoutes(app: FastifyInstance) {
 
   app.post('/lancar', { preHandler: [requireTenant, requirePermissao('adicionarPedido')] }, lancar)
   app.post('/adicionar', { preHandler: [requireTenant, requirePermissao('adicionarPedido')] }, lancar)
+
+  // POST /api/pedidos/mesa/:mesaId/enviar — "Enviar pedido": rascunhos vão para a cozinha
+  app.post('/mesa/:mesaId/enviar', { preHandler: [requireTenant, requirePermissao('adicionarPedido')] }, async (request, reply) => {
+    try {
+      return await Service.enviarParaCozinha(request.tenantId!, (request.params as any).mesaId, (request.auth as TenantJwtPayload).sub)
+    } catch (e: any) {
+      if (e?.status) return reply.status(e.status).send({ error: e.message })
+      throw e
+    }
+  })
 
   // ── Quantidade ───────────────────────────────────────────────────────────
 

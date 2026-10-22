@@ -27,6 +27,7 @@ export async function criar(
     gerenciarEstoque?: boolean
     estoqueAtual?: number
     estoqueMinimo?: number
+    envioCozinha?: 'categoria' | 'sempre' | 'nunca'
   },
 ) {
   const produto = await prisma.produto.create({
@@ -41,6 +42,7 @@ export async function criar(
       gerenciarEstoque: data.gerenciarEstoque ?? false,
       estoqueAtual: data.estoqueAtual ?? 0,
       estoqueMinimo: data.estoqueMinimo ?? 0,
+      envioCozinha: data.envioCozinha ?? 'categoria',
     },
   })
   return { ...produto, preco: Number(produto.preco), estoqueAtual: Number(produto.estoqueAtual), estoqueMinimo: Number(produto.estoqueMinimo) }
@@ -60,6 +62,7 @@ export async function atualizar(
     estoqueAtual?: number
     estoqueMinimo?: number
     ativo?: boolean
+    envioCozinha?: 'categoria' | 'sempre' | 'nunca'
   },
   usuarioId?: string,
 ) {
@@ -93,6 +96,7 @@ export async function atualizar(
       ...(data.estoqueAtual !== undefined ? { estoqueAtual: data.estoqueAtual } : {}),
       ...(data.estoqueMinimo !== undefined ? { estoqueMinimo: data.estoqueMinimo } : {}),
       ...(data.ativo !== undefined ? { ativo: data.ativo } : {}),
+      ...(data.envioCozinha !== undefined ? { envioCozinha: data.envioCozinha } : {}),
     },
   })
   return { ...produto, preco: Number(produto.preco), estoqueAtual: Number(produto.estoqueAtual), estoqueMinimo: Number(produto.estoqueMinimo) }

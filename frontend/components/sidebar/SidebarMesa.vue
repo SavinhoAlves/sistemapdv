@@ -43,6 +43,7 @@
             >
               <div class="sm-item__info">
                 <span class="sm-item__nome">{{ produto.nome }}</span>
+                <span v-if="produto.status === 'rascunho'" class="text-[10px] font-black uppercase tracking-wide text-amber-500">Não enviado à cozinha</span>
                 <span class="sm-item__unit pdv-valor">{{ moeda(produto.preco_unitario) }} / un</span>
               </div>
 
@@ -129,6 +130,16 @@
             <BadgePercent :size="18" /> Abater
           </button>
         </div>
+
+        <!-- Modo "pelo botão": itens de cozinha esperando o envio -->
+        <button
+          v-if="paraEnviar > 0"
+          class="pdv-botao pdv-botao--acao pdv-botao--confirmar mb-2 w-full"
+          :disabled="enviando"
+          @click="enviarPedido"
+        >
+          <ChefHat :size="20" /> {{ enviando ? 'Enviando…' : `Enviar pedido (${paraEnviar} ${paraEnviar === 1 ? 'item' : 'itens'})` }}
+        </button>
 
         <div class="sm-principais" :class="{ dupla: podeFecharMesa }">
           <button
@@ -307,6 +318,7 @@ import {
   Minus,
   UserRound,
   ReceiptText,
+  ChefHat,
 } from 'lucide-vue-next'
 import MenuFlutuanteProduto from '../modals/MenuFlutuanteProduto.vue'
 import ModalPagamento from '../modals/ModalPagamento.vue'
@@ -393,6 +405,23 @@ interface ProdutoMesa {
   quantidade: number
   total: number
   preco_unitario: number
+}
+
+// ─── Enviar pedido (modo "pelo botão") ─────────────────────
+const paraEnviar = computed(() => produtos.value.filter((p: any) => p.status === 'rascunho').reduce((s: number, p: any) => s + p.quantidade, 0))
+const enviando   = ref(false)
+async function enviarPedido() {
+  if (!props.mesa?.id || enviando.value) return
+  enviando.value = true
+  try {
+    const r = await api.post<{ enviados: number }>(`/pedidos/mesa/${props.mesa.id}/enviar`)
+    toastStore.success(`${r.enviados} ${r.enviados === 1 ? 'item enviado' : 'itens enviados'} para a cozinha`)
+    await carregarProdutos()
+  } catch (e: any) {
+    toastStore.error(e?.message || 'Não deu para enviar')
+  } finally {
+    enviando.value = false
+  }
 }
 
 // ─── Produtos ─────────────────────────────────────────────

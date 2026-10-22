@@ -126,6 +126,9 @@ model Tenant {
   /// Exceção do superadmin aos recursos do plano: null segue o plano
   rfidManual            Boolean?               @map("rfid_manual")
   vendaMobileManual     Boolean?               @map("venda_mobile_manual")
+  /// Delivery: efetivo (plano ou exceção) e a exceção do superadmin (null segue o plano)
+  deliveryDisponivel    Boolean                @default(false) @map("delivery_disponivel")
+  deliveryManual        Boolean?               @map("delivery_manual")
   /// Pacote contratado. Com plano, os recursos acima seguem o plano.
   planoId               String?                @map("plano_id")
   plano                 Plano?                 @relation(fields: [planoId], references: [id], onDelete: SetNull)
@@ -779,7 +782,6 @@ model Plano {
   valor       Decimal  @default(0) @db.Decimal(10, 2)
   rfid        Boolean  @default(false)
   vendaMobile Boolean  @default(false) @map("venda_mobile")
-  /// Ainda sem recurso no sistema; registrado para os pacotes
   delivery    Boolean  @default(false)
   nfce        Boolean  @default(false)
   ativo       Boolean  @default(true)

@@ -327,7 +327,7 @@ import { ref, computed, reactive, onMounted, type Component } from 'vue'
 import {
   ArrowLeft, CreditCard, Smartphone, Wallet, CalendarClock,
   Loader2, AlertCircle, AlertTriangle, CheckCircle2, Pencil, FileText,
-  Eye, EyeOff, Share2, ShieldCheck, Lock, Download, Send,
+  Eye, EyeOff, Share2, ShieldCheck, Lock, Download, Send, Bike,
 } from 'lucide-vue-next'
 import { usePlatformAuthStore } from '~/stores/platformAuth'
 import {
@@ -339,8 +339,8 @@ definePageMeta({ layout: false })
 
 type Tenant = TenantBase & {
   codigo: number
-  rfidManual: boolean | null; vendaMobileManual: boolean | null
-  plano: { id: string; nome: string; valor: string | number; rfid: boolean; vendaMobile: boolean } | null
+  rfidManual: boolean | null; vendaMobileManual: boolean | null; deliveryManual: boolean | null; deliveryDisponivel: boolean
+  plano: { id: string; nome: string; valor: string | number; rfid: boolean; vendaMobile: boolean; delivery?: boolean } | null
 }
 interface Pagamento {
   id: string; valor: number; pagoEm: string; forma: string | null; observacao: string | null
@@ -541,19 +541,20 @@ async function desfazerPagamento() {
 
 // ── Recursos: plano + exceções do superadmin ──
 const salvandoRecurso = ref(false)
-const recursos = computed<{ chave: 'rfid' | 'vendaMobile'; rotulo: string; icone: Component; ativo: boolean; manual: boolean | null }[]>(() => {
+const recursos = computed<{ chave: 'rfid' | 'vendaMobile' | 'delivery'; rotulo: string; icone: Component; ativo: boolean; manual: boolean | null }[]>(() => {
   const t = tenant.value
   if (!t) return []
   return [
     { chave: 'rfid',        rotulo: 'RFID',               icone: CreditCard, ativo: t.rfidDisponivel,       manual: t.rfidManual },
     { chave: 'vendaMobile', rotulo: 'Venda pelo celular', icone: Smartphone, ativo: t.vendaMobilePermitida, manual: t.vendaMobileManual },
+    { chave: 'delivery',    rotulo: 'Delivery',           icone: Bike,       ativo: t.deliveryDisponivel,   manual: t.deliveryManual },
   ]
 })
-async function definirRecurso(chave: 'rfid' | 'vendaMobile', valor: boolean | null) {
+async function definirRecurso(chave: 'rfid' | 'vendaMobile' | 'delivery', valor: boolean | null) {
   if (!tenant.value || salvandoRecurso.value) return
   salvandoRecurso.value = true
   try {
-    const r = await platformFetch<Pick<Tenant, 'rfidDisponivel' | 'vendaMobilePermitida' | 'rfidManual' | 'vendaMobileManual'>>(
+    const r = await platformFetch<Pick<Tenant, 'rfidDisponivel' | 'vendaMobilePermitida' | 'deliveryDisponivel' | 'rfidManual' | 'vendaMobileManual' | 'deliveryManual'>>(
       `/platform/tenants/${tenant.value.id}/recursos`,
       { method: 'PATCH', body: JSON.stringify({ [chave]: valor }) },
     )

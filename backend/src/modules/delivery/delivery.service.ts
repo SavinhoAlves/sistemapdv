@@ -45,19 +45,19 @@ const MAX_TENTATIVAS_CODIGO = 5
 async function tenantPorSlug(slug: string) {
   return semEscopoDeTenant(async () => await prisma.tenant.findUnique({
     where: { slug: slug.trim().toLowerCase() },
-    select: { id: true, nome: true, slug: true, status: true, plano: { select: { delivery: true } } },
+    select: { id: true, nome: true, slug: true, status: true, deliveryDisponivel: true },
   }))
 }
 
 /** Aberto para pedidos agora? Devolve o motivo quando não. */
-async function situacao(tenant: { id: string; status: string; plano: { delivery: boolean } | null }) {
+async function situacao(tenant: { id: string; status: string; deliveryDisponivel: boolean }) {
   const acesso = await verificarAcessoTenant(tenant.id)
   const [cfg, caixa] = await comTenant(tenant.id, async () => Promise.all([
     prisma.configuracoes.findFirst({ where: { tenantId: tenant.id } }),
     prisma.caixa.findFirst({ where: { tenantId: tenant.id, status: 'aberto' }, select: { id: true } }),
   ]))
   let motivo: string | null = null
-  if (!tenant.plano?.delivery || !acesso.ok) motivo = 'Este restaurante não está recebendo pedidos online.'
+  if (!tenant.deliveryDisponivel || !acesso.ok) motivo = 'Este restaurante não está recebendo pedidos online.'
   else if (!cfg?.deliveryAtivo) motivo = 'O restaurante pausou os pedidos online.'
   else if (!caixa) motivo = 'O restaurante está fechado agora. Tente mais tarde.'
   return { aberto: !motivo, motivo, cfg }
@@ -67,7 +67,7 @@ async function situacao(tenant: { id: string; status: string; plano: { delivery:
 
 export async function cardapio(slug: string) {
   const tenant = await tenantPorSlug(slug)
-  if (!tenant || !tenant.plano?.delivery) throw erro(404, 'Cardápio não encontrado')
+  if (!tenant || !tenant.deliveryDisponivel) throw erro(404, 'Cardápio não encontrado')
   const { aberto, motivo, cfg } = await situacao(tenant)
 
   const produtos = await comTenant(tenant.id, async () => await prisma.produto.findMany({
@@ -116,7 +116,7 @@ export interface NovoPedidoOnline {
 
 export async function criarPedido(slug: string, d: NovoPedidoOnline) {
   const tenant = await tenantPorSlug(slug)
-  if (!tenant || !tenant.plano?.delivery) throw erro(404, 'Cardápio não encontrado')
+  if (!tenant || !tenant.deliveryDisponivel) throw erro(404, 'Cardápio não encontrado')
   const { aberto, motivo, cfg } = await situacao(tenant)
   if (!aberto) throw erro(409, motivo!)
   if (d.tipo === 'entrega' && cfg?.deliveryEntrega === false) throw erro(400, 'Este restaurante não faz entregas')
@@ -438,11 +438,11 @@ export async function concluir(tenantId: string, id: string, d: { metodoId: stri
 
 export async function config(tenantId: string) {
   const [tenant, cfg] = await Promise.all([
-    prisma.tenant.findUnique({ where: { id: tenantId }, select: { slug: true, plano: { select: { nome: true, delivery: true } } } }),
+    prisma.tenant.findUnique({ where: { id: tenantId }, select: { slug: true, deliveryDisponivel: true, plano: { select: { nome: true } } } }),
     prisma.configuracoes.findFirst({ where: { tenantId } }),
   ])
   return {
-    disponivel: Boolean(tenant?.plano?.delivery),
+    disponivel: Boolean(tenant?.deliveryDisponivel),
     plano: tenant?.plano?.nome ?? null,
     slug: tenant?.slug,
     ativo: cfg?.deliveryAtivo ?? false,
@@ -461,7 +461,7 @@ export async function salvarConfig(tenantId: string, d: {
   local?: Coordenadas | null
 }) {
   const atual = await config(tenantId)
-  if (d.ativo && !atual.disponivel) throw erro(403, 'Delivery não está incluído no seu plano')
+  if (d.ativo && !atual.disponivel) throw erro(403, 'Delivery não está liberado para o seu restaurante')
   if (d.entrega === false && d.retirada === false) throw erro(400, 'Deixe ao menos entrega ou retirada')
   await prisma.configuracoes.updateMany({
     where: { tenantId },
@@ -713,10 +713,11 @@ export async function visaoGeralPlatform() {
     const inicioMes = inicioDoDia(`${hoje.slice(0, 7)}-01`)
 
     const tenants = await prisma.tenant.findMany({
-      where: { OR: [{ plano: { delivery: true } }, { configuracoes: { deliveryAtivo: true } }] },
+      where: { OR: [{ deliveryDisponivel: true }, { configuracoes: { deliveryAtivo: true } }] },
       select: {
         id: true, nome: true, slug: true, cidade: true, uf: true, status: true,
-        plano: { select: { nome: true, delivery: true } },
+        deliveryDisponivel: true,
+        plano: { select: { nome: true } },
         configuracoes: { select: { deliveryAtivo: true, deliveryLat: true, deliveryTaxa: true } },
       },
       orderBy: { nome: 'asc' },
@@ -744,7 +745,7 @@ export async function visaoGeralPlatform() {
       return {
         id: t.id, nome: t.nome, slug: t.slug, cidade: t.cidade, uf: t.uf, status: t.status,
         plano: t.plano?.nome ?? null,
-        disponivel: Boolean(t.plano?.delivery),
+        disponivel: t.deliveryDisponivel,
         ativo: t.configuracoes?.deliveryAtivo ?? false,
         localDefinido: t.configuracoes?.deliveryLat != null,
         taxaEntrega: Number(t.configuracoes?.deliveryTaxa ?? 0),

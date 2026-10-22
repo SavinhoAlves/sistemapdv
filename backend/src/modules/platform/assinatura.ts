@@ -260,7 +260,7 @@ export async function ajustarVencimento(tenantId: string, vencimento: string, mo
 export async function aplicarRecursos(tenantId: string, db: Db = prisma) {
   const t = await db.tenant.findUnique({
     where: { id: tenantId },
-    select: { rfidManual: true, vendaMobileManual: true, rfidDisponivel: true, vendaMobilePermitida: true, plano: { select: { rfid: true, vendaMobile: true } } },
+    select: { rfidManual: true, vendaMobileManual: true, deliveryManual: true, rfidDisponivel: true, vendaMobilePermitida: true, deliveryDisponivel: true, plano: { select: { rfid: true, vendaMobile: true, delivery: true } } },
   })
   if (!t) return null
   const r = await db.tenant.update({
@@ -268,8 +268,9 @@ export async function aplicarRecursos(tenantId: string, db: Db = prisma) {
     data: {
       rfidDisponivel:       t.rfidManual ?? t.plano?.rfid ?? t.rfidDisponivel,
       vendaMobilePermitida: t.vendaMobileManual ?? t.plano?.vendaMobile ?? t.vendaMobilePermitida,
+      deliveryDisponivel:   t.deliveryManual ?? t.plano?.delivery ?? t.deliveryDisponivel,
     },
-    select: { rfidDisponivel: true, vendaMobilePermitida: true, rfidManual: true, vendaMobileManual: true },
+    select: { rfidDisponivel: true, vendaMobilePermitida: true, deliveryDisponivel: true, rfidManual: true, vendaMobileManual: true, deliveryManual: true },
   })
   if (db === prisma) invalidateTenantCache(tenantId)
   return r

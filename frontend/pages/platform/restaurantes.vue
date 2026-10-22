@@ -76,9 +76,10 @@
                   <div style="min-width:0">
                     <b>{{ t.nome }}</b>
                     <small><template v-if="t.tipoComercio">{{ rotuloTipoComercio(t.tipoComercio) }} · </template>Cód. {{ t.codigo }} · {{ t.slug }}<template v-if="t.responsavel"> · {{ t.responsavel }}</template></small>
-                    <div v-if="t.rfidDisponivel || t.vendaMobilePermitida" class="pf-tags" style="margin-top:4px">
+                    <div v-if="t.rfidDisponivel || t.vendaMobilePermitida || t.deliveryDisponivel" class="pf-tags" style="margin-top:4px">
                       <span v-if="t.rfidDisponivel" class="pf-tag">RFID</span>
                       <span v-if="t.vendaMobilePermitida" class="pf-tag">Celular</span>
+                      <span v-if="t.deliveryDisponivel" class="pf-tag">Delivery</span>
                     </div>
                   </div>
                 </div>

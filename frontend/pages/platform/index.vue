@@ -108,7 +108,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, type Component } from 'vue'
-import { Plus, Clock, Wallet, CreditCard, Smartphone, Lock, Hourglass } from 'lucide-vue-next'
+import { Plus, Clock, Wallet, CreditCard, Smartphone, Bike, Lock, Hourglass } from 'lucide-vue-next'
 import { usePlatformAuthStore } from '~/stores/platformAuth'
 import { usePlatformTenants, moeda } from '~/composables/usePlatformTenants'
 
@@ -125,6 +125,7 @@ const maxMrr = computed(() => Math.max(0, ...porPlano.value.map(p => p.mrr)))
 const recursos = computed<{ rotulo: string; icone: Component; qtd: number }[]>(() => [
   { rotulo: 'RFID',              icone: CreditCard, qtd: tenants.value.filter(t => t.rfidDisponivel).length },
   { rotulo: 'Venda pelo celular', icone: Smartphone, qtd: tenants.value.filter(t => t.vendaMobilePermitida).length },
+  { rotulo: 'Delivery',          icone: Bike,       qtd: tenants.value.filter(t => t.deliveryDisponivel).length },
 ])
 
 const nDias = (n?: number) => `${n ?? 0} ${n === 1 ? 'dia' : 'dias'}`

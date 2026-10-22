@@ -38,6 +38,11 @@ export async function deliveryRoutes(app: FastifyInstance) {
     if (!b.success) return reply.status(400).send({ error: primeiro(b.error) })
     return responder(reply, () => Service.recusar(request.tenantId!, id(request), b.data.motivo))
   })
+  app.post('/pedidos/:id/cancelar', caixa, async (request, reply) => {
+    const b = z.object({ motivo: z.string().trim().min(3, 'Diga ao cliente o motivo') }).safeParse(request.body)
+    if (!b.success) return reply.status(400).send({ error: primeiro(b.error) })
+    return responder(reply, () => Service.cancelar(request.tenantId!, id(request), b.data.motivo, usuario(request)))
+  })
   app.post('/pedidos/:id/saiu', caixa, async (request, reply) =>
     responder(reply, () => Service.saiu(request.tenantId!, id(request))))
   app.post('/pedidos/:id/concluir', caixa, async (request, reply) => {
@@ -120,7 +125,8 @@ export async function deliveryPublicoRoutes(app: FastifyInstance) {
     clienteTelefone: z.string().transform((t) => t.replace(/\D/g, '')).pipe(z.string().min(10, 'Informe um telefone com DDD').max(13)),
     endereco: z.string().max(140).optional(), numero: z.string().max(20).optional(), bairro: z.string().max(80).optional(),
     complemento: z.string().max(80).optional(), referencia: z.string().max(140).optional(),
-    formaPagamento: z.enum(['dinheiro', 'cartao', 'pix']),
+    // 'cartao' só para quem está com o cardápio antigo aberto; o caixa confirma crédito ou débito
+    formaPagamento: z.enum(['dinheiro', 'credito', 'debito', 'pix', 'cartao']),
     trocoPara: z.number().nonnegative().nullable().optional(),
     observacao: z.string().max(300).optional(),
     itens: z.array(z.object({

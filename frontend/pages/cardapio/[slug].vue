@@ -131,7 +131,7 @@
 
           <!-- Pagamento -->
           <p class="mt-5 text-xs font-bold cdp-mudo">Pagamento {{ f.tipo === 'entrega' ? 'na entrega' : 'na retirada' }}</p>
-          <div class="mt-1.5 grid grid-cols-3 gap-2">
+          <div class="mt-1.5 grid grid-cols-2 gap-2">
             <button v-for="fp in FORMAS" :key="fp.valor" type="button" class="h-11 rounded-xl border-2 text-xs font-black" :class="f.formaPagamento === fp.valor ? 'border-orange-500 bg-orange-500/10' : 'cdp-linha'" @click="f.formaPagamento = fp.valor">{{ fp.rotulo }}</button>
           </div>
           <Campo v-if="f.formaPagamento === 'dinheiro'" v-model="f.trocoPara" class="mt-3" rotulo="Troco para quanto? (deixe vazio se não precisar)" inputmode="decimal" placeholder="Ex.: 100" />
@@ -177,7 +177,8 @@ const api = (p: string, o: any = {}) => $fetch<any>(`${config.public.apiUrl}/api
 const base = config.app.baseURL
 
 const moeda = (v: number) => Number(v || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
-const FORMAS = [{ valor: 'pix', rotulo: 'Pix' }, { valor: 'cartao', rotulo: 'Cartão' }, { valor: 'dinheiro', rotulo: 'Dinheiro' }] as const
+// Crédito e débito separados: o pagamento entra certo no caixa e no fechamento das maquininhas
+const FORMAS = [{ valor: 'pix', rotulo: 'Pix' }, { valor: 'credito', rotulo: 'Cartão de crédito' }, { valor: 'debito', rotulo: 'Cartão de débito' }, { valor: 'dinheiro', rotulo: 'Dinheiro' }] as const
 
 // ── Pecinhas de interface ──
 const Folha = defineComponent({
@@ -266,7 +267,7 @@ function adicionar() {
 const etapa = ref<null | 'sacola' | 'dados'>(null)
 const f = reactive({
   tipo: 'entrega' as 'entrega' | 'retirada', clienteNome: '', clienteTelefone: '', endereco: '', numero: '', bairro: '',
-  complemento: '', referencia: '', formaPagamento: 'pix' as 'pix' | 'cartao' | 'dinheiro', trocoPara: '', observacao: '',
+  complemento: '', referencia: '', formaPagamento: 'pix' as 'pix' | 'credito' | 'debito' | 'dinheiro', trocoPara: '', observacao: '',
 })
 const total = computed(() => subtotal.value + (f.tipo === 'entrega' ? c.value?.taxaEntrega ?? 0 : 0))
 function mascararTelefone(v: string) {
@@ -312,7 +313,11 @@ onMounted(async () => {
     const salvo = JSON.parse(localStorage.getItem(CHAVE) || '[]')
     if (Array.isArray(salvo)) carrinho.value = salvo
     const cli = JSON.parse(localStorage.getItem(`${CHAVE}:cliente`) || 'null')
-    if (cli) Object.assign(f, cli)
+    if (cli) {
+      Object.assign(f, cli)
+      // Salvo antes de existir crédito/débito ("cartao"): o cliente escolhe de novo
+      if (!FORMAS.some(fp => fp.valor === f.formaPagamento)) f.formaPagamento = 'pix'
+    }
     ultimoPedido.value = localStorage.getItem(`${CHAVE}:ultimo`)
   } catch {}
   try {

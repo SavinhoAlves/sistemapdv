@@ -11,6 +11,7 @@ import { registrarPagamento } from '../pagamentos/pagamentos.service'
 import { geocodificar, distancia, type Coordenadas } from '../../lib/geocodificar'
 import { hojeLocal, inicioDoDia } from '../../lib/fuso'
 import { vaiParaCozinha, camposCozinha } from '../../lib/cozinha'
+import { enviarPush } from '../../lib/push'
 
 /**
  * Delivery pelo cardápio online.
@@ -442,6 +443,7 @@ export async function config(tenantId: string) {
     prisma.configuracoes.findFirst({ where: { tenantId } }),
   ])
   return {
+    nomeRestaurante: cfg?.nomeRestaurante ?? '',
     disponivel: Boolean(tenant?.deliveryDisponivel),
     plano: tenant?.plano?.nome ?? null,
     slug: tenant?.slug,
@@ -452,13 +454,14 @@ export async function config(tenantId: string) {
     pedidoMinimo: Number(cfg?.deliveryPedidoMinimo ?? 0),
     tempoMin: cfg?.deliveryTempoMin ?? 40,
     mensagem: cfg?.deliveryMensagem ?? '',
+    mensagemWhatsapp: cfg?.deliveryMensagemWhatsapp ?? '',
     local: cfg?.deliveryLat != null && cfg?.deliveryLng != null ? { lat: cfg.deliveryLat, lng: cfg.deliveryLng } : null,
   }
 }
 
 export async function salvarConfig(tenantId: string, d: {
   ativo?: boolean; entrega?: boolean; retirada?: boolean; taxaEntrega?: number; pedidoMinimo?: number; tempoMin?: number; mensagem?: string | null
-  local?: Coordenadas | null
+  mensagemWhatsapp?: string | null; local?: Coordenadas | null
 }) {
   const atual = await config(tenantId)
   if (d.ativo && !atual.disponivel) throw erro(403, 'Delivery não está liberado para o seu restaurante')
@@ -473,6 +476,7 @@ export async function salvarConfig(tenantId: string, d: {
       ...(d.pedidoMinimo !== undefined ? { deliveryPedidoMinimo: paraDecimal(centavosDoCliente(d.pedidoMinimo, 'Pedido mínimo')) } : {}),
       ...(d.tempoMin !== undefined ? { deliveryTempoMin: Math.min(240, Math.max(5, Math.trunc(d.tempoMin))) } : {}),
       ...(d.mensagem !== undefined ? { deliveryMensagem: d.mensagem?.trim().slice(0, 200) || null } : {}),
+      ...(d.mensagemWhatsapp !== undefined ? { deliveryMensagemWhatsapp: d.mensagemWhatsapp?.trim().slice(0, 1000) || null } : {}),
       ...(d.local !== undefined ? { deliveryLat: d.local?.lat ?? null, deliveryLng: d.local?.lng ?? null } : {}),
     },
   })
@@ -579,6 +583,14 @@ export async function atribuir(tenantId: string, id: string, entregadorId: strin
   if (entregadorId) await recalcularRota(tenantId, entregadorId)
   const atualizado = await buscar(tenantId, id)
   emitir(tenantId).delivery(EVENTOS.delivery.atualizado, payload(atualizado))
+  // Avisa o celular do entregador, mesmo com o app fechado
+  if (entregadorId && entregadorId !== anterior) {
+    void enviarPush(tenantId, entregadorId, {
+      titulo: 'Nova entrega para você',
+      corpo: `${atualizado.clienteNome.split(' ')[0]} · ${atualizado.bairro || atualizado.endereco || 'endereço no app'}`,
+      url: '/entregador', tag: `entrega-${id}`,
+    })
+  }
   return paraCaixa(atualizado)
 }
 

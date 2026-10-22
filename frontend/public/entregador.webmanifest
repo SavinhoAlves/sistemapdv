@@ -1,0 +1,12 @@
+{
+  "name": "RestaurantePDV · Entregas",
+  "short_name": "Entregas",
+  "start_url": "/entregador",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#0e1119",
+  "theme_color": "#f97316",
+  "icons": [
+    { "src": "/icone-entregador.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}

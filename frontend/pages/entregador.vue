@@ -23,6 +23,19 @@
         Permita o acesso à localização (sempre) nas configurações do celular para o restaurante e os clientes verem onde você está.
       </div>
 
+      <!-- Notificações: avisa pedido novo com o app fechado -->
+      <div v-if="push.disponivel.value && !push.ativo.value" class="rounded-2xl ent-cartao p-3 flex items-center gap-3">
+        <span class="size-9 rounded-xl bg-orange-500/15 text-orange-600 dark:text-orange-400 flex items-center justify-center shrink-0"><BellRing :size="18" /></span>
+        <div class="flex-1 min-w-0 text-xs">
+          <p class="font-black text-sm">Avisar pedido novo</p>
+          <p v-if="push.negado.value" class="ent-mudo">Notificações bloqueadas. Libere nas configurações do navegador para este site.</p>
+          <p v-else-if="push.iphoneSemInstalar" class="ent-mudo">No iPhone: toque em Compartilhar → "Adicionar à Tela de Início" e abra por lá.</p>
+          <p v-else class="ent-mudo">Receba um alerta quando o caixa mandar uma entrega, mesmo com o app fechado.</p>
+        </div>
+        <button v-if="!push.negado.value && !push.iphoneSemInstalar" class="h-10 px-3 rounded-xl bg-orange-500 hover:bg-orange-600 text-white text-xs font-black shrink-0 disabled:opacity-50"
+          :disabled="push.ocupado.value" @click="ativarPush">Ativar</button>
+      </div>
+
       <!-- Sair para entrega -->
       <button v-if="aguardando.length" class="w-full h-14 rounded-2xl bg-orange-500 hover:bg-orange-600 text-white font-black text-base flex items-center justify-center gap-2 disabled:opacity-50"
         :disabled="ocupado" @click="iniciarRota">
@@ -96,23 +109,30 @@
 
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
-import { Bike, RefreshCw, LogOut, Navigation, Phone, MessageCircle, CheckCircle2 } from 'lucide-vue-next'
+import { Bike, RefreshCw, LogOut, Navigation, Phone, MessageCircle, CheckCircle2, BellRing } from 'lucide-vue-next'
 import MapaDelivery from '~/components/MapaDelivery.vue'
 import { useApi } from '~/services/api'
 import { useAuthStore } from '~/stores/auth'
 import { useToastStore } from '~/stores/toast'
 import { useSocket } from '~/services/socket'
 import { useRastreioEntregador } from '~/composables/useRastreioEntregador'
+import { usePushEntregador } from '~/composables/usePushEntregador'
 import { EVENTOS } from '~/shared/eventos'
 
 definePageMeta({ layout: false })
-useHead({ title: 'Minhas entregas', meta: [{ name: 'viewport', content: 'width=device-width, initial-scale=1, viewport-fit=cover' }] })
+useHead({
+  title: 'Minhas entregas',
+  meta: [{ name: 'viewport', content: 'width=device-width, initial-scale=1, viewport-fit=cover' }, { name: 'theme-color', content: '#f97316' }],
+  // Instalável na tela inicial (no iPhone o push só funciona assim)
+  link: [{ rel: 'manifest', href: '/entregador.webmanifest' }, { rel: 'apple-touch-icon', href: '/icone-entregador.svg' }],
+})
 
 const api = useApi()
 const authStore = useAuthStore()
 const toast = useToastStore()
 const socket = useSocket()
 const rastreio = useRastreioEntregador()
+const push = usePushEntregador()
 
 const FORMA: Record<string, string> = { pix: 'Pix', cartao: 'Cartão', dinheiro: 'Dinheiro' }
 const moeda = (v: number) => Number(v || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
@@ -193,7 +213,12 @@ async function confirmarCodigo() {
   if (c.length !== 4) { erroCodigo.value = 'O código tem 4 números'; return }
   if (await entreguei(codigoDe.value, c)) codigoDe.value = null
 }
-async function sair() { await rastreio.parar(); navigateTo('/logout') }
+async function sair() { await rastreio.parar(); await push.desativar(); navigateTo('/logout') }
+async function ativarPush() {
+  try {
+    if (await push.ativar()) toast.success('Notificações ligadas', 'Você recebe um alerta a cada entrega nova.')
+  } catch (e: any) { toast.error(e?.message || 'Não deu para ligar as notificações') }
+}
 
 // GPS ligado só com rota em andamento
 watch(emRota, (v) => { v ? rastreio.iniciar() : rastreio.parar() })
@@ -205,6 +230,7 @@ onMounted(async () => {
   document.documentElement.classList.toggle('dark', window.matchMedia('(prefers-color-scheme: dark)').matches)
   await carregar()
   if (emRota.value) rastreio.iniciar()
+  push.verificar()
   desinscrever.push(socket.on(EVENTOS.delivery.atualizado, () => carregar()))
   timer = setInterval(() => { if (!document.hidden) carregar() }, 30000)
 })

@@ -55,6 +55,7 @@ const MODELOS_COM_TENANT = new Set([
   'licenca',
   'pedidoOnline',
   'entregadorPosicao',
+  'pushInscricao',
 ])
 
 const LEITURAS = new Set([

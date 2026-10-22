@@ -414,8 +414,11 @@ export async function cancelar(tenantId: string, id: string, motivo: string, usu
   const r = await prisma.$transaction(async (tx) => {
     const po = await tx.pedidoOnline.findFirst({ where: { tenantId, id } })
     if (!po) throw erro(404, 'Pedido não encontrado')
-    if (!ATIVOS_ROTA.includes(po.status as any)) throw erro(409, po.status === 'recebido' ? 'Pedido ainda não aceito: use Recusar' : 'Este pedido já foi finalizado')
-    if (po.entregaConfirmadaEm) throw erro(409, 'O entregador já confirmou a entrega. Acerte o pagamento no caixa.')
+    // Entregue também pode ser cancelado depois que o pagamento foi estornado no
+    // caixa (venda desfeita); a regra "sem pagamento confirmado" abaixo garante isso
+    const entregue = po.status === 'entregue'
+    if (!entregue && !ATIVOS_ROTA.includes(po.status as any)) throw erro(409, po.status === 'recebido' ? 'Pedido ainda não aceito: use Recusar' : 'Este pedido já foi finalizado')
+    if (!entregue && po.entregaConfirmadaEm) throw erro(409, 'O entregador já confirmou a entrega. Acerte o pagamento no caixa.')
 
     let itens: any[] = []
     if (po.pedidoId) {

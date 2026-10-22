@@ -18,7 +18,7 @@ export async function definirTipoComercio(tenantId: string, tipo: string | null)
 }
 
 export async function buscar(tenantId: string) {
-  const tenant = await prisma.tenant.findUnique({ where: { id: tenantId }, select: { tipoComercio: true, plano: { select: { delivery: true } } } })
+  const tenant = await prisma.tenant.findUnique({ where: { id: tenantId }, select: { tipoComercio: true, deliveryDisponivel: true } })
   const config = await prisma.configuracoes.upsert({
     where: { tenantId },
     update: {},
@@ -32,7 +32,7 @@ export async function buscar(tenantId: string) {
     id: config.id,
     tenantId: config.tenantId,
     tipoComercio: tenant?.tipoComercio ?? null,
-    deliveryDisponivel: Boolean(tenant?.plano?.delivery),
+    deliveryDisponivel: Boolean(tenant?.deliveryDisponivel),
     deliveryAtivo: config.deliveryAtivo,
     nomeRestaurante: config.nomeRestaurante,
     logoBase64: config.logoBase64,
@@ -159,6 +159,6 @@ export async function motivoSemCelular(tenantId: string): Promise<string | null>
  */
 export async function motivoSemAcessoPeloQr(tenantId: string, cargo: string): Promise<string | null> {
   if (cargo !== 'entregador') return motivoSemCelular(tenantId)
-  const t = await prisma.tenant.findUnique({ where: { id: tenantId }, select: { plano: { select: { delivery: true } } } })
-  return t?.plano?.delivery ? null : 'Delivery não está incluído no plano deste restaurante'
+  const t = await prisma.tenant.findUnique({ where: { id: tenantId }, select: { deliveryDisponivel: true } })
+  return t?.deliveryDisponivel ? null : 'Delivery não está liberado para este restaurante'
 }

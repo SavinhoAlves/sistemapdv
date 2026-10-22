@@ -149,6 +149,7 @@ export async function platformTenantsRoutes(app: FastifyInstance) {
         status: true,
         rfidDisponivel: true,
         vendaMobilePermitida: true,
+        deliveryDisponivel: true,
         planoId: true,
         plano: { select: { id: true, nome: true, valor: true } },
         createdAt: true,
@@ -189,11 +190,13 @@ export async function platformTenantsRoutes(app: FastifyInstance) {
         vendaMobilePermitida: true,
         rfidManual: true,
         vendaMobileManual: true,
+        deliveryDisponivel: true,
+        deliveryManual: true,
         cpfResponsavel: true,
         cidade: true,
         uf: true,
         planoId: true,
-        plano: { select: { id: true, nome: true, valor: true, rfid: true, vendaMobile: true } },
+        plano: { select: { id: true, nome: true, valor: true, rfid: true, vendaMobile: true, delivery: true } },
         createdAt: true,
         licencas: {
           orderBy: { createdAt: 'desc' },
@@ -380,15 +383,17 @@ export async function platformTenantsRoutes(app: FastifyInstance) {
     const parsed = z.object({
       rfid:        z.boolean().nullable().optional(),
       vendaMobile: z.boolean().nullable().optional(),
+      delivery:    z.boolean().nullable().optional(),
     }).safeParse(request.body ?? {})
     if (!parsed.success) return reply.status(400).send({ error: 'Use true, false ou null para cada recurso' })
-    const { rfid, vendaMobile } = parsed.data
+    const { rfid, vendaMobile, delivery } = parsed.data
     try {
       await prisma.tenant.update({
         where: { id },
         data: {
           ...(rfid !== undefined ? { rfidManual: rfid } : {}),
           ...(vendaMobile !== undefined ? { vendaMobileManual: vendaMobile } : {}),
+          ...(delivery !== undefined ? { deliveryManual: delivery } : {}),
         },
       })
     } catch (err: any) {

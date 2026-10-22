@@ -662,6 +662,8 @@ export async function atribuir(tenantId: string, id: string, entregadorId: strin
     if (!u) throw erro(404, 'Entregador não encontrado')
   }
   const anterior = po.entregadorId
+  // Sem pino ainda (o geocodificador falhou na chegada): tenta de novo antes de montar a rota
+  if (entregadorId && po.destinoLat == null) await localizarDestino(tenantId, id)
   await prisma.pedidoOnline.update({ where: { id }, data: { entregadorId, ordemRota: null } })
   if (anterior && anterior !== entregadorId) await recalcularRota(tenantId, anterior)
   if (entregadorId) await recalcularRota(tenantId, entregadorId)

@@ -103,7 +103,7 @@
                   <div style="min-width:0">
                     <b>Plano {{ contratoAtual.plano }}</b>
                     <small style="display:block;color:var(--pf-muted)">
-                      {{ formatDate(contratoAtual.dataInicio) }} até {{ contratoAtual.dataFim ? formatDate(contratoAtual.dataFim) : 'prazo indeterminado' }}
+                      {{ diaBR(contratoAtual.dataInicio) }} até {{ contratoAtual.dataFim ? diaBR(contratoAtual.dataFim) : 'prazo indeterminado' }}
                       <template v-if="contratoAtual.valor && !contratoAtual.isento"> · {{ formatCurrency(contratoAtual.valor) }} / {{ rotuloCiclo(contratoAtual.ciclo) }}</template>
                     </small>
                   </div>

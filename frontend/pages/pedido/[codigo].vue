@@ -20,7 +20,7 @@
         <!-- Situação -->
         <section class="mt-5 rounded-3xl cdp-cartao p-5" aria-live="polite">
           <template v-if="p.status === 'recusado' || p.status === 'cancelado'">
-            <p class="text-xl font-black text-red-600 dark:text-red-400">Pedido não aceito</p>
+            <p class="text-xl font-black text-red-600 dark:text-red-400">{{ p.status === 'cancelado' ? 'Pedido cancelado' : 'Pedido não aceito' }}</p>
             <p class="text-sm mt-1">{{ p.motivoRecusa || 'O restaurante não pôde atender este pedido.' }}</p>
             <p class="text-xs cdp-mudo mt-3">Nada foi cobrado.</p>
           </template>
@@ -102,7 +102,7 @@ const base = config.app.baseURL
 useHead({ title: `Pedido ${codigo}` })
 
 const moeda = (v: number) => Number(v || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
-const FORMA: Record<string, string> = { pix: 'Pix', cartao: 'Cartão', dinheiro: 'Dinheiro' }
+const FORMA: Record<string, string> = { pix: 'Pix', credito: 'Cartão de crédito', debito: 'Cartão de débito', cartao: 'Cartão', dinheiro: 'Dinheiro' }
 const TITULO: Record<string, string> = {
   recebido: 'Aguardando o restaurante', aceito: 'Pedido aceito', preparando: 'Em preparo',
   pronto: 'Pronto', em_rota: 'Saiu para entrega', entregue: 'Entregue',

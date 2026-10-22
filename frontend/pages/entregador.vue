@@ -134,7 +134,7 @@ const socket = useSocket()
 const rastreio = useRastreioEntregador()
 const push = usePushEntregador()
 
-const FORMA: Record<string, string> = { pix: 'Pix', cartao: 'Cartão', dinheiro: 'Dinheiro' }
+const FORMA: Record<string, string> = { pix: 'Pix', credito: 'Cartão de crédito', debito: 'Cartão de débito', cartao: 'Cartão', dinheiro: 'Dinheiro' }
 const moeda = (v: number) => Number(v || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
 const hora = (iso: string) => new Date(iso).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
 // APK mais recente publicado no GitHub (workflow "Android entregador")
@@ -192,8 +192,11 @@ async function iniciarRota() {
 async function entreguei(p: any, codigo?: string) {
   ocupado.value = true
   try {
-    rota.value = await api.post(`/entregador/pedidos/${p.id}/entregue`, codigo ? { codigo } : undefined)
-    toast.success(`Entregue para ${p.clienteNome.split(' ')[0]}`)
+    const r = await api.post<any>(`/entregador/pedidos/${p.id}/entregue`, codigo ? { codigo } : undefined)
+    rota.value = r
+    // Entregue, mas o pagamento ficou para o caixa (caixa fechado, forma sem correspondente…)
+    if (r?.aviso) toast.warning(`Entregue para ${p.clienteNome.split(' ')[0]}`, r.aviso)
+    else toast.success(`Entregue para ${p.clienteNome.split(' ')[0]}`)
     return true
   } catch (e: any) {
     if (codigo) erroCodigo.value = e?.message || 'Código incorreto'

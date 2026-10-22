@@ -944,7 +944,7 @@ model PedidoOnline {
   subtotal            Decimal            @db.Decimal(10, 2)
   taxaEntrega         Decimal            @default(0) @map("taxa_entrega") @db.Decimal(10, 2)
   total               Decimal            @db.Decimal(10, 2)
-  /// dinheiro | cartao | pix — pago na entrega/retirada
+  /// dinheiro | credito | debito | pix (cartao: pedidos antigos) — pago na entrega/retirada
   formaPagamento      String             @map("forma_pagamento")
   trocoPara           Decimal?           @map("troco_para") @db.Decimal(10, 2)
   observacao          String?

@@ -12,6 +12,7 @@ import { geocodificar, distancia, type Coordenadas } from '../../lib/geocodifica
 import { hojeLocal, inicioDoDia } from '../../lib/fuso'
 import { vaiParaCozinha, camposCozinha } from '../../lib/cozinha'
 import { enviarPush } from '../../lib/push'
+import { registrarAuditoria } from '../../lib/auditoria'
 
 /**
  * Delivery pelo cardápio online.
@@ -109,7 +110,7 @@ export interface NovoPedidoOnline {
   clienteNome: string
   clienteTelefone: string
   endereco?: string; numero?: string; bairro?: string; complemento?: string; referencia?: string
-  formaPagamento: 'dinheiro' | 'cartao' | 'pix'
+  formaPagamento: 'dinheiro' | 'credito' | 'debito' | 'pix' | 'cartao'
   trocoPara?: number | null
   observacao?: string
   itens: { produtoId: string; quantidade: number; observacao?: string }[]
@@ -399,6 +400,62 @@ export async function recusar(tenantId: string, id: string, motivo: string) {
   return paraCaixa(atualizado)
 }
 
+/**
+ * Cancelar depois de aceito (cliente desistiu, não atendeu, endereço errado…):
+ * devolve o estoque, cancela os itens (somem da cozinha) e o pedido, e o
+ * cliente vê o motivo no acompanhamento. Com pagamento registrado, estorne antes.
+ */
+export async function cancelar(tenantId: string, id: string, motivo: string, usuarioId: string) {
+  const texto = motivo.trim().slice(0, 200)
+  const r = await prisma.$transaction(async (tx) => {
+    const po = await tx.pedidoOnline.findFirst({ where: { tenantId, id } })
+    if (!po) throw erro(404, 'Pedido não encontrado')
+    if (!ATIVOS_ROTA.includes(po.status as any)) throw erro(409, po.status === 'recebido' ? 'Pedido ainda não aceito: use Recusar' : 'Este pedido já foi finalizado')
+    if (po.entregaConfirmadaEm) throw erro(409, 'O entregador já confirmou a entrega. Acerte o pagamento no caixa.')
+
+    let itens: any[] = []
+    if (po.pedidoId) {
+      const pagos = await tx.pagamento.count({ where: { tenantId, pedidoId: po.pedidoId, status: 'confirmado' } })
+      if (pagos > 0) throw erro(409, 'Este pedido tem pagamento registrado. Estorne o pagamento antes de cancelar.')
+      itens = await tx.pedidoItem.findMany({
+        where: { pedidoId: po.pedidoId, status: { not: 'cancelado' } },
+        include: { produto: { select: { id: true, nome: true, gerenciarEstoque: true } } },
+      })
+      for (const i of itens) {
+        if (i.produto.gerenciarEstoque) {
+          await tx.produto.update({ where: { id: i.produto.id }, data: { estoqueAtual: { increment: i.quantidade } } })
+          await tx.movimentacaoEstoque.create({
+            data: { produtoId: i.produto.id, tipo: 'entrada', quantidade: i.quantidade, motivo: `Delivery ${po.codigo} cancelado: ${texto}`, usuarioId } as any,
+          })
+        }
+        await tx.pedidoItem.update({ where: { id: i.id }, data: { status: 'cancelado', canceladoPorId: usuarioId, motivoCancelamento: texto } as any })
+      }
+      await tx.pedido.update({ where: { id: po.pedidoId }, data: { status: 'cancelado', fechadoEm: new Date() } as any })
+    }
+    const atualizado = await tx.pedidoOnline.update({
+      where: { id: po.id },
+      data: { status: 'cancelado', motivoRecusa: texto, canceladoEm: new Date(), ordemRota: null },
+      include: includeCaixa,
+    })
+    await registrarAuditoria(tx, {
+      usuarioId, acao: 'delivery.cancelado', entidade: 'PedidoOnline', entidadeId: po.id,
+      detalhes: { codigo: po.codigo, motivo: texto, itens: itens.map((i) => `${i.quantidade}x ${i.produto.nome}`) },
+    })
+    return { atualizado, itens, entregadorId: po.entregadorId }
+  })
+
+  if (r.entregadorId) await recalcularRota(tenantId, r.entregadorId)
+  const e = emitir(tenantId)
+  for (const i of r.itens) {
+    e.item(EVENTOS.item.statusAlterado, {
+      comandaId: i.pedidoId, pedidoId: i.pedidoId, itemId: i.id, produtoId: i.produto.id, produtoNome: i.produto.nome,
+      quantidade: i.quantidade, status: 'cancelado', vaiCozinha: true, rodada: i.rodada, totalCentavos: 0,
+    })
+  }
+  e.delivery(EVENTOS.delivery.atualizado, payload(r.atualizado))
+  return paraCaixa(r.atualizado)
+}
+
 /** Saiu para entrega (só entrega; retirada vai direto para concluir). */
 export async function saiu(tenantId: string, id: string) {
   const po = await buscar(tenantId, id)
@@ -417,20 +474,28 @@ export async function saiu(tenantId: string, id: string) {
  */
 export async function concluir(tenantId: string, id: string, d: { metodoId: string; valorRecebido?: number; idempotencyKey: string }, usuarioId: string) {
   const po = await buscar(tenantId, id)
+  // Caixa e entregador podem concluir quase juntos: quem chega depois só recebe o pedido pronto
+  if (po.status === 'entregue') return paraCaixa(po)
   if (!['aceito', 'pronto', 'em_rota'].includes(po.status) || !po.pedidoId) throw erro(409, 'Pedido não está em andamento')
 
   const pedido = await prisma.pedido.findFirst({ where: { tenantId, id: po.pedidoId }, include: includeParaConta })
   const conta = calcularConta({ itens: pedido!.itens, abatimentos: pedido!.abatimentos, pagamentos: pedido!.pagamentos, taxaPct: Number(pedido!.taxaPct), taxaEntrega: pedido!.taxaEntrega })
   if (conta.restanteCentavos > 0) {
-    await registrarPagamento(tenantId, {
-      idempotencyKey: d.idempotencyKey, pedidoId: po.pedidoId, metodoId: d.metodoId,
-      valorPago: paraReais(conta.restanteCentavos), valorRecebido: d.valorRecebido, usuarioId,
-    } as any)
+    try {
+      await registrarPagamento(tenantId, {
+        idempotencyKey: d.idempotencyKey, pedidoId: po.pedidoId, metodoId: d.metodoId,
+        valorPago: paraReais(conta.restanteCentavos), valorRecebido: d.valorRecebido, usuarioId,
+      } as any)
+    } catch (e: any) {
+      // O outro lado pagou entre a leitura e o registro: a conta está certa, segue
+      if (!(e?.status === 409 && /quitada/i.test(e?.message ?? ''))) throw e
+    }
   }
   await prisma.pedido.update({ where: { id: po.pedidoId }, data: { status: 'fechado', fechadoEm: new Date() } })
   const atualizado = await prisma.pedidoOnline.update({
-    where: { id }, data: { status: 'entregue', entregueEm: new Date(), prontoEm: po.prontoEm ?? new Date() }, include: includeCaixa,
+    where: { id }, data: { status: 'entregue', entregueEm: new Date(), prontoEm: po.prontoEm ?? new Date(), ordemRota: null }, include: includeCaixa,
   })
+  if (po.entregadorId) await recalcularRota(tenantId, po.entregadorId)
   emitir(tenantId).delivery(EVENTOS.delivery.atualizado, payload(atualizado))
   return paraCaixa(atualizado)
 }
@@ -668,32 +733,42 @@ export async function confirmarEntrega(tenantId: string, usuarioId: string, id: 
     }
   }
 
-  await prisma.pedidoOnline.update({ where: { id }, data: { entregaConfirmadaEm: new Date(), ordemRota: null } })
-  await recalcularRota(tenantId, usuarioId)
-
-  // Código conferido: registra o pagamento na forma escolhida pelo cliente e marca
-  // como entregue, sem o caixa precisar concluir. Sem forma correspondente, fica para o caixa.
+  // Código conferido: primeiro registra o pagamento na forma que o cliente escolheu
+  // (e o pedido vira entregue). Se não der (caixa fechado, forma sem correspondente),
+  // a entrega é confirmada mesmo assim — o cliente recebeu — e o caixa acerta depois.
+  let aviso: string | null = null
   if (po.codigoEntrega) {
     const metodo = await metodoDaForma(po.formaPagamento)
-    if (metodo) {
-      await concluir(tenantId, id, {
-        metodoId: metodo.id, idempotencyKey: `entrega-${id}`,
-        valorRecebido: po.formaPagamento === 'dinheiro' && po.trocoPara != null ? Number(po.trocoPara) : undefined,
-      }, usuarioId)
-      return minhaRota(tenantId, usuarioId)
+    if (!metodo) aviso = 'Entrega confirmada. Acerte o pagamento no caixa ao voltar.'
+    else {
+      try {
+        await concluir(tenantId, id, {
+          metodoId: metodo.id, idempotencyKey: `entrega-${id}`,
+          valorRecebido: po.formaPagamento === 'dinheiro' && po.trocoPara != null ? Number(po.trocoPara) : undefined,
+        }, usuarioId)
+      } catch (e: any) {
+        aviso = `Entrega confirmada, mas o pagamento não foi registrado (${e?.message ?? 'erro'}). Acerte no caixa ao voltar.`
+      }
     }
+  } else {
+    aviso = 'Entrega confirmada. Acerte o pagamento no caixa ao voltar.'
   }
+
+  await prisma.pedidoOnline.update({ where: { id }, data: { entregaConfirmadaEm: new Date(), ordemRota: null } })
+  await recalcularRota(tenantId, usuarioId)
   emitir(tenantId).delivery(EVENTOS.delivery.atualizado, payload(await buscar(tenantId, id)))
-  return minhaRota(tenantId, usuarioId)
+  return { ...(await minhaRota(tenantId, usuarioId)), aviso }
 }
 
-/** Forma de pagamento do cardápio (dinheiro, pix, cartao) → forma ativa do restaurante. */
+/** Forma de pagamento do cardápio (dinheiro, pix, crédito, débito) → forma ativa do restaurante. */
 async function metodoDaForma(forma: string) {
   const ativos = await prisma.metodoPagamento.findMany({ where: { ativo: true }, orderBy: { nome: 'asc' } })
   const tem = (m: { nome: string }, t: string) => m.nome.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').includes(t)
   if (forma === 'dinheiro') return ativos.find((m) => tem(m, 'dinheiro')) ?? null
   if (forma === 'pix') return ativos.find((m) => tem(m, 'pix')) ?? null
-  if (forma === 'cartao') return ativos.find((m) => tem(m, 'credito')) ?? ativos.find((m) => tem(m, 'cart')) ?? ativos.find((m) => tem(m, 'debito')) ?? null
+  if (forma === 'credito') return ativos.find((m) => tem(m, 'credito')) ?? null
+  if (forma === 'debito') return ativos.find((m) => tem(m, 'debito')) ?? null
+  // 'cartao' (pedidos antigos, sem crédito/débito): o caixa confirma qual foi
   return null
 }
 

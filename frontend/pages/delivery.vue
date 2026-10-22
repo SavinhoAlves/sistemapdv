@@ -76,7 +76,7 @@
               :class="p.etapa === 'pronto' ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300' : 'bg-amber-500/15 text-amber-700 dark:text-amber-300'">
               {{ p.etapa === 'pronto' ? 'Pronto' : p.etapa === 'preparando' ? 'Em preparo' : 'Na fila da cozinha' }}
             </span>
-            <span v-else-if="p.status === 'recusado'" class="inline-block mt-2 text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-red-500/15 text-red-600 dark:text-red-400">Recusado</span>
+            <span v-else-if="p.status === 'recusado' || p.status === 'cancelado'" class="inline-block mt-2 text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-red-500/15 text-red-600 dark:text-red-400">{{ p.status === 'recusado' ? 'Recusado' : 'Cancelado' }}</span>
 
             <ul class="mt-2 text-xs text-gray-700 dark:text-white/75 space-y-0.5">
               <li v-for="(i, k) in p.itens" :key="k"><b>{{ i.quantidade }}×</b> {{ i.nome }}<span v-if="i.observacao" class="text-orange-600 dark:text-orange-400"> — {{ i.observacao }}</span></li>
@@ -111,11 +111,12 @@
             <!-- Ações -->
             <div v-if="p.status === 'recebido'" class="mt-3 grid grid-cols-[1fr_auto] gap-2">
               <button class="h-9 rounded-lg bg-orange-500 hover:bg-orange-600 text-white text-xs font-black disabled:opacity-50" :disabled="ocupado === p.id" @click="aceitar(p)">Aceitar e mandar para a cozinha</button>
-              <button class="h-9 px-3 rounded-lg border border-gray-200 dark:border-white/10 text-xs font-black text-gray-600 dark:text-white/60" @click="recusando = p; motivo = ''">Recusar</button>
+              <button class="h-9 px-3 rounded-lg border border-gray-200 dark:border-white/10 text-xs font-black text-gray-600 dark:text-white/60" @click="abrirMotivo(p, 'recusar')">Recusar</button>
             </div>
             <div v-else-if="['aceito', 'pronto', 'em_rota'].includes(p.status)" class="mt-3 flex gap-2">
               <button v-if="p.tipo === 'entrega' && p.status !== 'em_rota' && !p.entregador" class="flex-1 h-9 rounded-lg border border-orange-500/40 text-orange-600 dark:text-orange-400 text-xs font-black disabled:opacity-50" :disabled="ocupado === p.id" @click="saiu(p)">Saiu para entrega</button>
-              <button class="flex-1 h-9 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black" @click="abrirConcluir(p)">{{ p.tipo === 'entrega' ? 'Entregue e pago' : 'Retirado e pago' }}</button>
+              <button class="flex-1 h-9 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black" @click="abrirConcluir(p)">{{ p.entregaConfirmadaEm ? 'Registrar pagamento' : p.tipo === 'entrega' ? 'Entregue e pago' : 'Retirado e pago' }}</button>
+              <button v-if="!p.entregaConfirmadaEm" class="h-9 px-3 rounded-lg border border-gray-200 dark:border-white/10 text-xs font-black text-gray-500 dark:text-white/50 hover:text-red-600 hover:border-red-500/40 disabled:opacity-50" :disabled="ocupado === p.id" aria-label="Cancelar pedido" @click="abrirMotivo(p, 'cancelar')">Cancelar</button>
             </div>
           </article>
         </section>
@@ -127,16 +128,16 @@
     <!-- Recusar -->
     <Teleport to="body">
       <div v-if="recusando" class="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4" @click.self="recusando = null">
-        <div class="bg-white dark:bg-[#161b26] rounded-3xl w-full max-w-sm p-6 border border-gray-200 dark:border-white/10" role="dialog" aria-modal="true" aria-label="Recusar pedido">
-          <h2 class="text-lg font-black text-gray-900 dark:text-white">Recusar pedido {{ recusando.codigo }}</h2>
-          <p class="text-xs text-gray-500 dark:text-white/50 mt-1">O cliente vê este motivo na página do pedido.</p>
+        <div class="bg-white dark:bg-[#161b26] rounded-3xl w-full max-w-sm p-6 border border-gray-200 dark:border-white/10" role="dialog" aria-modal="true" :aria-label="modoMotivo === 'recusar' ? 'Recusar pedido' : 'Cancelar pedido'">
+          <h2 class="text-lg font-black text-gray-900 dark:text-white">{{ modoMotivo === 'recusar' ? 'Recusar' : 'Cancelar' }} pedido {{ recusando.codigo }}</h2>
+          <p class="text-xs text-gray-500 dark:text-white/50 mt-1">O cliente vê este motivo na página do pedido.<template v-if="modoMotivo === 'cancelar'"> Os itens saem da cozinha e o estoque volta.</template></p>
           <div class="flex flex-wrap gap-1.5 mt-4">
-            <button v-for="m in MOTIVOS" :key="m" class="h-8 px-3 rounded-lg text-xs font-bold border" :class="motivo === m ? 'border-orange-500 bg-orange-500/10 text-orange-700 dark:text-orange-300' : 'border-gray-200 dark:border-white/10 text-gray-600 dark:text-white/60'" @click="motivo = m">{{ m }}</button>
+            <button v-for="m in (modoMotivo === 'recusar' ? MOTIVOS : MOTIVOS_CANCELAR)" :key="m" class="h-8 px-3 rounded-lg text-xs font-bold border" :class="motivo === m ? 'border-orange-500 bg-orange-500/10 text-orange-700 dark:text-orange-300' : 'border-gray-200 dark:border-white/10 text-gray-600 dark:text-white/60'" @click="motivo = m">{{ m }}</button>
           </div>
           <input v-model="motivo" placeholder="Ou escreva o motivo" class="dlv-campo mt-3" />
           <div class="mt-5 flex gap-2">
             <button class="flex-1 h-11 rounded-2xl border border-gray-200 dark:border-white/10 text-sm font-black text-gray-600 dark:text-white/60" @click="recusando = null">Voltar</button>
-            <button class="flex-1 h-11 rounded-2xl bg-red-600 hover:bg-red-700 text-white text-sm font-black disabled:opacity-40" :disabled="motivo.trim().length < 3 || ocupado === recusando.id" @click="recusar">Recusar</button>
+            <button class="flex-1 h-11 rounded-2xl bg-red-600 hover:bg-red-700 text-white text-sm font-black disabled:opacity-40" :disabled="motivo.trim().length < 3 || ocupado === recusando.id" @click="confirmarMotivo">{{ modoMotivo === 'recusar' ? 'Recusar' : 'Cancelar pedido' }}</button>
           </div>
         </div>
       </div>
@@ -193,8 +194,9 @@ const COLUNAS = [
   { chave: 'rota',      rotulo: 'Em rota',          cor: 'text-sky-600 dark:text-sky-400',         vazio: 'Ninguém na rua' },
   { chave: 'feitos',    rotulo: 'Finalizados (12 h)', cor: 'text-gray-500 dark:text-white/45',     vazio: 'Nada finalizado ainda' },
 ] as const
-const FORMA: Record<string, string> = { pix: 'Pix', cartao: 'Cartão', dinheiro: 'Dinheiro' }
+const FORMA: Record<string, string> = { pix: 'Pix', credito: 'Cartão de crédito', debito: 'Cartão de débito', cartao: 'Cartão', dinheiro: 'Dinheiro' }
 const MOTIVOS = ['Fora da área de entrega', 'Item em falta', 'Fechando agora', 'Muito movimento']
+const MOTIVOS_CANCELAR = ['Cliente desistiu', 'Cliente não atendeu', 'Endereço não encontrado', 'Item em falta']
 
 const pedidos = ref<any[]>([])
 const cfg = ref<any>(null)
@@ -258,11 +260,16 @@ async function acao(p: any, fn: () => Promise<any>, ok?: string) {
 const aceitar = (p: any) => acao(p, () => api.post(`/delivery/pedidos/${p.id}/aceitar`), `Pedido ${p.codigo} na cozinha`)
 const saiu = (p: any) => acao(p, () => api.post(`/delivery/pedidos/${p.id}/saiu`), 'Cliente avisado: saiu para entrega')
 
+// Recusar (antes de aceitar) e cancelar (depois) pedem motivo, que o cliente vê
 const recusando = ref<any>(null)
+const modoMotivo = ref<'recusar' | 'cancelar'>('recusar')
 const motivo = ref('')
-async function recusar() {
+function abrirMotivo(p: any, modo: 'recusar' | 'cancelar') { recusando.value = p; modoMotivo.value = modo; motivo.value = '' }
+async function confirmarMotivo() {
   const p = recusando.value
-  if (await acao(p, () => api.post(`/delivery/pedidos/${p.id}/recusar`, { motivo: motivo.value.trim() }), 'Pedido recusado')) recusando.value = null
+  const ok = await acao(p, () => api.post(`/delivery/pedidos/${p.id}/${modoMotivo.value}`, { motivo: motivo.value.trim() }),
+    modoMotivo.value === 'recusar' ? 'Pedido recusado' : `Pedido ${p.codigo} cancelado`)
+  if (ok) recusando.value = null
 }
 
 const concluindo = ref<any>(null)
@@ -274,8 +281,10 @@ const ehDinheiro = computed(() => metodos.value.find(m => m.id === metodoId.valu
 async function abrirConcluir(p: any) {
   erroConcluir.value = ''
   if (!metodos.value.length) { try { metodos.value = await api.get<any[]>('/pagamentos/metodos') } catch {} }
-  const nome = ({ pix: 'pix', cartao: 'cr', dinheiro: 'dinheiro' } as Record<string, string>)[p.formaPagamento]
-  metodoId.value = metodos.value.find(m => m.nome.toLowerCase().includes(nome))?.id ?? ''
+  // Pedido antigo com "cartao": o caixa escolhe crédito ou débito
+  const nome = ({ pix: 'pix', credito: 'credito', debito: 'debito', dinheiro: 'dinheiro' } as Record<string, string>)[p.formaPagamento]
+  const semAcento = (t: string) => t.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
+  metodoId.value = nome ? metodos.value.find(m => semAcento(m.nome).includes(nome))?.id ?? '' : ''
   recebido.value = p.trocoPara ?? p.total
   concluindo.value = p
 }

@@ -258,8 +258,12 @@ export async function resumoCaixa(_tenantId: string, caixaId: string, tx: any = 
 
     porMetodo[nome] ??= { recebido: 0, estornado: 0, liquido: 0, qtd: 0 }
     if (estornado) {
+      // Recebido é o bruto (o pagamento entrou) e o estorno sai dele. Antes o
+      // estornado ficava fora do recebido E era subtraído de novo: o líquido do
+      // método e o dinheiro esperado na gaveta caíam duas vezes o valor.
+      porMetodo[nome].recebido += valor
       porMetodo[nome].estornado += valor
-      if (ehDinheiro) dinheiroEstornado += valor
+      if (ehDinheiro) { dinheiroRecebido += valor; dinheiroEstornado += valor }
     } else {
       porMetodo[nome].recebido += valor
       porMetodo[nome].qtd++ // por método continua contando pagamentos

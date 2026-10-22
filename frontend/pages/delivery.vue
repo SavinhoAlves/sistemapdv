@@ -126,6 +126,9 @@
               <button class="flex-1 h-9 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black" @click="abrirConcluir(p)">{{ p.entregaConfirmadaEm ? 'Registrar pagamento' : p.tipo === 'entrega' ? 'Entregue e pago' : 'Retirado e pago' }}</button>
               <button v-if="!p.entregaConfirmadaEm" class="h-9 px-3 rounded-lg border border-gray-200 dark:border-white/10 text-xs font-black text-gray-500 dark:text-white/50 hover:text-red-600 hover:border-red-500/40 disabled:opacity-50" :disabled="ocupado === p.id" aria-label="Cancelar pedido" @click="abrirMotivo(p, 'cancelar')">Cancelar</button>
             </div>
+            <!-- Entregue: desfazer a venda (o servidor só aceita depois de estornar o pagamento no Caixa) -->
+            <button v-else-if="p.status === 'entregue'" class="mt-2 text-[11px] font-bold text-gray-400 dark:text-white/35 hover:text-red-600 disabled:opacity-50"
+              :disabled="ocupado === p.id" @click="abrirMotivo(p, 'cancelar')">Cancelar pedido (estorne o pagamento antes)</button>
           </article>
         </section>
       </div>

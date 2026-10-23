@@ -13,6 +13,7 @@ import { hojeLocal, inicioDoDia } from '../../lib/fuso'
 import { vaiParaCozinha, camposCozinha } from '../../lib/cozinha'
 import { enviarPush } from '../../lib/push'
 import { registrarAuditoria } from '../../lib/auditoria'
+import { salvarEndereco as salvarEnderecoDoCliente } from '../clientes/clientes.service'
 
 /**
  * Delivery pelo cardápio online.
@@ -117,7 +118,7 @@ export interface NovoPedidoOnline {
 }
 
 /** conta: cliente logado no cardápio (pedido ligado à conta; salva o endereço se pedir) */
-export async function criarPedido(slug: string, d: NovoPedidoOnline) {
+export async function criarPedido(slug: string, d: NovoPedidoOnline, conta?: { clienteId: string; tenantId: string; salvarEndereco?: boolean } | null) {
   const tenant = await tenantPorSlug(slug)
   if (!tenant || !tenant.deliveryDisponivel) throw erro(404, 'Cardápio não encontrado')
   const { aberto, motivo, cfg } = await situacao(tenant)
@@ -162,6 +163,7 @@ export async function criarPedido(slug: string, d: NovoPedidoOnline) {
       criado = await comTenant(tenant.id, async () => await prisma.pedidoOnline.create({
         data: {
           tenantId: tenant.id,
+          clienteId: conta && conta.tenantId === tenant.id ? conta.clienteId : null,
           codigo: novoCodigo(),
           codigoEntrega: d.tipo === 'entrega' ? codigoDeEntrega() : null,
           tipo: d.tipo,
@@ -189,6 +191,12 @@ export async function criarPedido(slug: string, d: NovoPedidoOnline) {
 
   emitir(tenant.id).delivery(EVENTOS.delivery.recebido, payload(criado))
   if (criado.tipo === 'entrega') void localizarDestino(tenant.id, criado.id)
+  // Logado e marcou "salvar endereço": fica para o próximo pedido (erro aqui não derruba o pedido)
+  if (criado.clienteId && conta?.salvarEndereco && d.tipo === 'entrega') {
+    await salvarEnderecoDoCliente(tenant.id, criado.clienteId, {
+      endereco: d.endereco!, numero: d.numero!, bairro: d.bairro!, complemento: d.complemento, referencia: d.referencia,
+    }).catch(() => {})
+  }
   return { codigo: criado.codigo }
 }
 

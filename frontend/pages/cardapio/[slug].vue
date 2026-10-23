@@ -26,6 +26,10 @@
               <span v-if="c.pedidoMinimo" class="cdp-mudo">· mínimo {{ moeda(c.pedidoMinimo) }}</span>
             </p>
           </div>
+          <!-- Conta do cliente -->
+          <button type="button" class="shrink-0 h-10 px-3 rounded-xl cdp-chip text-xs font-black flex items-center gap-1.5" @click="abrirConta()">
+            <UserRound :size="16" /> {{ logado ? perfil.cliente.nome.split(' ')[0] : 'Entrar' }}
+          </button>
         </div>
         <p v-if="!c.aberto" class="mt-3 text-sm rounded-xl px-3 py-2.5 bg-red-500/10 text-red-700 dark:text-red-300">{{ c.motivo }} Você pode olhar o cardápio.</p>
         <p v-else-if="c.mensagem" class="mt-3 text-sm rounded-xl px-3 py-2.5 bg-orange-500/10 text-orange-800 dark:text-orange-200">{{ c.mensagem }}</p>
@@ -59,26 +63,20 @@
         <p v-if="busca && !filtradas.length" class="text-center cdp-mudo py-10 text-sm">Nada encontrado para “{{ busca }}”.</p>
         <section v-for="cat in filtradas" :id="`cat-${cat.id}`" :key="cat.id" class="scroll-mt-28">
           <h2 class="text-base font-black mb-2.5">{{ cat.nome }}</h2>
-          <div :class="vista === 'grade' ? 'grid grid-cols-2 sm:grid-cols-3 gap-2.5' : 'space-y-2.5'">
+          <!-- Grade: colunas. Lista: faixa que desliza para o lado, da esquerda para a direita -->
+          <div :class="vista === 'grade' ? 'grid grid-cols-2 sm:grid-cols-3 gap-2.5' : 'flex gap-3 overflow-x-auto snap-x snap-mandatory -mx-4 px-4 pb-2 no-scrollbar'">
             <button v-for="p in cat.produtos" :key="p.id" type="button" :disabled="p.esgotado"
-              class="relative w-full text-left rounded-2xl cdp-cartao disabled:opacity-50"
-              :class="vista === 'grade' ? 'flex flex-col overflow-hidden' : 'p-3.5 flex gap-3 items-start'"
+              class="relative text-left rounded-2xl cdp-cartao disabled:opacity-50 flex flex-col overflow-hidden"
+              :class="vista === 'grade' ? 'w-full' : 'shrink-0 w-[200px] snap-start'"
               @click="abrirProduto(p)">
-              <!-- Grade: foto no alto. Lista: foto ao lado -->
-              <div v-if="vista === 'grade'" class="relative aspect-[4/3] w-full">
+              <div class="relative aspect-[4/3] w-full">
                 <ProdutoFoto :imagem="p.imagemUrl" :categoria="cat.nome" classe="absolute inset-0 rounded-none" :tamanho-icone="36" />
                 <span v-if="!p.esgotado" class="absolute bottom-2 right-2 size-8 rounded-full bg-orange-500 text-white flex items-center justify-center shadow" aria-hidden="true"><Plus :size="16" /></span>
               </div>
-              <div :class="vista === 'grade' ? 'p-3 flex-1 flex flex-col' : 'flex-1 min-w-0'">
-                <p class="font-bold leading-snug" :class="vista === 'grade' ? 'text-sm line-clamp-2' : ''">{{ p.nome }}</p>
-                <p v-if="p.descricao && vista === 'lista'" class="text-xs cdp-mudo mt-1 line-clamp-2">{{ p.descricao }}</p>
-                <p class="font-black text-sm" :class="vista === 'grade' ? 'mt-auto pt-2' : 'mt-2'">{{ p.esgotado ? 'Esgotado' : moeda(p.preco) }}</p>
+              <div class="p-3 flex-1 flex flex-col">
+                <p class="font-bold text-sm leading-snug line-clamp-2">{{ p.nome }}</p>
+                <p class="font-black text-sm mt-auto pt-2">{{ p.esgotado ? 'Esgotado' : moeda(p.preco) }}</p>
               </div>
-              <!-- Foto, ou o ícone da categoria quando o produto não tem foto -->
-              <span v-if="vista === 'lista'" class="relative shrink-0">
-                <ProdutoFoto :imagem="p.imagemUrl" :categoria="cat.nome" classe="size-20 rounded-xl" :tamanho-icone="30" />
-                <span v-if="!p.esgotado" class="absolute -bottom-1.5 -right-1.5 size-7 rounded-full bg-orange-500 text-white flex items-center justify-center ring-2 ring-[var(--cdp-cartao)]" aria-hidden="true"><Plus :size="15" /></span>
-              </span>
               <span v-if="noCarrinho(p.id)" class="sr-only">{{ noCarrinho(p.id) }} na sacola</span>
             </button>
           </div>
@@ -130,10 +128,35 @@
             <button v-if="c.retirada" type="button" class="h-12 rounded-xl border-2 text-sm font-black" :class="f.tipo === 'retirada' ? 'border-orange-500 bg-orange-500/10' : 'cdp-linha'" @click="f.tipo = 'retirada'">Retirar no local</button>
           </div>
 
+          <!-- Logado: os dados vêm da conta -->
+          <div v-if="logado" class="mt-4 rounded-xl cdp-cartao px-3 py-2.5 flex items-center gap-2 text-sm">
+            <UserRound :size="16" class="shrink-0 cdp-mudo" />
+            <span class="flex-1 min-w-0 truncate"><b>{{ perfil.cliente.nome }}</b> · {{ mascarar(perfil.cliente.telefone) }}</span>
+            <button type="button" class="text-xs font-black text-orange-600 dark:text-orange-400" @click="abrirConta()">Minha conta</button>
+          </div>
+          <button v-else type="button" class="mt-4 w-full rounded-xl px-3 py-2.5 text-left text-xs bg-orange-500/10 text-orange-800 dark:text-orange-200" @click="abrirConta('cadastro')">
+            <b>Crie uma conta</b> para salvar seus dados e endereços e pedir mais rápido da próxima vez.
+          </button>
+
           <div class="mt-4 grid grid-cols-1 gap-3">
-            <Campo v-model="f.clienteNome" rotulo="Seu nome" autocomplete="name" />
-            <Campo v-model="f.clienteTelefone" rotulo="Celular com DDD" tipo="tel" autocomplete="tel" placeholder="(62) 9 9999-9999" @update:model-value="mascararTelefone" />
-            <template v-if="f.tipo === 'entrega'">
+            <template v-if="!logado">
+              <Campo v-model="f.clienteNome" rotulo="Seu nome" autocomplete="name" />
+              <Campo v-model="f.clienteTelefone" rotulo="Celular com DDD" tipo="tel" autocomplete="tel" placeholder="(62) 9 9999-9999" @update:model-value="mascararTelefone" />
+            </template>
+            <!-- Endereços salvos na conta -->
+            <div v-if="f.tipo === 'entrega' && logado && perfil.enderecos.length" class="grid gap-2" role="radiogroup" aria-label="Endereço de entrega">
+              <span class="text-xs font-bold cdp-mudo">Entregar em</span>
+              <button v-for="e in perfil.enderecos" :key="e.id" type="button" role="radio" :aria-checked="enderecoEscolhido === e.id"
+                class="rounded-xl border-2 px-3 py-2.5 text-left text-sm" :class="enderecoEscolhido === e.id ? 'border-orange-500 bg-orange-500/10' : 'cdp-linha'" @click="usarEndereco(e.id)">
+                <b v-if="e.apelido">{{ e.apelido }} · </b>{{ e.endereco }}, {{ e.numero }} — {{ e.bairro }}
+                <span v-if="e.complemento" class="block text-xs cdp-mudo">{{ e.complemento }}</span>
+              </button>
+              <button type="button" role="radio" :aria-checked="enderecoEscolhido === 'novo'"
+                class="rounded-xl border-2 px-3 py-2.5 text-left text-sm font-bold" :class="enderecoEscolhido === 'novo' ? 'border-orange-500 bg-orange-500/10' : 'cdp-linha'" @click="usarEndereco('novo')">
+                + Outro endereço
+              </button>
+            </div>
+            <template v-if="f.tipo === 'entrega' && (!logado || enderecoEscolhido === 'novo')">
               <div class="grid grid-cols-[1fr_6rem] gap-3">
                 <Campo v-model="f.endereco" rotulo="Rua" autocomplete="address-line1" />
                 <Campo v-model="f.numero" rotulo="Número" inputmode="numeric" />
@@ -141,6 +164,9 @@
               <Campo v-model="f.bairro" rotulo="Bairro" />
               <Campo v-model="f.complemento" rotulo="Complemento (opcional)" placeholder="Apto, bloco, casa" />
               <Campo v-model="f.referencia" rotulo="Ponto de referência (opcional)" />
+              <label v-if="logado" class="flex items-center gap-2 text-sm">
+                <input v-model="salvarEndereco" type="checkbox" class="size-4 accent-orange-500" /> Salvar este endereço na minha conta
+              </label>
             </template>
           </div>
 
@@ -173,13 +199,67 @@
         </template>
       </Folha>
 
+      <!-- Conta do cliente: entrar / criar conta / minha conta -->
+      <Folha v-if="contaAberta" :titulo="logado ? 'Minha conta' : modoConta === 'cadastro' ? 'Criar conta' : 'Entrar'" @fechar="contaAberta = false">
+        <template v-if="!logado">
+          <div class="grid grid-cols-2 gap-2" role="tablist" aria-label="Entrar ou criar conta">
+            <button type="button" role="tab" :aria-selected="modoConta === 'entrar'" class="h-10 rounded-xl border-2 text-sm font-black" :class="modoConta === 'entrar' ? 'border-orange-500 bg-orange-500/10' : 'cdp-linha'" @click="modoConta = 'entrar'; erroConta = ''">Já tenho conta</button>
+            <button type="button" role="tab" :aria-selected="modoConta === 'cadastro'" class="h-10 rounded-xl border-2 text-sm font-black" :class="modoConta === 'cadastro' ? 'border-orange-500 bg-orange-500/10' : 'cdp-linha'" @click="modoConta = 'cadastro'; erroConta = ''">Criar conta</button>
+          </div>
+          <form class="mt-4 grid gap-3" @submit.prevent="enviarConta">
+            <Campo v-if="modoConta === 'cadastro'" v-model="fc.nome" rotulo="Seu nome" autocomplete="name" />
+            <Campo v-model="fc.telefone" rotulo="Celular com DDD" tipo="tel" autocomplete="tel" placeholder="(62) 9 9999-9999" @update:model-value="v => (fc.telefone = mascarar(String(v)))" />
+            <Campo v-model="fc.senha" :rotulo="modoConta === 'cadastro' ? 'Crie uma senha (mín. 6 caracteres)' : 'Senha'" tipo="password" :autocomplete="modoConta === 'cadastro' ? 'new-password' : 'current-password'" />
+            <p class="text-xs cdp-mudo">Sua conta vale para este restaurante. Guardamos nome, celular e endereços só para os seus pedidos; você pode apagar a conta quando quiser.</p>
+            <p v-if="erroConta" class="text-sm text-red-600 dark:text-red-400 font-bold" role="alert">{{ erroConta }}</p>
+            <button type="submit" class="h-12 rounded-2xl bg-orange-500 hover:bg-orange-600 disabled:opacity-40 text-white font-black flex items-center justify-center gap-2" :disabled="ocupadoConta">
+              <Loader2 v-if="ocupadoConta" :size="18" class="animate-spin" /> {{ modoConta === 'cadastro' ? 'Criar conta' : 'Entrar' }}
+            </button>
+            <p v-if="modoConta === 'entrar'" class="text-xs cdp-mudo text-center">Esqueceu a senha? Fale com o restaurante.</p>
+          </form>
+        </template>
+
+        <template v-else>
+          <p class="text-sm"><b>{{ perfil.cliente.nome }}</b> · {{ mascarar(perfil.cliente.telefone) }}</p>
+
+          <h3 class="mt-5 text-xs font-black uppercase tracking-widest cdp-mudo">Endereços salvos</h3>
+          <p v-if="!perfil.enderecos.length" class="mt-2 text-sm cdp-mudo">Nenhum ainda. No próximo pedido com entrega, deixe marcado "Salvar este endereço".</p>
+          <div v-for="e in perfil.enderecos" :key="e.id" class="mt-2 flex items-start gap-2 rounded-xl cdp-cartao px-3 py-2.5 text-sm">
+            <span class="flex-1 min-w-0"><b v-if="e.apelido">{{ e.apelido }} · </b>{{ e.endereco }}, {{ e.numero }} — {{ e.bairro }}<span v-if="e.complemento" class="block text-xs cdp-mudo">{{ e.complemento }}</span></span>
+            <button type="button" class="text-xs font-black text-red-600 dark:text-red-400 shrink-0" @click="removerEndereco(e.id)">Apagar</button>
+          </div>
+
+          <h3 class="mt-5 text-xs font-black uppercase tracking-widest cdp-mudo">Últimos pedidos</h3>
+          <p v-if="!perfil.pedidos.length" class="mt-2 text-sm cdp-mudo">Seus pedidos com a conta aparecem aqui.</p>
+          <a v-for="p in perfil.pedidos" :key="p.codigo" :href="`${base}pedido/${p.codigo}`" class="mt-2 flex items-center gap-3 rounded-xl cdp-cartao px-3 py-2.5 text-sm">
+            <span class="flex-1 min-w-0">
+              <b class="font-mono">{{ p.codigo }}</b> · {{ dataCurta(p.criadoEm) }} · {{ STATUS_PEDIDO[p.status] ?? p.status }}
+              <span class="block text-xs cdp-mudo truncate">{{ p.resumo }}</span>
+            </span>
+            <span class="font-black tabular-nums shrink-0">{{ moeda(p.total) }}</span>
+          </a>
+
+          <button type="button" class="mt-6 w-full h-11 rounded-2xl cdp-chip text-sm font-black" @click="sair">Sair da conta</button>
+
+          <!-- LGPD: apagar a conta -->
+          <details class="mt-4 text-sm">
+            <summary class="cursor-pointer text-xs font-bold cdp-mudo">Apagar minha conta</summary>
+            <p class="mt-2 text-xs cdp-mudo">Apaga seus dados e endereços salvos. Os pedidos já feitos continuam com o restaurante.</p>
+            <div class="mt-2 flex gap-2">
+              <input v-model="senhaApagar" type="password" autocomplete="current-password" placeholder="Sua senha" aria-label="Senha para apagar a conta" class="flex-1 min-w-0 h-11 px-3 rounded-xl cdp-campo text-sm" />
+              <button type="button" class="h-11 px-4 rounded-xl bg-red-600 hover:bg-red-700 disabled:opacity-40 text-white text-sm font-black" :disabled="!senhaApagar || apagando" @click="apagarConta">Apagar</button>
+            </div>
+            <p v-if="erroConta" class="mt-2 text-sm text-red-600 dark:text-red-400 font-bold" role="alert">{{ erroConta }}</p>
+          </details>
+        </template>
+      </Folha>
     </template>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, reactive, computed, watch, onMounted, defineComponent, h } from 'vue'
-import { Search, Plus, Minus, ShoppingBag, UtensilsCrossed, ChevronRight, X, Loader2, List, LayoutGrid } from 'lucide-vue-next'
+import { Search, Plus, Minus, ShoppingBag, UtensilsCrossed, ChevronRight, X, Loader2, UserRound, List, LayoutGrid } from 'lucide-vue-next'
 import ProdutoFoto from '~/components/ProdutoFoto.vue'
 import { useTemaDoAparelho } from '~/composables/useTemaDoAparelho'
 
@@ -305,6 +385,93 @@ const enviando = ref(false)
 const erroEnvio = ref('')
 const ultimoPedido = ref<string | null>(null)
 
+// ── Conta do cliente (celular + senha, deste restaurante) ──
+const CHAVE_CONTA = `${CHAVE}:conta`
+const token = ref<string | null>(null)
+const perfil = ref<any>(null)
+const logado = computed(() => Boolean(token.value && perfil.value))
+const comToken = (o: any = {}) => (token.value ? { ...o, headers: { ...(o.headers ?? {}), Authorization: `Bearer ${token.value}` } } : o)
+const contaAberta = ref(false)
+const modoConta = ref<'entrar' | 'cadastro'>('entrar')
+const fc = reactive({ nome: '', telefone: '', senha: '' })
+const erroConta = ref('')
+const ocupadoConta = ref(false)
+const senhaApagar = ref('')
+const apagando = ref(false)
+
+function mascarar(v: string) {
+  const d = v.replace(/\D/g, '').slice(0, 11)
+  return d.length > 6 ? `(${d.slice(0, 2)}) ${d.slice(2, d.length - 4)}-${d.slice(-4)}` : d.length > 2 ? `(${d.slice(0, 2)}) ${d.slice(2)}` : d
+}
+function guardarToken(t: string | null) {
+  token.value = t
+  try { t ? localStorage.setItem(CHAVE_CONTA, t) : localStorage.removeItem(CHAVE_CONTA) } catch {}
+}
+async function carregarPerfil() {
+  if (!token.value) return
+  try {
+    perfil.value = await api(`/cardapio/${encodeURIComponent(slug)}/conta`, comToken())
+    // Logado: nome e celular vêm da conta
+    f.clienteNome = perfil.value.cliente.nome
+    f.clienteTelefone = mascarar(perfil.value.cliente.telefone)
+  } catch (e: any) {
+    if (e?.status === 401 || e?.statusCode === 401) { guardarToken(null); perfil.value = null }
+  }
+}
+function abrirConta(modo: 'entrar' | 'cadastro' = 'entrar') {
+  modoConta.value = modo; erroConta.value = ''; senhaApagar.value = ''
+  fc.senha = ''
+  if (!fc.telefone && f.clienteTelefone) fc.telefone = f.clienteTelefone
+  if (!fc.nome && f.clienteNome) fc.nome = f.clienteNome
+  contaAberta.value = true
+}
+async function enviarConta() {
+  erroConta.value = ''
+  if (fc.telefone.replace(/\D/g, '').length < 10) { erroConta.value = 'Informe o celular com DDD'; return }
+  if (modoConta.value === 'cadastro' && fc.nome.trim().length < 2) { erroConta.value = 'Informe seu nome'; return }
+  if (modoConta.value === 'cadastro' && fc.senha.length < 6) { erroConta.value = 'A senha precisa de pelo menos 6 caracteres'; return }
+  ocupadoConta.value = true
+  try {
+    const r = await api(`/cardapio/${encodeURIComponent(slug)}/conta/${modoConta.value === 'cadastro' ? 'cadastro' : 'entrar'}`, {
+      method: 'POST', body: modoConta.value === 'cadastro' ? { nome: fc.nome, telefone: fc.telefone, senha: fc.senha } : { telefone: fc.telefone, senha: fc.senha },
+    })
+    guardarToken(r.token)
+    await carregarPerfil()
+    fc.senha = ''
+    contaAberta.value = false
+  } catch (e: any) {
+    erroConta.value = e?.data?.error || 'Não deu certo. Tente de novo.'
+  } finally { ocupadoConta.value = false }
+}
+function sair() { guardarToken(null); perfil.value = null; enderecoEscolhido.value = 'novo'; contaAberta.value = false }
+async function removerEndereco(id: string) {
+  try {
+    await api(`/cardapio/${encodeURIComponent(slug)}/conta/enderecos/${id}`, comToken({ method: 'DELETE' }))
+    perfil.value.enderecos = perfil.value.enderecos.filter((e: any) => e.id !== id)
+    if (enderecoEscolhido.value === id) enderecoEscolhido.value = 'novo'
+  } catch {}
+}
+async function apagarConta() {
+  erroConta.value = ''
+  apagando.value = true
+  try {
+    await api(`/cardapio/${encodeURIComponent(slug)}/conta/apagar`, comToken({ method: 'POST', body: { senha: senhaApagar.value } }))
+    sair()
+  } catch (e: any) { erroConta.value = e?.data?.error || 'Não deu para apagar a conta' }
+  finally { apagando.value = false }
+}
+
+// Endereço da entrega: um salvo na conta ou um novo (que pode ser salvo)
+const enderecoEscolhido = ref<string>('novo')
+const salvarEndereco = ref(true)
+function usarEndereco(id: string) {
+  enderecoEscolhido.value = id
+  const e = perfil.value?.enderecos.find((x: any) => x.id === id)
+  if (e) Object.assign(f, { endereco: e.endereco, numero: e.numero, bairro: e.bairro, complemento: e.complemento ?? '', referencia: e.referencia ?? '' })
+  else Object.assign(f, { endereco: '', numero: '', bairro: '', complemento: '', referencia: '' })
+}
+const STATUS_PEDIDO: Record<string, string> = { recebido: 'Aguardando', aceito: 'Em preparo', pronto: 'Pronto', em_rota: 'A caminho', entregue: 'Entregue', recusado: 'Não aceito', cancelado: 'Cancelado' }
+const dataCurta = (iso: string) => new Date(iso).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })
 
 async function enviar() {
   erroEnvio.value = ''
@@ -315,13 +482,15 @@ async function enviar() {
   if (troco !== null && (!Number.isFinite(troco) || troco < total.value)) { erroEnvio.value = `O troco precisa ser para um valor acima de ${moeda(total.value)}`; return }
   enviando.value = true
   try {
-    const r = await api(`/cardapio/${encodeURIComponent(slug)}/pedidos`, {
+    const r = await api(`/cardapio/${encodeURIComponent(slug)}/pedidos`, comToken({
       method: 'POST',
       body: {
         ...f, trocoPara: troco,
+        // Logado com endereço novo: guarda na conta se ele deixou marcado
+        ...(logado.value && f.tipo === 'entrega' && enderecoEscolhido.value === 'novo' ? { salvarEndereco: salvarEndereco.value } : {}),
         itens: carrinho.value.map(i => ({ produtoId: i.produtoId, quantidade: i.quantidade, ...(i.observacao ? { observacao: i.observacao } : {}) })),
       },
-    })
+    }))
     try {
       localStorage.removeItem(CHAVE)
       localStorage.setItem(`${CHAVE}:ultimo`, r.codigo)
@@ -340,8 +509,14 @@ onMounted(async () => {
     const salvo = JSON.parse(localStorage.getItem(CHAVE) || '[]')
     if (Array.isArray(salvo)) carrinho.value = salvo
     ultimoPedido.value = localStorage.getItem(`${CHAVE}:ultimo`)
+    token.value = localStorage.getItem(CHAVE_CONTA)
     if (localStorage.getItem('cardapio:vista') === 'grade') vista.value = 'grade'
   } catch {}
+  // Conta: traz nome, celular e endereços salvos (token vencido sai sozinho)
+  carregarPerfil().then(() => {
+    const primeiro = perfil.value?.enderecos?.[0]
+    if (primeiro) usarEndereco(primeiro.id)
+  })
   try {
     c.value = await api(`/cardapio/${encodeURIComponent(slug)}`)
     useHead({ title: `${c.value.restaurante.nome} · Cardápio` })

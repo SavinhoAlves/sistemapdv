@@ -102,7 +102,7 @@
 
         <!-- ENVIAR PARA A COZINHA: segue a categoria ou é exceção -->
         <!-- ENVIAR PARA A COZINHA: 3 opções fixas; "segue a categoria" é o padrão -->
-        <fieldset>
+        <fieldset class="col-span-2">
           <legend class="text-xs font-bold text-gray-500 dark:text-white/40 mb-1.5">Enviar para a cozinha</legend>
           <div class="grid grid-cols-3 gap-2" role="radiogroup" aria-label="Enviar para a cozinha">
             <label v-for="op in OPCOES_COZINHA" :key="op.valor"

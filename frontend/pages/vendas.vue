@@ -1,7 +1,7 @@
 <template>
   <div
     class="h-screen flex flex-col overflow-hidden transition-colors duration-200 com-sidebar"
-    :class="caixaAberto ? 'lg:pr-72 xl:pr-80' : ''"
+    :class="caixaAberto ? 'lg:pr-[360px] xl:pr-[400px]' : ''"
   >
     <!-- Gate RFID: aparece ao entrar na página (inclusive no F5) -->
     <ModalRfidAuth

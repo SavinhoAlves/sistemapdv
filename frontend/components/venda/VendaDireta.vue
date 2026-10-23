@@ -416,6 +416,9 @@ function limparCarrinho() {
     if (prod?.gerenciarEstoque) prod.estoqueAtual += item.quantidade
   }
   carrinho.value = []
+  // Limpar começa do zero: sem valor recebido e troco de uma venda que não houve
+  valorRecebido.value = ''
+  desconto.value = ''
 }
 
 // ══ PAGAMENTO ══

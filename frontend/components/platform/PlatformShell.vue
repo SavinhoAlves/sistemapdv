@@ -71,7 +71,7 @@
 import { ref, computed, onMounted, onUnmounted, type Component } from 'vue'
 import {
   UtensilsCrossed, LayoutDashboard, Store, Wallet, Bike, FlaskConical, Ticket,
-  MessageCircle, Tag, Database, Sun, Moon, MoreVertical, KeyRound, LogOut,
+  MessageCircle, Tag, Database, Sun, Moon, MoreVertical, KeyRound, LogOut, BookOpen,
 } from 'lucide-vue-next'
 import { usePlatformAuthStore } from '~/stores/platformAuth'
 import { useThemeStore } from '~/stores/theme'
@@ -100,6 +100,7 @@ const NAV: { nome: string; itens: ItemNav[] }[] = [
   { nome: 'Atendimento', itens: [
     { chave: 'tickets', rotulo: 'Chamados', icone: Ticket,        rota: '/platform/tickets' },
     { chave: 'avisos',  rotulo: 'Avisos',   icone: MessageCircle },
+    { chave: 'manual',  rotulo: 'Manual',   icone: BookOpen,      rota: '/platform/manual' },
   ] },
   { nome: 'Configuração', itens: [
     { chave: 'planos',  rotulo: 'Planos',  icone: Tag, rota: '/platform/planos' },

@@ -2,7 +2,7 @@ import { useAuthStore } from '~/stores/auth'
 import { noApp, destinoNoCelular } from '~/lib/app'
 import { ehPainel } from '~/lib/hosts'
 
-const ROTAS_PUBLICAS = ['/acesso', '/login', '/ativacao', '/logout', '/admin/login', '/m', '/platform', '/cardapio', '/pedido']
+const ROTAS_PUBLICAS = ['/acesso', '/login', '/ativacao', '/logout', '/admin/login', '/m', '/platform', '/cardapio', '/pedido', '/manual']
 
 // Permissão mínima exigida por rota (undefined = rota desconhecida; null = qualquer autenticado)
 const PERMISSAO_POR_ROTA: Record<string, string | null> = {

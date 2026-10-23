@@ -9,7 +9,7 @@ export default defineNuxtRouteMiddleware((to) => {
   if (to.path.startsWith('/platform') || ehPainel()) return
 
   // Páginas do cliente final (cardápio online e acompanhamento): sem login
-  if (to.path.startsWith('/cardapio') || to.path.startsWith('/pedido')) return
+  if (to.path.startsWith('/cardapio') || to.path.startsWith('/pedido') || to.path === '/manual') return
 
   // Página de autenticação mobile (/m ou /m/) — deixa passar sempre,
   // ela cuida da autenticação via token QR por conta própria.

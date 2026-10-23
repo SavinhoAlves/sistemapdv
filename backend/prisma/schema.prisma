@@ -158,6 +158,8 @@ model Tenant {
   impressoras          Impressora[]
   pedidosOnline        PedidoOnline[]
   posicoesEntregador   EntregadorPosicao[]
+  clientes             Cliente[]
+  enderecosCliente     ClienteEndereco[]
   inscricoesPush       PushInscricao[]
   movimentacoesEstoque MovimentacaoEstoque[]
   dispositivos         Dispositivo[]
@@ -954,6 +956,8 @@ model PedidoOnline {
   destinoLat          Float?             @map("destino_lat")
   destinoLng          Float?             @map("destino_lng")
   entregadorId        String?            @map("entregador_id")
+  /// Conta do cliente no cardápio (nula: pedido sem login ou conta apagada)
+  clienteId           String?            @map("cliente_id")
   /// Posição na rota do entregador (1 = primeira parada)
   ordemRota           Int?               @map("ordem_rota")
   /// O entregador marcou como entregue; o pagamento é acertado no caixa (entregue)
@@ -974,9 +978,11 @@ model PedidoOnline {
   tenant     Tenant   @relation(fields: [tenantId], references: [id])
   pedido     Pedido?  @relation(fields: [pedidoId], references: [id])
   entregador Usuario? @relation("Entregador", fields: [entregadorId], references: [id])
+  cliente    Cliente? @relation(fields: [clienteId], references: [id], onDelete: SetNull)
 
   @@index([tenantId, status])
   @@index([tenantId, entregadorId, status])
+  @@index([clienteId])
   @@index([tenantId, createdAt])
   @@map("pedidos_online")
 }
@@ -1015,4 +1021,44 @@ model PushInscricao {
 
   @@index([tenantId, usuarioId])
   @@map("push_inscricoes")
+}
+
+/// Conta do cliente no cardápio online: de um restaurante só (celular único por restaurante)
+model Cliente {
+  id          String    @id @default(uuid())
+  tenantId    String    @map("tenant_id")
+  nome        String
+  /// Só dígitos, com DDD
+  telefone    String
+  senhaHash   String    @map("senha_hash")
+  ultimoLogin DateTime? @map("ultimo_login")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  tenant    Tenant            @relation(fields: [tenantId], references: [id])
+  enderecos ClienteEndereco[]
+  pedidos   PedidoOnline[]
+
+  @@unique([tenantId, telefone])
+  @@map("clientes")
+}
+
+model ClienteEndereco {
+  id          String   @id @default(uuid())
+  tenantId    String   @map("tenant_id")
+  clienteId   String   @map("cliente_id")
+  /// "Casa", "Trabalho"…
+  apelido     String?
+  endereco    String
+  numero      String
+  bairro      String
+  complemento String?
+  referencia  String?
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  tenant  Tenant  @relation(fields: [tenantId], references: [id])
+  cliente Cliente @relation(fields: [clienteId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, clienteId])
+  @@map("cliente_enderecos")
 }

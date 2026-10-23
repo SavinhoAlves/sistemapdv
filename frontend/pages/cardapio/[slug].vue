@@ -1,5 +1,5 @@
 <template>
-  <div class="cdp min-h-dvh pb-28" :class="etapa ? 'lg:pr-[420px]' : ''">
+  <div class="cdp min-h-dvh pb-28 lg:pb-8 lg:pr-[400px]">
     <!-- Carregando / erro -->
     <div v-if="carregando" class="max-w-2xl mx-auto px-4 pt-10 space-y-3">
       <div class="h-16 rounded-2xl cdp-skel" /><div class="h-10 rounded-2xl cdp-skel" /><div v-for="n in 5" :key="n" class="h-24 rounded-2xl cdp-skel" />
@@ -11,79 +11,126 @@
 
     <template v-else-if="c">
       <!-- Topo -->
-      <header class="max-w-2xl mx-auto px-4 pt-6 pb-3">
-        <div class="flex items-center gap-3">
-          <img v-if="c.restaurante.logo" :src="c.restaurante.logo" alt="" class="size-14 rounded-2xl object-contain cdp-cartao p-1" />
-          <span v-else class="size-14 rounded-2xl bg-orange-500 text-white flex items-center justify-center"><UtensilsCrossed :size="24" /></span>
+      <header class="px-4 lg:px-8 pt-6 pb-4">
+        <div class="flex items-center gap-4">
+          <img v-if="c.restaurante.logo" :src="c.restaurante.logo" alt="" class="size-14 lg:size-[60px] rounded-2xl object-contain cdp-cartao p-1" />
+          <span v-else class="size-14 lg:size-[60px] shrink-0 rounded-2xl bg-orange-500 text-white flex items-center justify-center"><UtensilsCrossed :size="26" /></span>
           <div class="min-w-0 flex-1">
-            <h1 class="text-xl font-black leading-tight truncate">{{ c.restaurante.nome }}</h1>
-            <p class="text-xs mt-1 flex flex-wrap items-center gap-x-2 gap-y-1">
-              <span class="inline-flex items-center gap-1 font-bold" :class="c.aberto ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'">
-                <span class="size-2 rounded-full" :class="c.aberto ? 'bg-emerald-500' : 'bg-red-500'" />{{ c.aberto ? 'Aberto' : 'Fechado' }}
+            <h1 class="text-xl lg:text-2xl font-black tracking-tight leading-tight truncate">{{ c.restaurante.nome }}</h1>
+            <p class="text-xs lg:text-sm mt-1 flex flex-wrap items-center gap-x-4 gap-y-1">
+              <span class="inline-flex items-center gap-1.5 font-bold" :class="c.aberto ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'">
+                <span class="size-2 rounded-full" :class="c.aberto ? 'bg-emerald-500' : 'bg-red-500'" />{{ c.aberto ? 'Aberto agora' : 'Fechado' }}
               </span>
-              <span v-if="c.aberto" class="cdp-mudo">· {{ c.tempoMin }}–{{ c.tempoMin + 15 }} min</span>
-              <span v-if="c.aberto && c.entrega" class="cdp-mudo">· entrega {{ c.taxaEntrega ? moeda(c.taxaEntrega) : 'grátis' }}</span>
-              <span v-if="c.pedidoMinimo" class="cdp-mudo">· mínimo {{ moeda(c.pedidoMinimo) }}</span>
+              <span v-if="c.aberto" class="inline-flex items-center gap-1.5 cdp-mudo"><Clock :size="14" /> {{ c.tempoMin }}–{{ c.tempoMin + 15 }} min</span>
+              <span v-if="c.aberto && c.entrega" class="inline-flex items-center gap-1.5 cdp-mudo"><Bike :size="15" /> {{ c.taxaEntrega ? `Entrega ${moeda(c.taxaEntrega)}` : 'Entrega grátis' }}</span>
+              <span v-if="c.pedidoMinimo" class="cdp-mudo">Mínimo {{ moeda(c.pedidoMinimo) }}</span>
             </p>
           </div>
           <!-- Conta do cliente -->
-          <button type="button" class="shrink-0 h-10 px-3 rounded-xl cdp-chip text-xs font-black flex items-center gap-1.5" @click="abrirConta()">
-            <UserRound :size="16" /> {{ logado ? perfil.cliente.nome.split(' ')[0] : 'Entrar' }}
+          <button type="button" class="shrink-0 h-10 px-4 rounded-xl border cdp-linha text-sm font-black flex items-center gap-2" @click="abrirConta()">
+            <template v-if="logado"><UserRound :size="16" /> {{ perfil.cliente.nome.split(' ')[0] }}</template>
+            <template v-else><LogIn :size="16" /> Entrar</template>
           </button>
         </div>
-        <p v-if="!c.aberto" class="mt-3 text-sm rounded-xl px-3 py-2.5 bg-red-500/10 text-red-700 dark:text-red-300">{{ c.motivo }} Você pode olhar o cardápio.</p>
-        <p v-else-if="c.mensagem" class="mt-3 text-sm rounded-xl px-3 py-2.5 bg-orange-500/10 text-orange-800 dark:text-orange-200">{{ c.mensagem }}</p>
+        <p v-if="!c.aberto" class="mt-3 max-w-2xl text-sm rounded-xl px-3 py-2.5 bg-red-500/10 text-red-700 dark:text-red-300">{{ c.motivo }} Você pode olhar o cardápio.</p>
+        <p v-else-if="c.mensagem" class="mt-3 max-w-2xl text-sm rounded-xl px-3 py-2.5 bg-orange-500/10 text-orange-800 dark:text-orange-200">{{ c.mensagem }}</p>
 
-        <a v-if="ultimoPedido" :href="`${base}pedido/${ultimoPedido}`" class="mt-3 flex items-center justify-between rounded-xl px-3 py-2.5 cdp-cartao text-sm">
+        <a v-if="ultimoPedido" :href="`${base}pedido/${ultimoPedido}`" class="mt-3 max-w-2xl flex items-center justify-between rounded-xl px-3 py-2.5 cdp-cartao text-sm">
           <span>Acompanhar seu pedido <b class="font-mono">{{ ultimoPedido }}</b></span><ChevronRight :size="16" />
         </a>
       </header>
 
       <!-- Busca + categorias (fixas ao rolar) -->
       <div class="sticky top-0 z-20 cdp-barra backdrop-blur border-b cdp-linha">
-        <div class="max-w-2xl mx-auto px-4 py-2.5 space-y-2.5">
+        <div class="px-4 lg:px-8 pt-1 pb-3 space-y-3">
           <div class="flex items-center gap-2">
-            <div class="relative flex-1">
-              <Search :size="16" class="absolute left-3 top-1/2 -translate-y-1/2 cdp-mudo" />
-              <input v-model="busca" type="search" placeholder="Buscar no cardápio" aria-label="Buscar no cardápio" class="w-full h-10 pl-9 pr-3 rounded-xl cdp-campo text-sm" />
+            <div class="relative flex-1 sm:max-w-[400px]">
+              <Search :size="17" class="absolute left-3.5 top-1/2 -translate-y-1/2 cdp-mudo" />
+              <input v-model="busca" type="search" placeholder="Buscar no cardápio" aria-label="Buscar no cardápio" class="w-full h-10 pl-10 pr-3 rounded-xl cdp-campo text-sm" />
             </div>
-            <div class="flex shrink-0 cdp-chip rounded-xl p-0.5" role="group" aria-label="Modo de exibição">
-              <button type="button" class="size-9 rounded-lg flex items-center justify-center" :class="vista === 'lista' ? 'cdp-ativo' : 'cdp-mudo'" :aria-pressed="vista === 'lista'" aria-label="Lista" @click="mudarVista('lista')"><List :size="17" /></button>
-              <button type="button" class="size-9 rounded-lg flex items-center justify-center" :class="vista === 'grade' ? 'cdp-ativo' : 'cdp-mudo'" :aria-pressed="vista === 'grade'" aria-label="Grade" @click="mudarVista('grade')"><LayoutGrid :size="17" /></button>
+            <div class="flex shrink-0 rounded-xl border cdp-linha p-1 gap-0.5" role="group" aria-label="Modo de exibição">
+              <button type="button" class="size-8 rounded-lg flex items-center justify-center" :class="vista === 'lista' ? 'cdp-ativo' : 'cdp-mudo'" :aria-pressed="vista === 'lista'" aria-label="Lista" @click="mudarVista('lista')"><List :size="16" /></button>
+              <button type="button" class="size-8 rounded-lg flex items-center justify-center" :class="vista === 'grade' ? 'cdp-ativo' : 'cdp-mudo'" :aria-pressed="vista === 'grade'" aria-label="Grade" @click="mudarVista('grade')"><LayoutGrid :size="16" /></button>
             </div>
           </div>
-          <nav v-if="!busca" class="flex gap-2 overflow-x-auto -mx-4 px-4 no-scrollbar" aria-label="Categorias">
-            <a v-for="cat in c.categorias" :key="cat.id" :href="`#cat-${cat.id}`" class="shrink-0 h-8 px-3 rounded-full text-xs font-bold flex items-center cdp-chip" @click.prevent="irPara(cat.id)">{{ cat.nome }}</a>
+          <nav v-if="!busca" class="flex gap-2 overflow-x-auto -mx-4 px-4 lg:mx-0 lg:px-0 no-scrollbar" aria-label="Categorias">
+            <button type="button" class="shrink-0 h-9 px-4 rounded-full border text-xs font-bold" :class="catAtiva === null ? 'cdp-ativo border-transparent' : 'cdp-cartao'" :aria-pressed="catAtiva === null" @click="catAtiva = null">Todos</button>
+            <button v-for="cat in c.categorias" :key="cat.id" type="button" class="shrink-0 h-9 px-4 rounded-full border text-xs font-bold" :class="catAtiva === cat.id ? 'cdp-ativo border-transparent' : 'cdp-cartao'" :aria-pressed="catAtiva === cat.id" @click="catAtiva = cat.id">{{ cat.nome }}</button>
           </nav>
         </div>
       </div>
 
-      <!-- Produtos -->
-      <!-- Lista sem busca: cada categoria é uma coluna; as colunas deslizam da esquerda para a direita -->
-      <main :class="colunas ? 'flex items-start gap-4 overflow-x-auto snap-x snap-mandatory px-4 pt-4 pb-6 no-scrollbar' : 'max-w-2xl mx-auto px-4 pt-4 space-y-7'">
+      <!-- Produtos. Lista: cada categoria é uma coluna e as colunas deslizam da esquerda para a direita -->
+      <main class="px-4 lg:px-8 pt-6">
         <p v-if="busca && !filtradas.length" class="text-center cdp-mudo py-10 text-sm">Nada encontrado para “{{ busca }}”.</p>
-        <section v-for="cat in filtradas" :id="`cat-${cat.id}`" :key="cat.id" :class="colunas ? 'shrink-0 w-[85vw] max-w-[340px] snap-start' : 'scroll-mt-28'">
-          <h2 class="text-base font-black mb-2.5">{{ cat.nome }}</h2>
-          <div :class="vista === 'grade' ? 'grid grid-cols-2 sm:grid-cols-3 gap-2.5' : 'flex flex-col gap-2.5'">
-            <button v-for="p in cat.produtos" :key="p.id" type="button" :disabled="p.esgotado"
-              class="relative w-full text-left rounded-2xl cdp-cartao disabled:opacity-50 flex flex-col overflow-hidden"
-              @click="abrirProduto(p)">
-              <div class="relative aspect-[4/3] w-full">
-                <ProdutoFoto :imagem="p.imagemUrl" :categoria="cat.nome" classe="absolute inset-0 rounded-none" :tamanho-icone="36" />
-                <span v-if="!p.esgotado" class="absolute bottom-2 right-2 size-8 rounded-full bg-orange-500 text-white flex items-center justify-center shadow" aria-hidden="true"><Plus :size="16" /></span>
-              </div>
-              <div class="p-3 flex-1 flex flex-col">
-                <p class="font-bold text-sm leading-snug line-clamp-2">{{ p.nome }}</p>
-                <p class="font-black text-sm mt-auto pt-2">{{ p.esgotado ? 'Esgotado' : moeda(p.preco) }}</p>
-              </div>
-              <span v-if="noCarrinho(p.id)" class="sr-only">{{ noCarrinho(p.id) }} na sacola</span>
-            </button>
-          </div>
-        </section>
+        <div :class="colunas ? 'flex items-start gap-5 overflow-x-auto snap-x -mx-4 px-4 lg:mx-0 lg:px-0 pb-3 cdp-rolagem' : 'space-y-8'">
+          <section v-for="cat in filtradas" :key="cat.id" :class="colunas ? 'shrink-0 w-[85vw] max-w-[360px] snap-start' : ''">
+            <h2 class="text-lg font-black tracking-tight mb-4">{{ cat.nome }}</h2>
+            <!-- Grade: cartões em pé -->
+            <div v-if="vista === 'grade'" class="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-3">
+              <button v-for="p in cat.produtos" :key="p.id" type="button" :disabled="p.esgotado"
+                class="relative w-full text-left rounded-2xl cdp-cartao disabled:opacity-50 flex flex-col overflow-hidden" @click="abrirProduto(p)">
+                <ProdutoFoto :imagem="p.imagemUrl" :categoria="cat.nome" classe="aspect-[4/3] w-full rounded-none bg-gradient-to-br from-transparent to-orange-500/25" :tamanho-icone="36" />
+                <div class="p-3 flex-1 flex flex-col">
+                  <p class="font-black text-sm leading-snug line-clamp-2">{{ p.nome }}</p>
+                  <div class="mt-auto pt-2 flex items-end justify-between gap-2">
+                    <span class="font-black text-sm tabular-nums">{{ p.esgotado ? 'Esgotado' : moeda(p.preco) }}</span>
+                    <span v-if="!p.esgotado" class="size-8 shrink-0 rounded-full bg-orange-500 text-white flex items-center justify-center" aria-hidden="true"><Plus :size="17" /></span>
+                  </div>
+                </div>
+                <span v-if="noCarrinho(p.id)" class="sr-only">{{ noCarrinho(p.id) }} na sacola</span>
+              </button>
+            </div>
+            <!-- Lista: foto ao lado do texto -->
+            <div v-else class="flex flex-col gap-3.5" :class="colunas ? '' : 'max-w-2xl'">
+              <button v-for="p in cat.produtos" :key="p.id" type="button" :disabled="p.esgotado"
+                class="relative w-full text-left rounded-2xl cdp-cartao disabled:opacity-50 p-3 flex gap-3.5" @click="abrirProduto(p)">
+                <ProdutoFoto :imagem="p.imagemUrl" :categoria="cat.nome" classe="size-28 sm:size-32 rounded-xl bg-gradient-to-br from-transparent to-orange-500/25" :tamanho-icone="30" />
+                <div class="flex-1 min-w-0 flex flex-col pt-1">
+                  <p class="font-black text-[15px] leading-snug line-clamp-1">{{ p.nome }}</p>
+                  <p v-if="p.descricao" class="mt-1 text-xs cdp-mudo leading-relaxed line-clamp-2">{{ p.descricao }}</p>
+                  <div class="mt-auto pt-2 flex items-end justify-between gap-2">
+                    <span class="font-black tabular-nums">{{ p.esgotado ? 'Esgotado' : moeda(p.preco) }}</span>
+                    <span v-if="!p.esgotado" class="size-9 shrink-0 rounded-full bg-orange-500 text-white flex items-center justify-center" aria-hidden="true"><Plus :size="18" /></span>
+                  </div>
+                </div>
+                <span v-if="noCarrinho(p.id)" class="sr-only">{{ noCarrinho(p.id) }} na sacola</span>
+              </button>
+            </div>
+          </section>
+        </div>
       </main>
 
-      <!-- Barra da sacola -->
-      <div v-if="qtdItens" class="fixed bottom-0 inset-x-0 z-30 p-3 cdp-fundo border-t cdp-linha" :class="etapa ? 'lg:hidden' : ''">
+      <!-- Seu pedido: fixo à direita no computador -->
+      <aside class="hidden lg:flex fixed right-5 top-5 bottom-5 w-[364px] z-10 flex-col rounded-3xl cdp-cartao" aria-label="Seu pedido">
+        <h2 class="px-6 pt-6 pb-3 text-lg font-black tracking-tight">Seu pedido</h2>
+        <div class="flex-1 overflow-y-auto px-6">
+          <p v-if="!carrinho.length" class="text-center text-sm cdp-mudo pt-14">Seu carrinho está vazio.</p>
+          <div v-for="(i, idx) in carrinho" :key="idx" class="flex items-start gap-3 py-3 border-b cdp-linha last:border-0">
+            <div class="flex-1 min-w-0">
+              <p class="font-bold text-sm">{{ i.nome }}</p>
+              <p v-if="i.observacao" class="text-xs cdp-mudo">{{ i.observacao }}</p>
+              <p class="text-sm font-black mt-1 tabular-nums">{{ moeda(i.preco * i.quantidade) }}</p>
+            </div>
+            <Stepper v-model="i.quantidade" :min="0" pequeno @update:model-value="v => v === 0 && carrinho.splice(idx, 1)" />
+          </div>
+          <p v-if="carrinho.length && faltaMinimo > 0" class="mt-3 text-xs rounded-xl px-3 py-2 bg-amber-500/10 text-amber-800 dark:text-amber-200">Faltam {{ moeda(faltaMinimo) }} para o pedido mínimo de {{ moeda(c.pedidoMinimo) }}.</p>
+        </div>
+        <div class="px-6 pt-4 pb-6">
+          <dl class="text-sm space-y-2.5 tabular-nums">
+            <div class="flex justify-between"><dt class="cdp-mudo">Subtotal</dt><dd class="cdp-mudo">{{ moeda(subtotal) }}</dd></div>
+            <div v-if="c.entrega" class="flex justify-between"><dt class="cdp-mudo">Entrega</dt><dd :class="c.taxaEntrega ? 'cdp-mudo' : 'font-bold text-emerald-600 dark:text-emerald-400'">{{ c.taxaEntrega ? moeda(c.taxaEntrega) : 'Grátis' }}</dd></div>
+            <div class="flex justify-between text-lg font-black pt-1"><dt>Total</dt><dd>{{ moeda(subtotal + (c.entrega ? c.taxaEntrega ?? 0 : 0)) }}</dd></div>
+          </dl>
+          <button class="mt-5 w-full h-14 rounded-2xl bg-orange-500 hover:bg-orange-600 disabled:opacity-40 disabled:hover:bg-orange-500 text-white font-black"
+            :disabled="!qtdItens || faltaMinimo > 0 || !c.aberto" @click="etapa = 'dados'">
+            {{ !c.aberto ? 'Restaurante fechado agora' : 'Finalizar pedido' }}
+          </button>
+        </div>
+      </aside>
+
+      <!-- Barra da sacola (celular) -->
+      <div v-if="qtdItens" class="lg:hidden fixed bottom-0 inset-x-0 z-30 p-3 cdp-fundo border-t cdp-linha">
         <button class="max-w-2xl mx-auto w-full h-14 rounded-2xl bg-orange-500 hover:bg-orange-600 text-white font-black flex items-center justify-between px-5" @click="etapa = 'sacola'">
           <span class="flex items-center gap-2"><ShoppingBag :size="18" /> Ver sacola</span>
           <span class="tabular-nums">{{ qtdItens }} {{ qtdItens === 1 ? 'item' : 'itens' }} · {{ moeda(subtotal) }}</span>
@@ -258,7 +305,7 @@
 
 <script setup lang="ts">
 import { ref, reactive, computed, watch, onMounted, defineComponent, h } from 'vue'
-import { Search, Plus, Minus, ShoppingBag, UtensilsCrossed, ChevronRight, X, Loader2, UserRound, List, LayoutGrid } from 'lucide-vue-next'
+import { Search, Plus, Minus, ShoppingBag, UtensilsCrossed, ChevronRight, X, Loader2, UserRound, List, LayoutGrid, Clock, Bike, LogIn } from 'lucide-vue-next'
 import ProdutoFoto from '~/components/ProdutoFoto.vue'
 import { useTemaDoAparelho } from '~/composables/useTemaDoAparelho'
 
@@ -283,7 +330,7 @@ const Folha = defineComponent({
   setup(p, { slots, emit }) {
     // Lateral (sacola no computador): painel à direita, sem escurecer a página
     const fora = p.lateral
-      ? 'fixed inset-0 z-40 flex items-end sm:items-center justify-center bg-black/50 lg:inset-auto lg:right-6 lg:top-6 lg:bottom-6 lg:w-[380px] lg:bg-transparent lg:items-stretch lg:justify-end lg:pointer-events-none'
+      ? 'fixed inset-0 z-40 flex items-end sm:items-center justify-center bg-black/50 lg:inset-auto lg:right-5 lg:top-5 lg:bottom-5 lg:w-[364px] lg:bg-transparent lg:items-stretch lg:justify-end lg:pointer-events-none'
       : 'fixed inset-0 z-40 flex items-end sm:items-center justify-center bg-black/50'
     const dentro = p.lateral
       ? 'cdp-fundo w-full sm:max-w-lg max-h-[92dvh] rounded-t-3xl sm:rounded-3xl flex flex-col lg:max-w-none lg:max-h-none lg:h-full lg:rounded-3xl lg:border cdp-linha lg:pointer-events-auto'
@@ -336,19 +383,17 @@ const busca = ref('')
 const vista = ref<'lista' | 'grade'>('lista')
 function mudarVista(v: 'lista' | 'grade') { vista.value = v; try { localStorage.setItem('cardapio:vista', v) } catch {} }
 const semAcento = (t: string) => t.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()
+// Chip de categoria: Todos (null) ou só a escolhida
+const catAtiva = ref<string | null>(null)
 const filtradas = computed(() => {
   if (!c.value) return []
   const q = semAcento(busca.value.trim())
-  if (!q) return c.value.categorias
+  if (!q) return catAtiva.value ? c.value.categorias.filter((cat: any) => cat.id === catAtiva.value) : c.value.categorias
   return c.value.categorias
     .map((cat: any) => ({ ...cat, produtos: cat.produtos.filter((p: any) => semAcento(`${p.nome} ${p.descricao ?? ''}`).includes(q)) }))
     .filter((cat: any) => cat.produtos.length)
 })
 const colunas = computed(() => vista.value === 'lista' && !busca.value)
-
-function irPara(id: string) {
-  document.getElementById(`cat-${id}`)?.scrollIntoView({ behavior: 'smooth', inline: 'start', block: colunas.value ? 'nearest' : 'start' })
-}
 
 // ── Sacola (guardada no aparelho por restaurante) ──
 interface ItemSacola { produtoId: string; nome: string; preco: number; quantidade: number; observacao: string }
@@ -549,6 +594,8 @@ onMounted(async () => {
 .cdp-linha { border-color: var(--cdp-linha); }
 .cdp-mudo { color: var(--cdp-mudo); }
 .cdp-skel { background: var(--cdp-chip); animation: pulse 1.4s ease-in-out infinite; }
+/* Barra de rolagem fina e visível sob as colunas */
+.cdp-rolagem { scrollbar-width: thin; scrollbar-color: var(--cdp-mudo) var(--cdp-chip); }
 .no-scrollbar::-webkit-scrollbar { display: none; }
 .no-scrollbar { scrollbar-width: none; }
 </style>

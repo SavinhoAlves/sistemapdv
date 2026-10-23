@@ -59,15 +59,14 @@
       </div>
 
       <!-- Produtos -->
-      <main class="max-w-2xl mx-auto px-4 pt-4 space-y-7">
+      <!-- Lista sem busca: cada categoria é uma coluna; as colunas deslizam da esquerda para a direita -->
+      <main :class="colunas ? 'flex items-start gap-4 overflow-x-auto snap-x snap-mandatory px-4 pt-4 pb-6 no-scrollbar' : 'max-w-2xl mx-auto px-4 pt-4 space-y-7'">
         <p v-if="busca && !filtradas.length" class="text-center cdp-mudo py-10 text-sm">Nada encontrado para “{{ busca }}”.</p>
-        <section v-for="cat in filtradas" :id="`cat-${cat.id}`" :key="cat.id" class="scroll-mt-28">
+        <section v-for="cat in filtradas" :id="`cat-${cat.id}`" :key="cat.id" :class="colunas ? 'shrink-0 w-[85vw] max-w-[340px] snap-start' : 'scroll-mt-28'">
           <h2 class="text-base font-black mb-2.5">{{ cat.nome }}</h2>
-          <!-- Grade: colunas. Lista: faixa que desliza para o lado, da esquerda para a direita -->
-          <div :class="vista === 'grade' ? 'grid grid-cols-2 sm:grid-cols-3 gap-2.5' : 'flex gap-3 overflow-x-auto snap-x snap-mandatory -mx-4 px-4 pb-2 no-scrollbar'">
+          <div :class="vista === 'grade' ? 'grid grid-cols-2 sm:grid-cols-3 gap-2.5' : 'flex flex-col gap-2.5'">
             <button v-for="p in cat.produtos" :key="p.id" type="button" :disabled="p.esgotado"
-              class="relative text-left rounded-2xl cdp-cartao disabled:opacity-50 flex flex-col overflow-hidden"
-              :class="vista === 'grade' ? 'w-full' : 'shrink-0 w-[200px] snap-start'"
+              class="relative w-full text-left rounded-2xl cdp-cartao disabled:opacity-50 flex flex-col overflow-hidden"
               @click="abrirProduto(p)">
               <div class="relative aspect-[4/3] w-full">
                 <ProdutoFoto :imagem="p.imagemUrl" :categoria="cat.nome" classe="absolute inset-0 rounded-none" :tamanho-icone="36" />
@@ -345,7 +344,11 @@ const filtradas = computed(() => {
     .map((cat: any) => ({ ...cat, produtos: cat.produtos.filter((p: any) => semAcento(`${p.nome} ${p.descricao ?? ''}`).includes(q)) }))
     .filter((cat: any) => cat.produtos.length)
 })
-function irPara(id: string) { document.getElementById(`cat-${id}`)?.scrollIntoView({ behavior: 'smooth' }) }
+const colunas = computed(() => vista.value === 'lista' && !busca.value)
+
+function irPara(id: string) {
+  document.getElementById(`cat-${id}`)?.scrollIntoView({ behavior: 'smooth', inline: 'start', block: colunas.value ? 'nearest' : 'start' })
+}
 
 // ── Sacola (guardada no aparelho por restaurante) ──
 interface ItemSacola { produtoId: string; nome: string; preco: number; quantidade: number; observacao: string }

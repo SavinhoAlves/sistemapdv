@@ -1,5 +1,5 @@
 /**
- * Manual de uso: cada aula tem um GIF gravado no sistema (public/manual) e o
+ * Manual de uso: cada aula tem um GIF gravado no sistema (public/aulas) e o
  * passo a passo em texto. A página pública (/manual) mostra as aulas do
  * restaurante; o painel mostra todas e o link para compartilhar.
  */
@@ -16,7 +16,7 @@ export interface AulaManual {
 
 export const AULAS: AulaManual[] = [
   {
-    id: 'navegacao', para: 'restaurante', gif: '/manual/manual-01-navegacao.gif',
+    id: 'navegacao', para: 'restaurante', gif: '/aulas/manual-01-navegacao.gif',
     titulo: '1. Primeiros passos e navegação',
     resumo: 'O Dashboard, o menu lateral e a tela de Mesas.',
     passos: [
@@ -28,7 +28,7 @@ export const AULAS: AulaManual[] = [
     dica: 'O topo mostra se o caixa está aberto. Sem caixa aberto, vendas e pedidos ficam bloqueados.',
   },
   {
-    id: 'venda-direta', para: 'restaurante', gif: '/manual/manual-02-venda-direta.gif',
+    id: 'venda-direta', para: 'restaurante', gif: '/aulas/manual-02-venda-direta.gif',
     titulo: '2. Venda direta no balcão',
     resumo: 'Montar o carrinho, escolher o pagamento e calcular o troco.',
     passos: [
@@ -41,7 +41,7 @@ export const AULAS: AulaManual[] = [
     dica: 'Produto sem estoque fica apagado e não entra no carrinho.',
   },
   {
-    id: 'produtos', para: 'restaurante', gif: '/manual/manual-03-produtos.gif',
+    id: 'produtos', para: 'restaurante', gif: '/aulas/manual-03-produtos.gif',
     titulo: '3. Cadastro de produtos',
     resumo: 'Foto, categoria e se o produto vai para a cozinha.',
     passos: [
@@ -53,7 +53,7 @@ export const AULAS: AulaManual[] = [
     ],
   },
   {
-    id: 'caixa-estoque', para: 'restaurante', gif: '/manual/manual-04-caixa-estoque.gif',
+    id: 'caixa-estoque', para: 'restaurante', gif: '/aulas/manual-04-caixa-estoque.gif',
     titulo: '4. Caixa e estoque',
     resumo: 'Acompanhar o caixa do dia e lançar entradas de estoque.',
     passos: [
@@ -66,7 +66,7 @@ export const AULAS: AulaManual[] = [
     dica: 'Estoque baixo = o produto chegou no mínimo que você definiu.',
   },
   {
-    id: 'delivery', para: 'restaurante', gif: '/manual/manual-05-delivery.gif',
+    id: 'delivery', para: 'restaurante', gif: '/aulas/manual-05-delivery.gif',
     titulo: '5. Delivery e cardápio online',
     resumo: 'Quadro de pedidos, mapa e o link do cardápio para o WhatsApp.',
     passos: [
@@ -78,7 +78,7 @@ export const AULAS: AulaManual[] = [
     ],
   },
   {
-    id: 'relatorios-cozinha', para: 'restaurante', gif: '/manual/manual-06-relatorios-cozinha.gif',
+    id: 'relatorios-cozinha', para: 'restaurante', gif: '/aulas/manual-06-relatorios-cozinha.gif',
     titulo: '6. Relatórios e cozinha',
     resumo: 'Faturamento por período e a tela da cozinha.',
     passos: [
@@ -89,7 +89,7 @@ export const AULAS: AulaManual[] = [
     ],
   },
   {
-    id: 'cardapio-cliente', para: 'restaurante', gif: '/manual/manual-07-cardapio-cliente.gif',
+    id: 'cardapio-cliente', para: 'restaurante', gif: '/aulas/manual-07-cardapio-cliente.gif',
     titulo: '7. Como o cliente pede pelo cardápio',
     resumo: 'O caminho do cliente, do link até o pedido.',
     passos: [
@@ -101,7 +101,7 @@ export const AULAS: AulaManual[] = [
     ],
   },
   {
-    id: 'painel', para: 'gestor', gif: '/manual/manual-08-painel-central.gif',
+    id: 'painel', para: 'gestor', gif: '/aulas/manual-08-painel-central.gif',
     titulo: '8. Central da plataforma (gestor)',
     resumo: 'Restaurantes, contrato, cobranças e planos no painel.',
     passos: [

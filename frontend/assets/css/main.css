@@ -241,9 +241,15 @@ html.dark select.input {
 /* ── Sidebar: recuo do conteúdo ────────────────────────────── */
 @media (min-width: 640px) {
   .com-sidebar {
-    /* w-16 colapsada; expandida ela sobrepõe o conteúdo (com overlay),
-       então o recuo não muda e a tela não "pula" ao abrir o menu */
+    /* w-16 recolhida; w-56 expandida: o conteúdo recua junto, sem sobrepor */
     padding-left: 4rem;
+    transition: padding-left var(--tempo-folha) var(--curva);
+  }
+  html.sidebar-expandida .com-sidebar {
+    padding-left: 14rem;
+  }
+  html.sidebar-expandida .com-sidebar .com-sidebar {
+    padding-left: 0;
   }
 
   /* index.vue fica dentro do <slot> do default.vue, ambos têm com-sidebar;

@@ -66,8 +66,11 @@
                 <p v-if="p.descricao" class="text-xs cdp-mudo mt-1 line-clamp-2">{{ p.descricao }}</p>
                 <p class="mt-2 font-black text-sm">{{ p.esgotado ? 'Esgotado' : moeda(p.preco) }}</p>
               </div>
-              <img v-if="p.imagemUrl" :src="p.imagemUrl" alt="" class="size-20 rounded-xl object-cover shrink-0" loading="lazy" />
-              <span v-else-if="!p.esgotado" class="size-9 rounded-full bg-orange-500 text-white flex items-center justify-center shrink-0 self-center" aria-hidden="true"><Plus :size="18" /></span>
+              <!-- Foto, ou o ícone da categoria quando o produto não tem foto -->
+              <span class="relative shrink-0">
+                <ProdutoFoto :imagem="p.imagemUrl" :categoria="cat.nome" classe="size-20 rounded-xl" :tamanho-icone="30" />
+                <span v-if="!p.esgotado" class="absolute -bottom-1.5 -right-1.5 size-7 rounded-full bg-orange-500 text-white flex items-center justify-center ring-2 ring-[var(--cdp-cartao)]" aria-hidden="true"><Plus :size="15" /></span>
+              </span>
               <span v-if="noCarrinho(p.id)" class="sr-only">{{ noCarrinho(p.id) }} na sacola</span>
             </button>
           </div>
@@ -251,6 +254,7 @@
 <script setup lang="ts">
 import { ref, reactive, computed, watch, onMounted, defineComponent, h } from 'vue'
 import { Search, Plus, Minus, ShoppingBag, UtensilsCrossed, ChevronRight, X, Loader2, UserRound } from 'lucide-vue-next'
+import ProdutoFoto from '~/components/ProdutoFoto.vue'
 import { useTemaDoAparelho } from '~/composables/useTemaDoAparelho'
 
 definePageMeta({ layout: false })

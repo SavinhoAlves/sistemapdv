@@ -23,6 +23,23 @@
       <!-- BODY -->
       <div class="p-6 overflow-y-auto flex-1 grid grid-cols-2 gap-4">
 
+        <!-- FOTO: opcional; sem foto, o sistema usa o ícone da categoria -->
+        <div class="col-span-2 flex items-center gap-4">
+          <ProdutoFoto :imagem="form.imagemUrl" :categoria="categoriaAtual?.nome" classe="size-20 rounded-2xl" :tamanho-icone="30" />
+          <div class="min-w-0">
+            <p class="text-xs font-bold text-gray-500 dark:text-white/40">Foto do produto <span class="font-semibold">(opcional)</span></p>
+            <p class="text-[11px] text-gray-400 dark:text-white/30 mt-0.5">{{ form.imagemUrl ? 'Aparece no PDV e no cardápio online.' : 'Sem foto, aparece o ícone da categoria.' }}</p>
+            <div class="mt-2 flex gap-2">
+              <label class="h-9 px-3 rounded-xl bg-orange-500 hover:bg-orange-600 text-white text-xs font-black flex items-center cursor-pointer">
+                {{ form.imagemUrl ? 'Trocar foto' : 'Escolher foto' }}
+                <input type="file" accept="image/*" class="sr-only" @change="escolherFoto" />
+              </label>
+              <button v-if="form.imagemUrl" type="button" class="h-9 px-3 rounded-xl border border-gray-200 dark:border-white/10 text-xs font-black text-gray-500 dark:text-white/50 hover:text-red-500" @click="form.imagemUrl = null">Remover</button>
+            </div>
+            <p v-if="erroFoto" class="text-[11px] font-bold text-red-500 mt-1" role="alert">{{ erroFoto }}</p>
+          </div>
+        </div>
+
         <!-- NOME -->
         <div class="col-span-2">
           <label for="prod-nome" class="text-xs font-bold text-gray-500 dark:text-white/40 block mb-1">Nome</label>
@@ -84,19 +101,28 @@
         </div>
 
         <!-- ENVIAR PARA A COZINHA: segue a categoria ou é exceção -->
-        <div>
-          <label for="prod-cozinha" class="text-xs font-bold text-gray-500 dark:text-white/40 block mb-1">Enviar para a cozinha</label>
-          <select id="prod-cozinha" v-model="form.envioCozinha"
-            class="w-full h-11 border border-gray-200 dark:border-white/10 rounded-xl px-3 outline-none !bg-gray-50 dark:!bg-white/[0.06] text-gray-900 dark:text-white focus:border-orange-500/70 transition-colors">
-            <option value="categoria">Segue a categoria{{ categoriaAtual ? (categoriaAtual.vaiCozinha ? ' (vai)' : ' (não vai)') : '' }}</option>
-            <option value="sempre">Sempre vai para a cozinha</option>
-            <option value="nunca">Nunca vai (sai direto do balcão)</option>
-          </select>
-          <div class="mt-1.5 flex items-center gap-1 text-[11px] font-black" :class="vaiCozinha ? 'text-orange-400' : 'text-gray-400 dark:text-white/35'">
+        <!-- ENVIAR PARA A COZINHA: 3 opções fixas; "segue a categoria" é o padrão -->
+        <fieldset>
+          <legend class="text-xs font-bold text-gray-500 dark:text-white/40 mb-1.5">Enviar para a cozinha</legend>
+          <div class="grid grid-cols-3 gap-2" role="radiogroup" aria-label="Enviar para a cozinha">
+            <label v-for="op in OPCOES_COZINHA" :key="op.valor"
+              class="cursor-pointer rounded-xl border px-2.5 py-2 text-left transition-colors"
+              :class="form.envioCozinha === op.valor
+                ? 'border-orange-500 bg-orange-500/10 text-gray-900 dark:text-white'
+                : 'border-gray-200 dark:border-white/10 text-gray-500 dark:text-white/50 hover:border-gray-300 dark:hover:border-white/20'">
+              <input type="radio" class="sr-only" name="prod-cozinha" :value="op.valor" v-model="form.envioCozinha" />
+              <span class="flex items-center gap-1.5 text-xs font-black">
+                <span class="size-3 rounded-full border-2 shrink-0" :class="form.envioCozinha === op.valor ? 'border-orange-500 bg-orange-500' : 'border-gray-300 dark:border-white/25'" />
+                {{ op.rotulo }}
+              </span>
+              <span class="block mt-0.5 pl-[18px] text-[10px] font-semibold leading-tight text-gray-400 dark:text-white/35">{{ op.dica }}</span>
+            </label>
+          </div>
+          <p class="mt-1.5 flex items-center gap-1 text-[11px] font-black" :class="vaiCozinha ? 'text-orange-400' : 'text-gray-400 dark:text-white/35'">
             <ChefHat :size="12" />
             {{ vaiCozinha ? 'Este produto aparece na Cozinha' : 'Este produto não passa pela Cozinha' }}
-          </div>
-        </div>
+          </p>
+        </fieldset>
 
         <!-- PREÇO -->
         <div>
@@ -195,6 +221,7 @@ import { reactive, ref, computed, watch, onMounted } from 'vue'
 import { lerValor } from '~/lib/valor'
 import { numeroBR } from '~/lib/moeda'
 import { ChefHat } from 'lucide-vue-next'
+import ProdutoFoto from '~/components/ProdutoFoto.vue'
 import { useApi } from '~/services/api'
 import { useToastStore } from '~/stores/toast'
 
@@ -217,7 +244,8 @@ const form = reactive({
   estoqueAtual: 0,
   estoqueMinimo: 5,
   gerenciarEstoque: true,
-  envioCozinha: 'categoria'
+  envioCozinha: 'categoria',
+  imagemUrl: null
 })
 
 const categorias        = ref([])
@@ -226,6 +254,37 @@ const nomeNovaCategoria = ref('')
 const criandoCategoria  = ref(false)
 
 const categoriaAtual = computed(() => categorias.value.find(c => c.id === form.categoriaId))
+
+// ── Foto: reduz para no máximo 600 px e JPEG 0,8 (~60 KB) antes de guardar ──
+const erroFoto = ref('')
+function escolherFoto(e) {
+  const input = e.target
+  const arquivo = input.files?.[0]
+  input.value = ''
+  erroFoto.value = ''
+  if (!arquivo) return
+  if (!arquivo.type.startsWith('image/')) { erroFoto.value = 'Escolha um arquivo de imagem'; return }
+  const url = URL.createObjectURL(arquivo)
+  const img = new Image()
+  img.onload = () => {
+    const escala = Math.min(1, 600 / Math.max(img.width, img.height))
+    const tela = document.createElement('canvas')
+    tela.width = Math.round(img.width * escala)
+    tela.height = Math.round(img.height * escala)
+    tela.getContext('2d').drawImage(img, 0, 0, tela.width, tela.height)
+    form.imagemUrl = tela.toDataURL('image/jpeg', 0.8)
+    URL.revokeObjectURL(url)
+  }
+  img.onerror = () => { erroFoto.value = 'Não deu para abrir esta imagem'; URL.revokeObjectURL(url) }
+  img.src = url
+}
+
+// A dica de "segue a categoria" mostra o que a categoria já decide
+const OPCOES_COZINHA = computed(() => [
+  { valor: 'categoria', rotulo: 'Padrão', dica: categoriaAtual.value ? (categoriaAtual.value.vaiCozinha ? 'Segue a categoria: vai' : 'Segue a categoria: não vai') : 'Segue a categoria' },
+  { valor: 'sempre', rotulo: 'Sempre', dica: 'Vai à cozinha mesmo se a categoria não vai' },
+  { valor: 'nunca', rotulo: 'Nunca', dica: 'Sai direto do balcão' },
+])
 const vaiCozinha = computed(() => form.envioCozinha === 'sempre' || (form.envioCozinha !== 'nunca' && (categoriaAtual.value?.vaiCozinha ?? true)))
 
 async function carregarCategorias() {
@@ -299,7 +358,8 @@ watch(
         estoqueAtual: 0,
         estoqueMinimo: 5,
         gerenciarEstoque: true,
-        envioCozinha: 'categoria'
+        envioCozinha: 'categoria',
+        imagemUrl: null
       })
     }
   },

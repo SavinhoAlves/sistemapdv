@@ -84,19 +84,28 @@
         </div>
 
         <!-- ENVIAR PARA A COZINHA: segue a categoria ou é exceção -->
-        <div>
-          <label for="prod-cozinha" class="text-xs font-bold text-gray-500 dark:text-white/40 block mb-1">Enviar para a cozinha</label>
-          <select id="prod-cozinha" v-model="form.envioCozinha"
-            class="w-full h-11 border border-gray-200 dark:border-white/10 rounded-xl px-3 outline-none !bg-gray-50 dark:!bg-white/[0.06] text-gray-900 dark:text-white focus:border-orange-500/70 transition-colors">
-            <option value="categoria">Segue a categoria{{ categoriaAtual ? (categoriaAtual.vaiCozinha ? ' (vai)' : ' (não vai)') : '' }}</option>
-            <option value="sempre">Sempre vai para a cozinha</option>
-            <option value="nunca">Nunca vai (sai direto do balcão)</option>
-          </select>
-          <div class="mt-1.5 flex items-center gap-1 text-[11px] font-black" :class="vaiCozinha ? 'text-orange-400' : 'text-gray-400 dark:text-white/35'">
+        <!-- ENVIAR PARA A COZINHA: 3 opções fixas; "segue a categoria" é o padrão -->
+        <fieldset>
+          <legend class="text-xs font-bold text-gray-500 dark:text-white/40 mb-1.5">Enviar para a cozinha</legend>
+          <div class="grid grid-cols-3 gap-2" role="radiogroup" aria-label="Enviar para a cozinha">
+            <label v-for="op in OPCOES_COZINHA" :key="op.valor"
+              class="cursor-pointer rounded-xl border px-2.5 py-2 text-left transition-colors"
+              :class="form.envioCozinha === op.valor
+                ? 'border-orange-500 bg-orange-500/10 text-gray-900 dark:text-white'
+                : 'border-gray-200 dark:border-white/10 text-gray-500 dark:text-white/50 hover:border-gray-300 dark:hover:border-white/20'">
+              <input type="radio" class="sr-only" name="prod-cozinha" :value="op.valor" v-model="form.envioCozinha" />
+              <span class="flex items-center gap-1.5 text-xs font-black">
+                <span class="size-3 rounded-full border-2 shrink-0" :class="form.envioCozinha === op.valor ? 'border-orange-500 bg-orange-500' : 'border-gray-300 dark:border-white/25'" />
+                {{ op.rotulo }}
+              </span>
+              <span class="block mt-0.5 pl-[18px] text-[10px] font-semibold leading-tight text-gray-400 dark:text-white/35">{{ op.dica }}</span>
+            </label>
+          </div>
+          <p class="mt-1.5 flex items-center gap-1 text-[11px] font-black" :class="vaiCozinha ? 'text-orange-400' : 'text-gray-400 dark:text-white/35'">
             <ChefHat :size="12" />
             {{ vaiCozinha ? 'Este produto aparece na Cozinha' : 'Este produto não passa pela Cozinha' }}
-          </div>
-        </div>
+          </p>
+        </fieldset>
 
         <!-- PREÇO -->
         <div>
@@ -226,6 +235,13 @@ const nomeNovaCategoria = ref('')
 const criandoCategoria  = ref(false)
 
 const categoriaAtual = computed(() => categorias.value.find(c => c.id === form.categoriaId))
+
+// A dica de "segue a categoria" mostra o que a categoria já decide
+const OPCOES_COZINHA = computed(() => [
+  { valor: 'categoria', rotulo: 'Padrão', dica: categoriaAtual.value ? (categoriaAtual.value.vaiCozinha ? 'Segue a categoria: vai' : 'Segue a categoria: não vai') : 'Segue a categoria' },
+  { valor: 'sempre', rotulo: 'Sempre', dica: 'Vai à cozinha mesmo se a categoria não vai' },
+  { valor: 'nunca', rotulo: 'Nunca', dica: 'Sai direto do balcão' },
+])
 const vaiCozinha = computed(() => form.envioCozinha === 'sempre' || (form.envioCozinha !== 'nunca' && (categoriaAtual.value?.vaiCozinha ?? true)))
 
 async function carregarCategorias() {

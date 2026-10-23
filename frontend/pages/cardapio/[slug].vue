@@ -324,7 +324,6 @@ async function enviar() {
     })
     try {
       localStorage.removeItem(CHAVE)
-      localStorage.setItem(`${CHAVE}:cliente`, JSON.stringify({ ...f, observacao: '', trocoPara: '' }))
       localStorage.setItem(`${CHAVE}:ultimo`, r.codigo)
     } catch {}
     carrinho.value = []
@@ -340,12 +339,6 @@ onMounted(async () => {
   try {
     const salvo = JSON.parse(localStorage.getItem(CHAVE) || '[]')
     if (Array.isArray(salvo)) carrinho.value = salvo
-    const cli = JSON.parse(localStorage.getItem(`${CHAVE}:cliente`) || 'null')
-    if (cli) {
-      Object.assign(f, cli)
-      // Salvo antes de existir crédito/débito ("cartao"): o cliente escolhe de novo
-      if (!FORMAS.some(fp => fp.valor === f.formaPagamento)) f.formaPagamento = 'pix'
-    }
     ultimoPedido.value = localStorage.getItem(`${CHAVE}:ultimo`)
     if (localStorage.getItem('cardapio:vista') === 'grade') vista.value = 'grade'
   } catch {}

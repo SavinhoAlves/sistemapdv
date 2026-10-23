@@ -68,13 +68,13 @@
       <!-- Produtos: cada categoria é uma coluna; as colunas deslizam da esquerda para a direita (arrastar, rodinha ou barra) -->
       <main class="px-5 lg:px-8">
         <p v-if="!filtradas.length" class="text-center cdp-mudo py-12">Nada encontrado para “{{ busca }}”. Tente outro nome.</p>
-        <div ref="boardEl" class="flex items-start gap-5 overflow-x-auto snap-x snap-proximity px-0.5 pb-[18px] cdp-rolagem cursor-grab" :class="{ 'cdp-arrastando': arrastando }">
+        <div ref="boardEl" class="flex items-start gap-8 overflow-x-auto snap-x snap-proximity scroll-pl-0.5 px-0.5 pt-6 pb-6 cdp-rolagem cursor-grab" :class="{ 'cdp-arrastando': arrastando }">
           <section v-for="cat in filtradas" :key="cat.id" class="flex-none snap-start" :class="unica ? 'w-full' : 'w-[min(86vw,360px)]'">
-            <h2 class="text-xl font-extrabold tracking-[-.01em] mt-[22px] mb-3.5">{{ cat.nome }}</h2>
-            <div class="grid gap-3.5 justify-start" :class="unica
+            <h2 class="text-xl font-extrabold tracking-[-.01em] mb-4">{{ cat.nome }}</h2>
+            <div class="grid gap-4 justify-start" :class="unica
               ? (vista === 'grade' ? 'grid-cols-[repeat(auto-fill,minmax(min(100%,150px),230px))]' : 'grid-cols-[repeat(auto-fill,minmax(min(100%,340px),360px))]')
               : (vista === 'grade' ? 'grid-cols-2' : 'grid-cols-1')">
-              <article v-for="p in cat.produtos" :key="p.id" class="flex rounded-[22px] cdp-cartao" :class="[vista === 'grade' ? 'flex-col gap-3.5 p-2.5' : 'gap-3.5 items-stretch p-3 min-h-32 lg:min-h-[140px]', p.esgotado ? 'opacity-50' : '']">
+              <article v-for="p in cat.produtos" :key="p.id" class="flex rounded-[22px] cdp-cartao" :class="[vista === 'grade' ? 'flex-col gap-3 p-2.5' : 'gap-4 items-stretch p-3.5 min-h-32 lg:min-h-[140px]', p.esgotado ? 'opacity-50' : '']">
                 <button type="button" class="relative shrink-0 overflow-hidden rounded-[14px]" :class="vista === 'grade' ? 'w-full aspect-[4/3]' : 'w-28 lg:w-32'" :aria-label="`Ver ${p.nome}`" @click="abrirProduto(p)">
                   <ProdutoFoto :imagem="p.imagemUrl" :categoria="cat.nome" classe="absolute inset-0 size-full rounded-none cdp-thumb" :tamanho-icone="38" />
                 </button>

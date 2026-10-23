@@ -96,13 +96,13 @@
   </div>
 
   <Transition name="skeleton">
-    <AppLoadingSkeleton v-if="!rotaPronta" class="fixed inset-0 z-[9999]" />
+    <AppLoadingSkeleton v-if="!rotaPronta && !rotaCliente" class="fixed inset-0 z-[9999]" />
   </Transition>
   <UiToastContainer />
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useThemeStore } from '~/stores/theme'
 import { useAuthStore } from '~/stores/auth'
@@ -110,6 +110,10 @@ import { useAuthStore } from '~/stores/auth'
 const auth      = useAuthStore()
 const themeStore = useThemeStore()
 const router    = useRouter()
+
+// Páginas do cliente final (cardápio, pedido, entregador) não mostram o esqueleto do PDV
+const ehRotaCliente = (p: string) => /^\/(cardapio|pedido|entregador)(\/|$)/.test(p)
+const rotaCliente = computed(() => ehRotaCliente(router.currentRoute.value.path))
 
 const SKELETON_MIN_MS = 0
 const rotaPronta = ref(false)
@@ -126,8 +130,7 @@ router.afterEach(() => {
 
 onMounted(async () => {
   // Páginas do cliente final seguem o tema do aparelho (useTemaDoAparelho), não o do PDV
-  const rotaCliente = /^\/(cardapio|pedido|entregador)(\/|$)/.test(router.currentRoute.value.path)
-  if (!rotaCliente) themeStore.init()
+  if (!ehRotaCliente(router.currentRoute.value.path)) themeStore.init()
   await router.isReady()
   skeletonTimer = setTimeout(() => { rotaPronta.value = true; skeletonTimer = null }, SKELETON_MIN_MS)
 })

@@ -12,6 +12,7 @@ export interface Produto {
   gerenciarEstoque: boolean
   estoqueAtual: number
   estoqueMinimo: number
+  imagemUrl?: string | null
 }
 
 export const useProdutosStore = defineStore('produtos', () => {

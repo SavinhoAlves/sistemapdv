@@ -1,6 +1,6 @@
 <template>
   <!-- Overlay: fecha sidebar ao clicar fora (só quando expandida) -->
-  <div v-if="expandida" class="fixed inset-0 z-30 bg-black/40" @click="expandida = false" />
+  <div v-if="expandida" class="fixed inset-0 z-30 bg-black/60 backdrop-blur-[2px]" @click="expandida = false" />
 
   <aside
     class="sb hidden sm:flex fixed left-0 flex-col z-40"

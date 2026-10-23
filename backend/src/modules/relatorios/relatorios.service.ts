@@ -98,7 +98,8 @@ export async function visaoGeral(tenantId: string, f: Filtros) {
       select: {
         id: true, nome: true, cargo: true,
         pedidos: {
-          where: { tenantId, createdAt: range, ...filtroOrigem(f.origem) },
+          // Cancelado não é atendimento (antes inflava a contagem da equipe)
+          where: { tenantId, createdAt: range, status: { not: 'cancelado' }, ...filtroOrigem(f.origem) },
           select: {
             id: true,
             pagamentos: {

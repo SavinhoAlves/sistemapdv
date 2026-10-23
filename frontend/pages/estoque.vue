@@ -33,7 +33,7 @@
         class="rounded-2xl p-4 border"
         :class="totais.baixo > 0 ? 'bg-amber-500/10 border-amber-500/20' : 'bg-white/[0.04] border-white/[0.07]'"
       >
-        <p class="text-[11px] font-black uppercase tracking-widest mb-1" :class="totais.baixo > 0 ? 'text-amber-400/70' : 'text-white/40'">Abaixo do mín.</p>
+        <p class="text-[11px] font-black uppercase tracking-widest mb-1" :class="totais.baixo > 0 ? 'text-amber-400/70' : 'text-white/40'">Estoque baixo</p>
         <p class="text-2xl font-black" :class="totais.baixo > 0 ? 'text-amber-400' : 'text-white'">{{ totais.baixo }}</p>
       </div>
       <div
@@ -384,12 +384,15 @@ const produtosFiltrados = computed(() => {
   })
 })
 
+// Baixo = chegou no mínimo (igual a Produtos e à venda direta); mínimo 0 = sem alerta
+const ehBaixo = (p: Produto) => p.estoqueMinimo > 0 && p.estoqueAtual <= p.estoqueMinimo
+
 const totais = computed(() => {
   const mon = produtos.value.filter(p => p.gerenciarEstoque)
   return {
     monitorados: mon.length,
-    ok:     mon.filter(p => p.estoqueAtual >= p.estoqueMinimo).length,
-    baixo:  mon.filter(p => p.estoqueAtual > 0 && p.estoqueAtual < p.estoqueMinimo).length,
+    ok:     mon.filter(p => p.estoqueAtual > 0 && !ehBaixo(p)).length,
+    baixo:  mon.filter(p => p.estoqueAtual > 0 && ehBaixo(p)).length,
     zerado: mon.filter(p => p.estoqueAtual <= 0).length,
   }
 })
@@ -406,7 +409,7 @@ const corPrevisao = computed(() => {
   if (!p) return 'text-white'
   const prev = previsaoEstoque.value
   if (prev <= 0) return 'text-red-400'
-  if (prev < p.estoqueMinimo) return 'text-amber-400'
+  if (p.estoqueMinimo > 0 && prev <= p.estoqueMinimo) return 'text-amber-400'
   return 'text-emerald-400'
 })
 
@@ -415,26 +418,26 @@ const corPrevisao = computed(() => {
 function prioridade(p: Produto) {
   if (!p.gerenciarEstoque) return 3
   if (p.estoqueAtual <= 0) return 0
-  if (p.estoqueAtual < p.estoqueMinimo) return 1
+  if (ehBaixo(p)) return 1
   return 2
 }
 
 function corEstoque(p: Produto | null) {
   if (!p || !p.gerenciarEstoque) return 'text-white/40'
   if (p.estoqueAtual <= 0) return 'text-red-400'
-  if (p.estoqueAtual < p.estoqueMinimo) return 'text-amber-400'
+  if (ehBaixo(p)) return 'text-amber-400'
   return 'text-emerald-400'
 }
 
 function badgeEstoque(p: Produto) {
   if (p.estoqueAtual <= 0) return 'bg-red-500/15 text-red-400'
-  if (p.estoqueAtual < p.estoqueMinimo) return 'bg-amber-500/15 text-amber-400'
+  if (ehBaixo(p)) return 'bg-amber-500/15 text-amber-400'
   return 'bg-emerald-500/15 text-emerald-400'
 }
 
 function labelEstoque(p: Produto) {
   if (p.estoqueAtual <= 0) return 'Zerado'
-  if (p.estoqueAtual < p.estoqueMinimo) return 'Baixo'
+  if (ehBaixo(p)) return 'Baixo'
   return 'OK'
 }
 

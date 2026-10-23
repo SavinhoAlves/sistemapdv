@@ -82,7 +82,7 @@
                 <td class="pf-num" style="white-space:nowrap">
                   <b>{{ moeda(r.valorMes) }}</b>
                   <small style="display:block;color:var(--pf-muted)">{{ r.pedidosMes }} {{ r.pedidosMes === 1 ? 'pedido' : 'pedidos' }}<template v-if="r.pedidosMes"> · ticket {{ moeda(r.ticketMedio) }}</template></small>
-                  <small v-if="r.recusadosMes" style="display:block;color:var(--pf-muted)">{{ r.recusadosMes }} recusado{{ r.recusadosMes === 1 ? '' : 's' }}</small>
+                  <small v-if="r.recusadosMes" style="display:block;color:var(--pf-muted)">{{ r.recusadosMes }} recusado{{ r.recusadosMes === 1 ? '' : 's' }} ou cancelado{{ r.recusadosMes === 1 ? '' : 's' }}</small>
                 </td>
                 <td style="white-space:nowrap">
                   <b class="pf-num">{{ r.emAndamento }}</b> <small style="color:var(--pf-muted)">em andamento</small>

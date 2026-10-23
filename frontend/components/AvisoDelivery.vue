@@ -64,11 +64,18 @@ function ha(iso: string) {
   return m < 1 ? 'agora' : m < 60 ? `há ${m} min` : `há ${Math.floor(m / 60)}h${String(m % 60).padStart(2, '0')}`
 }
 
-async function carregar() {
-  if (!ativo.value) return
-  try { pedidos.value = await api.get<any[]>('/delivery/pedidos') } catch {}
+// Uma busca por vez, e não repete em menos de 2 s: o mount e o watch disparavam juntos
+let buscando: Promise<void> | null = null
+let ultimaBusca = 0
+function carregar(forcar = false) {
+  if (!ativo.value) return Promise.resolve()
+  if (buscando) return buscando
+  if (!forcar && Date.now() - ultimaBusca < 2000) return Promise.resolve()
+  ultimaBusca = Date.now()
+  buscando = api.get<any[]>('/delivery/pedidos').then((r) => { pedidos.value = r }).catch(() => {}).finally(() => { buscando = null })
+  return buscando
 }
-function alternar() { aberto.value = !aberto.value; if (aberto.value) carregar() }
+function alternar() { aberto.value = !aberto.value; if (aberto.value) carregar(true) }
 
 async function aceitar(p: any) {
   ocupado.value = p.id
@@ -109,9 +116,9 @@ onMounted(async () => {
     if (!ativo.value) return
     tocar()
     toast.add({ type: 'info', title: `Novo pedido de delivery · ${d.clienteNome}`, message: 'Toque em "Delivery" no topo para aceitar.', duration: 10000 })
-    carregar()
+    carregar(true)
   }))
-  desinscrever.push(socket.on(EVENTOS.delivery.atualizado, () => carregar()))
+  desinscrever.push(socket.on(EVENTOS.delivery.atualizado, () => carregar(true)))
   // Rede de segurança se o tempo real cair
   timer = setInterval(() => { if (!document.hidden) carregar() }, 60000)
   document.addEventListener('mousedown', fecharFora)

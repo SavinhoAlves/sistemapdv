@@ -1,5 +1,5 @@
 <template>
-  <div class="cdp min-h-dvh pb-28">
+  <div class="cdp min-h-dvh pb-28" :class="etapa ? 'lg:pr-[420px]' : ''">
     <!-- Carregando / erro -->
     <div v-if="carregando" class="max-w-2xl mx-auto px-4 pt-10 space-y-3">
       <div class="h-16 rounded-2xl cdp-skel" /><div class="h-10 rounded-2xl cdp-skel" /><div v-for="n in 5" :key="n" class="h-24 rounded-2xl cdp-skel" />
@@ -42,9 +42,15 @@
       <!-- Busca + categorias (fixas ao rolar) -->
       <div class="sticky top-0 z-20 cdp-barra backdrop-blur border-b cdp-linha">
         <div class="max-w-2xl mx-auto px-4 py-2.5 space-y-2.5">
-          <div class="relative">
-            <Search :size="16" class="absolute left-3 top-1/2 -translate-y-1/2 cdp-mudo" />
-            <input v-model="busca" type="search" placeholder="Buscar no cardápio" aria-label="Buscar no cardápio" class="w-full h-10 pl-9 pr-3 rounded-xl cdp-campo text-sm" />
+          <div class="flex items-center gap-2">
+            <div class="relative flex-1">
+              <Search :size="16" class="absolute left-3 top-1/2 -translate-y-1/2 cdp-mudo" />
+              <input v-model="busca" type="search" placeholder="Buscar no cardápio" aria-label="Buscar no cardápio" class="w-full h-10 pl-9 pr-3 rounded-xl cdp-campo text-sm" />
+            </div>
+            <div class="flex shrink-0 cdp-chip rounded-xl p-0.5" role="group" aria-label="Modo de exibição">
+              <button type="button" class="size-9 rounded-lg flex items-center justify-center" :class="vista === 'lista' ? 'cdp-ativo' : 'cdp-mudo'" :aria-pressed="vista === 'lista'" aria-label="Lista" @click="mudarVista('lista')"><List :size="17" /></button>
+              <button type="button" class="size-9 rounded-lg flex items-center justify-center" :class="vista === 'grade' ? 'cdp-ativo' : 'cdp-mudo'" :aria-pressed="vista === 'grade'" aria-label="Grade" @click="mudarVista('grade')"><LayoutGrid :size="17" /></button>
+            </div>
           </div>
           <nav v-if="!busca" class="flex gap-2 overflow-x-auto -mx-4 px-4 no-scrollbar" aria-label="Categorias">
             <a v-for="cat in c.categorias" :key="cat.id" :href="`#cat-${cat.id}`" class="shrink-0 h-8 px-3 rounded-full text-xs font-bold flex items-center cdp-chip" @click.prevent="irPara(cat.id)">{{ cat.nome }}</a>
@@ -57,17 +63,23 @@
         <p v-if="busca && !filtradas.length" class="text-center cdp-mudo py-10 text-sm">Nada encontrado para “{{ busca }}”.</p>
         <section v-for="cat in filtradas" :id="`cat-${cat.id}`" :key="cat.id" class="scroll-mt-28">
           <h2 class="text-base font-black mb-2.5">{{ cat.nome }}</h2>
-          <div class="space-y-2.5">
+          <div :class="vista === 'grade' ? 'grid grid-cols-2 sm:grid-cols-3 gap-2.5' : 'space-y-2.5'">
             <button v-for="p in cat.produtos" :key="p.id" type="button" :disabled="p.esgotado"
-              class="w-full text-left rounded-2xl cdp-cartao p-3.5 flex gap-3 items-start disabled:opacity-50"
+              class="relative w-full text-left rounded-2xl cdp-cartao disabled:opacity-50"
+              :class="vista === 'grade' ? 'flex flex-col overflow-hidden' : 'p-3.5 flex gap-3 items-start'"
               @click="abrirProduto(p)">
-              <div class="flex-1 min-w-0">
-                <p class="font-bold leading-snug">{{ p.nome }}</p>
-                <p v-if="p.descricao" class="text-xs cdp-mudo mt-1 line-clamp-2">{{ p.descricao }}</p>
-                <p class="mt-2 font-black text-sm">{{ p.esgotado ? 'Esgotado' : moeda(p.preco) }}</p>
+              <!-- Grade: foto no alto. Lista: foto ao lado -->
+              <div v-if="vista === 'grade'" class="relative aspect-[4/3] w-full">
+                <ProdutoFoto :imagem="p.imagemUrl" :categoria="cat.nome" classe="absolute inset-0 rounded-none" :tamanho-icone="36" />
+                <span v-if="!p.esgotado" class="absolute bottom-2 right-2 size-8 rounded-full bg-orange-500 text-white flex items-center justify-center shadow" aria-hidden="true"><Plus :size="16" /></span>
+              </div>
+              <div :class="vista === 'grade' ? 'p-3 flex-1 flex flex-col' : 'flex-1 min-w-0'">
+                <p class="font-bold leading-snug" :class="vista === 'grade' ? 'text-sm line-clamp-2' : ''">{{ p.nome }}</p>
+                <p v-if="p.descricao && vista === 'lista'" class="text-xs cdp-mudo mt-1 line-clamp-2">{{ p.descricao }}</p>
+                <p class="font-black text-sm" :class="vista === 'grade' ? 'mt-auto pt-2' : 'mt-2'">{{ p.esgotado ? 'Esgotado' : moeda(p.preco) }}</p>
               </div>
               <!-- Foto, ou o ícone da categoria quando o produto não tem foto -->
-              <span class="relative shrink-0">
+              <span v-if="vista === 'lista'" class="relative shrink-0">
                 <ProdutoFoto :imagem="p.imagemUrl" :categoria="cat.nome" classe="size-20 rounded-xl" :tamanho-icone="30" />
                 <span v-if="!p.esgotado" class="absolute -bottom-1.5 -right-1.5 size-7 rounded-full bg-orange-500 text-white flex items-center justify-center ring-2 ring-[var(--cdp-cartao)]" aria-hidden="true"><Plus :size="15" /></span>
               </span>
@@ -78,7 +90,7 @@
       </main>
 
       <!-- Barra da sacola -->
-      <div v-if="qtdItens" class="fixed bottom-0 inset-x-0 z-30 p-3 cdp-fundo border-t cdp-linha">
+      <div v-if="qtdItens" class="fixed bottom-0 inset-x-0 z-30 p-3 cdp-fundo border-t cdp-linha" :class="etapa ? 'lg:hidden' : ''">
         <button class="max-w-2xl mx-auto w-full h-14 rounded-2xl bg-orange-500 hover:bg-orange-600 text-white font-black flex items-center justify-between px-5" @click="etapa = 'sacola'">
           <span class="flex items-center gap-2"><ShoppingBag :size="18" /> Ver sacola</span>
           <span class="tabular-nums">{{ qtdItens }} {{ qtdItens === 1 ? 'item' : 'itens' }} · {{ moeda(subtotal) }}</span>
@@ -102,7 +114,7 @@
       </Folha>
 
       <!-- Sacola e finalização -->
-      <Folha v-if="etapa" :titulo="etapa === 'sacola' ? 'Sua sacola' : 'Finalizar pedido'" @fechar="etapa = null">
+      <Folha v-if="etapa" lateral :titulo="etapa === 'sacola' ? 'Sua sacola' : 'Finalizar pedido'" @fechar="etapa = null">
         <template v-if="etapa === 'sacola'">
           <div v-for="(i, idx) in carrinho" :key="idx" class="flex items-start gap-3 py-3 border-b cdp-linha last:border-0">
             <div class="flex-1 min-w-0">
@@ -253,7 +265,7 @@
 
 <script setup lang="ts">
 import { ref, reactive, computed, watch, onMounted, defineComponent, h } from 'vue'
-import { Search, Plus, Minus, ShoppingBag, UtensilsCrossed, ChevronRight, X, Loader2, UserRound } from 'lucide-vue-next'
+import { Search, Plus, Minus, ShoppingBag, UtensilsCrossed, ChevronRight, X, Loader2, UserRound, List, LayoutGrid } from 'lucide-vue-next'
 import ProdutoFoto from '~/components/ProdutoFoto.vue'
 import { useTemaDoAparelho } from '~/composables/useTemaDoAparelho'
 
@@ -273,11 +285,18 @@ const FORMAS = [{ valor: 'pix', rotulo: 'Pix' }, { valor: 'credito', rotulo: 'Ca
 
 // ── Pecinhas de interface ──
 const Folha = defineComponent({
-  props: { titulo: String },
+  props: { titulo: String, lateral: Boolean },
   emits: ['fechar'],
   setup(p, { slots, emit }) {
-    return () => h('div', { class: 'fixed inset-0 z-40 flex items-end sm:items-center justify-center bg-black/50', onClick: (e: MouseEvent) => e.target === e.currentTarget && emit('fechar') }, [
-      h('div', { class: 'cdp-fundo w-full sm:max-w-lg max-h-[92dvh] rounded-t-3xl sm:rounded-3xl flex flex-col', role: 'dialog', 'aria-modal': 'true', 'aria-label': p.titulo }, [
+    // Lateral (sacola no computador): painel à direita, sem escurecer a página
+    const fora = p.lateral
+      ? 'fixed inset-0 z-40 flex items-end sm:items-center justify-center bg-black/50 lg:inset-auto lg:right-6 lg:top-6 lg:bottom-6 lg:w-[380px] lg:bg-transparent lg:items-stretch lg:justify-end lg:pointer-events-none'
+      : 'fixed inset-0 z-40 flex items-end sm:items-center justify-center bg-black/50'
+    const dentro = p.lateral
+      ? 'cdp-fundo w-full sm:max-w-lg max-h-[92dvh] rounded-t-3xl sm:rounded-3xl flex flex-col lg:max-w-none lg:max-h-none lg:h-full lg:rounded-3xl lg:border cdp-linha lg:pointer-events-auto'
+      : 'cdp-fundo w-full sm:max-w-lg max-h-[92dvh] rounded-t-3xl sm:rounded-3xl flex flex-col'
+    return () => h('div', { class: fora, onClick: (e: MouseEvent) => e.target === e.currentTarget && emit('fechar') }, [
+      h('div', { class: dentro, role: 'dialog', 'aria-modal': 'true', 'aria-label': p.titulo }, [
         h('div', { class: 'flex items-center justify-between px-5 pt-5 pb-3' }, [
           h('h2', { class: 'text-lg font-black' }, p.titulo),
           h('button', { class: 'size-9 rounded-full cdp-chip flex items-center justify-center', 'aria-label': 'Fechar', onClick: () => emit('fechar') }, [h(X, { size: 18 })]),
@@ -320,6 +339,9 @@ const c = ref<any>(null)
 const carregando = ref(true)
 const erro = ref('')
 const busca = ref('')
+// Lista ou grade: a escolha fica no aparelho
+const vista = ref<'lista' | 'grade'>('lista')
+function mudarVista(v: 'lista' | 'grade') { vista.value = v; try { localStorage.setItem('cardapio:vista', v) } catch {} }
 const semAcento = (t: string) => t.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()
 const filtradas = computed(() => {
   if (!c.value) return []
@@ -501,6 +523,7 @@ onMounted(async () => {
     }
     ultimoPedido.value = localStorage.getItem(`${CHAVE}:ultimo`)
     token.value = localStorage.getItem(CHAVE_CONTA)
+    if (localStorage.getItem('cardapio:vista') === 'grade') vista.value = 'grade'
   } catch {}
   // Conta: traz nome, celular e endereços salvos (token vencido sai sozinho)
   carregarPerfil().then(() => {
@@ -525,6 +548,7 @@ onMounted(async () => {
 
 <style>
 /* Global (prefixo .cdp): as folhas são componentes de render function e não recebem o atributo do scoped */
+.cdp-ativo { background: var(--cdp-txt); color: var(--cdp-fundo); }
 .cdp { background: var(--cdp-fundo); color: var(--cdp-txt); font-family: var(--fonte-texto, system-ui), system-ui, sans-serif; }
 .cdp-fundo { background: var(--cdp-fundo); color: var(--cdp-txt); }
 .cdp-barra { background: color-mix(in srgb, var(--cdp-fundo) 94%, transparent); }

@@ -137,7 +137,7 @@
             :class="metodoSelecionado?.id === m.id ? 'vd-pag-on' : 'bg-[var(--vd-el)] border-transparent'"
           >
             <component :is="iconeMetodo(m.nome)" :size="18" />
-            <span class="truncate max-w-full">{{ m.nome }}</span>
+            <span class="truncate max-w-full" :title="m.nome">{{ rotuloMetodo(m.nome) }}</span>
           </button>
         </div>
 
@@ -403,6 +403,7 @@ function numeroDigitado(v: unknown) {
 const descontoNum    = computed(() => Math.min(Math.max(numeroDigitado(desconto.value), 0), subtotal.value))
 const total          = computed(() => subtotal.value - descontoNum.value)
 const valorRecebidoNum = computed(() => numeroDigitado(valorRecebido.value))
+const rotuloMetodo     = (nome: string) => nome.replace(/^cart[aã]o de /i, '').replace(/^./, c => c.toUpperCase())
 const ehDinheiro       = computed(() => metodoSelecionado.value?.nome === 'Dinheiro')
 // Atalhos do dinheiro: valor exato e as próximas notas acima do total
 const atalhosDinheiro  = computed(() => [
@@ -636,9 +637,6 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
-/* Cores da venda direta (claro e escuro) */
-.vd { --vd-bg: #f4f5f8; --vd-pn: #fff; --vd-el: #eef0f5; --vd-bd: #dde1ea; --vd-tx: #141828; --vd-mu: #6b7288; --vd-or: #ff6a00; --vd-gr: #13a46b; --vd-rd: #e5484d; --vd-sh: 0 1px 2px rgba(20, 24, 40, .06); }
-:global(html.dark) .vd { --vd-bg: #0b0e17; --vd-pn: #121726; --vd-el: #1a2033; --vd-bd: #262d44; --vd-tx: #eef0f7; --vd-mu: #8a92ab; --vd-sh: none; }
 .vd :focus-visible { outline: 2px solid var(--vd-or); outline-offset: 2px; }
 .vd-busca { background: var(--vd-pn); border: 1px solid var(--vd-bd); box-shadow: var(--vd-sh); }
 .vd-busca:focus-within { border-color: var(--vd-or); }
@@ -653,4 +651,14 @@ onUnmounted(() => {
 .slide-down-enter-active, .slide-down-leave-active { transition: all .2s ease; }
 .slide-down-enter-from, .slide-down-leave-to { opacity: 0; transform: translateY(-6px); }
 .scrollbar-none::-webkit-scrollbar { display: none; }
+</style>
+
+<style>
+/* Cores da venda direta: vêm dos tokens do PDV (assets/css/tokens.css), então
+   seguem o tema claro/escuro do sistema junto com a barra e o menu */
+.vd {
+  --vd-bg: var(--sup-fundo); --vd-pn: var(--sup-painel); --vd-el: var(--sup-elevado);
+  --vd-bd: var(--linha); --vd-tx: var(--txt); --vd-mu: var(--txt-2);
+  --vd-or: var(--acao); --vd-gr: var(--st-pronto); --vd-rd: var(--st-atencao); --vd-sh: var(--sombra-cartao);
+}
 </style>

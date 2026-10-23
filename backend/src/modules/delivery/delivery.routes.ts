@@ -4,7 +4,6 @@ import { requireTenant } from '../../middlewares/tenant.middleware'
 import { requirePermissao } from '../../middlewares/permission.middleware'
 import type { TenantJwtPayload } from '../../lib/jwt'
 import * as Service from './delivery.service'
-import { clienteDaRequisicao } from '../clientes/clientes.routes'
 import { chavePublicaPush, inscrever, desinscrever } from '../../lib/push'
 
 /** Configurações do delivery: usadas pelo restaurante e pelo Platform. */
@@ -130,7 +129,6 @@ export async function deliveryPublicoRoutes(app: FastifyInstance) {
     formaPagamento: z.enum(['dinheiro', 'credito', 'debito', 'pix', 'cartao']),
     trocoPara: z.number().nonnegative().nullable().optional(),
     observacao: z.string().max(300).optional(),
-    salvarEndereco: z.boolean().optional(),
     itens: z.array(z.object({
       produtoId: z.string().uuid(), quantidade: z.number().int().min(1).max(99), observacao: z.string().max(140).optional(),
     })).min(1, 'Escolha ao menos um item').max(60),
@@ -140,9 +138,7 @@ export async function deliveryPublicoRoutes(app: FastifyInstance) {
     const b = novoPedido.safeParse(request.body)
     if (!b.success) return reply.status(400).send({ error: primeiro(b.error) })
     const slugPedido = (request.params as any).slug
-    // Logado no cardápio: o pedido fica na conta do cliente
-    const conta = await clienteDaRequisicao(request, slugPedido).catch(() => null)
-    return responder(reply, async () => reply.status(201).send(await Service.criarPedido(slugPedido, b.data, conta && { ...conta, salvarEndereco: b.data.salvarEndereco })))
+    return responder(reply, async () => reply.status(201).send(await Service.criarPedido(slugPedido, b.data)))
   })
 
   app.get('/pedidos/:codigo', publico, async (request, reply) =>

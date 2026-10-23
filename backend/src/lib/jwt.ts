@@ -76,3 +76,22 @@ export function refreshTokenExpiry(): Date {
   d.setDate(d.getDate() + 7)
   return d
 }
+
+// ── Cliente do cardápio online ──────────────────────────────────────────────
+// Chave derivada (HMAC da chave de acesso + rótulo): um token de cliente nunca
+// é aceito como token da equipe, e vice-versa. Vale 30 dias; a conta é de um
+// restaurante só (tid).
+const CLIENTE_SECRET = crypto.createHmac('sha256', ACCESS_SECRET).update('cliente-cardapio').digest('hex')
+
+export interface ClienteJwtPayload { tipo: 'cliente'; sub: string; tid: string }
+
+export function signClienteToken(clienteId: string, tenantId: string): string {
+  return jwt.sign({ tipo: 'cliente', sub: clienteId, tid: tenantId } satisfies ClienteJwtPayload, CLIENTE_SECRET, { expiresIn: '30d' })
+}
+
+export function verifyClienteToken(token: string): ClienteJwtPayload | null {
+  try {
+    const p = jwt.verify(token, CLIENTE_SECRET) as any
+    return p?.tipo === 'cliente' && typeof p.sub === 'string' && typeof p.tid === 'string' ? p : null
+  } catch { return null }
+}

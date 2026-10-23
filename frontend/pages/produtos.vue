@@ -202,8 +202,11 @@
             </span>
           </div>
 
-          <!-- NOME -->
-          <h2 class="font-black text-gray-900 dark:text-white leading-tight flex-1">{{ p.nome }}</h2>
+          <!-- FOTO (ou ícone da categoria) + NOME -->
+          <div class="flex items-center gap-3 flex-1">
+            <ProdutoFoto :imagem="p.imagemUrl" :categoria="p.categoria" classe="size-12 rounded-xl" :tamanho-icone="22" />
+            <h2 class="font-black text-gray-900 dark:text-white leading-tight">{{ p.nome }}</h2>
+          </div>
 
           <!-- CATEGORIA -->
           <p class="text-xs text-gray-400 dark:text-white/40 mt-1 font-medium">{{ p.categoria || '—' }}</p>
@@ -270,6 +273,7 @@
               >
                 <td class="px-5 py-3">
                   <div class="flex items-center gap-2">
+                    <ProdutoFoto :imagem="p.imagemUrl" :categoria="p.categoria" classe="size-8 rounded-lg" :tamanho-icone="15" />
                     <span class="font-bold text-gray-900 dark:text-white">{{ p.nome }}</span>
                     <span v-if="baixoEstoque(p)" class="text-[9px] font-black text-orange-400 bg-orange-500/15 px-2 py-0.5 rounded-full uppercase">
                       Baixo
@@ -348,6 +352,7 @@ import { reais } from '~/lib/moeda'
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { storeToRefs } from 'pinia'
 import { Search, Plus, Package, LayoutGrid, List, Boxes, TriangleAlert, Tag, ChefHat } from 'lucide-vue-next'
+import ProdutoFoto from '~/components/ProdutoFoto.vue'
 import Navbar from '~/layouts/Navbar.vue'
 import Sidebar from '~/components/Sidebar.vue'
 import ModalProduto from '@/components/modals/ModalProduto.vue'

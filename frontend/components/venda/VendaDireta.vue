@@ -54,9 +54,8 @@
               class="absolute top-1.5 right-1.5 text-[9px] font-black bg-white/10 text-gray-400 dark:text-white/30 px-1.5 py-0.5 rounded-md leading-none"
             >{{ p.estoqueAtual }} un.</span>
 
-            <div class="w-8 h-8 rounded-xl bg-orange-500/10 flex items-center justify-center mb-2.5">
-              <UtensilsCrossed :size="14" class="text-orange-500" />
-            </div>
+            <!-- Foto, ou o ícone da categoria quando não há foto -->
+            <ProdutoFoto :imagem="p.imagemUrl" :categoria="p.categoria" classe="size-14 rounded-xl mb-2.5" :tamanho-icone="24" />
             <p class="text-xs font-black text-gray-900 dark:text-white leading-snug line-clamp-2">{{ p.nome }}</p>
             <p v-if="p.categoria" class="text-[10px] text-gray-500 dark:text-white/40 mt-0.5 truncate w-full">{{ p.categoria }}</p>
             <p class="text-sm font-black text-orange-400 mt-1.5">R$ {{ fmt(p.preco) }}</p>
@@ -329,6 +328,7 @@ import {
   Printer, Search, X, UtensilsCrossed
 } from 'lucide-vue-next'
 import { useApi } from '~/services/api'
+import ProdutoFoto from '~/components/ProdutoFoto.vue'
 import { useCaixaStore }        from '~/stores/caixa'
 import { useToastStore }        from '~/stores/toast'
 import { useConfigStore }       from '~/stores/configuracoes'

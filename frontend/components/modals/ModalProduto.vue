@@ -23,6 +23,23 @@
       <!-- BODY -->
       <div class="p-6 overflow-y-auto flex-1 grid grid-cols-2 gap-4">
 
+        <!-- FOTO: opcional; sem foto, o sistema usa o ícone da categoria -->
+        <div class="col-span-2 flex items-center gap-4">
+          <ProdutoFoto :imagem="form.imagemUrl" :categoria="categoriaAtual?.nome" classe="size-20 rounded-2xl" :tamanho-icone="30" />
+          <div class="min-w-0">
+            <p class="text-xs font-bold text-gray-500 dark:text-white/40">Foto do produto <span class="font-semibold">(opcional)</span></p>
+            <p class="text-[11px] text-gray-400 dark:text-white/30 mt-0.5">{{ form.imagemUrl ? 'Aparece no PDV e no cardápio online.' : 'Sem foto, aparece o ícone da categoria.' }}</p>
+            <div class="mt-2 flex gap-2">
+              <label class="h-9 px-3 rounded-xl bg-orange-500 hover:bg-orange-600 text-white text-xs font-black flex items-center cursor-pointer">
+                {{ form.imagemUrl ? 'Trocar foto' : 'Escolher foto' }}
+                <input type="file" accept="image/*" class="sr-only" @change="escolherFoto" />
+              </label>
+              <button v-if="form.imagemUrl" type="button" class="h-9 px-3 rounded-xl border border-gray-200 dark:border-white/10 text-xs font-black text-gray-500 dark:text-white/50 hover:text-red-500" @click="form.imagemUrl = null">Remover</button>
+            </div>
+            <p v-if="erroFoto" class="text-[11px] font-bold text-red-500 mt-1" role="alert">{{ erroFoto }}</p>
+          </div>
+        </div>
+
         <!-- NOME -->
         <div class="col-span-2">
           <label for="prod-nome" class="text-xs font-bold text-gray-500 dark:text-white/40 block mb-1">Nome</label>
@@ -204,6 +221,7 @@ import { reactive, ref, computed, watch, onMounted } from 'vue'
 import { lerValor } from '~/lib/valor'
 import { numeroBR } from '~/lib/moeda'
 import { ChefHat } from 'lucide-vue-next'
+import ProdutoFoto from '~/components/ProdutoFoto.vue'
 import { useApi } from '~/services/api'
 import { useToastStore } from '~/stores/toast'
 
@@ -226,7 +244,8 @@ const form = reactive({
   estoqueAtual: 0,
   estoqueMinimo: 5,
   gerenciarEstoque: true,
-  envioCozinha: 'categoria'
+  envioCozinha: 'categoria',
+  imagemUrl: null
 })
 
 const categorias        = ref([])
@@ -235,6 +254,30 @@ const nomeNovaCategoria = ref('')
 const criandoCategoria  = ref(false)
 
 const categoriaAtual = computed(() => categorias.value.find(c => c.id === form.categoriaId))
+
+// ── Foto: reduz para no máximo 600 px e JPEG 0,8 (~60 KB) antes de guardar ──
+const erroFoto = ref('')
+function escolherFoto(e) {
+  const input = e.target
+  const arquivo = input.files?.[0]
+  input.value = ''
+  erroFoto.value = ''
+  if (!arquivo) return
+  if (!arquivo.type.startsWith('image/')) { erroFoto.value = 'Escolha um arquivo de imagem'; return }
+  const url = URL.createObjectURL(arquivo)
+  const img = new Image()
+  img.onload = () => {
+    const escala = Math.min(1, 600 / Math.max(img.width, img.height))
+    const tela = document.createElement('canvas')
+    tela.width = Math.round(img.width * escala)
+    tela.height = Math.round(img.height * escala)
+    tela.getContext('2d').drawImage(img, 0, 0, tela.width, tela.height)
+    form.imagemUrl = tela.toDataURL('image/jpeg', 0.8)
+    URL.revokeObjectURL(url)
+  }
+  img.onerror = () => { erroFoto.value = 'Não deu para abrir esta imagem'; URL.revokeObjectURL(url) }
+  img.src = url
+}
 
 // A dica de "segue a categoria" mostra o que a categoria já decide
 const OPCOES_COZINHA = computed(() => [
@@ -315,7 +358,8 @@ watch(
         estoqueAtual: 0,
         estoqueMinimo: 5,
         gerenciarEstoque: true,
-        envioCozinha: 'categoria'
+        envioCozinha: 'categoria',
+        imagemUrl: null
       })
     }
   },

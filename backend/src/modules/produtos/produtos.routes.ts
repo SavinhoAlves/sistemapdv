@@ -10,6 +10,14 @@ import { prisma } from '../../lib/prisma'
  * (Categoria.vaiCozinha). Confere também que é deste restaurante.
  */
 /** Exceção do produto à categoria: categoria (segue), sempre ou nunca vai para a cozinha. */
+/** Foto do produto: imagem reduzida no navegador (data URL até ~300 KB) ou link https; vazio = sem foto. */
+function imagemInvalida(v: unknown): string | null {
+  if (v === undefined || v === null || v === '') return null
+  if (typeof v !== 'string') return 'Imagem inválida'
+  if (/^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/.test(v)) return v.length <= 400_000 ? null : 'Imagem grande demais (máx. ~300 KB)'
+  if (/^https:\/\/\S+$/.test(v) && v.length <= 1000) return null
+  return 'Imagem inválida: envie uma foto ou um link https'
+}
 const envioValido = (v: unknown) => (v === 'categoria' || v === 'sempre' || v === 'nunca' ? v : undefined)
 
 async function categoriaInvalida(categoriaId: unknown): Promise<string | null> {
@@ -31,13 +39,15 @@ export async function produtosRoutes(app: FastifyInstance) {
     if (body.preco === undefined || body.preco === null) return reply.status(400).send({ error: 'preco é obrigatório' })
     const semCategoria = await categoriaInvalida(body.categoriaId)
     if (semCategoria) return reply.status(400).send({ error: semCategoria })
+    const erroImagem = imagemInvalida(body.imagemUrl)
+    if (erroImagem) return reply.status(400).send({ error: erroImagem })
     try {
       const produto = await Service.criar(request.tenantId!, {
         nome: body.nome,
         descricao: body.descricao,
         preco: Number(body.preco),
         categoriaId: body.categoriaId,
-        imagemUrl: body.imagemUrl,
+        imagemUrl: body.imagemUrl === '' ? null : body.imagemUrl,
         tempoPreparoMinutos: body.tempoPreparoMinutos,
         gerenciarEstoque: body.gerenciarEstoque,
         estoqueAtual: body.estoqueAtual !== undefined ? Number(body.estoqueAtual) : undefined,
@@ -61,6 +71,8 @@ export async function produtosRoutes(app: FastifyInstance) {
       const semCategoria = await categoriaInvalida(body.categoriaId)
       if (semCategoria) return reply.status(400).send({ error: semCategoria })
     }
+    const erroImagem = imagemInvalida(body.imagemUrl)
+    if (erroImagem) return reply.status(400).send({ error: erroImagem })
     try {
       const produto = await Service.atualizar(
         request.tenantId!,
@@ -70,7 +82,7 @@ export async function produtosRoutes(app: FastifyInstance) {
           descricao: body.descricao,
           preco: body.preco !== undefined ? Number(body.preco) : undefined,
           categoriaId: body.categoriaId,
-          imagemUrl: body.imagemUrl,
+          imagemUrl: body.imagemUrl === '' ? null : body.imagemUrl,
           tempoPreparoMinutos: body.tempoPreparoMinutos,
           gerenciarEstoque: body.gerenciarEstoque,
           estoqueAtual: body.estoqueAtual !== undefined ? Number(body.estoqueAtual) : undefined,

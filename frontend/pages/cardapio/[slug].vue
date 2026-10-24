@@ -135,7 +135,7 @@
           </button>
           <div class="flex justify-between cdp-mudo mb-1.5"><span>Subtotal</span><span class="tabular-nums">{{ moeda(subtotal) }}</span></div>
           <div v-if="c.entrega" class="flex justify-between cdp-mudo mb-1.5"><span>Entrega</span><span :class="c.taxaEntrega ? 'tabular-nums' : 'cdp-ok font-semibold'">{{ c.taxaEntrega ? moeda(c.taxaEntrega) : 'Grátis' }}</span></div>
-          <div class="flex justify-between text-[19px] font-extrabold mt-2.5 mb-3.5"><span>Total</span><span class="tabular-nums">{{ moeda(subtotal + (c.entrega ? c.taxaEntrega ?? 0 : 0)) }}</span></div>
+          <div class="flex justify-between text-[19px] font-extrabold mt-2.5 mb-3.5"><span>Total</span><span class="tabular-nums">{{ moeda(qtdItens ? subtotal + (c.entrega ? c.taxaEntrega ?? 0 : 0) : 0) }}</span></div>
           <button class="w-full p-4 rounded-[18px] cdp-ac font-extrabold text-base disabled:opacity-40 disabled:cursor-not-allowed"
             :disabled="!qtdItens || faltaMinimo > 0 || !c.aberto" @click="etapa = 'dados'">
             {{ !c.aberto ? 'Restaurante fechado agora' : 'Finalizar pedido' }}

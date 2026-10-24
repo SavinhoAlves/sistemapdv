@@ -340,7 +340,8 @@
                   </button>
                 </div>
 
-                <div v-if="form.impressora_tipo === 'rede'" class="grid grid-cols-3 gap-3">
+                <AvisoImpressaoNuvem v-if="!impressaoDireta && (form.impressora_tipo === 'rede' || form.impressora_tipo === 'windows')" :tipo="form.impressora_tipo" class="mb-4" @usar-navegador="form.impressora_tipo = 'navegador'" />
+                <div v-if="form.impressora_tipo === 'rede' && impressaoDireta" class="grid grid-cols-3 gap-3">
                   <div class="col-span-2">
                     <label for="imp-host" class="block text-[10px] font-black uppercase tracking-widest text-gray-500 dark:text-white/40 mb-2">IP da impressora</label>
                     <input id="imp-host" name="imp-host" v-model="form.impressora_host" type="text" placeholder="Ex: 192.168.1.200"
@@ -353,7 +354,7 @@
                   </div>
                 </div>
 
-                <div v-if="form.impressora_tipo === 'windows'" class="space-y-2">
+                <div v-if="form.impressora_tipo === 'windows' && impressaoDireta" class="space-y-2">
                   <div class="flex items-center justify-between mb-1">
                     <label class="block text-[10px] font-black uppercase tracking-widest text-gray-500 dark:text-white/40">Impressora instalada no Windows</label>
                     <button @click="detectarImpressorasWindows" :disabled="detectandoImpressoras"
@@ -543,7 +544,8 @@
                     </div>
 
                     <!-- Host + Porta (Rede) -->
-                    <div v-if="imp.tipo === 'rede'" class="grid grid-cols-3 gap-3">
+                    <AvisoImpressaoNuvem v-if="!impressaoDireta && (imp.tipo === 'rede' || imp.tipo === 'windows')" :tipo="imp.tipo" @usar-navegador="imp.tipo = 'navegador'" />
+                    <div v-if="imp.tipo === 'rede' && impressaoDireta" class="grid grid-cols-3 gap-3">
                       <div class="col-span-2">
                         <label class="block text-[10px] font-black uppercase tracking-widest text-gray-500 dark:text-white/40 mb-2">IP da impressora</label>
                         <input v-model="imp.host" type="text" placeholder="Ex: 192.168.1.200"
@@ -557,7 +559,7 @@
                     </div>
 
                     <!-- Nome Windows (USB) -->
-                    <div v-if="imp.tipo === 'windows'" class="space-y-2">
+                    <div v-if="imp.tipo === 'windows' && impressaoDireta" class="space-y-2">
                       <div class="flex items-center justify-between mb-1">
                         <label class="block text-[10px] font-black uppercase tracking-widest text-gray-500 dark:text-white/40">Impressora instalada no Windows</label>
                         <button @click="detectarImpressorasWindows" :disabled="detectandoImpressoras"
@@ -740,6 +742,7 @@ import {
 import ConfigIntegracoes from '~/components/config/ConfigIntegracoes.vue'
 import ConfigAcesso from '~/components/config/ConfigAcesso.vue'
 import ConfigDelivery from '~/components/config/ConfigDelivery.vue'
+import AvisoImpressaoNuvem from '~/components/config/AvisoImpressaoNuvem.vue'
 import { TIPOS_COMERCIO } from '~/lib/tiposComercio'
 import { useAuthStore } from '~/stores/auth'
 import Navbar from '~/layouts/Navbar.vue'
@@ -809,10 +812,11 @@ const impressorasDetectadas    = ref(false)
 async function detectarImpressorasWindows() {
   detectandoImpressoras.value = true
   try {
-    const data = await api.get<{ impressoras: string[] }>('/impressoras/instaladas')
+    const data = await api.get<{ impressoras: string[]; disponivel?: boolean }>('/impressoras/instaladas')
     impressorasInstaladas.value = data.impressoras
     impressorasDetectadas.value = true
-    if (!data.impressoras.length) toastStore.error('Nenhuma impressora encontrada', 'Verifique se há impressoras instaladas no Windows.')
+    if (data.disponivel === false) { impressaoDireta.value = false; toastStore.error('USB não funciona no sistema online', 'Use o tipo Navegador: a ficha sai na impressora do computador do caixa.') }
+    else if (!data.impressoras.length) toastStore.error('Nenhuma impressora encontrada', 'Verifique se há impressoras instaladas no Windows.')
   } catch {
     toastStore.error('Erro ao detectar impressoras')
   } finally {
@@ -913,11 +917,13 @@ const logoEstiloPreview = computed(() => {
   return { height: `${px}px` }
 })
 
-const tiposImpressora = [
-  { value: 'navegador' as const, label: 'Navegador', desc: 'Janela de impressão do navegador' },
-  { value: 'rede' as const,      label: 'Rede',      desc: 'Térmica com Ethernet/Wi-Fi (porta 9100)' },
-  { value: 'windows' as const,   label: 'USB',       desc: 'Térmica USB instalada no Windows' }
-]
+// Servidor na nuvem: USB e rede não alcançam a impressora (só Navegador funciona)
+const impressaoDireta = ref(true)
+const tiposImpressora = computed(() => [
+  { value: 'navegador' as const, label: 'Navegador', desc: impressaoDireta.value ? 'Janela de impressão do navegador' : 'Recomendado: qualquer impressora do computador' },
+  { value: 'rede' as const,      label: 'Rede',      desc: impressaoDireta.value ? 'Térmica com Ethernet/Wi-Fi (porta 9100)' : 'Só com o servidor no restaurante' },
+  { value: 'windows' as const,   label: 'USB',       desc: impressaoDireta.value ? 'Térmica USB instalada no Windows' : 'Só com o servidor no restaurante' },
+])
 const testandoImpressora = ref(false)
 
 const form = reactive({
@@ -955,6 +961,7 @@ onMounted(async () => {
   form.tipo_comercio            = configStore.tipo_comercio
 
   await carregarImpressoras()
+  try { impressaoDireta.value = (await api.get<{ impressaoDireta: boolean }>('/impressoras/ambiente')).impressaoDireta } catch {}
 
   tirarSnapshot()
   formCarregado.value = true

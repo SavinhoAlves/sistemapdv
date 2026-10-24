@@ -27,10 +27,19 @@ function normalizar(body: any) {
   }
 }
 
+/**
+ * Impressão direta (USB pelo Windows e rede pela porta 9100) só funciona com o
+ * servidor dentro do restaurante. Na nuvem (VPS Linux) ele não alcança essas
+ * impressoras: aí vale o tipo Navegador. IMPRESSAO_DIRETA=1 força ligar.
+ */
+const impressaoDireta = () => process.platform === 'win32' || process.env.IMPRESSAO_DIRETA === '1'
+
 export async function impressorasRoutes(app: FastifyInstance) {
+  app.get('/ambiente', { preHandler: [requireTenant] }, async () => ({ impressaoDireta: impressaoDireta() }))
+
   // Lista impressoras instaladas no Windows via Get-Printer (PowerShell)
   app.get('/instaladas', { preHandler: [requireTenant] }, async (_request, reply) => {
-    if (process.platform !== 'win32') return reply.send({ impressoras: [] })
+    if (process.platform !== 'win32') return reply.send({ impressoras: [], disponivel: false })
     try {
       const { stdout } = await execFileAsync('powershell.exe', [
         '-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass',

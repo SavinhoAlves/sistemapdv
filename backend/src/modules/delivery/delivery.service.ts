@@ -13,7 +13,7 @@ import { hojeLocal, inicioDoDia } from '../../lib/fuso'
 import { vaiParaCozinha, camposCozinha } from '../../lib/cozinha'
 import { enviarPush } from '../../lib/push'
 import { registrarAuditoria } from '../../lib/auditoria'
-import { salvarEndereco as salvarEnderecoDoCliente } from '../clientes/clientes.service'
+import { salvarEndereco as salvarEnderecoDoCliente, coordenadasDoEndereco } from '../clientes/clientes.service'
 
 /**
  * Delivery pelo cardápio online.
@@ -118,7 +118,7 @@ export interface NovoPedidoOnline {
 }
 
 /** conta: cliente logado no cardápio (pedido ligado à conta; salva o endereço se pedir) */
-export async function criarPedido(slug: string, d: NovoPedidoOnline, conta?: { clienteId: string; tenantId: string; salvarEndereco?: boolean } | null) {
+export async function criarPedido(slug: string, d: NovoPedidoOnline, conta?: { clienteId: string; tenantId: string; salvarEndereco?: boolean; enderecoId?: string } | null) {
   const tenant = await tenantPorSlug(slug)
   if (!tenant || !tenant.deliveryDisponivel) throw erro(404, 'Cardápio não encontrado')
   const { aberto, motivo, cfg } = await situacao(tenant)
@@ -190,7 +190,14 @@ export async function criarPedido(slug: string, d: NovoPedidoOnline, conta?: { c
   if (!criado) throw erro(500, 'Não foi possível registrar o pedido. Tente de novo.')
 
   emitir(tenant.id).delivery(EVENTOS.delivery.recebido, payload(criado))
-  if (criado.tipo === 'entrega') void localizarDestino(tenant.id, criado.id)
+  if (criado.tipo === 'entrega') {
+    // Endereço salvo com a localização do aparelho: não precisa geocodificar
+    const coord = criado.clienteId && conta?.enderecoId
+      ? await coordenadasDoEndereco(tenant.id, criado.clienteId, conta.enderecoId).catch(() => null)
+      : null
+    if (coord) await comTenant(tenant.id, async () => await prisma.pedidoOnline.update({ where: { id: criado.id }, data: { destinoLat: coord.lat, destinoLng: coord.lng } }))
+    else void localizarDestino(tenant.id, criado.id)
+  }
   // Logado e marcou "salvar endereço": fica para o próximo pedido (erro aqui não derruba o pedido)
   if (criado.clienteId && conta?.salvarEndereco && d.tipo === 'entrega') {
     await salvarEnderecoDoCliente(tenant.id, criado.clienteId, {

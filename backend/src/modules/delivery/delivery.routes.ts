@@ -131,6 +131,8 @@ export async function deliveryPublicoRoutes(app: FastifyInstance) {
     trocoPara: z.number().nonnegative().nullable().optional(),
     observacao: z.string().max(300).optional(),
     salvarEndereco: z.boolean().optional(),
+    // Endereço salvo da conta: com a localização do aparelho, vai direto para o mapa
+    enderecoId: z.string().uuid().optional(),
     itens: z.array(z.object({
       produtoId: z.string().uuid(), quantidade: z.number().int().min(1).max(99), observacao: z.string().max(140).optional(),
     })).min(1, 'Escolha ao menos um item').max(60),
@@ -142,7 +144,7 @@ export async function deliveryPublicoRoutes(app: FastifyInstance) {
     const slugPedido = (request.params as any).slug
     // Logado no cardápio: o pedido fica na conta do cliente
     const conta = await clienteDaRequisicao(request, slugPedido).catch(() => null)
-    return responder(reply, async () => reply.status(201).send(await Service.criarPedido(slugPedido, b.data, conta && { ...conta, salvarEndereco: b.data.salvarEndereco })))
+    return responder(reply, async () => reply.status(201).send(await Service.criarPedido(slugPedido, b.data, conta && { ...conta, salvarEndereco: b.data.salvarEndereco, enderecoId: b.data.enderecoId })))
   })
 
   app.get('/pedidos/:codigo', publico, async (request, reply) =>

@@ -31,6 +31,22 @@ const endereco = z.object({
   bairro: z.string().trim().min(2, 'Informe o bairro').max(80),
   complemento: z.string().max(80).nullable().optional(),
   referencia: z.string().max(140).nullable().optional(),
+  cep: z.string().max(9).nullable().optional(),
+  cidade: z.string().max(80).nullable().optional(),
+  uf: z.string().max(2).nullable().optional(),
+  latitude: z.number().min(-90).max(90).nullable().optional(),
+  longitude: z.number().min(-180).max(180).nullable().optional(),
+})
+// Campo opcional: texto vazio vira null (apaga o valor)
+const vazioNulo = (s: z.ZodTypeAny) => z.preprocess((v) => (v === '' ? null : v), s.nullable().optional())
+const soDigitos = (t: string) => t.replace(/\D/g, '')
+const perfil = z.object({
+  nome: z.string().trim().min(2, 'Informe seu nome').max(80),
+  email: vazioNulo(z.string().trim().email('E-mail inválido').max(120)),
+  nascimento: vazioNulo(z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Data de nascimento inválida')),
+  cpf: vazioNulo(z.string().transform(soDigitos).pipe(z.string().length(11, 'O CPF tem 11 dígitos'))),
+  telefone2: vazioNulo(z.string().transform(soDigitos).pipe(z.string().min(10, 'Telefone alternativo com DDD').max(13))),
+  contatoPreferido: z.enum(['whatsapp', 'ligacao', 'email']).optional(),
 })
 
 /** Rotas públicas (/api/publico/cardapio/:slug/conta): cadastro, login e dados do cliente. */
@@ -65,9 +81,9 @@ export async function contaClienteRoutes(app: FastifyInstance) {
 
   app.put('/cardapio/:slug/conta', publico, async (request, reply) => {
     const c = await logado(request, reply); if (!c) return
-    const b = z.object({ nome: z.string().trim().min(2, 'Informe seu nome').max(80) }).safeParse(request.body)
+    const b = perfil.safeParse(request.body)
     if (!b.success) return reply.status(400).send({ error: primeiro(b.error) })
-    return responder(reply, () => Service.atualizarNome(c.tenantId, c.clienteId, b.data.nome))
+    return responder(reply, () => Service.atualizarPerfil(c.tenantId, c.clienteId, b.data as Service.DadosPerfil))
   })
 
   app.post('/cardapio/:slug/conta/enderecos', publico, async (request, reply) => {
@@ -75,6 +91,18 @@ export async function contaClienteRoutes(app: FastifyInstance) {
     const b = endereco.safeParse(request.body)
     if (!b.success) return reply.status(400).send({ error: primeiro(b.error) })
     return responder(reply, () => Service.salvarEndereco(c.tenantId, c.clienteId, b.data))
+  })
+
+  app.put('/cardapio/:slug/conta/enderecos/:id', publico, async (request, reply) => {
+    const c = await logado(request, reply); if (!c) return
+    const b = endereco.safeParse(request.body)
+    if (!b.success) return reply.status(400).send({ error: primeiro(b.error) })
+    return responder(reply, () => Service.editarEndereco(c.tenantId, c.clienteId, (request.params as any).id, b.data))
+  })
+
+  app.post('/cardapio/:slug/conta/enderecos/:id/padrao', publico, async (request, reply) => {
+    const c = await logado(request, reply); if (!c) return
+    return responder(reply, () => Service.definirPadrao(c.tenantId, c.clienteId, (request.params as any).id))
   })
 
   app.delete('/cardapio/:slug/conta/enderecos/:id', publico, async (request, reply) => {

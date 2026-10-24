@@ -1,15 +1,16 @@
-import { onMounted, onUnmounted } from 'vue'
+import { onMounted, onUnmounted, watch, type Ref } from 'vue'
 
 /**
  * Páginas do cliente final (cardápio, acompanhamento): seguem o tema claro/
  * escuro do aparelho, não o tema salvo do PDV (que abre escuro por padrão).
  * Não grava nada: ao sair da página, o tema do sistema volta.
+ * escolha: tema escolhido pelo cliente na página (null = o do aparelho).
  */
-export function useTemaDoAparelho() {
+export function useTemaDoAparelho(escolha?: Ref<'claro' | 'escuro' | null>) {
   let mq: MediaQueryList | null = null
   let anterior: { dark: boolean; light: boolean } | null = null
   const aplicar = () => {
-    const escuro = !!mq?.matches
+    const escuro = escolha?.value ? escolha.value === 'escuro' : !!mq?.matches
     document.documentElement.classList.toggle('dark', escuro)
     document.documentElement.classList.toggle('light', !escuro)
   }
@@ -20,6 +21,7 @@ export function useTemaDoAparelho() {
     aplicar()
     mq.addEventListener('change', aplicar)
   })
+  if (escolha) watch(escolha, aplicar)
   onUnmounted(() => {
     mq?.removeEventListener('change', aplicar)
     if (anterior) {

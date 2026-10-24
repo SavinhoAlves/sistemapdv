@@ -122,9 +122,11 @@ export async function registrarPagamento(tenantId: string, input: RegistrarPagam
           include: { metodo: { select: { nome: true } } },
         })
 
+        // Pedido do cardápio online: o caixa mostra "Delivery CH5U5D" (ou "Retirada …"), não "Balcão #14"
+        const online = /^(Delivery|Retirada) [A-Z0-9]+/.exec((pedido as any).observacoes ?? '')?.[0]
         const identificacao = pedido.mesa
           ? pedido.mesa.nomeMesa || `Mesa ${pedido.mesa.numero}`
-          : `Balcão #${pedido.numero}`
+          : online ?? `Balcão #${pedido.numero}`
 
         await tx.movimentoCaixa.create({
           data: {

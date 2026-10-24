@@ -1,6 +1,6 @@
 <template>
   <!-- Conta do cliente no cardápio: Meu perfil (dados e endereços) ou Meus pedidos -->
-  <section class="px-5 lg:px-8 pb-10 max-w-6xl">
+  <section class="px-5 lg:px-8 pb-10">
     <button type="button" class="inline-flex items-center gap-2 mt-[18px] mb-1.5 font-semibold cdp-mudo" @click="emit('voltar')">
       <ArrowLeft :size="18" /> Voltar ao cardápio
     </button>

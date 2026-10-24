@@ -49,7 +49,7 @@
         <p v-else-if="c.mensagem" class="mt-3 max-w-2xl text-sm rounded-xl px-3 py-2.5 bg-orange-500/10 text-orange-800 dark:text-orange-200">{{ c.mensagem }}</p>
 
         <a v-if="ultimoPedido" :href="`${base}pedido/${ultimoPedido}`" class="mt-3 max-w-2xl flex items-center justify-between rounded-xl px-3 py-2.5 cdp-cartao text-sm">
-          <span>Acompanhar seu pedido <b class="font-mono">{{ ultimoPedido }}</b></span><ChevronRight :size="16" />
+          <span>Acompanhar seu pedido <b class="font-mono">{{ ultimoPedido }}</b><template v-if="statusUltimo"> · <span class="cdp-ac-txt font-semibold">{{ STATUS_PEDIDO[statusUltimo] ?? statusUltimo }}</span></template></span><ChevronRight :size="16" />
         </a>
       </header>
 
@@ -497,6 +497,23 @@ function mascararTelefone(v: string) {
 const enviando = ref(false)
 const erroEnvio = ref('')
 const ultimoPedido = ref<string | null>(null)
+const statusUltimo = ref<string | null>(null)
+// Atalho do último pedido: mostra a situação e some quando o pedido termina
+async function conferirUltimoPedido() {
+  const codigo = ultimoPedido.value
+  if (!codigo) return
+  try {
+    const r = await api(`/pedidos/${encodeURIComponent(codigo)}`)
+    if (['entregue', 'recusado', 'cancelado'].includes(r?.status)) esquecerUltimoPedido()
+    else statusUltimo.value = r?.status ?? null
+  } catch (e: any) {
+    if (e?.status === 404 || e?.statusCode === 404) esquecerUltimoPedido()
+  }
+}
+function esquecerUltimoPedido() {
+  ultimoPedido.value = null; statusUltimo.value = null
+  try { localStorage.removeItem(`${CHAVE}:ultimo`) } catch {}
+}
 
 // ── Conta do cliente (celular + senha, deste restaurante) ──
 const CHAVE_CONTA = `${CHAVE}:conta`
@@ -656,6 +673,7 @@ onMounted(async () => {
     const salvo = JSON.parse(localStorage.getItem(CHAVE) || '[]')
     if (Array.isArray(salvo)) carrinho.value = salvo
     ultimoPedido.value = localStorage.getItem(`${CHAVE}:ultimo`)
+    void conferirUltimoPedido()
     token.value = localStorage.getItem(CHAVE_CONTA)
     if (localStorage.getItem('cardapio:vista') === 'grade') vista.value = 'grade'
     const t = localStorage.getItem('cardapio:tema')

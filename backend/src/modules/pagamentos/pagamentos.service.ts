@@ -122,9 +122,11 @@ export async function registrarPagamento(tenantId: string, input: RegistrarPagam
           include: { metodo: { select: { nome: true } } },
         })
 
+        // Pedido do cardápio online: o caixa mostra "Delivery CH5U5D" (ou "Retirada …"), não "Balcão #14"
+        const online = /^(Delivery|Retirada) [A-Z0-9]+/.exec((pedido as any).observacoes ?? '')?.[0]
         const identificacao = pedido.mesa
           ? pedido.mesa.nomeMesa || `Mesa ${pedido.mesa.numero}`
-          : `Balcão #${pedido.numero}`
+          : online ?? `Balcão #${pedido.numero}`
 
         await tx.movimentoCaixa.create({
           data: {
@@ -346,4 +348,24 @@ async function respostaDePagamento(_tenantId: string, pagamento: any, repetido: 
 
 function erro(status: number, mensagem: string) {
   return Object.assign(new Error(mensagem), { status })
+}
+
+
+// ── Pix com QR Code ──────────────────────────────────────────────────────────
+// O QR é estático (BR Code) e montado no navegador com o valor da venda.
+// Aqui só ficam a chave, o nome e a cidade do recebedor.
+
+export async function pixConfig(tenantId: string) {
+  const cfg = await prisma.configuracoes.findFirst({
+    where: { tenantId }, select: { pixChave: true, pixNome: true, pixCidade: true },
+  })
+  return { chave: cfg?.pixChave ?? '', nome: cfg?.pixNome ?? '', cidade: cfg?.pixCidade ?? '' }
+}
+
+export async function salvarPix(tenantId: string, d: { chave: string; nome: string; cidade: string }) {
+  const data = { pixChave: d.chave || null, pixNome: d.chave ? d.nome : null, pixCidade: d.chave ? d.cidade : null }
+  const atual = await prisma.configuracoes.findFirst({ where: { tenantId }, select: { id: true } })
+  if (atual) await prisma.configuracoes.update({ where: { id: atual.id }, data })
+  else await prisma.configuracoes.create({ data: { tenantId, ...data } as any })
+  return pixConfig(tenantId)
 }

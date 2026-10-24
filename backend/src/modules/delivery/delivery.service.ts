@@ -102,6 +102,7 @@ export async function cardapio(slug: string) {
     pedidoMinimo: Number(cfg?.deliveryPedidoMinimo ?? 0),
     tempoMin: cfg?.deliveryTempoMin ?? 40,
     mensagem: cfg?.deliveryMensagem ?? null,
+    pix: cfg?.pixChave ? { chave: cfg.pixChave, nome: cfg.pixNome ?? '', cidade: cfg.pixCidade ?? '' } : null,
     categorias: [...porCategoria.values()].sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR')),
   }
 }
@@ -219,7 +220,7 @@ export async function acompanhar(codigo: string) {
   }))
   if (!po) throw erro(404, 'Pedido não encontrado')
   const cfg = await comTenant(po.tenantId, async () => await prisma.configuracoes.findFirst({
-    where: { tenantId: po.tenantId }, select: { nomeRestaurante: true, deliveryTempoMin: true, logoBase64: true, deliveryLat: true, deliveryLng: true },
+    where: { tenantId: po.tenantId }, select: { nomeRestaurante: true, deliveryTempoMin: true, logoBase64: true, deliveryLat: true, deliveryLng: true, pixChave: true, pixNome: true, pixCidade: true },
   }))
   // Mapa do cliente: do aceite até a entrega. Em rota, onde está o entregador e
   // quantas entregas faltam antes desta (só a contagem: os endereços dos outros nunca saem daqui)
@@ -254,6 +255,9 @@ export async function acompanhar(codigo: string) {
     itens: (po.itens as ItemPedidoOnline[]).map((i) => ({ nome: i.nome, quantidade: i.quantidade, preco: i.preco })),
     subtotal: Number(po.subtotal), taxaEntrega: Number(po.taxaEntrega), total: Number(po.total),
     formaPagamento: po.formaPagamento, trocoPara: po.trocoPara === null ? null : Number(po.trocoPara),
+    // Pagamento por Pix: o cliente pode pagar pelo QR enquanto o pedido não terminou
+    pix: po.formaPagamento === 'pix' && cfg?.pixChave && !['entregue', 'recusado', 'cancelado'].includes(po.status) && !po.entregaConfirmadaEm
+      ? { chave: cfg.pixChave, nome: cfg.pixNome ?? '', cidade: cfg.pixCidade ?? '' } : null,
     motivoRecusa: po.motivoRecusa,
     // Só enquanto a entrega está em andamento: o cliente diz ao entregador
     codigoEntrega: ['aceito', 'pronto', 'em_rota'].includes(po.status) && !po.entregaConfirmadaEm ? po.codigoEntrega : null,

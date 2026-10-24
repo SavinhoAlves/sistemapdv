@@ -19,7 +19,7 @@ export async function criar(
   tenantId: string,
   data: {
     nome: string
-    descricao?: string
+    descricao?: string | null
     preco: number
     categoriaId?: string
     imagemUrl?: string
@@ -53,7 +53,7 @@ export async function atualizar(
   id: string,
   data: {
     nome?: string
-    descricao?: string
+    descricao?: string | null
     preco?: number
     categoriaId?: string | null
     imagemUrl?: string | null

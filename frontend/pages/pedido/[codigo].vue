@@ -46,6 +46,13 @@
           </template>
         </section>
 
+        <!-- Pix: o cliente pode pagar agora pelo QR (chave do restaurante); a confirmação é feita na entrega -->
+        <section v-if="p.pix" class="mt-4 rounded-3xl cdp-cartao p-5" aria-label="Pagar com Pix">
+          <p class="text-xs font-black uppercase tracking-widest cdp-mudo text-center mb-3">Pague com Pix</p>
+          <PixQrCode :chave="p.pix.chave" :nome="p.pix.nome" :cidade="p.pix.cidade" :valor="p.total" :txid="p.codigo" classe-botao="cdp-linha" />
+          <p class="mt-3 text-xs cdp-mudo text-center">Pagou? Mostre o comprovante na entrega. Se preferir, pague na hora com o entregador.</p>
+        </section>
+
         <!-- Código de entrega: o cliente diz ao entregador, que digita no app -->
         <section v-if="p.codigoEntrega" class="mt-4 rounded-3xl cdp-cartao p-5 text-center" aria-label="Código de entrega">
           <p class="text-xs font-black uppercase tracking-widest cdp-mudo">Código de entrega</p>
@@ -95,6 +102,7 @@ import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { Check, Inbox, ChefHat, PackageCheck, Bike, Home, UtensilsCrossed } from 'lucide-vue-next'
 import { useTemaDoAparelho } from '~/composables/useTemaDoAparelho'
 import MapaDelivery from '~/components/MapaDelivery.vue'
+import PixQrCode from '~/components/PixQrCode.vue'
 
 definePageMeta({ layout: false })
 useTemaDoAparelho()

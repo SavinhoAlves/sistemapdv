@@ -45,6 +45,25 @@
             </div>
           </div>
         </div>
+        <!-- Informações rápidas: entrega, retirada, mínimo e pagamento -->
+        <div class="mt-5 grid grid-cols-2 lg:grid-cols-4 gap-3">
+          <div class="cdp-info">
+            <Bike :size="18" class="cdp-ac-txt shrink-0" />
+            <div class="min-w-0"><p class="cdp-info-rot">Entrega</p><p class="cdp-info-val">{{ c.entrega ? `${c.tempoMin}–${c.tempoMin + 15} min · ${c.taxaEntrega ? moeda(c.taxaEntrega) : 'grátis'}` : 'Não entregamos' }}</p></div>
+          </div>
+          <div class="cdp-info">
+            <Store :size="18" class="cdp-ac-txt shrink-0" />
+            <div class="min-w-0"><p class="cdp-info-rot">Retirada</p><p class="cdp-info-val">{{ c.retirada ? 'Retire no local, sem taxa' : 'Só entrega' }}</p></div>
+          </div>
+          <div class="cdp-info">
+            <ShoppingBag :size="18" class="cdp-ac-txt shrink-0" />
+            <div class="min-w-0"><p class="cdp-info-rot">Pedido mínimo</p><p class="cdp-info-val">{{ c.pedidoMinimo ? moeda(c.pedidoMinimo) : 'Sem mínimo' }}</p></div>
+          </div>
+          <div class="cdp-info">
+            <Wallet :size="18" class="cdp-ac-txt shrink-0" />
+            <div class="min-w-0"><p class="cdp-info-rot">Pagamento</p><p class="cdp-info-val">{{ c.pix ? 'Pix (QR Code), cartão ou dinheiro' : 'Pix, cartão ou dinheiro' }}</p></div>
+          </div>
+        </div>
         <p v-if="!c.aberto" class="mt-3 max-w-2xl text-sm rounded-xl px-3 py-2.5 bg-red-500/10 text-red-700 dark:text-red-300">{{ c.motivo }} Você pode olhar o cardápio.</p>
         <p v-else-if="c.mensagem" class="mt-3 max-w-2xl text-sm rounded-xl px-3 py-2.5 bg-orange-500/10 text-orange-800 dark:text-orange-200">{{ c.mensagem }}</p>
 
@@ -83,15 +102,15 @@
         </div>
       </div>
 
-      <!-- Produtos: cada categoria é uma coluna; as colunas deslizam da esquerda para a direita (arrastar, rodinha ou barra) -->
+      <!-- Produtos: cada categoria é uma coluna que estica para ocupar a tela; as colunas deslizam da esquerda para a direita (arrastar, rodinha ou barra) -->
       <main class="px-5 lg:px-8">
         <p v-if="!filtradas.length" class="text-center cdp-mudo py-12">Nada encontrado para “{{ busca }}”. Tente outro nome.</p>
         <div ref="boardEl" class="flex items-start gap-8 overflow-x-auto snap-x snap-proximity scroll-pl-0.5 px-0.5 pt-6 pb-6 cdp-rolagem cursor-grab" :class="{ 'cdp-arrastando': arrastando }">
-          <section v-for="cat in filtradas" :key="cat.id" class="flex-none snap-start" :class="unica ? 'w-full' : 'w-[min(86vw,360px)]'">
+          <section v-for="cat in filtradas" :key="cat.id" class="snap-start" :class="unica ? 'w-full flex-none' : 'flex-1 shrink-0 min-w-[min(86vw,360px)]'">
             <h2 class="text-xl font-extrabold tracking-[-.01em] mb-4">{{ cat.nome }}</h2>
-            <div class="grid gap-4 justify-start" :class="unica
-              ? (vista === 'grade' ? 'grid-cols-[repeat(auto-fill,minmax(min(100%,150px),230px))]' : 'grid-cols-[repeat(auto-fill,minmax(min(100%,340px),360px))]')
-              : (vista === 'grade' ? 'grid-cols-2' : 'grid-cols-1')">
+            <div class="grid" :class="[vista === 'grade' ? 'gap-5' : 'gap-4', unica
+              ? (vista === 'grade' ? 'grid-cols-[repeat(auto-fill,minmax(min(100%,180px),1fr))]' : 'grid-cols-[repeat(auto-fill,minmax(min(100%,340px),1fr))]')
+              : (vista === 'grade' ? 'grid-cols-[repeat(auto-fill,minmax(160px,1fr))]' : 'grid-cols-[repeat(auto-fill,minmax(min(100%,320px),1fr))]')]">
               <article v-for="p in cat.produtos" :key="p.id" class="flex rounded-[22px] cdp-cartao" :class="[vista === 'grade' ? 'flex-col overflow-hidden' : 'gap-4 items-stretch p-3.5 min-h-32 lg:min-h-[140px]', p.esgotado ? 'opacity-50' : '']">
                 <button type="button" class="relative shrink-0 overflow-hidden" :class="vista === 'grade' ? 'w-full aspect-[4/3]' : 'w-28 lg:w-32 rounded-[14px]'" :aria-label="`Ver ${p.nome}`" @click="abrirProduto(p)">
                   <ProdutoFoto :imagem="p.imagemUrl" :categoria="cat.nome" classe="absolute inset-0 size-full rounded-none cdp-thumb" :tamanho-icone="vista === 'grade' ? 44 : 38" />
@@ -103,7 +122,7 @@
                   </button>
                   <div class="mt-auto pt-2.5 flex items-center justify-between gap-2">
                     <span class="text-[17px] font-extrabold tabular-nums">{{ p.esgotado ? 'Esgotado' : moeda(p.preco) }}</span>
-                    <Controle v-if="!p.esgotado" :qtd="noCarrinho(p.id)" :nome="p.nome" @mais="somar(p)" @menos="tirar(p.id)" />
+                    <Controle v-if="!p.esgotado" :qtd="vista === 'grade' ? 0 : noCarrinho(p.id)" :nome="p.nome" @mais="somar(p)" @menos="tirar(p.id)" />
                   </div>
                 </div>
               </article>
@@ -242,6 +261,7 @@
           <div class="mt-1.5 grid grid-cols-2 gap-2">
             <button v-for="fp in FORMAS" :key="fp.valor" type="button" class="h-11 rounded-xl border-2 text-xs font-extrabold" :class="f.formaPagamento === fp.valor ? 'border-orange-500 bg-orange-500/10' : 'cdp-linha'" @click="f.formaPagamento = fp.valor">{{ fp.rotulo }}</button>
           </div>
+          <p v-if="f.formaPagamento === 'pix' && c.pix" class="mt-3 text-xs rounded-xl px-3 py-2 bg-emerald-500/10 text-emerald-800 dark:text-emerald-200">Depois de enviar, aparece o QR Code Pix com o valor para você pagar pelo app do banco.</p>
           <Campo v-if="f.formaPagamento === 'dinheiro'" v-model="f.trocoPara" class="mt-3" rotulo="Troco para quanto? (deixe vazio se não precisar)" inputmode="decimal" placeholder="Ex.: 100" />
           <Campo v-model="f.observacao" class="mt-3" rotulo="Observação do pedido (opcional)" />
 
@@ -293,7 +313,7 @@
 
 <script setup lang="ts">
 import { ref, reactive, computed, watch, onMounted, onBeforeUnmount, nextTick, defineComponent, h } from 'vue'
-import { Search, Plus, Minus, ShoppingBag, UtensilsCrossed, ChevronRight, X, Loader2, UserRound, List, LayoutGrid, Clock, Bike, LogIn, ChevronLeft, ChevronDown, Receipt, Sun, Moon, LogOut, MapPin } from 'lucide-vue-next'
+import { Search, Plus, Minus, ShoppingBag, UtensilsCrossed, ChevronRight, X, Loader2, UserRound, List, LayoutGrid, Clock, Bike, LogIn, ChevronLeft, ChevronDown, Receipt, Sun, Moon, LogOut, MapPin, Store, Wallet } from 'lucide-vue-next'
 import ProdutoFoto from '~/components/ProdutoFoto.vue'
 import ContaCliente from '~/components/cardapio/ContaCliente.vue'
 import { useTemaDoAparelho } from '~/composables/useTemaDoAparelho'
@@ -728,6 +748,9 @@ onMounted(async () => {
 .cdp-item-menu { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 10px; text-align: left; font-size: 14px; font-weight: 600; }
 .cdp-item-menu:hover { background: var(--cdp-chip); }
 .cdp-item-menu svg { color: var(--cdp-mudo); }
+.cdp-info { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: 16px; background: var(--cdp-cartao); border: 1px solid var(--cdp-linha); }
+.cdp-info-rot { font-size: 12px; color: var(--cdp-mudo); }
+.cdp-info-val { font-size: 14px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .cdp-entregar { display: flex; align-items: center; gap: 8px; width: 100%; text-align: left; background: var(--cdp-cartao); border: 1px solid var(--cdp-linha); border-radius: 14px; padding: 10px 12px; margin-bottom: 12px; font-size: 13px; }
 .cdp-arrastando { cursor: grabbing; scroll-snap-type: none; user-select: none; }
 .cdp-arrastando * { cursor: grabbing !important; }

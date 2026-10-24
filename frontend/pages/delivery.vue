@@ -21,7 +21,8 @@
             <button v-for="v in [{ k: 'quadro', r: 'Quadro' }, { k: 'mapa', r: 'Mapa' }]" :key="v.k" role="tab" :aria-selected="visao === v.k"
               class="h-7 px-3 rounded-lg text-xs font-black" :class="visao === v.k ? 'bg-orange-500 text-white' : 'text-gray-500 dark:text-white/50'" @click="trocarVisao(v.k as any)">{{ v.r }}</button>
           </div>
-          <span class="inline-flex items-center gap-1.5 h-9 px-3 rounded-xl text-xs font-bold border"
+          <!-- Só depois de carregar a configuração: antes disso não dá para dizer se está pausado -->
+          <span v-if="cfg" class="inline-flex items-center gap-1.5 h-9 px-3 rounded-xl text-xs font-bold border"
             :class="cfg?.ativo ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300' : 'border-gray-200 dark:border-white/10 text-gray-500 dark:text-white/50'">
             <span class="size-2 rounded-full" :class="cfg?.ativo ? 'bg-emerald-500' : 'bg-gray-400'" />
             {{ cfg?.ativo ? 'Cardápio recebendo pedidos' : 'Cardápio pausado' }}
@@ -133,7 +134,7 @@
         </section>
       </div>
 
-      <p v-if="!cfg?.disponivel && carregado" class="mt-6 text-sm text-gray-500 dark:text-white/50">O delivery não está incluído no seu plano. Fale com o suporte para incluir.</p>
+      <p v-if="cfg && !cfg.disponivel" class="mt-6 text-sm text-gray-500 dark:text-white/50">O delivery não está incluído no seu plano. Fale com o suporte para incluir.</p>
     </main>
 
     <!-- Recusar -->
@@ -211,7 +212,6 @@ const MOTIVOS_CANCELAR = ['Cliente desistiu', 'Cliente não atendeu', 'Endereço
 
 const pedidos = ref<any[]>([])
 const cfg = ref<any>(null)
-const carregado = ref(false)
 const ocupado = ref<string | null>(null)
 
 function porColuna(c: string) {
@@ -235,7 +235,6 @@ async function carregar() {
     pedidos.value = ps
     entregadores.value = es
   } catch {}
-  carregado.value = true
   if (visao.value === 'mapa') carregarMapa()
 }
 
@@ -381,7 +380,8 @@ function bip() {
 }
 onMounted(async () => {
   carregar()
-  try { cfg.value = await api.get('/delivery/config') } catch { cfg.value = { disponivel: true, ativo: false } }
+  // Falhou ao carregar: não mostra pausado nem fora do plano (não sabemos)
+  try { cfg.value = await api.get('/delivery/config') } catch { cfg.value = null }
   desinscrever.push(socket.on(EVENTOS.delivery.recebido, (d: PayloadDelivery) => {
     bip()
     toast.success(`Novo pedido de ${d.clienteNome}`, `${d.tipo === 'entrega' ? 'Entrega' : 'Retirada'} · ${moeda(d.totalCentavos / 100)}`)

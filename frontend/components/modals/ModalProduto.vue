@@ -47,6 +47,18 @@
             class="w-full h-11 border border-gray-200 dark:border-white/10 rounded-xl px-3 mt-0 outline-none bg-gray-50 dark:bg-white/[0.06] text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-white/25 focus:border-orange-500/70 transition-colors" />
         </div>
 
+        <!-- DESCRIÇÃO: ingredientes, componentes do lanche, tamanho… (aparece no cardápio online) -->
+        <div class="col-span-2">
+          <label for="prod-descricao" class="text-xs font-bold text-gray-500 dark:text-white/40 flex justify-between mb-1">
+            <span>Descrição <span class="font-semibold text-gray-400 dark:text-white/30">(opcional)</span></span>
+            <span class="font-semibold tabular-nums" :class="(form.descricao?.length ?? 0) > DESCRICAO_MAX - 30 ? 'text-orange-400' : 'text-gray-400 dark:text-white/30'">{{ form.descricao?.length ?? 0 }}/{{ DESCRICAO_MAX }}</span>
+          </label>
+          <textarea id="prod-descricao" name="prod-descricao" v-model="form.descricao" rows="3" :maxlength="DESCRICAO_MAX"
+            placeholder="Ex.: pão brioche, 2 blends de 90 g, cheddar, bacon e molho da casa"
+            class="w-full border border-gray-200 dark:border-white/10 rounded-xl px-3 py-2.5 outline-none resize-y min-h-[84px] bg-gray-50 dark:bg-white/[0.06] text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-white/25 focus:border-orange-500/70 transition-colors" />
+          <p class="text-[11px] text-gray-400 dark:text-white/40 mt-1">Aparece no cardápio online, abaixo do nome do produto</p>
+        </div>
+
         <!-- CATEGORIA -->
         <div>
           <label for="prod-categoria" class="text-xs font-bold text-gray-500 dark:text-white/40 block mb-1">Categoria <span class="text-red-400">*</span></label>
@@ -235,9 +247,12 @@ const props = defineProps({
 
 const emit = defineEmits(['update:modelValue', 'salvar'])
 
+const DESCRICAO_MAX = 500
+
 const form = reactive({
   id: null,
   nome: '',
+  descricao: '',
   preco: 0,
   categoriaId: null,
   ativo: true,
@@ -334,7 +349,8 @@ function salvar() {
   const preco = lerValor(precoTexto.value)
   if (preco === null || Number.isNaN(preco) || preco <= 0) return toastStore.error('Preço inválido', 'Informe um preço maior que zero, por exemplo 12,50')
   form.preco = Math.round(preco * 100) / 100
-  emit('salvar', { ...form })
+  // Descrição vazia vira null (apaga a anterior)
+  emit('salvar', { ...form, descricao: form.descricao?.trim() || null })
   fechar()
 }
 
@@ -345,6 +361,7 @@ watch(
     nomeNovaCategoria.value = ''
     if (val) {
       Object.assign(form, val)
+      form.descricao = val.descricao ?? ''
       form.envioCozinha = val.envioCozinha ?? 'categoria'
       precoTexto.value = numeroBR(val.preco)
     } else {
@@ -352,6 +369,7 @@ watch(
       Object.assign(form, {
         id: null,
         nome: '',
+        descricao: '',
         preco: 0,
         categoriaId: null,
         ativo: true,

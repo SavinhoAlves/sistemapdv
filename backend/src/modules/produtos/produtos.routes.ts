@@ -18,6 +18,9 @@ function imagemInvalida(v: unknown): string | null {
   if (/^https:\/\/\S+$/.test(v) && v.length <= 1000) return null
   return 'Imagem inválida: envie uma foto ou um link https'
 }
+/** Descrição (ingredientes, componentes): até 500 caracteres; vazio apaga; ausente não mexe. */
+const textoDescricao = (v: unknown): string | null | undefined =>
+  v === undefined ? undefined : typeof v === 'string' ? v.trim().slice(0, 500) || null : null
 const envioValido = (v: unknown) => (v === 'categoria' || v === 'sempre' || v === 'nunca' ? v : undefined)
 
 async function categoriaInvalida(categoriaId: unknown): Promise<string | null> {
@@ -44,7 +47,7 @@ export async function produtosRoutes(app: FastifyInstance) {
     try {
       const produto = await Service.criar(request.tenantId!, {
         nome: body.nome,
-        descricao: body.descricao,
+        descricao: textoDescricao(body.descricao),
         preco: Number(body.preco),
         categoriaId: body.categoriaId,
         imagemUrl: body.imagemUrl === '' ? null : body.imagemUrl,
@@ -79,7 +82,7 @@ export async function produtosRoutes(app: FastifyInstance) {
         id,
         {
           nome: body.nome,
-          descricao: body.descricao,
+          descricao: textoDescricao(body.descricao),
           preco: body.preco !== undefined ? Number(body.preco) : undefined,
           categoriaId: body.categoriaId,
           imagemUrl: body.imagemUrl === '' ? null : body.imagemUrl,

@@ -75,6 +75,7 @@
 
       <!-- ══ MÉTODOS ════════════════════════════════════════════ -->
       <div v-else-if="abaAtiva === 'metodos'">
+        <AdminPix />
         <div class="flex items-center justify-between mb-4">
           <p class="text-sm text-gray-500 dark:text-white/50">{{ metodos.length }} método(s)</p>
           <button @click="modalMetodoAberto = true"
@@ -206,6 +207,7 @@ import { ref, reactive, onMounted } from 'vue'
 import { Users, Tag, CreditCard, Plus, Pencil, Trash2, ChefHat, ShieldCheck, X } from 'lucide-vue-next'
 import AdminFuncionarios from '~/components/admin/AdminFuncionarios.vue'
 import AdminCargos from '~/components/admin/AdminCargos.vue'
+import AdminPix from '~/components/admin/AdminPix.vue'
 import QrAcessoCelular from '~/components/QrAcessoCelular.vue'
 import Navbar from '~/layouts/Navbar.vue'
 import Sidebar from '~/components/Sidebar.vue'

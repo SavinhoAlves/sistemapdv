@@ -1031,6 +1031,14 @@ model Cliente {
   /// Só dígitos, com DDD
   telefone    String
   senhaHash   String    @map("senha_hash")
+  email       String?
+  nascimento  DateTime? @db.Date
+  /// Só dígitos (opcional)
+  cpf         String?
+  /// Só dígitos, com DDD
+  telefone2   String?   @map("telefone_2")
+  /// whatsapp | ligacao | email
+  contatoPreferido String? @map("contato_preferido")
   ultimoLogin DateTime? @map("ultimo_login")
   createdAt   DateTime  @default(now()) @map("created_at")
   updatedAt   DateTime  @updatedAt @map("updated_at")
@@ -1054,6 +1062,14 @@ model ClienteEndereco {
   bairro      String
   complemento String?
   referencia  String?
+  cep         String?
+  cidade      String?
+  uf          String?
+  /// Localização do aparelho do cliente (vai direto para o mapa do entregador)
+  latitude    Float?
+  longitude   Float?
+  /// Endereço usado por padrão no pedido
+  padrao      Boolean  @default(false)
   createdAt   DateTime @default(now()) @map("created_at")
 
   tenant  Tenant  @relation(fields: [tenantId], references: [id])

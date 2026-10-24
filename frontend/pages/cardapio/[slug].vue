@@ -1,5 +1,5 @@
 <template>
-  <div class="cdp min-h-dvh pb-28 lg:pb-10 lg:pr-[404px]">
+  <div class="cdp min-h-dvh pb-28 lg:pb-10" :class="pagina === 'cardapio' ? 'lg:pr-[404px]' : ''">
     <!-- Carregando / erro -->
     <div v-if="carregando" class="max-w-2xl mx-auto px-4 pt-10 space-y-3">
       <div class="h-16 rounded-2xl cdp-skel" /><div class="h-10 rounded-2xl cdp-skel" /><div v-for="n in 5" :key="n" class="h-24 rounded-2xl cdp-skel" />
@@ -26,11 +26,24 @@
               <span v-if="c.pedidoMinimo">Mínimo {{ moeda(c.pedidoMinimo) }}</span>
             </p>
           </div>
-          <!-- Conta do cliente -->
-          <button type="button" class="ml-auto shrink-0 inline-flex items-center gap-2 px-3.5 py-[9px] rounded-xl border text-sm font-semibold" :class="logado ? 'cdp-entrou' : 'cdp-cartao'" :aria-label="logado ? 'Minha conta' : 'Entrar'" @click="abrirConta()">
-            <template v-if="logado"><UserRound :size="18" /><span class="max-[480px]:hidden">{{ perfil.cliente.nome.split(' ')[0] }}</span></template>
-            <template v-else><LogIn :size="18" /><span class="max-[480px]:hidden">Entrar</span></template>
+          <!-- Conta do cliente: Entrar, ou o menu com perfil, pedidos, tema e sair -->
+          <button v-if="!logado" type="button" class="ml-auto shrink-0 inline-flex items-center gap-2 px-3.5 py-[9px] rounded-xl border cdp-cartao text-sm font-semibold" aria-label="Entrar" @click="abrirConta()">
+            <LogIn :size="18" /><span class="max-[480px]:hidden">Entrar</span>
           </button>
+          <div v-else ref="menuEl" class="relative ml-auto shrink-0">
+            <button type="button" class="inline-flex items-center gap-2 pl-1.5 pr-3.5 py-1.5 rounded-full border cdp-cartao text-sm font-semibold" aria-haspopup="menu" :aria-expanded="menuAberto" :aria-label="`Minha conta: ${perfil.cliente.nome}`" @click="menuAberto = !menuAberto">
+              <b class="size-[26px] rounded-full cdp-ac grid place-items-center text-[11px] font-extrabold">{{ iniciais }}</b>
+              <span class="max-w-[180px] truncate max-[480px]:hidden">{{ perfil.cliente.nome }}</span>
+              <ChevronDown :size="16" class="cdp-mudo" />
+            </button>
+            <div v-if="menuAberto" class="absolute right-0 top-[calc(100%+8px)] z-40 min-w-[210px] grid p-1.5 rounded-2xl cdp-cartao shadow-[0_16px_40px_rgba(0,0,0,.28)]" role="menu">
+              <button type="button" role="menuitem" class="cdp-item-menu" @click="irPara('perfil')"><UserRound :size="17" /> Meu perfil</button>
+              <button type="button" role="menuitem" class="cdp-item-menu" @click="irPara('pedidos')"><Receipt :size="17" /> Meus pedidos</button>
+              <button type="button" role="menuitem" class="cdp-item-menu" @click="trocarTema"><component :is="temaAtual === 'escuro' ? Sun : Moon" :size="17" /> {{ temaAtual === 'escuro' ? 'Tema claro' : 'Tema escuro' }}</button>
+              <hr class="border-t cdp-linha my-1" />
+              <button type="button" role="menuitem" class="cdp-item-menu text-red-500" @click="sair"><LogOut :size="17" class="!text-red-500" /> Sair</button>
+            </div>
+          </div>
         </div>
         <p v-if="!c.aberto" class="mt-3 max-w-2xl text-sm rounded-xl px-3 py-2.5 bg-red-500/10 text-red-700 dark:text-red-300">{{ c.motivo }} Você pode olhar o cardápio.</p>
         <p v-else-if="c.mensagem" class="mt-3 max-w-2xl text-sm rounded-xl px-3 py-2.5 bg-orange-500/10 text-orange-800 dark:text-orange-200">{{ c.mensagem }}</p>
@@ -40,6 +53,11 @@
         </a>
       </header>
 
+      <!-- Meu perfil / Meus pedidos -->
+      <ContaCliente v-if="pagina !== 'cardapio' && logado" :pagina="pagina" :perfil="perfil" :slug="slug" :token="token!"
+        @voltar="irPara('cardapio')" @recarregar="carregarPerfil" @sair="sair" @apagada="sair" />
+
+      <template v-else>
       <!-- Busca + categorias (fixas ao rolar) -->
       <div class="sticky top-0 z-20 cdp-barra backdrop-blur-[14px] border-b cdp-linha">
         <div class="px-5 lg:px-8 pt-2.5 pb-3">
@@ -74,11 +92,11 @@
             <div class="grid gap-4 justify-start" :class="unica
               ? (vista === 'grade' ? 'grid-cols-[repeat(auto-fill,minmax(min(100%,150px),230px))]' : 'grid-cols-[repeat(auto-fill,minmax(min(100%,340px),360px))]')
               : (vista === 'grade' ? 'grid-cols-2' : 'grid-cols-1')">
-              <article v-for="p in cat.produtos" :key="p.id" class="flex rounded-[22px] cdp-cartao" :class="[vista === 'grade' ? 'flex-col gap-3 p-2.5' : 'gap-4 items-stretch p-3.5 min-h-32 lg:min-h-[140px]', p.esgotado ? 'opacity-50' : '']">
-                <button type="button" class="relative shrink-0 overflow-hidden rounded-[14px]" :class="vista === 'grade' ? 'w-full aspect-[4/3]' : 'w-28 lg:w-32'" :aria-label="`Ver ${p.nome}`" @click="abrirProduto(p)">
-                  <ProdutoFoto :imagem="p.imagemUrl" :categoria="cat.nome" classe="absolute inset-0 size-full rounded-none cdp-thumb" :tamanho-icone="38" />
+              <article v-for="p in cat.produtos" :key="p.id" class="flex rounded-[22px] cdp-cartao" :class="[vista === 'grade' ? 'flex-col overflow-hidden' : 'gap-4 items-stretch p-3.5 min-h-32 lg:min-h-[140px]', p.esgotado ? 'opacity-50' : '']">
+                <button type="button" class="relative shrink-0 overflow-hidden" :class="vista === 'grade' ? 'w-full aspect-[4/3]' : 'w-28 lg:w-32 rounded-[14px]'" :aria-label="`Ver ${p.nome}`" @click="abrirProduto(p)">
+                  <ProdutoFoto :imagem="p.imagemUrl" :categoria="cat.nome" classe="absolute inset-0 size-full rounded-none cdp-thumb" :tamanho-icone="vista === 'grade' ? 44 : 38" />
                 </button>
-                <div class="flex-1 min-w-0 flex flex-col">
+                <div class="flex-1 min-w-0 flex flex-col" :class="vista === 'grade' ? 'px-3.5 pt-3 pb-3.5' : ''">
                   <button type="button" class="text-left" @click="abrirProduto(p)">
                     <h3 class="text-base font-semibold leading-tight">{{ p.nome }}</h3>
                     <p v-if="p.descricao" class="mt-[3px] text-[13px] cdp-mudo line-clamp-2">{{ p.descricao }}</p>
@@ -109,6 +127,12 @@
           <p v-if="carrinho.length && faltaMinimo > 0" class="mt-3 text-xs rounded-xl px-3 py-2 bg-amber-500/10 text-amber-800 dark:text-amber-200">Faltam {{ moeda(faltaMinimo) }} para o pedido mínimo de {{ moeda(c.pedidoMinimo) }}.</p>
         </div>
         <div class="px-[22px] pt-4 pb-5">
+          <button v-if="c.entrega" type="button" class="cdp-entregar" @click="logado ? irPara('perfil') : abrirConta()">
+            <MapPin :size="16" class="cdp-ac-txt shrink-0" />
+            <span v-if="enderecoPadrao" class="flex-1 min-w-0 truncate">Entregar em <b>{{ enderecoPadrao.apelido || 'Endereço' }}</b> · {{ enderecoPadrao.endereco }}, {{ enderecoPadrao.numero }}</span>
+            <span v-else class="flex-1 min-w-0 truncate">Adicionar endereço de entrega</span>
+            <ChevronRight :size="16" class="shrink-0" />
+          </button>
           <div class="flex justify-between cdp-mudo mb-1.5"><span>Subtotal</span><span class="tabular-nums">{{ moeda(subtotal) }}</span></div>
           <div v-if="c.entrega" class="flex justify-between cdp-mudo mb-1.5"><span>Entrega</span><span :class="c.taxaEntrega ? 'tabular-nums' : 'cdp-ok font-semibold'">{{ c.taxaEntrega ? moeda(c.taxaEntrega) : 'Grátis' }}</span></div>
           <div class="flex justify-between text-[19px] font-extrabold mt-2.5 mb-3.5"><span>Total</span><span class="tabular-nums">{{ moeda(subtotal + (c.entrega ? c.taxaEntrega ?? 0 : 0)) }}</span></div>
@@ -126,6 +150,7 @@
           <span class="tabular-nums">{{ moeda(subtotal) }}</span>
         </button>
       </div>
+      </template>
 
       <!-- Folha do produto -->
       <Folha v-if="produto" :titulo="produto.nome" @fechar="produto = null">
@@ -155,6 +180,12 @@
             <Controle :qtd="i.quantidade" :nome="i.nome" @mais="i.quantidade = Math.min(99, i.quantidade + 1)" @menos="menosItem(idx)" />
           </div>
           <p v-if="faltaMinimo > 0" class="mt-3 text-xs rounded-xl px-3 py-2 bg-amber-500/10 text-amber-800 dark:text-amber-200">Faltam {{ moeda(faltaMinimo) }} para o pedido mínimo de {{ moeda(c.pedidoMinimo) }}.</p>
+          <button v-if="c.entrega" type="button" class="cdp-entregar mt-4" @click="etapa = null; logado ? irPara('perfil') : abrirConta()">
+            <MapPin :size="16" class="cdp-ac-txt shrink-0" />
+            <span v-if="enderecoPadrao" class="flex-1 min-w-0 truncate">Entregar em <b>{{ enderecoPadrao.apelido || 'Endereço' }}</b> · {{ enderecoPadrao.endereco }}, {{ enderecoPadrao.numero }}</span>
+            <span v-else class="flex-1 min-w-0 truncate">Adicionar endereço de entrega</span>
+            <ChevronRight :size="16" class="shrink-0" />
+          </button>
         </template>
 
         <template v-else>
@@ -236,7 +267,7 @@
       </Folha>
 
       <!-- Conta do cliente: entrar / criar conta / minha conta -->
-      <Folha v-if="contaAberta" :titulo="logado ? 'Minha conta' : modoConta === 'cadastro' ? 'Criar conta' : 'Entrar'" @fechar="contaAberta = false">
+      <Folha v-if="contaAberta && !logado" :titulo="modoConta === 'cadastro' ? 'Criar conta' : 'Entrar'" @fechar="contaAberta = false">
         <template v-if="!logado">
           <div class="grid grid-cols-2 gap-2" role="tablist" aria-label="Entrar ou criar conta">
             <button type="button" role="tab" :aria-selected="modoConta === 'entrar'" class="h-10 rounded-xl border-2 text-sm font-extrabold" :class="modoConta === 'entrar' ? 'border-orange-500 bg-orange-500/10' : 'cdp-linha'" @click="modoConta = 'entrar'; erroConta = ''">Já tenho conta</button>
@@ -255,39 +286,6 @@
           </form>
         </template>
 
-        <template v-else>
-          <p class="text-sm"><b>{{ perfil.cliente.nome }}</b> · {{ mascarar(perfil.cliente.telefone) }}</p>
-
-          <h3 class="mt-5 text-xs font-extrabold uppercase tracking-widest cdp-mudo">Endereços salvos</h3>
-          <p v-if="!perfil.enderecos.length" class="mt-2 text-sm cdp-mudo">Nenhum ainda. No próximo pedido com entrega, deixe marcado "Salvar este endereço".</p>
-          <div v-for="e in perfil.enderecos" :key="e.id" class="mt-2 flex items-start gap-2 rounded-xl cdp-cartao px-3 py-2.5 text-sm">
-            <span class="flex-1 min-w-0"><b v-if="e.apelido">{{ e.apelido }} · </b>{{ e.endereco }}, {{ e.numero }} — {{ e.bairro }}<span v-if="e.complemento" class="block text-xs cdp-mudo">{{ e.complemento }}</span></span>
-            <button type="button" class="text-xs font-extrabold text-red-600 dark:text-red-400 shrink-0" @click="removerEndereco(e.id)">Apagar</button>
-          </div>
-
-          <h3 class="mt-5 text-xs font-extrabold uppercase tracking-widest cdp-mudo">Últimos pedidos</h3>
-          <p v-if="!perfil.pedidos.length" class="mt-2 text-sm cdp-mudo">Seus pedidos com a conta aparecem aqui.</p>
-          <a v-for="p in perfil.pedidos" :key="p.codigo" :href="`${base}pedido/${p.codigo}`" class="mt-2 flex items-center gap-3 rounded-xl cdp-cartao px-3 py-2.5 text-sm">
-            <span class="flex-1 min-w-0">
-              <b class="font-mono">{{ p.codigo }}</b> · {{ dataCurta(p.criadoEm) }} · {{ STATUS_PEDIDO[p.status] ?? p.status }}
-              <span class="block text-xs cdp-mudo truncate">{{ p.resumo }}</span>
-            </span>
-            <span class="font-extrabold tabular-nums shrink-0">{{ moeda(p.total) }}</span>
-          </a>
-
-          <button type="button" class="mt-6 w-full h-11 rounded-2xl cdp-chip text-sm font-extrabold" @click="sair">Sair da conta</button>
-
-          <!-- LGPD: apagar a conta -->
-          <details class="mt-4 text-sm">
-            <summary class="cursor-pointer text-xs font-bold cdp-mudo">Apagar minha conta</summary>
-            <p class="mt-2 text-xs cdp-mudo">Apaga seus dados e endereços salvos. Os pedidos já feitos continuam com o restaurante.</p>
-            <div class="mt-2 flex gap-2">
-              <input v-model="senhaApagar" type="password" autocomplete="current-password" placeholder="Sua senha" aria-label="Senha para apagar a conta" class="flex-1 min-w-0 h-11 px-3 rounded-xl cdp-campo text-sm" />
-              <button type="button" class="h-11 px-4 rounded-xl bg-red-600 hover:bg-red-700 disabled:opacity-40 text-white text-sm font-extrabold" :disabled="!senhaApagar || apagando" @click="apagarConta">Apagar</button>
-            </div>
-            <p v-if="erroConta" class="mt-2 text-sm text-red-600 dark:text-red-400 font-bold" role="alert">{{ erroConta }}</p>
-          </details>
-        </template>
       </Folha>
     </template>
   </div>
@@ -295,8 +293,9 @@
 
 <script setup lang="ts">
 import { ref, reactive, computed, watch, onMounted, onBeforeUnmount, nextTick, defineComponent, h } from 'vue'
-import { Search, Plus, Minus, ShoppingBag, UtensilsCrossed, ChevronRight, X, Loader2, UserRound, List, LayoutGrid, Clock, Bike, LogIn, ChevronLeft } from 'lucide-vue-next'
+import { Search, Plus, Minus, ShoppingBag, UtensilsCrossed, ChevronRight, X, Loader2, UserRound, List, LayoutGrid, Clock, Bike, LogIn, ChevronLeft, ChevronDown, Receipt, Sun, Moon, LogOut, MapPin } from 'lucide-vue-next'
 import ProdutoFoto from '~/components/ProdutoFoto.vue'
+import ContaCliente from '~/components/cardapio/ContaCliente.vue'
 import { useTemaDoAparelho } from '~/composables/useTemaDoAparelho'
 
 definePageMeta({ layout: false })
@@ -308,7 +307,9 @@ useHead({
     { rel: 'stylesheet', href: 'https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&display=swap' },
   ],
 })
-useTemaDoAparelho()
+// Tema: o cliente escolhe no menu da conta (fica no aparelho); sem escolha, segue o aparelho
+const temaEscolhido = ref<'claro' | 'escuro' | null>(null)
+useTemaDoAparelho(temaEscolhido)
 
 const route = useRoute()
 const slug = String(route.params.slug || '')
@@ -530,7 +531,36 @@ async function carregarPerfil() {
     if (e?.status === 401 || e?.statusCode === 401) { guardarToken(null); perfil.value = null }
   }
 }
+// Páginas da conta (logado): Meu perfil e Meus pedidos
+const pagina = ref<'cardapio' | 'perfil' | 'pedidos'>('cardapio')
+const menuAberto = ref(false)
+const menuEl = ref<HTMLElement | null>(null)
+const iniciais = computed(() => String(perfil.value?.cliente?.nome || '').split(/\s+/).filter(Boolean).slice(0, 2).map(s => s[0].toUpperCase()).join(''))
+const enderecoPadrao = computed(() => {
+  const lista = perfil.value?.enderecos ?? []
+  return lista.find((e: any) => e.id === enderecoEscolhido.value) ?? lista.find((e: any) => e.padrao) ?? lista[0] ?? null
+})
+function irPara(p: 'cardapio' | 'perfil' | 'pedidos') {
+  menuAberto.value = false
+  if (p !== 'cardapio' && !logado.value) { abrirConta(); return }
+  if (p !== 'cardapio') carregarPerfil()
+  pagina.value = p
+  window.scrollTo(0, 0)
+}
+const temaAtual = computed(() => temaEscolhido.value ?? (import.meta.client && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'escuro' : 'claro'))
+function trocarTema() {
+  temaEscolhido.value = temaAtual.value === 'escuro' ? 'claro' : 'escuro'
+  try { localStorage.setItem('cardapio:tema', temaEscolhido.value) } catch {}
+  menuAberto.value = false
+}
+// Clique fora ou Esc fecha o menu
+function fecharMenuFora(e: MouseEvent) { if (menuAberto.value && !menuEl.value?.contains(e.target as Node)) menuAberto.value = false }
+function fecharMenuEsc(e: KeyboardEvent) { if (e.key === 'Escape') menuAberto.value = false }
+onMounted(() => { document.addEventListener('click', fecharMenuFora); document.addEventListener('keydown', fecharMenuEsc) })
+onBeforeUnmount(() => { document.removeEventListener('click', fecharMenuFora); document.removeEventListener('keydown', fecharMenuEsc) })
+
 function abrirConta(modo: 'entrar' | 'cadastro' = 'entrar') {
+  if (logado.value) { irPara('perfil'); return }
   modoConta.value = modo; erroConta.value = ''; senhaApagar.value = ''
   fc.senha = ''
   if (!fc.telefone && f.clienteTelefone) fc.telefone = f.clienteTelefone
@@ -555,7 +585,10 @@ async function enviarConta() {
     erroConta.value = e?.data?.error || 'Não deu certo. Tente de novo.'
   } finally { ocupadoConta.value = false }
 }
-function sair() { guardarToken(null); perfil.value = null; enderecoEscolhido.value = 'novo'; contaAberta.value = false }
+function sair() {
+  guardarToken(null); perfil.value = null; enderecoEscolhido.value = 'novo'; contaAberta.value = false
+  menuAberto.value = false; pagina.value = 'cardapio'
+}
 async function removerEndereco(id: string) {
   try {
     await api(`/cardapio/${encodeURIComponent(slug)}/conta/enderecos/${id}`, comToken({ method: 'DELETE' }))
@@ -600,6 +633,8 @@ async function enviar() {
         ...f, trocoPara: troco,
         // Logado com endereço novo: guarda na conta se ele deixou marcado
         ...(logado.value && f.tipo === 'entrega' && enderecoEscolhido.value === 'novo' ? { salvarEndereco: salvarEndereco.value } : {}),
+        // Endereço salvo: o servidor usa a localização guardada nele, se houver
+        ...(logado.value && f.tipo === 'entrega' && enderecoEscolhido.value !== 'novo' ? { enderecoId: enderecoEscolhido.value } : {}),
         itens: carrinho.value.map(i => ({ produtoId: i.produtoId, quantidade: i.quantidade, ...(i.observacao ? { observacao: i.observacao } : {}) })),
       },
     }))
@@ -623,11 +658,14 @@ onMounted(async () => {
     ultimoPedido.value = localStorage.getItem(`${CHAVE}:ultimo`)
     token.value = localStorage.getItem(CHAVE_CONTA)
     if (localStorage.getItem('cardapio:vista') === 'grade') vista.value = 'grade'
+    const t = localStorage.getItem('cardapio:tema')
+    if (t === 'claro' || t === 'escuro') temaEscolhido.value = t
   } catch {}
   // Conta: traz nome, celular e endereços salvos (token vencido sai sozinho)
   carregarPerfil().then(() => {
-    const primeiro = perfil.value?.enderecos?.[0]
-    if (primeiro) usarEndereco(primeiro.id)
+    const lista = perfil.value?.enderecos ?? []
+    const padrao = lista.find((e: any) => e.padrao) ?? lista[0]
+    if (padrao) usarEndereco(padrao.id)
   })
   try {
     c.value = await api(`/cardapio/${encodeURIComponent(slug)}`)
@@ -659,6 +697,20 @@ onMounted(async () => {
 .cdp-busca { background: var(--cdp-cartao); border: 1px solid var(--cdp-linha); }
 .cdp-busca:focus-within { border-color: var(--cdp-ac); }
 .cdp-thumb { background-image: linear-gradient(145deg, var(--cdp-chip), color-mix(in srgb, var(--cdp-ac) 24%, var(--cdp-chip))); color: var(--cdp-ac) !important; }
+.cdp-ac-txt { color: var(--cdp-ac); }
+.cdp-borda-ac { border-color: var(--cdp-ac); }
+.cdp-tag { display: inline-block; font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 99px; background: color-mix(in srgb, var(--cdp-ac) 18%, transparent); color: var(--cdp-ac); }
+.cdp-rot { display: grid; gap: 6px; font-size: 13px; font-weight: 600; color: var(--cdp-mudo); }
+.cdp-in { height: 44px; width: 100%; min-width: 0; border-radius: 12px; border: 1px solid var(--cdp-linha); background: var(--cdp-fundo); color: var(--cdp-txt); padding: 0 12px; font-size: 15px; outline: none; }
+.cdp-in:focus { border-color: var(--cdp-ac); }
+.cdp-icone { width: 34px; height: 34px; border-radius: 10px; display: grid; place-items: center; color: var(--cdp-mudo); }
+.cdp-icone:hover { background: var(--cdp-chip); }
+.cdp-fantasma { width: 100%; display: flex; justify-content: center; align-items: center; gap: 8px; padding: 12px; border: 1px dashed var(--cdp-linha); border-radius: 14px; font-weight: 600; color: var(--cdp-mudo); }
+.cdp-fantasma:hover { border-color: var(--cdp-ac); color: var(--cdp-ac); }
+.cdp-item-menu { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 10px; text-align: left; font-size: 14px; font-weight: 600; }
+.cdp-item-menu:hover { background: var(--cdp-chip); }
+.cdp-item-menu svg { color: var(--cdp-mudo); }
+.cdp-entregar { display: flex; align-items: center; gap: 8px; width: 100%; text-align: left; background: var(--cdp-cartao); border: 1px solid var(--cdp-linha); border-radius: 14px; padding: 10px 12px; margin-bottom: 12px; font-size: 13px; }
 .cdp-arrastando { cursor: grabbing; scroll-snap-type: none; user-select: none; }
 .cdp-arrastando * { cursor: grabbing !important; }
 .cdp-fundo { background: var(--cdp-fundo); color: var(--cdp-txt); }

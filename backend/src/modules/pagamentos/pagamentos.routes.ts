@@ -35,6 +35,12 @@ const estornarBody = z.object({
 const metodoBody = z.object({ nome: z.string().trim().min(1, 'nome é obrigatório').max(40) })
 const toggleBody = z.object({ ativo: z.boolean() })
 const idParam = z.object({ id: z.string().uuid('id inválido') })
+// Pix: chave (CPF/CNPJ, celular, e-mail ou aleatória), nome e cidade do recebedor. Chave vazia desliga o QR.
+const pixBody = z.object({
+  chave: z.string().trim().max(77),
+  nome: z.string().trim().max(60),
+  cidade: z.string().trim().max(40),
+}).refine((d) => !d.chave || (d.nome.length >= 2 && d.cidade.length >= 2), { message: 'Informe o nome e a cidade do recebedor' })
 
 export async function pagamentosRoutes(app: FastifyInstance) {
   // ── Formas de pagamento ──────────────────────────────────────────────────
@@ -68,6 +74,20 @@ export async function pagamentosRoutes(app: FastifyInstance) {
       if (!params.success) return reply.status(400).send({ error: primeiroErro(params.error) })
       if (!body.success) return reply.status(400).send({ error: 'ativo deve ser true ou false' })
       return Service.toggleMetodo(request.tenantId!, params.data.id, body.data.ativo)
+    },
+  )
+
+  // ── Pix com QR Code ──────────────────────────────────────────────────────
+
+  app.get('/pix', { preHandler: [requireTenant] }, async (request) => Service.pixConfig(request.tenantId!))
+
+  app.put(
+    '/pix',
+    { preHandler: [requireTenant, requirePermissao('gerenciarProdutos')] },
+    async (request, reply) => {
+      const body = pixBody.safeParse(request.body)
+      if (!body.success) return reply.status(400).send({ error: primeiroErro(body.error) })
+      return Service.salvarPix(request.tenantId!, body.data)
     },
   )
 

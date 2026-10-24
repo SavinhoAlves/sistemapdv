@@ -615,6 +615,10 @@ model Configuracoes {
   /// Ponto de partida das entregas (mapa e ordem das paradas)
   deliveryLat            Float?  @map("delivery_lat")
   deliveryLng            Float?  @map("delivery_lng")
+  /// Pix com QR Code (estático): chave, nome do recebedor e cidade como aparecem no app do banco
+  pixChave               String? @map("pix_chave")
+  pixNome                String? @map("pix_nome")
+  pixCidade              String? @map("pix_cidade")
   mpAtivado              Boolean @default(false) @map("mp_ativado")
   mpAccessToken          String? @map("mp_access_token")
   mpDeviceId             String? @map("mp_device_id")

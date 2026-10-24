@@ -157,6 +157,12 @@
           </div>
         </div>
 
+        <!-- PIX: QR Code com o valor para o cliente pagar (chave em Admin › Métodos) -->
+        <button v-if="ehPix && pix && total > 0" type="button" @click="qrPixAberto = true"
+          class="h-11 rounded-xl border border-[var(--vd-or)] text-[var(--vd-or)] text-sm font-bold flex items-center justify-center gap-2">
+          <QrCode :size="18" /> Mostrar QR Code Pix
+        </button>
+
         <!-- CONFIRMAR (Enter) -->
         <button type="button"
           @click="confirmarVenda"
@@ -190,6 +196,21 @@
     @auth-success="onRfidSuccess"
     @cancelar="onRfidCancelar"
   />
+
+  <!-- ══ MODAL QR CODE PIX ══ -->
+  <Teleport to="body">
+    <div v-if="qrPixAberto && pix" class="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4" @click.self="qrPixAberto = false">
+      <div class="w-full max-w-xs rounded-3xl bg-white dark:bg-neutral-900 border border-gray-200 dark:border-white/[0.08] p-6 grid gap-4 text-gray-900 dark:text-white" role="dialog" aria-label="QR Code Pix">
+        <div class="flex items-center justify-between">
+          <p class="font-extrabold">Pague com Pix</p>
+          <button type="button" class="size-9 rounded-xl bg-gray-100 dark:bg-white/[0.06] grid place-items-center" aria-label="Fechar" @click="qrPixAberto = false"><X :size="18" /></button>
+        </div>
+        <PixQrCode :chave="pix.chave" :nome="pix.nome" :cidade="pix.cidade" :valor="total" classe-botao="border-gray-200 dark:border-white/10" />
+        <p class="text-xs text-center text-gray-500 dark:text-white/50">Confira o recebimento no app do banco antes de confirmar a venda.</p>
+        <button type="button" class="h-11 rounded-2xl bg-orange-500 hover:bg-orange-600 text-white font-extrabold" @click="qrPixAberto = false">Voltar à venda</button>
+      </div>
+    </div>
+  </Teleport>
 
   <!-- ══ MODAL FICHA ══ -->
   <Teleport to="body">
@@ -287,10 +308,11 @@ import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { storeToRefs } from 'pinia'
 import {
   Package, ShoppingCart, Plus, Minus, CheckCircle2, Loader2,
-  Printer, Search, X, UtensilsCrossed, Trash2, Check
+  Printer, Search, X, UtensilsCrossed, Trash2, Check, QrCode
 } from 'lucide-vue-next'
 import { useApi } from '~/services/api'
 import ProdutoFoto from '~/components/ProdutoFoto.vue'
+import PixQrCode from '~/components/PixQrCode.vue'
 import { useCaixaStore }        from '~/stores/caixa'
 import { useToastStore }        from '~/stores/toast'
 import { useConfigStore }       from '~/stores/configuracoes'
@@ -405,6 +427,10 @@ const total          = computed(() => subtotal.value - descontoNum.value)
 const valorRecebidoNum = computed(() => numeroDigitado(valorRecebido.value))
 const rotuloMetodo     = (nome: string) => nome.replace(/^cart[aã]o de /i, '').replace(/^./, c => c.toUpperCase())
 const ehDinheiro       = computed(() => metodoSelecionado.value?.nome === 'Dinheiro')
+const ehPix            = computed(() => /pix/i.test(metodoSelecionado.value?.nome ?? ''))
+// Chave Pix do restaurante (Admin › Métodos); sem chave, não há QR
+const pix              = ref<{ chave: string; nome: string; cidade: string } | null>(null)
+const qrPixAberto      = ref(false)
 // Atalhos do dinheiro: valor exato e as próximas notas acima do total
 const atalhosDinheiro  = computed(() => [
   { rotulo: 'Valor exato', valor: Number(total.value.toFixed(2)) },
@@ -600,6 +626,10 @@ async function carregarProdutos() {
   } catch {}
 }
 
+async function carregarPix() {
+  try { const r = await api.get<any>('/pagamentos/pix'); pix.value = r?.chave ? r : null } catch {}
+}
+
 async function carregarMetodos() {
   try {
     metodos.value = await api.get<any[]>('/pagamentos/metodos')
@@ -611,7 +641,7 @@ let pollingTimer: ReturnType<typeof setInterval> | null = null
 // F2 vai para a busca; Enter confirma a venda (fora da busca e dos botões)
 function onTecla(e: KeyboardEvent) {
   if (e.key === 'F2') { e.preventDefault(); buscaEl.value?.focus(); return }
-  if (e.key !== 'Enter' || fichaAtual.value || rfidModal.value || !podePagar.value) return
+  if (e.key !== 'Enter' || fichaAtual.value || rfidModal.value || qrPixAberto.value || !podePagar.value) return
   const el = document.activeElement as HTMLElement | null
   if (el === buscaEl.value || el?.tagName === 'BUTTON' || el?.tagName === 'TEXTAREA') return
   e.preventDefault()
@@ -623,7 +653,7 @@ function onVisibilityChange() {
 }
 
 onMounted(async () => {
-  await Promise.all([carregarProdutos(), carregarMetodos(), configStore.carregar()])
+  await Promise.all([carregarProdutos(), carregarMetodos(), carregarPix(), configStore.carregar()])
   pollingTimer = setInterval(() => { if (!document.hidden) carregarProdutos() }, 30000)
   document.addEventListener('visibilitychange', onVisibilityChange)
   window.addEventListener('keydown', onTecla)

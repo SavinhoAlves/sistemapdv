@@ -2,7 +2,7 @@ import { useAuthStore } from '../stores/auth'
 import { useRouter, useRuntimeConfig } from '#imports'
 import { getTenantSlug } from '~/composables/useTenantSlug'
 import { ajustarRelogio } from '~/lib/relogio'
-import { tokenOperador } from '~/lib/operador'
+import { tokenOperador, pedirCartaoDeNovo } from '~/lib/operador'
 
 let logoutEmAndamento = false
 let refreshPromise: Promise<boolean> | null = null
@@ -94,6 +94,13 @@ export function useApi() {
         const errorData = await response.json()
         if (response.status === 403 && errorData.licenca === false) {
           router.push('/ativacao')
+        }
+        // RFID ligado e sem cartão válido: pede o cartão e repete a ação uma vez
+        if (response.status === 403 && !_isRetry &&
+            (errorData.codigo === 'CARTAO_OBRIGATORIO' || errorData.codigo === 'CARTAO_EXPIRADO')) {
+          if (await pedirCartaoDeNovo(errorData.error || 'Passe o cartão para continuar')) {
+            return request<T>(endpoint, options, true)
+          }
         }
         errorMsg = errorData.mensagem || errorData.error || errorData.message || errorMsg
       } catch {}

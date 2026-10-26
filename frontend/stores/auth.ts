@@ -1,7 +1,6 @@
 import { navigateTo, useRuntimeConfig } from 'nuxt/app'
 import { defineStore } from 'pinia'
 import { noApp } from '~/lib/app'
-import { getTenantSlug } from '~/composables/useTenantSlug'
 
 export interface Usuario {
   id: string
@@ -112,38 +111,6 @@ export const useAuthStore = defineStore('auth', {
       localStorage.setItem('auth_user', JSON.stringify(usuario))
       if (refreshToken) localStorage.setItem('auth_refresh_token', refreshToken)
       else localStorage.removeItem('auth_refresh_token')
-    },
-
-    async loginWithRfid(rfid: string) {
-      if (!rfid || typeof rfid !== 'string' || rfid.trim() === '') return false
-
-      const config = useRuntimeConfig()
-      const slug   = getTenantSlug()
-      this.loading = true
-
-      try {
-        const resposta = await $fetch<any>(
-          `${config.public.apiUrl}/api/auth/rfid`,
-          { method: 'POST', body: { cartaoRfid: rfid.trim(), slug } }
-        )
-
-        if (resposta?.usuario && (resposta?.accessToken || resposta?.access_token)) {
-          const usuario: Usuario = {
-            id:         resposta.usuario.id,
-            nome:       resposta.usuario.nome,
-            cargo:      resposta.usuario.cargo,
-            perfil_id:  resposta.usuario.perfilId ?? null,
-            permissoes: resposta.usuario.permissoes ?? null,
-          }
-          this.setAuth(resposta.accessToken ?? resposta.access_token, usuario, resposta.refreshToken ?? resposta.refresh_token)
-          return true
-        }
-        return false
-      } catch {
-        return false
-      } finally {
-        this.loading = false
-      }
     },
 
     logout() {

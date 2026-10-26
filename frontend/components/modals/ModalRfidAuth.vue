@@ -44,12 +44,14 @@
               <span class="text-xs uppercase tracking-[0.25em] font-black text-orange-500">Aguardando cartão</span>
             </div>
 
-            <!-- CANCELAR (ação) ou SAIR (portão obrigatório: fechar não libera a tela) -->
+            <!-- Sem Cancelar: o cartão é a trava. Só o portão de uma tela oferece
+                 "Sair", que leva para fora dela (fechar não libera a tela). -->
             <button
-              @click="obrigatorio ? sair() : cancelar()"
+              v-if="obrigatorio"
+              @click="sair"
               class="mt-6 text-xs text-gray-400 dark:text-white/30 hover:text-gray-600 dark:hover:text-white/50 transition-colors font-bold uppercase tracking-widest"
             >
-              {{ obrigatorio ? (rotuloSair || 'Sair') : 'Cancelar' }}
+              {{ rotuloSair || 'Sair' }}
             </button>
 
           </div>
@@ -154,7 +156,7 @@ const props = defineProps<{
   erro?: string
   identificado?: RfidIdentificado | null
   carregandoRfid?: boolean
-  /** Portão de acesso: não fecha sem cartão; o botão vira "Sair" e emite 'sair' */
+  /** Portão de uma tela: mostra "Sair" (emite 'sair') enquanto espera o cartão */
   obrigatorio?: boolean
   rotuloSair?: string
 }>()

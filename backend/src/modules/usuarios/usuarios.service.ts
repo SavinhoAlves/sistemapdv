@@ -167,6 +167,7 @@ export async function gerarMobileToken(tenantId: string, id: string) {
     cargo: usuario.cargo,
     perfilId: usuario.perfilId,
     permissoes: await getPermissoes(usuario.cargo, usuario.perfilId, tenantId),
+    pessoal: true,
   }
 
   // Token com validade de 10h para uso mobile

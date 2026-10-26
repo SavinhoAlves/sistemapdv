@@ -5,6 +5,7 @@ import { requirePermissao } from '../../middlewares/permission.middleware'
 import type { TenantJwtPayload } from '../../lib/jwt'
 import * as Service from './mesas.service'
 import * as Pedidos from '../pedidos/pedidos.service'
+import { exigirCartao } from '../../middlewares/cartao.middleware'
 
 /**
  * Rotas de comandas (tabela `mesas`).
@@ -49,7 +50,7 @@ export async function mesasRoutes(app: FastifyInstance) {
   // POST /api/mesas/abrir
   app.post(
     '/abrir',
-    { preHandler: [requireTenant, requirePermissao('abrirMesa')] },
+    { preHandler: [requireTenant, exigirCartao, requirePermissao('abrirMesa')] },
     async (request, reply) => {
       const body = abrirBody.safeParse(request.body ?? {})
       if (!body.success) return reply.status(400).send({ error: primeiroErro(body.error) })
@@ -57,7 +58,8 @@ export async function mesasRoutes(app: FastifyInstance) {
       const auth = request.auth as TenantJwtPayload
       const mesa = await Service.abrir(request.tenantId!, {
         ...body.data,
-        garcomId: body.data.garcomId || auth.sub,
+        // Com cartão, a mesa é de quem passou o cartão
+        garcomId: request.operadorRfid ? auth.sub : (body.data.garcomId || auth.sub),
         usuarioId: auth.sub,
       })
       return reply.status(201).send({ ...mesa, mesa_id: mesa.id, success: true })

@@ -4,6 +4,7 @@ import { requireTenant } from '../../middlewares/tenant.middleware'
 import { requirePermissao } from '../../middlewares/permission.middleware'
 import type { TenantJwtPayload } from '../../lib/jwt'
 import * as Service from './caixa.service'
+import { exigirCartao } from '../../middlewares/cartao.middleware'
 
 /**
  * Rotas de caixa.
@@ -46,7 +47,7 @@ export async function caixaRoutes(app: FastifyInstance) {
 
   app.post(
     '/abrir',
-    { preHandler: [requireTenant, requirePermissao('gerenciarCaixa')] },
+    { preHandler: [requireTenant, exigirCartao, requirePermissao('gerenciarCaixa')] },
     async (request, reply) => {
       const body = abrirBody.safeParse(request.body ?? {})
       if (!body.success) return reply.status(400).send({ error: primeiroErro(body.error) })
@@ -63,7 +64,7 @@ export async function caixaRoutes(app: FastifyInstance) {
 
   app.post(
     '/fechar',
-    { preHandler: [requireTenant, requirePermissao('gerenciarCaixa')] },
+    { preHandler: [requireTenant, exigirCartao, requirePermissao('gerenciarCaixa')] },
     async (request, reply) => {
       const body = fecharBody.safeParse(request.body)
       if (!body.success) return reply.status(400).send({ error: primeiroErro(body.error) })

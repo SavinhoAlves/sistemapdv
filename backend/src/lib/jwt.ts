@@ -44,6 +44,8 @@ export interface TenantJwtPayload {
   perfilId: string | null
   permissoes: Record<string, boolean>
   suporte?: boolean
+  /** Sessão do QR no celular da própria pessoa (não é terminal compartilhado) */
+  pessoal?: boolean
 }
 
 export interface PlatformJwtPayload {

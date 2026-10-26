@@ -5,6 +5,7 @@ import { requirePermissao } from '../../middlewares/permission.middleware'
 import type { TenantJwtPayload } from '../../lib/jwt'
 import * as Service from './configuracoes.service'
 import { tipoValido } from '../../lib/tipoComercio'
+import { esquecerRfidDoTenant } from '../../middlewares/cartao.middleware'
 
 /**
  * Configurações do tenant.
@@ -69,6 +70,8 @@ export async function configuracoesRoutes(app: FastifyInstance) {
         if (d.tipo_comercio !== null && !tipoValido(d.tipo_comercio)) return reply.status(400).send({ error: 'Tipo de comércio inválido' })
         await Service.definirTipoComercio(request.tenantId!, d.tipo_comercio)
       }
+      // Liga/desliga o cartão obrigatório na hora (cartao.middleware guarda em cache)
+      if (d.rfid_ativo !== undefined) esquecerRfidDoTenant(request.tenantId!)
       return Service.atualizar(request.tenantId!, {
         nomeRestaurante:       d.nome_restaurante,
         logoBase64:            d.logo_base64,
@@ -104,7 +107,9 @@ export async function configuracoesRoutes(app: FastifyInstance) {
     const body = z.object({ rfidAtivo: z.boolean().optional(), vendaMobileAtiva: z.boolean().optional() }).safeParse(request.body)
     if (!body.success) return reply.status(400).send({ error: 'Dados inválidos' })
     try {
-      return await Service.atualizarAcesso(request.tenantId!, body.data)
+      const r = await Service.atualizarAcesso(request.tenantId!, body.data)
+      esquecerRfidDoTenant(request.tenantId!)
+      return r
     } catch (err: any) {
       if (err.status) return reply.status(err.status).send({ error: err.message })
       throw err

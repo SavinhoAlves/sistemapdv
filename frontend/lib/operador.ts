@@ -21,3 +21,22 @@ export function tokenOperador(): string | null {
 }
 
 export function limparOperador() { definirOperador(null) }
+
+/**
+ * Modal de cartão global (CartaoGlobal.vue). Quando o servidor recusa uma ação
+ * por falta de cartão (ex.: venceu enquanto o caixa contava a gaveta), a API
+ * pede o cartão por ele e repete a ação uma vez.
+ */
+let pedirCartao: ((mensagem: string) => Promise<unknown>) | null = null
+
+export function registrarPedidoDeCartao(fn: typeof pedirCartao) { pedirCartao = fn }
+
+/** true se um cartão válido foi passado (o token novo já está definido) */
+export async function pedirCartaoDeNovo(mensagem: string): Promise<boolean> {
+  if (!pedirCartao) return false
+  try {
+    return !!(await pedirCartao(mensagem))
+  } catch {
+    return false
+  }
+}

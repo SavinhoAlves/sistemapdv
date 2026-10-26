@@ -9,6 +9,7 @@ export const GRUPOS_PERMISSOES: { grupo: string; itens: { chave: string; rotulo:
     { chave: 'abrirMesa',          rotulo: 'Abrir mesa' },
     { chave: 'adicionarPedido',    rotulo: 'Lançar pedidos e vender no balcão' },
     { chave: 'cancelarItemPedido', rotulo: 'Cancelar item de pedido' },
+    { chave: 'excluirItemPedido',  rotulo: 'Excluir item inteiro da comanda', ajuda: 'Lixeira da comanda. Tirar uma unidade (−) já vem com lançar pedidos' },
     { chave: 'transferirComanda',  rotulo: 'Transferir comanda de mesa' },
     { chave: 'fecharMesa',         rotulo: 'Fechar mesa paga' },
     { chave: 'encerrarSemPagamento', rotulo: 'Encerrar comanda sem pagamento', ajuda: 'Fecha a conta devendo — fica na auditoria' },

@@ -44,12 +44,12 @@
               <span class="text-xs uppercase tracking-[0.25em] font-black text-orange-500">Aguardando cartão</span>
             </div>
 
-            <!-- CANCELAR -->
+            <!-- CANCELAR (ação) ou SAIR (portão obrigatório: fechar não libera a tela) -->
             <button
-              @click="cancelar"
+              @click="obrigatorio ? sair() : cancelar()"
               class="mt-6 text-xs text-gray-400 dark:text-white/30 hover:text-gray-600 dark:hover:text-white/50 transition-colors font-bold uppercase tracking-widest"
             >
-              Cancelar
+              {{ obrigatorio ? (rotuloSair || 'Sair') : 'Cancelar' }}
             </button>
 
           </div>
@@ -154,6 +154,9 @@ const props = defineProps<{
   erro?: string
   identificado?: RfidIdentificado | null
   carregandoRfid?: boolean
+  /** Portão de acesso: não fecha sem cartão; o botão vira "Sair" e emite 'sair' */
+  obrigatorio?: boolean
+  rotuloSair?: string
 }>()
 
 const emit = defineEmits<{
@@ -161,6 +164,7 @@ const emit = defineEmits<{
   'auth-success': [string]
   'confirmar': []
   'cancelar': []
+  'sair': []
 }>()
 
 // ─── Avatar ──────────────────────────────────────────────────
@@ -237,6 +241,12 @@ const cancelar = () => {
   pararLeitura()
   emit('update:modelValue', false)
   emit('cancelar')
+}
+
+// Portão obrigatório: o modal continua aberto; quem usa decide para onde ir
+const sair = () => {
+  pararLeitura()
+  emit('sair')
 }
 
 const confirmar = () => {

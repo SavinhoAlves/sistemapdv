@@ -79,7 +79,7 @@ export async function pedidosRoutes(app: FastifyInstance) {
     return reply.status(201).send(
       await Service.lancarItem(request.tenantId!, {
         ...body.data,
-        garcomId: body.data.garcomId || auth.sub,
+        garcomId: request.operadorRfid ? auth.sub : (body.data.garcomId || auth.sub),
         usuarioId: auth.sub,
       }),
     )

@@ -2,6 +2,7 @@ import { useAuthStore } from '../stores/auth'
 import { useRouter, useRuntimeConfig } from '#imports'
 import { getTenantSlug } from '~/composables/useTenantSlug'
 import { ajustarRelogio } from '~/lib/relogio'
+import { tokenOperador } from '~/lib/operador'
 
 let logoutEmAndamento = false
 let refreshPromise: Promise<boolean> | null = null
@@ -52,6 +53,11 @@ export function useApi() {
 
     if (token && !isAuthRoute) {
       headers['Authorization'] = `Bearer ${token}`
+    }
+    // Cartão RFID recém-passado: a ação vale em nome do dono do cartão
+    const operador = tokenOperador()
+    if (operador && !isAuthRoute && (options.method ?? 'GET') !== 'GET') {
+      headers['X-Operador'] = operador
     }
 
     const response = await fetch(`${baseURL}${endpoint}`, { ...options, headers })

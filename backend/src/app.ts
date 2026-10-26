@@ -106,7 +106,9 @@ export async function buildApp() {
       // Só o que tenta senha/PIN/crachá. Leituras (/me, /restaurante, /mobile-status)
       // rodam a cada página aberta e ficam no limite global — antes 10 navegações
       // em 1 minuto já davam erro e derrubavam o carregamento das telas.
-      allowList: (req) => req.method === 'GET',
+      // A identificação de cartão (rfid-identify) exige a sessão do caixa e roda a cada
+      // ação no salão: com 10/min por IP, vários caixas na mesma rede se bloqueavam.
+      allowList: (req) => req.method === 'GET' || req.url.startsWith('/api/auth/rfid-identify'),
       // `status` é o que o tratador de erros lê; sem ele o bloqueio saía como 500
       errorResponseBuilder: () => ({
         status: 429,

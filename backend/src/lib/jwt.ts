@@ -77,6 +77,27 @@ export function refreshTokenExpiry(): Date {
   return d
 }
 
+// ── Operador identificado pelo cartão RFID ──────────────────────────────────
+// Vale 2 minutos e só para o restaurante do cartão (tid). Chave derivada: um
+// token de operador nunca serve como sessão, e vice-versa.
+const OPERADOR_SECRET = crypto.createHmac('sha256', ACCESS_SECRET).update('operador-rfid').digest('hex')
+
+export interface OperadorJwtPayload {
+  tipo: 'operador'; sub: string; tid: string; nome: string; cargo: string
+  perfilId: string | null; permissoes: Record<string, boolean>
+}
+
+export function signOperadorToken(p: Omit<OperadorJwtPayload, 'tipo'>): string {
+  return jwt.sign({ tipo: 'operador', ...p } satisfies OperadorJwtPayload, OPERADOR_SECRET, { expiresIn: '2m' })
+}
+
+export function verifyOperadorToken(token: string): OperadorJwtPayload | null {
+  try {
+    const p = jwt.verify(token, OPERADOR_SECRET) as any
+    return p?.tipo === 'operador' && typeof p.sub === 'string' && typeof p.tid === 'string' ? p : null
+  } catch { return null }
+}
+
 // ── Cliente do cardápio online ──────────────────────────────────────────────
 // Chave derivada (HMAC da chave de acesso + rótulo): um token de cliente nunca
 // é aceito como token da equipe, e vice-versa. Vale 30 dias; a conta é de um

@@ -53,7 +53,8 @@ export async function caixaRoutes(app: FastifyInstance) {
 
       const auth = request.auth as TenantJwtPayload
       const caixa = await Service.abrirCaixa(request.tenantId!, {
-        funcionarioId: body.data.funcionarioId || auth.sub,
+        // Sem confiar no id enviado pela tela: com cartão, auth.sub já é o dono dele
+        funcionarioId: auth.sub,
         valorInicial: body.data.valorInicial,
       })
       return reply.status(201).send(caixa)

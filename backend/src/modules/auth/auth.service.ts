@@ -172,6 +172,17 @@ export async function loginComRfid(cartaoRfid: string, slug: string) {
   }
 }
 
+/** Identifica o dono do cartão no restaurante da sessão, sem criar sessão nova. */
+export async function identificarRfid(cartaoRfid: string, tenantId: string) {
+  const usuario = await prisma.usuario.findFirst({
+    where: { cartaoRfid, tenantId, ativo: true },
+    select: { id: true, nome: true, cargo: true, perfilId: true },
+  })
+  if (!usuario) return null
+  const permissoes = await getPermissoes(usuario.cargo, usuario.perfilId, tenantId)
+  return { ...usuario, permissoes }
+}
+
 export async function loginComPin(pin: string, slug: string) {
   const tenant = await prisma.tenant.findUnique({ where: { slug } })
   if (!tenant || tenant.status !== 'ativo') {

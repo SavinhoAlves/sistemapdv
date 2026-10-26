@@ -1,4 +1,5 @@
 import type { FastifyRequest, FastifyReply } from 'fastify'
+import { aplicarOperador } from './operador.middleware'
 
 /**
  * Permissões por cargo.
@@ -75,6 +76,8 @@ export function requirePermissao(permissao: string) {
     if (!request.auth || request.auth.type !== 'tenant') {
       return reply.status(401).send({ error: 'Não autenticado' })
     }
+    // Cartão RFID passado: a permissão conferida é a do dono do cartão
+    if (!aplicarOperador(request, reply)) return
 
     const { cargo, permissoes } = request.auth as any
 

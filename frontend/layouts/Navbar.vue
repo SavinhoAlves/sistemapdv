@@ -426,6 +426,7 @@ import { useConfigStore }      from '~/stores/configuracoes'
 import { useImpressorasStore } from '~/stores/impressoras'
 import { useNavItems }    from '~/composables/useNavItems'
 import { useApi }         from '~/services/api'
+import { definirOperador } from '~/lib/operador'
 import { enviarImpressao } from '~/lib/qz'
 import ModalRfidAuth      from '~/components/modals/ModalRfidAuth.vue'
 import AvisoDelivery      from '~/components/AvisoDelivery.vue'
@@ -526,10 +527,12 @@ const cancelarRfid = () => {
 
 const handleRfidCaixa = async (rfidBuffer: string) => {
   try {
+    // Identifica o dono do cartão (sem criar sessão); abrir/fechar caixa vai em nome dele
     const resposta = await $fetch<any>(
-      `${config.public.apiUrl}/api/auth/rfid`,
-      { method: 'POST', body: { rfid: rfidBuffer.trim(), slug: (config.public as any).tenantSlug } }
+      `${config.public.apiUrl}/api/auth/rfid-identify`,
+      { method: 'POST', body: { rfid: rfidBuffer.trim() }, headers: authStore.token ? { Authorization: `Bearer ${authStore.token}` } : {} }
     )
+    definirOperador(resposta?.operadorToken)
 
     if (!resposta?.usuario) {
       toastStore.error('Cartão não reconhecido')

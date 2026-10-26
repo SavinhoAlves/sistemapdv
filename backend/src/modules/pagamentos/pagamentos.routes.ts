@@ -2,6 +2,7 @@ import type { FastifyInstance } from 'fastify'
 import { z } from 'zod'
 import { requireTenant } from '../../middlewares/tenant.middleware'
 import { requirePermissao } from '../../middlewares/permission.middleware'
+import { usarOperador } from '../../middlewares/operador.middleware'
 import type { TenantJwtPayload } from '../../lib/jwt'
 import * as Service from './pagamentos.service'
 
@@ -98,7 +99,7 @@ export async function pagamentosRoutes(app: FastifyInstance) {
   // Resposta traz `repetido: true` quando a chave de idempotência já havia
   // sido usada. O frontend deve tratar isso como sucesso, não como erro —
   // significa que o pagamento anterior valeu.
-  app.post('/', { preHandler: [requireTenant] }, async (request, reply) => {
+  app.post('/', { preHandler: [requireTenant, usarOperador] }, async (request, reply) => {
     const body = pagarBody.safeParse(request.body)
     if (!body.success) return reply.status(400).send({ error: primeiroErro(body.error) })
 

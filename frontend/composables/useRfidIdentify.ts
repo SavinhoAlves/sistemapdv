@@ -1,7 +1,8 @@
 import { ref, computed } from 'vue'
 import { useConfigStore } from '~/stores/configuracoes'
 import { useRuntimeConfig } from '#imports'
-import { getTenantSlug } from '~/composables/useTenantSlug'
+import { useAuthStore } from '~/stores/auth'
+import { definirOperador } from '~/lib/operador'
 
 export interface UsuarioRfid {
   id: string
@@ -27,6 +28,7 @@ export interface RfidIdentificado {
 export function useRfidIdentify() {
   const configStore = useConfigStore()
   const config      = useRuntimeConfig()
+  const authStore   = useAuthStore()
 
   const rfidAtivo = computed(() => configStore.rfid_ativo)
 
@@ -63,11 +65,12 @@ export function useRfidIdentify() {
     erroModal.value      = ''
     carregandoRfid.value = true
     try {
-      const slug = getTenantSlug()
-      const resp = await $fetch<{ usuario: UsuarioRfid; mesas: MesaVinculada[] }>(
+      // Com a sessão do caixa; devolve o token curto do dono do cartão (X-Operador)
+      const resp = await $fetch<{ usuario: UsuarioRfid; mesas: MesaVinculada[]; operadorToken?: string }>(
         `${config.public.apiUrl}/api/auth/rfid-identify`,
-        { method: 'POST', body: { rfid: codigo, slug } }
+        { method: 'POST', body: { rfid: codigo }, headers: authStore.token ? { Authorization: `Bearer ${authStore.token}` } : {} }
       )
+      definirOperador(resp.operadorToken)
 
       if (_comConfirmacao) {
         // Fase 2: exibe garçom + vendas e aguarda confirmação manual

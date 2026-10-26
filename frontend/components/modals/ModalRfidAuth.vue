@@ -208,6 +208,15 @@ let timeout: ReturnType<typeof setTimeout> | null = null
 const handleKeydown = (event: KeyboardEvent) => {
   if (!props.modelValue) return
 
+  // O leitor "digita" como teclado: com o modal aberto nada disso chega à página.
+  // Sem isso, o Enter do leitor clicava de novo o botão que abriu o modal
+  // (ex.: Abrir caixa reabria o RFID por cima do saldo inicial) e os dígitos
+  // caíam no campo focado (valor do desconto/abatimento).
+  if (event.key === 'Enter' || event.key.length === 1) {
+    event.preventDefault()
+    event.stopPropagation()
+  }
+
   // Ignore input while confirmed data is shown (waiting for button click)
   if (props.identificado) return
 
@@ -226,13 +235,20 @@ const handleKeydown = (event: KeyboardEvent) => {
   timeout = setTimeout(() => { rfidBuffer = '' }, 1000)
 }
 
+let lendo = false
+
 const iniciarLeitura = () => {
   rfidBuffer = ''
-  window.addEventListener('keydown', handleKeydown)
+  // Tira o foco do botão/campo da tela de trás (o Enter não o aciona de novo)
+  ;(document.activeElement as HTMLElement | null)?.blur?.()
+  if (lendo) return
+  lendo = true
+  window.addEventListener('keydown', handleKeydown, true)
 }
 
 const pararLeitura = () => {
-  window.removeEventListener('keydown', handleKeydown)
+  lendo = false
+  window.removeEventListener('keydown', handleKeydown, true)
   if (timeout) clearTimeout(timeout)
   rfidBuffer = ''
 }
@@ -256,7 +272,8 @@ const confirmar = () => {
 
 watch(
   () => props.modelValue,
-  (aberto) => { aberto ? iniciarLeitura() : pararLeitura() }
+  (aberto) => { aberto ? iniciarLeitura() : pararLeitura() },
+  { immediate: true }
 )
 
 onBeforeUnmount(pararLeitura)

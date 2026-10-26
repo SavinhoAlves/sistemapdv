@@ -2,7 +2,7 @@ import { ref, computed } from 'vue'
 import { useConfigStore } from '~/stores/configuracoes'
 import { useRuntimeConfig } from '#imports'
 import { useAuthStore } from '~/stores/auth'
-import { definirOperador } from '~/lib/operador'
+import { definirOperador, limparOperador } from '~/lib/operador'
 
 export interface UsuarioRfid {
   id: string
@@ -97,6 +97,7 @@ export function useRfidIdentify() {
     if (usuario) {
       _resolve?.(usuario)
     } else {
+      limparOperador()
       _reject?.(new Error('Cancelado'))
     }
     _resolve = null
@@ -104,6 +105,8 @@ export function useRfidIdentify() {
   }
 
   function onRfidCancelar() {
+    // Cancelou depois de passar o cartão: as próximas ações não vão no nome dele
+    limparOperador()
     modalAberto.value  = false
     erroModal.value    = ''
     identificado.value = null

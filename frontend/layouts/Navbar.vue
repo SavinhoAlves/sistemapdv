@@ -124,6 +124,8 @@
   <ModalRfidAuth
     v-model="modalRfid"
     mensagem="Aproxime o cartão RFID para liberar o acesso ao caixa"
+    :erro="rfidErro"
+    :carregando-rfid="rfidLendo"
     @auth-success="handleRfidCaixa"
     @cancelar="cancelarRfid"
   />
@@ -496,6 +498,8 @@ const saldoInicial     = ref('')
 const saldoErro        = ref('')
 const abrindoCaixa     = ref(false)
 const usuarioRfid      = ref<any>(null)
+const rfidErro         = ref('')
+const rfidLendo        = ref(false)
 
 const solicitarCaixa = async () => {
   await configStore.carregar()
@@ -516,49 +520,56 @@ const solicitarCaixa = async () => {
     return
   }
 
+  rfidErro.value = ''
   modalRfid.value = true
 }
 
 const cancelarRfid = () => {
+  rfidErro.value = ''
   modalRfid.value = false
   acaoCaixa.value = null
   usuarioRfid.value = null
 }
 
 const handleRfidCaixa = async (rfidBuffer: string) => {
+  if (rfidLendo.value) return
+  rfidErro.value = ''
+  rfidLendo.value = true
+  let resposta: any
   try {
     // Identifica o dono do cartão (sem criar sessão); abrir/fechar caixa vai em nome dele
-    const resposta = await $fetch<any>(
+    resposta = await $fetch<any>(
       `${config.public.apiUrl}/api/auth/rfid-identify`,
       { method: 'POST', body: { rfid: rfidBuffer.trim() }, headers: authStore.token ? { Authorization: `Bearer ${authStore.token}` } : {} }
     )
-    definirOperador(resposta?.operadorToken)
-
-    if (!resposta?.usuario) {
-      toastStore.error('Cartão não reconhecido')
-      return
-    }
-
-    modalRfid.value = false
-
-    if (acaoCaixa.value === 'abrir') {
-      // Guarda o usuário e abre modal de saldo inicial
-      usuarioRfid.value = resposta.usuario
-      saldoInicial.value = ''
-      saldoErro.value = ''
-      modalSaldoInicial.value = true
-    } else if (acaoCaixa.value === 'fechar') {
-      // Fechamento cego: conta a gaveta antes de ver o valor esperado
-      valorContado.value = ''
-      obsFechamento.value = ''
-      fechamentoErro.value = ''
-      modalConferencia.value = true
-    }
-
   } catch (error: any) {
-    toastStore.error('Erro ao operar o caixa', error?.data?.error)
-    acaoCaixa.value = null
-    await sincronizarCaixa()
+    // Cartão errado: o modal continua aberto, com o erro nele, esperando outro cartão
+    rfidErro.value = error?.data?.error || 'Cartão não reconhecido'
+    return
+  } finally {
+    rfidLendo.value = false
+  }
+
+  if (!resposta?.usuario) {
+    rfidErro.value = 'Cartão não reconhecido'
+    return
+  }
+  definirOperador(resposta.operadorToken)
+
+  modalRfid.value = false
+
+  if (acaoCaixa.value === 'abrir') {
+    // Guarda o usuário e abre modal de saldo inicial
+    usuarioRfid.value = resposta.usuario
+    saldoInicial.value = ''
+    saldoErro.value = ''
+    modalSaldoInicial.value = true
+  } else if (acaoCaixa.value === 'fechar') {
+    // Fechamento cego: conta a gaveta antes de ver o valor esperado
+    valorContado.value = ''
+    obsFechamento.value = ''
+    fechamentoErro.value = ''
+    modalConferencia.value = true
   }
 }
 

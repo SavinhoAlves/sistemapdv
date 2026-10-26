@@ -60,6 +60,7 @@
               <span class="sm-item__total pdv-valor">{{ moeda(produto.total) }}</span>
 
               <button
+                v-if="lixeiraVisivel"
                 class="sm-excluir"
                 :aria-label="`Excluir ${produto.nome}`"
                 @pointerdown.stop
@@ -360,6 +361,18 @@ const {
 const caixaAberto = computed(() => caixaStore.aberto)
 const podeFecharMesa = computed(() => authStore.isCaixa || authStore.temPermissao('fecharMesa'))
 const podeTaxa       = computed(() => authStore.usuario?.cargo === 'administrador' || authStore.isCaixa)
+
+/**
+ * Lixeira (item inteiro) é do administrador; o garçom tira uma unidade no "−".
+ * Com RFID quem decide é o cartão passado, então ela fica à vista.
+ */
+const lixeiraVisivel = computed(() => configStore.rfid_ativo || authStore.temPermissao('excluirItemPedido'))
+function cartaoPodeExcluir(usuario: { cargo: string; permissoes: Record<string, boolean> | null } | null) {
+  if (!usuario) return authStore.temPermissao('excluirItemPedido')
+  // Mesma regra de authStore.temPermissao, aplicada ao dono do cartão
+  const v = usuario.permissoes?.excluirItemPedido
+  return typeof v === 'boolean' ? v : usuario.cargo === 'administrador'
+}
 
 // Identificação RFID do garçom para a sessão atual (null = sem RFID identificado)
 const garcomRfid       = ref<{ id: number; nome: string } | null>(null)
@@ -813,8 +826,19 @@ async function removerItem(produto: ProdutoMesa) {
 
   const preco = Number(produto.preco_unitario)
 
+  // Última unidade: sai da comanda pela quantidade (o garçom pode), não pela lixeira
   if (produto.quantidade <= 1) {
-    await excluirItem(produto.id)
+    const idx = produtos.value.findIndex(p => p.id === produto.id)
+    produtos.value = produtos.value.filter(p => p.id !== produto.id)
+    try {
+      await api.patch(`/pedidos/itens/${produto.id}/quantidade`, { quantidade: 0 })
+      emit('estoque-atualizado')
+    } catch {
+      const lista = [...produtos.value]
+      lista.splice(idx, 0, produto)
+      produtos.value = lista
+      toastStore.error('Erro ao remover item')
+    }
     return
   }
 
@@ -834,9 +858,14 @@ async function removerItem(produto: ProdutoMesa) {
 async function excluirItem(id: number, silencioso = false) {
   if (!caixaAberto.value) { if (!silencioso) exigirCaixa(); return }
   if (!silencioso) {
+    let lido
     try {
-      await cartaoDaMesa('Passe o cartão para excluir item')
+      lido = await cartaoDaMesa('Passe o cartão do administrador para excluir o item')
     } catch { return }
+    if (!cartaoPodeExcluir(lido)) {
+      toastStore.error('Só o administrador exclui o item inteiro', 'Use o "−" para tirar uma unidade')
+      return
+    }
   }
 
   const idx  = produtos.value.findIndex(p => p.id === id)

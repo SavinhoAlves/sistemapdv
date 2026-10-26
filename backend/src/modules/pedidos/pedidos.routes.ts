@@ -136,11 +136,12 @@ export async function pedidosRoutes(app: FastifyInstance) {
   )
 
   // DELETE /api/pedidos/itens/:itemId
-  // Remove um item ainda não enviado à cozinha. Item já em preparo ou entregue
-  // não é apagado — usa-se /cancelar, que exige motivo e devolve estoque.
+  // Lixeira da comanda: tira o item inteiro. Só o administrador (ou perfil com
+  // excluirItemPedido); o garçom tira uma unidade por vez em /quantidade.
+  // Item entregue não é apagado — usa-se /cancelar, que exige motivo.
   app.delete(
     '/itens/:itemId',
-    { preHandler: [requireTenant, exigirCartao, requirePermissao('adicionarPedido'), exigirDonoDaMesa(mesaDoItem)] },
+    { preHandler: [requireTenant, exigirCartao, requirePermissao('excluirItemPedido'), exigirDonoDaMesa(mesaDoItem)] },
     async (request, reply) => {
       const params = itemParam.safeParse(request.params)
       if (!params.success) return reply.status(400).send({ error: primeiroErro(params.error) })

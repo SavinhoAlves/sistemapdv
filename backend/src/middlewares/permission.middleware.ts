@@ -26,6 +26,8 @@ export const PERMISSOES_CARGO: Record<string, Record<string, boolean>> = {
   administrador: {
     adicionarPedido: true,
     cancelarItemPedido: true,
+    // Lixeira da comanda (item inteiro). Tirar uma unidade é adicionarPedido.
+    excluirItemPedido: true,
     abrirMesa: true,
     fecharMesa: true,
     encerrarSemPagamento: true,

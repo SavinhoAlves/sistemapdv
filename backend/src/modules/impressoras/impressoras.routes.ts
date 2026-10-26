@@ -1,6 +1,9 @@
 import type { FastifyInstance } from 'fastify'
 import { execFile } from 'child_process'
 import { promisify } from 'util'
+import { createSign } from 'crypto'
+import { readFileSync } from 'fs'
+import { join } from 'path'
 import { requireTenant } from '../../middlewares/tenant.middleware'
 import { requirePermissao } from '../../middlewares/permission.middleware'
 import { prisma } from '../../lib/prisma'
@@ -35,7 +38,35 @@ function normalizar(body: any) {
  */
 const impressaoDireta = () => process.platform === 'win32' || process.env.IMPRESSAO_DIRETA === '1'
 
+/**
+ * Assinatura do QZ Tray: com certificado, o QZ Tray pergunta uma vez se confia
+ * no RestaurantePDV e lembra a resposta (pedido anônimo pergunta toda vez).
+ * Vêm de QZ_CERT_B64 / QZ_KEY_B64 (base64 do PEM) ou dos arquivos
+ * certificado.pem e chave.pem em QZ_DIR (padrão /srv/restaurantepdv/qz).
+ * A chave privada nunca sai daqui: o navegador só recebe a assinatura.
+ */
+const QZ_DIR = process.env.QZ_DIR || '/srv/restaurantepdv/qz'
+function lerPem(env: string, arquivo: string) {
+  const v = process.env[env]
+  if (v) return Buffer.from(v, 'base64').toString('utf8')
+  try { return readFileSync(join(QZ_DIR, arquivo), 'utf8') } catch { return null }
+}
+const QZ_CERT = lerPem('QZ_CERT_B64', 'certificado.pem')
+const QZ_KEY  = lerPem('QZ_KEY_B64', 'chave.pem')
+
 export async function impressorasRoutes(app: FastifyInstance) {
+  // Certificado público (vazio = QZ Tray em modo anônimo)
+  app.get('/qz/certificado', { preHandler: [requireTenant] }, async () => ({ certificado: QZ_CERT && QZ_KEY ? QZ_CERT : '' }))
+
+  // Assina o pedido do QZ Tray (SHA512, como configurado no navegador)
+  app.post('/qz/assinar', { preHandler: [requireTenant] }, async (request, reply) => {
+    const dados = (request.body as any)?.dados
+    if (!QZ_KEY) return reply.status(404).send({ error: 'Assinatura do QZ Tray não configurada' })
+    if (typeof dados !== 'string' || !dados || dados.length > 20000) return reply.status(400).send({ error: 'Pedido inválido' })
+    const assinatura = createSign('RSA-SHA512').update(dados).sign(QZ_KEY, 'base64')
+    return { assinatura }
+  })
+
   app.get('/ambiente', { preHandler: [requireTenant] }, async () => ({ impressaoDireta: impressaoDireta() }))
 
   // Lista impressoras instaladas no Windows via Get-Printer (PowerShell)

@@ -31,6 +31,19 @@ async function resolverConfig(tenantId: string, destino?: string) {
   return [base, cfg] as const
 }
 
+/**
+ * Entrega o cupom ESC/POS: rede e Windows saem daqui do servidor; no QZ Tray
+ * os bytes voltam para o navegador, que imprime no computador do caixa.
+ */
+async function entregar(cupom: Buffer, config: { impressora_tipo: string; impressora_host: string }) {
+  if (config.impressora_tipo === 'qz') {
+    if (!config.impressora_host) throw new Error('Escolha a impressora do QZ Tray nas configurações de impressão')
+    return { success: true, qz: { impressora: config.impressora_host, dados: Buffer.from(cupom).toString('base64') } }
+  }
+  await enviarParaImpressora(cupom, config)
+  return { success: true }
+}
+
 export async function impressaoRoutes(app: FastifyInstance) {
   // POST /api/impressao/teste
   app.post('/teste', { preHandler: [requireTenant, requirePermissao('gerenciarConfiguracoes')] }, async (request, reply) => {
@@ -39,8 +52,7 @@ export async function impressaoRoutes(app: FastifyInstance) {
       const config  = cfgToLegacy(cfg)
       const logo    = await logoParaRasterEscPos(config.logo_base64, config.impressora_largura, tamanhoLogo(cfg))
       const cupom   = montarCupomTeste(config, logo)
-      await enviarParaImpressora(cupom, config)
-      return { success: true, message: 'Cupom de teste enviado' }
+      return { ...(await entregar(cupom, config)), message: 'Cupom de teste enviado' }
     } catch (err: any) {
       return reply.status(400).send({ error: err.message })
     }
@@ -58,8 +70,7 @@ export async function impressaoRoutes(app: FastifyInstance) {
       const [config, cfg] = await resolverConfig(request.tenantId!, destino)
       const logo          = await logoParaRasterEscPos(config.logo_base64, config.impressora_largura, tamanhoLogo(cfg))
       const cupom         = montarFichas(config, { itens, info, codigo }, logo)
-      await enviarParaImpressora(cupom, config)
-      return { success: true }
+      return await entregar(cupom, config)
     } catch (err: any) {
       return reply.status(400).send({ error: err.message })
     }
@@ -76,8 +87,7 @@ export async function impressaoRoutes(app: FastifyInstance) {
       const [config, cfg] = await resolverConfig(request.tenantId!, conta.destino ?? 'caixa')
       const logo          = await logoParaRasterEscPos(config.logo_base64, config.impressora_largura, tamanhoLogo(cfg))
       const cupom         = montarConta(config, conta, logo)
-      await enviarParaImpressora(cupom, config)
-      return { success: true }
+      return await entregar(cupom, config)
     } catch (err: any) {
       return reply.status(400).send({ error: err.message })
     }
@@ -95,8 +105,7 @@ export async function impressaoRoutes(app: FastifyInstance) {
       const [config, cfg] = await resolverConfig(request.tenantId!, 'caixa')
       const logo          = await logoParaRasterEscPos(config.logo_base64, config.impressora_largura, tamanhoLogo(cfg))
       const cupom         = montarFechamento(config, resumo, logo)
-      await enviarParaImpressora(cupom, config)
-      return { success: true }
+      return await entregar(cupom, config)
     } catch (err: any) {
       return reply.status(400).send({ error: err.message })
     }

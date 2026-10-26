@@ -426,6 +426,7 @@ import { useConfigStore }      from '~/stores/configuracoes'
 import { useImpressorasStore } from '~/stores/impressoras'
 import { useNavItems }    from '~/composables/useNavItems'
 import { useApi }         from '~/services/api'
+import { enviarImpressao } from '~/lib/qz'
 import ModalRfidAuth      from '~/components/modals/ModalRfidAuth.vue'
 import AvisoDelivery      from '~/components/AvisoDelivery.vue'
 import { lerValor } from '~/lib/valor'
@@ -617,7 +618,7 @@ const imprimirFechamento = async () => {
   // Térmica direta via backend
   if (impressorasStore.impressaoDiretaPara('caixa')) {
     try {
-      await api.post('/impressao/fechamento', { caixa_id: resumo.caixa.id })
+      await enviarImpressao(api, '/impressao/fechamento', { caixa_id: resumo.caixa.id })
       toastStore.success('Resumo enviado à impressora')
     } catch (e: any) {
       toastStore.error('Falha na impressão', e?.message)

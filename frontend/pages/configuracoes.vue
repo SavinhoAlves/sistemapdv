@@ -325,7 +325,7 @@
                 <label class="block text-[10px] font-black uppercase tracking-widest text-gray-500 dark:text-white/40 mb-3">
                   Conexão da impressora térmica
                 </label>
-                <div class="grid grid-cols-3 gap-3 mb-4">
+                <div class="grid grid-cols-2 xl:grid-cols-4 gap-3 mb-4">
                   <button v-for="op in tiposImpressora" :key="op.value"
                     @click="form.impressora_tipo = op.value"
                     class="p-3 rounded-2xl border-2 transition-all text-left"
@@ -340,7 +340,8 @@
                   </button>
                 </div>
 
-                <AvisoImpressaoNuvem v-if="!impressaoDireta && (form.impressora_tipo === 'rede' || form.impressora_tipo === 'windows')" :tipo="form.impressora_tipo" class="mb-4" @usar-navegador="form.impressora_tipo = 'navegador'" />
+                <CampoQzTray v-if="form.impressora_tipo === 'qz'" v-model="form.impressora_host" class="mb-4" />
+                <AvisoImpressaoNuvem v-if="!impressaoDireta && (form.impressora_tipo === 'rede' || form.impressora_tipo === 'windows')" :tipo="form.impressora_tipo" class="mb-4" @usar-navegador="form.impressora_tipo = 'navegador'" @usar-qz="form.impressora_tipo = 'qz'; form.impressora_host = ''" />
                 <div v-if="form.impressora_tipo === 'rede' && impressaoDireta" class="grid grid-cols-3 gap-3">
                   <div class="col-span-2">
                     <label for="imp-host" class="block text-[10px] font-black uppercase tracking-widest text-gray-500 dark:text-white/40 mb-2">IP da impressora</label>
@@ -532,7 +533,7 @@
                     <!-- Tipo conexão -->
                     <div>
                       <label class="block text-[10px] font-black uppercase tracking-widest text-gray-500 dark:text-white/40 mb-2">Conexão</label>
-                      <div class="grid grid-cols-3 gap-2">
+                      <div class="grid grid-cols-2 xl:grid-cols-4 gap-2">
                         <button v-for="op in tiposImpressora" :key="op.value"
                           @click="imp.tipo = op.value"
                           class="p-2.5 rounded-xl border-2 transition-all text-left"
@@ -544,7 +545,8 @@
                     </div>
 
                     <!-- Host + Porta (Rede) -->
-                    <AvisoImpressaoNuvem v-if="!impressaoDireta && (imp.tipo === 'rede' || imp.tipo === 'windows')" :tipo="imp.tipo" @usar-navegador="imp.tipo = 'navegador'" />
+                    <CampoQzTray v-if="imp.tipo === 'qz'" v-model="imp.host" />
+                    <AvisoImpressaoNuvem v-if="!impressaoDireta && (imp.tipo === 'rede' || imp.tipo === 'windows')" :tipo="imp.tipo" @usar-navegador="imp.tipo = 'navegador'" @usar-qz="imp.tipo = 'qz'; imp.host = ''" />
                     <div v-if="imp.tipo === 'rede' && impressaoDireta" class="grid grid-cols-3 gap-3">
                       <div class="col-span-2">
                         <label class="block text-[10px] font-black uppercase tracking-widest text-gray-500 dark:text-white/40 mb-2">IP da impressora</label>
@@ -743,6 +745,7 @@ import ConfigIntegracoes from '~/components/config/ConfigIntegracoes.vue'
 import ConfigAcesso from '~/components/config/ConfigAcesso.vue'
 import ConfigDelivery from '~/components/config/ConfigDelivery.vue'
 import AvisoImpressaoNuvem from '~/components/config/AvisoImpressaoNuvem.vue'
+import CampoQzTray from '~/components/config/CampoQzTray.vue'
 import { TIPOS_COMERCIO } from '~/lib/tiposComercio'
 import { useAuthStore } from '~/stores/auth'
 import Navbar from '~/layouts/Navbar.vue'
@@ -751,6 +754,7 @@ import { useConfigStore }      from '~/stores/configuracoes'
 import { useImpressorasStore, type Impressora } from '~/stores/impressoras'
 import { useToastStore }       from '~/stores/toast'
 import { useApi }              from '~/services/api'
+import { enviarImpressao } from '~/lib/qz'
 
 definePageMeta({ layout: false })
 
@@ -923,6 +927,7 @@ const tiposImpressora = computed(() => [
   { value: 'navegador' as const, label: 'Navegador', desc: impressaoDireta.value ? 'Janela de impressão do navegador' : 'Recomendado: qualquer impressora do computador' },
   { value: 'rede' as const,      label: 'Rede',      desc: impressaoDireta.value ? 'Térmica com Ethernet/Wi-Fi (porta 9100)' : 'Só com o servidor no restaurante' },
   { value: 'windows' as const,   label: 'USB',       desc: impressaoDireta.value ? 'Térmica USB instalada no Windows' : 'Só com o servidor no restaurante' },
+  { value: 'qz' as const,        label: 'USB (QZ Tray)', desc: 'Direto na térmica deste computador, sem janela' },
 ])
 const testandoImpressora = ref(false)
 
@@ -935,7 +940,7 @@ const form = reactive({
   impressora_largura:       80,
   impressora_copias:        1,
   impressora_auto_imprimir: false,
-  impressora_tipo:          'navegador' as 'navegador' | 'rede' | 'windows',
+  impressora_tipo:          'navegador' as 'navegador' | 'rede' | 'windows' | 'qz',
   impressora_host:          '',
   impressora_porta:         9100,
   taxa_servico_pct:         10,
@@ -989,9 +994,13 @@ async function testarImpressora() {
     toastStore.error('Falta configuração', 'Informe o nome da impressora Windows antes de testar.')
     return
   }
+  if (form.impressora_tipo === 'qz' && !form.impressora_host.trim()) {
+    toastStore.error('Falta configuração', 'Clique em Detectar e escolha a impressora do QZ Tray antes de testar.')
+    return
+  }
   testandoImpressora.value = true
   try {
-    await api.post('/impressao/teste')
+    await enviarImpressao(api, '/impressao/teste')
     toastStore.success('Cupom de teste enviado!', 'Verifique a impressora.')
   } catch (e: any) {
     toastStore.error('Falha na impressão', e?.message)

@@ -311,6 +311,7 @@ import {
   Printer, Search, X, UtensilsCrossed, Trash2, Check, QrCode
 } from 'lucide-vue-next'
 import { useApi } from '~/services/api'
+import { enviarImpressao } from '~/lib/qz'
 import ProdutoFoto from '~/components/ProdutoFoto.vue'
 import PixQrCode from '~/components/PixQrCode.vue'
 import { useCaixaStore }        from '~/stores/caixa'
@@ -500,7 +501,7 @@ async function imprimirFicha() {
 
   if (configStore.impressora_auto_imprimir && impressorasStore.impressaoDiretaPara('caixa')) {
     try {
-      await api.post('/impressao/ficha', {
+      await enviarImpressao(api, '/impressao/ficha', {
         itens:   ficha.itens.map((i: any) => ({ nome: i.nome_produto, quantidade: i.quantidade })),
         info:    `${fmtFichaDateTime(ficha.created_at)} · ${ficha.operador || '—'}`,
         codigo:  ficha.numero,

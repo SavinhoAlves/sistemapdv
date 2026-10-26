@@ -12,7 +12,8 @@ import {
 const execFileAsync = promisify(execFile)
 
 const DESTINOS_VALIDOS = ['caixa', 'cozinha', 'bar']
-const TIPOS_VALIDOS    = ['navegador', 'rede', 'windows']
+// qz: USB do computador do caixa pelo QZ Tray (o navegador manda os bytes)
+const TIPOS_VALIDOS    = ['navegador', 'rede', 'windows', 'qz']
 
 function normalizar(body: any) {
   return {

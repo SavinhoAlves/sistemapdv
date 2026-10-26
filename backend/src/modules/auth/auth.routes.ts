@@ -1,7 +1,8 @@
 import type { FastifyInstance } from 'fastify'
 import { loginSchema, loginRfidSchema, loginPinSchema, refreshSchema } from './auth.schema'
 import * as AuthService from './auth.service'
-import { verifyAccessToken } from '../../lib/jwt'
+import { verifyAccessToken, signOperadorToken } from '../../lib/jwt'
+import { requireTenant } from '../../middlewares/tenant.middleware'
 import { prisma } from '../../lib/prisma'
 import { motivoSemAcessoPeloQr } from '../configuracoes/configuracoes.service'
 
@@ -129,18 +130,23 @@ export async function authRoutes(app: FastifyInstance) {
     }
   })
 
-  // POST /api/auth/rfid-identify — identifica usuário mid-session via RFID (sem refresh token)
-  // Retorna também as mesas abertas vinculadas ao garçom identificado.
-  app.post('/rfid-identify', { config: { public: true } }, async (request, reply) => {
+  // POST /api/auth/rfid-identify — identifica quem passou o cartão durante a sessão.
+  // Exige a sessão do restaurante (antes era pública e revelava as mesas do garçom
+  // a quem tivesse um código de cartão) e não cria sessão nova. Devolve o token
+  // curto do operador (X-Operador) e as mesas abertas do garçom.
+  app.post('/rfid-identify', { preHandler: [requireTenant] }, async (request, reply) => {
     const body = request.body as any
-    const cartaoRfid = body.cartaoRfid || body.rfid || ''
-    const slug = body.slug || ''
+    const cartaoRfid = String(body?.cartaoRfid || body?.rfid || '').trim()
     if (!cartaoRfid) return reply.status(400).send({ error: 'RFID obrigatório' })
-    if (!slug) return reply.status(400).send({ error: 'Slug obrigatório' })
+    const tenantId = request.tenantId!
     try {
-      const data = await AuthService.loginComRfid(cartaoRfid, slug)
+      const usuario = await AuthService.identificarRfid(cartaoRfid, tenantId)
+      // 404 (e não 401): 401 derrubaria a sessão do caixa no navegador
+      if (!usuario) return reply.status(404).send({ error: 'Cartão não reconhecido' })
+      const data = { usuario }
+      const operadorToken = signOperadorToken({ sub: usuario.id, tid: tenantId, nome: usuario.nome, cargo: usuario.cargo, perfilId: usuario.perfilId, permissoes: usuario.permissoes })
 
-      const tenant = await prisma.tenant.findUnique({ where: { slug }, select: { id: true } })
+      const tenant = { id: tenantId }
       let mesas: object[] = []
       if (tenant) {
         const mesasDb = await prisma.mesa.findMany({
@@ -163,9 +169,9 @@ export async function authRoutes(app: FastifyInstance) {
         })
       }
 
-      return reply.send({ usuario: data.usuario, mesas })
+      return reply.send({ usuario: data.usuario, mesas, operadorToken })
     } catch (err: any) {
-      return reply.status(401).send({ error: err.message })
+      return reply.status(400).send({ error: err.message })
     }
   })
 }

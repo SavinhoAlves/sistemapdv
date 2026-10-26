@@ -8,7 +8,10 @@
       v-model="rfidAberto"
       mensagem="Aproxime o cartão RFID para acessar o PDV de Vendas"
       :erro="rfidErro"
+      obrigatorio
+      rotulo-sair="Sair do PDV de Vendas"
       @auth-success="onRfidSuccess"
+      @sair="router.replace('/')"
     />
 
     <Sidebar />

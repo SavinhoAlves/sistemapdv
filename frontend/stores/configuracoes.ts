@@ -10,7 +10,7 @@ interface Config {
   impressora_largura: number
   impressora_copias: number
   impressora_auto_imprimir: boolean
-  impressora_tipo: 'navegador' | 'rede' | 'windows'
+  impressora_tipo: 'navegador' | 'rede' | 'windows' | 'qz'
   impressora_host: string
   impressora_porta: number
   taxa_servico_pct: number
@@ -86,7 +86,8 @@ export const useConfigStore = defineStore('configuracoes', {
         this.impressora_copias        = Number(impressoraCopias)      || 1
         this.impressora_auto_imprimir = Boolean(impressoraAutoImprimir)
         const tipoNorm = impressoraTipo === 'usb' ? 'windows' : impressoraTipo
-        this.impressora_tipo          = (['navegador','rede','windows'].includes(tipoNorm) ? tipoNorm : 'navegador') as 'navegador' | 'rede' | 'windows'
+        // 'qz' = USB pelo QZ Tray no computador do caixa
+        this.impressora_tipo          = (['navegador','rede','windows','qz'].includes(tipoNorm) ? tipoNorm : 'navegador') as 'navegador' | 'rede' | 'windows' | 'qz'
         this.impressora_host          = impressoraHost                || ''
         this.impressora_porta         = Number(impressoraPorta)       || 9100
         this.taxa_servico_pct         = Number(taxaServicoPct ?? 10)

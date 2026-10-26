@@ -21,7 +21,7 @@
       <ol class="mt-1.5 ml-4 list-decimal space-y-1 leading-relaxed">
         <li>Baixe em <a href="https://qz.io/download/" target="_blank" rel="noopener" class="underline">qz.io/download</a> e instale (ou rode o instalador oficial pelo PowerShell).</li>
         <li>Deixe o QZ Tray aberto: o ícone fica perto do relógio do Windows. Ele abre sozinho com o computador.</li>
-        <li>Clique em <b>Detectar</b>, escolha a térmica e salve. Na primeira impressão, marque <b>Lembrar</b> e <b>Permitir</b>.</li>
+        <li>Clique em <b>Detectar</b>, escolha a térmica e salve. Na primeira vez, o QZ Tray pergunta se confia no <b>RestaurantePDV</b>: marque <b>Remember this decision</b> e clique em <b>Allow</b>.</li>
       </ol>
     </details>
   </div>
@@ -31,16 +31,18 @@
 import { ref } from 'vue'
 import { Loader2, Search } from 'lucide-vue-next'
 import { listarImpressorasQz } from '~/lib/qz'
+import { useApi } from '~/services/api'
 
 defineProps<{ modelValue: string | null }>()
 const emit = defineEmits<{ 'update:modelValue': [string] }>()
+const api = useApi()
 const lista = ref<string[]>([])
 const detectando = ref(false)
 const erro = ref('')
 async function detectar() {
   erro.value = ''; detectando.value = true
   try {
-    lista.value = await listarImpressorasQz()
+    lista.value = await listarImpressorasQz(api)
     if (!lista.value.length) erro.value = 'O QZ Tray não achou impressoras instaladas neste computador.'
   } catch (e: any) { erro.value = e?.message || 'Não deu para falar com o QZ Tray' }
   finally { detectando.value = false }

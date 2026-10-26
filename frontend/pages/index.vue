@@ -311,7 +311,8 @@ function onVisibilityChange() {
 
 onMounted(() => {
   if (!authStore.isAuthenticated) return router.push('/login')
-  if (authStore.usuario?.cargo === 'garcom') return router.replace('/mesas')
+  // Mesma regra do menu (useNavItems) e da API (/dashboard/stats)
+  if (!authStore.temPermissao('verDashboard') && !authStore.temPermissao('verRelatorios')) return router.replace('/mesas')
   carregar()
   pollingTimer = setInterval(() => { if (!document.hidden) carregar(false) }, 30000)
   document.addEventListener('visibilitychange', onVisibilityChange)

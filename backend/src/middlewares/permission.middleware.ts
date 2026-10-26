@@ -47,6 +47,8 @@ export const PERMISSOES_CARGO: Record<string, Record<string, boolean>> = {
     abrirMesa: true,
     transferirComanda: true,
     verCozinha: true,
+    // Terminal de evento logado como garçom: "Sair das Mesas" leva ao Dashboard
+    verDashboard: true,
   },
   caixa: {
     adicionarPedido: true,
@@ -72,6 +74,11 @@ export const PERMISSOES_CARGO: Record<string, Record<string, boolean>> = {
 }
 
 export function requirePermissao(permissao: string) {
+  return requireAlgumaPermissao(permissao)
+}
+
+/** Passa se tiver qualquer uma das permissões (mesmas regras de requirePermissao) */
+export function requireAlgumaPermissao(...lista: string[]) {
   return async (request: FastifyRequest, reply: FastifyReply) => {
     if (!request.auth || request.auth.type !== 'tenant') {
       return reply.status(401).send({ error: 'Não autenticado' })
@@ -79,24 +86,20 @@ export function requirePermissao(permissao: string) {
     // Cartão RFID passado: a permissão conferida é a do dono do cartão
     if (!aplicarOperador(request, reply)) return
 
-    const { cargo, permissoes } = request.auth as any
-
-    // O perfil customizado tem precedência sobre o cargo, inclusive para
-    // administrador. Era o comportamento descrito no comentário original,
-    // mas o código retornava antes de chegar aqui.
-    if (permissoes && typeof permissoes[permissao] === 'boolean') {
-      if (!permissoes[permissao]) {
-        return reply.status(403).send({ error: 'Sem permissão para esta ação' })
-      }
-      return
-    }
-
-    // Sem perfil customizado: administrador passa em tudo.
-    if (cargo === 'administrador') return
-
-    const permsCargo = PERMISSOES_CARGO[cargo] ?? {}
-    if (!permsCargo[permissao]) {
+    if (!lista.some(p => temPermissao(request.auth as any, p))) {
       return reply.status(403).send({ error: 'Sem permissão para esta ação' })
     }
   }
+}
+
+function temPermissao({ cargo, permissoes }: { cargo: string; permissoes?: Record<string, boolean> }, permissao: string): boolean {
+  // O perfil customizado tem precedência sobre o cargo, inclusive para
+  // administrador. Era o comportamento descrito no comentário original,
+  // mas o código retornava antes de chegar aqui.
+  if (permissoes && typeof permissoes[permissao] === 'boolean') return permissoes[permissao]
+
+  // Sem perfil customizado: administrador passa em tudo.
+  if (cargo === 'administrador') return true
+
+  return !!PERMISSOES_CARGO[cargo]?.[permissao]
 }

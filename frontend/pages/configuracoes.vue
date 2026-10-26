@@ -651,9 +651,11 @@
                 :style="{ width: form.impressora_largura === 58 ? '180px' : '220px' }"
               >
                 <img v-if="form.logo_base64" :src="form.logo_base64" :class="logoAlturaPreview" :style="logoEstiloPreview" class="mx-auto object-contain transition-all duration-200" />
-                <div v-else class="w-10 h-10 rounded-xl bg-orange-500 flex items-center justify-center mx-auto">
-                  <UtensilsCrossed :size="16" class="text-white" />
-                </div>
+                <!-- Sem logo, nada sai no topo da ficha: avisa em vez de mostrar um ícone que não é impresso -->
+                <button v-else type="button" class="w-full rounded-xl border border-dashed border-amber-500/50 bg-amber-500/10 px-2 py-2 text-[10px] font-sans font-bold leading-snug text-amber-700 dark:text-amber-300"
+                  @click="irPara('estabelecimento')">
+                  Sem logo: envie em <span class="underline">Estabelecimento</span>
+                </button>
                 <p class="font-black text-gray-700 dark:text-white/80 uppercase tracking-widest leading-tight"
                   :class="form.impressora_largura === 58 ? 'text-[9px]' : 'text-[11px]'">
                   {{ form.nome_restaurante || 'Restaurante PDV' }}

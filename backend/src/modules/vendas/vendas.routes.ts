@@ -4,6 +4,7 @@ import { requireTenant } from '../../middlewares/tenant.middleware'
 import { requirePermissao } from '../../middlewares/permission.middleware'
 import type { TenantJwtPayload } from '../../lib/jwt'
 import * as Service from './vendas.service'
+import { exigirCartao } from '../../middlewares/cartao.middleware'
 
 /**
  * Venda direta (balcão).
@@ -40,7 +41,7 @@ export async function vendasRoutes(app: FastifyInstance) {
   // POST /api/vendas
   app.post(
     '/',
-    { preHandler: [requireTenant, requirePermissao('gerenciarCaixa')] },
+    { preHandler: [requireTenant, exigirCartao, requirePermissao('gerenciarCaixa')] },
     async (request, reply) => {
       const body = vendaBody.safeParse(request.body)
       if (!body.success) {

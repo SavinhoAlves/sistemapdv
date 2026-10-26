@@ -99,6 +99,7 @@
     <AppLoadingSkeleton v-if="!rotaPronta && !rotaCliente" class="fixed inset-0 z-[9999]" />
   </Transition>
   <UiToastContainer />
+  <CartaoGlobal />
 </template>
 
 <script setup lang="ts">

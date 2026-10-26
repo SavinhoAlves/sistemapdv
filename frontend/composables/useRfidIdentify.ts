@@ -25,6 +25,20 @@ export interface RfidIdentificado {
   mesas: MesaVinculada[]
 }
 
+/**
+ * O cartão é de um garçom e a mesa é de outro: a ação não acontece.
+ * Quem chamou recebe o dono do cartão (ex.: para mostrar as mesas dele).
+ */
+export class ErroMesaDeOutro extends Error {
+  constructor(public usuario: UsuarioRfid) { super('Esta mesa é de outro garçom') }
+}
+
+/** Garçom só mexe nas mesas abertas por ele; administrador e caixa, em todas. */
+export function podeMexerNaMesa(usuario: UsuarioRfid, donoMesa: string | number | null | undefined) {
+  if (usuario.cargo !== 'garcom' || donoMesa == null) return true
+  return String(usuario.id) === String(donoMesa)
+}
+
 export function useRfidIdentify() {
   const configStore = useConfigStore()
   const config      = useRuntimeConfig()
@@ -41,8 +55,18 @@ export function useRfidIdentify() {
   let _resolve:         ((u: UsuarioRfid) => void) | null = null
   let _reject:          ((e: Error) => void) | null = null
   let _comConfirmacao = false   // quando true exige clique em "Confirmar" (fase 2)
+  let _donoMesa: string | number | null | undefined
 
-  async function identificarViaRfid(mensagem?: string, comConfirmacao = false): Promise<UsuarioRfid | null> {
+  /**
+   * Abre o modal e espera o cartão. Não há Cancelar: só resolve com um cartão
+   * válido. Com `donoMesa`, o cartão de um garçom que não é o dono da mesa
+   * rejeita com ErroMesaDeOutro.
+   */
+  async function identificarViaRfid(
+    mensagem?: string,
+    comConfirmacao = false,
+    opcoes: { donoMesa?: string | number | null } = {},
+  ): Promise<UsuarioRfid | null> {
     if (!configStore.carregado) await configStore.carregar().catch(() => {})
 
     // Retorna null silenciosamente se RFID não está ativo — evita verificação duplicada nos callers
@@ -54,6 +78,7 @@ export function useRfidIdentify() {
       _resolve          = resolve
       _reject           = reject
       _comConfirmacao   = comConfirmacao
+      _donoMesa         = opcoes.donoMesa
       erroModal.value   = ''
       identificado.value = null
       mensagemModal.value = mensagem ?? 'Passe o cartão RFID para continuar'
@@ -70,6 +95,15 @@ export function useRfidIdentify() {
         `${config.public.apiUrl}/api/auth/rfid-identify`,
         { method: 'POST', body: { rfid: codigo }, headers: authStore.token ? { Authorization: `Bearer ${authStore.token}` } : {} }
       )
+      if (!podeMexerNaMesa(resp.usuario, _donoMesa)) {
+        // Nada é feito no nome dele nesta mesa
+        definirOperador(null)
+        modalAberto.value = false
+        _reject?.(new ErroMesaDeOutro(resp.usuario))
+        _resolve = null
+        _reject  = null
+        return
+      }
       definirOperador(resp.operadorToken)
 
       if (_comConfirmacao) {

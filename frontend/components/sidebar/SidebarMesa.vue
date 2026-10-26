@@ -326,7 +326,7 @@ import ModalRfidAuth from '../modals/ModalRfidAuth.vue'
 import { useApi } from '~/services/api'
 import { enviarImpressao } from '~/lib/qz'
 import { useToastStore } from '~/stores/toast'
-import { useRfidIdentify } from '~/composables/useRfidIdentify'
+import { useRfidIdentify, ErroMesaDeOutro } from '~/composables/useRfidIdentify'
 
 // Valores da comanda sempre no formato da moeda (vírgula decimal, R$)
 const formatoMoeda = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' })
@@ -335,7 +335,6 @@ const moeda = (v: number | string | null | undefined) => formatoMoeda.format(Num
 const props = defineProps({
   modelValue:   Boolean,
   mesa:         { type: Object, default: null },
-  garcomSessao: { type: Object as () => { id: number; nome: string } | null, default: null }
 })
 
 const emit = defineEmits(['update:modelValue', 'abrir-produtos', 'estoque-atualizado', 'mesa-fechada', 'garcom-mismatch'])
@@ -366,29 +365,31 @@ const podeTaxa       = computed(() => authStore.usuario?.cargo === 'administrado
 const garcomRfid       = ref<{ id: number; nome: string } | null>(null)
 const abrindoProdutos  = ref(false)
 
+/**
+ * Cada ação pede o cartão. Garçom só age nas mesas abertas por ele: com o
+ * cartão de outro garçom a ação não acontece e a tela passa a mostrar as
+ * mesas de quem passou o cartão.
+ */
+async function cartaoDaMesa(mensagem: string) {
+  try {
+    const lido = await identificarViaRfid(mensagem, true, { donoMesa: props.mesa?.garcom_id })
+    if (lido) garcomRfid.value = { id: lido.id as any, nome: lido.nome }
+    return lido
+  } catch (e) {
+    if (e instanceof ErroMesaDeOutro) emit('garcom-mismatch', e.usuario)
+    throw e
+  }
+}
+
 async function emitirAbrirProdutosComRfid() {
   if (!caixaAberto.value) { exigirCaixa(); return }
   if (abrindoProdutos.value) return
   abrindoProdutos.value = true
   try {
-    // Usa sessão da página se disponível; senão solicita cartão
-    let garcom: { id: number; nome: string } | null = props.garcomSessao || null
-    if (!garcom) {
-      const lido = await identificarViaRfid('Passe o cartão para identificar o garçom', true)
-      if (lido) garcom = lido
-    }
-
-    if (garcom) {
-      const donoDaMesa = props.mesa?.garcom_id
-      if (donoDaMesa && donoDaMesa !== garcom.id) {
-        emit('garcom-mismatch', garcom)
-        return
-      }
-      garcomRfid.value = { id: garcom.id, nome: garcom.nome }
-    }
+    await cartaoDaMesa('Passe o cartão para lançar produtos')
     emit('abrir-produtos')
   } catch {
-    // cancelado ou cartão inválido
+    // cartão de outro garçom
   } finally {
     abrindoProdutos.value = false
   }
@@ -463,7 +464,7 @@ const restante   = computed(() => Math.max(0, Math.round((totalConta.value - val
 async function alternarTaxa() {
   if (!pedidoId.value || alternandoTaxa.value) return
   try {
-    await identificarViaRfid('Passe o cartão para alterar a taxa de serviço', true)
+    await cartaoDaMesa('Passe o cartão para alterar a taxa de serviço')
   } catch { return }
   alternandoTaxa.value = true
   try {
@@ -489,7 +490,7 @@ function fecharModalAbater() {
 async function confirmarAbater() {
   if (!pedidoId.value || valorAbaterNum.value <= 0 || salvandoAbater.value) return
   try {
-    await identificarViaRfid('Passe o cartão para aplicar o abatimento', true)
+    await cartaoDaMesa('Passe o cartão para aplicar o abatimento')
   } catch { return }
 
   salvandoAbater.value = true
@@ -532,7 +533,7 @@ function fecharModalDesconto() {
 async function confirmarDesconto() {
   if (!pedidoId.value || valorDescontoCalc.value <= 0 || salvandoDesconto.value) return
   try {
-    await identificarViaRfid('Passe o cartão para aplicar o desconto', true)
+    await cartaoDaMesa('Passe o cartão para aplicar o desconto')
   } catch { return }
 
   salvandoDesconto.value = true
@@ -559,7 +560,7 @@ const modalPagamento = ref(false)
 async function abrirPagamentoComRfid() {
   if (!caixaAberto.value) { exigirCaixa(); return }
   try {
-    await identificarViaRfid('Passe o cartão para processar o pagamento', true)
+    await cartaoDaMesa('Passe o cartão para processar o pagamento')
   } catch { return }
   modalPagamento.value = true
 }
@@ -783,8 +784,7 @@ function detach() {
 async function adicionarItem(produto: ProdutoMesa) {
   if (!caixaAberto.value) { exigirCaixa(); return }
   try {
-    const rfid = await identificarViaRfid('Passe o cartão para adicionar item', true)
-    if (rfid) garcomRfid.value = { id: rfid.id, nome: rfid.nome }
+    await cartaoDaMesa('Passe o cartão para adicionar item')
   } catch { return }
 
   const preco = Number(produto.preco_unitario)
@@ -808,8 +808,7 @@ async function adicionarItem(produto: ProdutoMesa) {
 async function removerItem(produto: ProdutoMesa) {
   if (!caixaAberto.value) { exigirCaixa(); return }
   try {
-    const rfid = await identificarViaRfid('Passe o cartão para remover item', true)
-    if (rfid) garcomRfid.value = { id: rfid.id, nome: rfid.nome }
+    await cartaoDaMesa('Passe o cartão para remover item')
   } catch { return }
 
   const preco = Number(produto.preco_unitario)
@@ -836,8 +835,7 @@ async function excluirItem(id: number, silencioso = false) {
   if (!caixaAberto.value) { if (!silencioso) exigirCaixa(); return }
   if (!silencioso) {
     try {
-      const rfid = await identificarViaRfid('Passe o cartão para excluir item', true)
-      if (rfid) garcomRfid.value = { id: rfid.id, nome: rfid.nome }
+      await cartaoDaMesa('Passe o cartão para excluir item')
     } catch { return }
   }
 

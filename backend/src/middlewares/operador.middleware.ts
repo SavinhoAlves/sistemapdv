@@ -30,7 +30,7 @@ export function aplicarOperador(request: FastifyRequest, reply: FastifyReply): b
   const op = verifyOperadorToken(token)
   // 403 (e não 401): 401 derrubaria a sessão do caixa no navegador
   if (!op || op.tid !== auth.tenantId) {
-    reply.status(403).send({ error: 'Cartão expirado. Passe o cartão de novo.' })
+    reply.status(403).send({ error: 'Cartão expirado. Passe o cartão de novo.', codigo: 'CARTAO_EXPIRADO' })
     return false
   }
   request.auth = {

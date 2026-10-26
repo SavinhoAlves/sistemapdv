@@ -20,13 +20,22 @@
             <div class="min-w-0">
               <h1 class="salao__titulo">Mesas</h1>
               <p class="salao__resumo">
-                <span>{{ mesas.length }} {{ mesas.length === 1 ? 'comanda aberta' : 'comandas abertas' }}</span>
-                <span v-if="mesas.length" class="salao__sep" aria-hidden="true">·</span>
-                <span v-if="mesas.length">a receber <strong class="pdv-valor">{{ moeda.format(totalSalao) }}</strong></span>
+                <span>{{ mesasDoOperador.length }} {{ mesasDoOperador.length === 1 ? 'comanda aberta' : 'comandas abertas' }}</span>
+                <span v-if="mesasDoOperador.length" class="salao__sep" aria-hidden="true">·</span>
+                <span v-if="mesasDoOperador.length">a receber <strong class="pdv-valor">{{ moeda.format(totalSalao) }}</strong></span>
               </p>
             </div>
 
             <div class="flex items-center gap-2">
+              <button
+                v-if="rfidAtivo && garcomSessao"
+                class="pdv-botao pdv-botao--neutro"
+                title="Trava a tela para o próximo garçom passar o cartão"
+                @click="travar"
+              >
+                <Lock :size="16" />
+                <span class="max-w-[10rem] truncate">{{ garcomSessao.nome }}</span>
+              </button>
               <div class="salao__alternar" role="group" aria-label="Visualização">
                 <button :class="{ ativo: viewMode === 'grade' }" :aria-pressed="viewMode === 'grade'" title="Grade" @click="viewMode = 'grade'">
                   <LayoutGrid :size="18" />
@@ -44,9 +53,9 @@
           </header>
 
           <!-- FILTRO POR ESTADO (também é a legenda das cores) -->
-          <nav v-if="!loading && mesas.length" class="salao__filtros" aria-label="Filtrar por estado">
+          <nav v-if="!loading && mesasDoOperador.length" class="salao__filtros" aria-label="Filtrar por estado">
             <button :class="{ ativo: filtro === null }" @click="filtro = null">
-              Todas <span class="pdv-valor">{{ mesas.length }}</span>
+              Todas <span class="pdv-valor">{{ mesasDoOperador.length }}</span>
             </button>
             <button
               v-for="k in ordemEstados"
@@ -72,7 +81,7 @@
           </template>
 
           <!-- VAZIO -->
-          <div v-else-if="mesas.length === 0" class="salao__vazio">
+          <div v-else-if="mesasDoOperador.length === 0" class="salao__vazio">
             <span class="salao__vazio-icone"><LayoutGrid :size="28" /></span>
             <h3>Nenhuma mesa aberta</h3>
             <p v-if="caixaAberto">Quando um cliente sentar, inicie a mesa para começar a lançar os pedidos.</p>
@@ -145,7 +154,7 @@
             </button>
           </div>
 
-          <p v-if="!loading && mesas.length && !mesasVisiveis.length" class="salao__nada">
+          <p v-if="!loading && mesasDoOperador.length && !mesasVisiveis.length" class="salao__nada">
             Nenhuma comanda neste estado.
           </p>
         </div>
@@ -167,7 +176,6 @@
       ref="sidebarRef"
       v-model="sidebarMesa"
       :mesa="mesaSelecionada"
-      :garcom-sessao="garcomSessao"
       @abrir-produtos="abrirProdutos"
       @estoque-atualizado="painelRef?.recarregar()"
       @mesa-fechada="onMesaFechada"
@@ -180,12 +188,16 @@
       @mesa-aberta="() => carregarMesas()"
     />
 
+    <!-- Trava do terminal: sem cartão não há mesas na tela -->
     <ModalRfidAuth
       v-model="rfidModal"
       :mensagem="rfidMensagem"
       :erro="erroModal"
+      :carregando-rfid="carregandoRfid"
+      obrigatorio
+      rotulo-sair="Sair das Mesas"
       @auth-success="onRfidSuccess"
-      @cancelar="onRfidCancelar"
+      @sair="router.replace('/')"
     />
 
   </div>
@@ -193,7 +205,8 @@
 
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue'
-import { Plus, LayoutGrid, List } from 'lucide-vue-next'
+import { Plus, LayoutGrid, List, Lock } from 'lucide-vue-next'
+import { useRouter } from 'vue-router'
 import ComandaCard from '~/components/salao/ComandaCard.vue'
 import { chaveEstado, minutosDesde, duracao, ROTULO_ESTADO, type ChaveEstado, type ComandaResumo } from '~/composables/useEstadoComanda'
 
@@ -206,8 +219,7 @@ import PainelProdutos from '~/components/produtos/PainelProdutos.vue'
 import { useApi } from '~/services/api'
 import { useCaixaStore } from '~/stores/caixa'
 import { useToastStore } from '~/stores/toast'
-import { useAuthStore } from '~/stores/auth'
-import { useRfidIdentify } from '~/composables/useRfidIdentify'
+import { useRfidIdentify, podeMexerNaMesa, type UsuarioRfid } from '~/composables/useRfidIdentify'
 import ModalRfidAuth from '~/components/modals/ModalRfidAuth.vue'
 
 definePageMeta({ layout: false })
@@ -221,13 +233,18 @@ type Mesa = ComandaResumo & { nome_mesa: string; garcom_id: string | null }
 const api         = useApi()
 const caixaStore  = useCaixaStore()
 const toastStore  = useToastStore()
-const authStore   = useAuthStore()
-const { modalAberto: rfidModal, mensagemModal: rfidMensagem, erroModal, identificarViaRfid, onRfidSuccess, onRfidCancelar } = useRfidIdentify()
+const router      = useRouter()
+const { rfidAtivo, modalAberto: rfidModal, mensagemModal: rfidMensagem, erroModal, carregandoRfid, identificarViaRfid, onRfidSuccess } = useRfidIdentify()
 const caixaAberto = computed(() => caixaStore.aberto)
 const sidebarRef  = ref()
 const painelRef   = ref()
 
-const garcomSessao = ref<{ id: number; nome: string } | null>(null)
+/**
+ * Com RFID ligado, a tela fica travada até alguém passar o cartão. O garçom
+ * vê só as mesas abertas por ele; administrador e caixa veem todas. Cada ação
+ * dentro da mesa pede o cartão de novo, e ao terminar a tela trava outra vez.
+ */
+const garcomSessao = ref<UsuarioRfid | null>(null)
 
 const loading         = ref(true)
 const mesas           = ref<Mesa[]>([])
@@ -246,15 +263,22 @@ const moeda = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL
 const ordemEstados: ChaveEstado[] = ['pronto', 'enviar', 'cozinha', 'conta', 'atencao', 'parado']
 const filtro = ref<ChaveEstado | null>(null)
 
+const mesasDoOperador = computed(() => {
+  if (!rfidAtivo.value) return mesas.value
+  if (!garcomSessao.value) return []
+  const quem = garcomSessao.value
+  return mesas.value.filter(m => podeMexerNaMesa(quem, m.garcom_id))
+})
+
 const contagem = computed(() => {
   const c: Record<ChaveEstado, number> = { pronto: 0, enviar: 0, cozinha: 0, conta: 0, atencao: 0, parado: 0 }
-  for (const m of mesas.value) c[chaveEstado(m)]++
+  for (const m of mesasDoOperador.value) c[chaveEstado(m)]++
   return c
 })
 const mesasVisiveis = computed(() =>
-  filtro.value ? mesas.value.filter(m => chaveEstado(m) === filtro.value) : mesas.value,
+  filtro.value ? mesasDoOperador.value.filter(m => chaveEstado(m) === filtro.value) : mesasDoOperador.value,
 )
-const totalSalao = computed(() => mesas.value.reduce((s, m) => s + (m.restante ?? m.total ?? 0), 0))
+const totalSalao = computed(() => mesasDoOperador.value.reduce((s, m) => s + (m.restante ?? m.total ?? 0), 0))
 
 // Se o estado filtrado esvaziar (ex.: prato entregue), volta para todas
 watch(contagem, c => { if (filtro.value && !c[filtro.value]) filtro.value = null })
@@ -266,22 +290,38 @@ function novaMesa() {
 
 const abrirProdutos = () => { modoProdutos.value = true }
 
-function onGarcomMismatch(garcom: { id: number; nome: string }) {
-  const mesasDoGarcom = mesas.value.filter(m => m.garcom_id === String(garcom.id))
-  if (mesasDoGarcom.length === 0) {
-    toastStore.warning(`${garcom.nome} não tem mesa aberta. Abra uma mesa primeiro.`)
-    sidebarMesa.value = false
-    return
-  }
-  if (mesasDoGarcom.length === 1) {
-    mesaSelecionada.value = mesasDoGarcom[0]
-    toastStore.success(`Mesa de ${garcom.nome} selecionada.`)
-    modoProdutos.value = true
-  } else {
-    toastStore.info(`${garcom.nome} tem ${mesasDoGarcom.length} mesas abertas. Selecione a correta.`)
-    sidebarMesa.value = false
+// Cartão de outro garçom numa ação da mesa: nada foi feito; a tela passa a
+// mostrar as mesas de quem passou o cartão
+let trocandoGarcom = false
+async function onGarcomMismatch(usuario: UsuarioRfid) {
+  trocandoGarcom = true
+  sidebarMesa.value     = false
+  modoProdutos.value    = false
+  mesaSelecionada.value = undefined
+  garcomSessao.value    = usuario
+  toastStore.warning(`Esta mesa não é de ${usuario.nome}. Mostrando as mesas dele.`)
+  await nextTick()
+  trocandoGarcom = false
+}
+
+async function travar() {
+  garcomSessao.value = null
+  sidebarMesa.value  = false
+  modoProdutos.value = false
+  filtro.value       = null
+  const quem = await identificarViaRfid('Passe o cartão para ver as suas mesas').catch(() => null)
+  if (!quem) return
+  garcomSessao.value = quem
+  if (quem.cargo === 'garcom') {
+    if (loading.value) await new Promise<void>(r => { const stop = watch(loading, v => { if (!v) { stop(); r() } }) })
+    if (mesasDoOperador.value.length === 1) abrirMesa(mesasDoOperador.value[0])
   }
 }
+
+// Terminou na mesa (fechou o painel e o cardápio): trava para o próximo
+watch([sidebarMesa, modoProdutos], ([painel, produtos]) => {
+  if (!painel && !produtos && rfidAtivo.value && garcomSessao.value && !trocandoGarcom) travar()
+})
 
 const produtoSelecionado = async () => {
   if (sidebarMesa.value) sidebarRef.value?.recarregar()
@@ -335,22 +375,7 @@ function onVisibilityChange() {
 
 onMounted(async () => {
   carregarMesas(true)
-
-  try {
-    const garcom = await identificarViaRfid('Passe o cartão para identificar o garçom')
-    if (garcom) {
-      garcomSessao.value = garcom
-      if (authStore.usuario?.cargo === 'garcom') {
-        // Aguarda mesas carregarem se ainda estiver loading
-        await new Promise<void>(r => {
-          if (!loading.value) return r()
-          const stop = watch(loading, v => { if (!v) { stop(); r() } })
-        })
-        const mesasDoGarcom = mesas.value.filter(m => m.garcom_id === String(garcom.id))
-        if (mesasDoGarcom.length === 1) abrirMesa(mesasDoGarcom[0])
-      }
-    }
-  } catch {}
+  travar()
 
   pollingTimer = setInterval(() => { if (!document.hidden) carregarMesas() }, 20000)
   document.addEventListener('visibilitychange', onVisibilityChange)

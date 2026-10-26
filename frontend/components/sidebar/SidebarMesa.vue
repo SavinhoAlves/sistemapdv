@@ -324,6 +324,7 @@ import MenuFlutuanteProduto from '../modals/MenuFlutuanteProduto.vue'
 import ModalPagamento from '../modals/ModalPagamento.vue'
 import ModalRfidAuth from '../modals/ModalRfidAuth.vue'
 import { useApi } from '~/services/api'
+import { enviarImpressao } from '~/lib/qz'
 import { useToastStore } from '~/stores/toast'
 import { useRfidIdentify } from '~/composables/useRfidIdentify'
 
@@ -603,7 +604,7 @@ async function imprimir() {
 
   if (configStore.impressora_auto_imprimir && impressorasStore.impressaoDiretaPara('caixa')) {
     try {
-      await api.post('/impressao/conta', {
+      await enviarImpressao(api, '/impressao/conta', {
         mesa: `Mesa ${mesa?.nome_mesa || mesa?.numero || mesa?.id}`,
         itens: itens.map(p => ({ nome: p.nome, quantidade: p.quantidade, total: p.total })),
         subtotal: total,
@@ -883,7 +884,7 @@ async function handleReimprimir() {
 
   if (configStore.impressora_auto_imprimir && impressorasStore.impressaoDiretaPara('cozinha')) {
     try {
-      await api.post('/impressao/ficha', {
+      await enviarImpressao(api, '/impressao/ficha', {
         itens:   [{ nome: produto.nome, quantidade: produto.quantidade }],
         info:    `${dataStr} · ${mesa?.nome_mesa || `Mesa ${mesa?.numero}`}`,
         codigo:  ref,

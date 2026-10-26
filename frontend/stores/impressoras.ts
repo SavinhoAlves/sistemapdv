@@ -7,7 +7,7 @@ export interface Impressora {
   id: string
   nome: string
   destino: 'caixa' | 'cozinha' | 'bar'
-  tipo: 'navegador' | 'rede' | 'windows'
+  tipo: 'navegador' | 'rede' | 'windows' | 'qz'
   host: string | null
   porta: number
   largura: number

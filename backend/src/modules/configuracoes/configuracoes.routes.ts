@@ -36,7 +36,7 @@ const configBody = z.object({
   impressora_copias: z.number().int().min(1).max(5).optional(),
   impressora_auto_imprimir: z.boolean().optional(),
   // 'usb' é o valor legado no banco; 'windows' é o valor enviado pelo frontend atual
-  impressora_tipo: z.enum(['navegador', 'rede', 'windows', 'usb']).optional(),
+  impressora_tipo: z.enum(['navegador', 'rede', 'windows', 'usb', 'qz']).optional(),
   impressora_host: z.string().trim().max(120).nullable().optional(),
   impressora_porta: z.number().int().min(1).max(65535).optional(),
 

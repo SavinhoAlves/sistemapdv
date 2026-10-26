@@ -245,7 +245,7 @@ function montarCupomTeste(config, logoRaster) {
   c.alinhar(0).separador()
   c.parQuantia('Data', new Date().toLocaleString('pt-BR'))
   c.parQuantia('Largura', `${config.impressora_largura || 80}mm`)
-  c.parQuantia('Conexao', config.impressora_tipo === 'rede'
+  c.parQuantia('Conexao', config.impressora_tipo === 'qz' ? 'USB (QZ Tray)' : config.impressora_tipo === 'rede'
     ? `${config.impressora_host}:${config.impressora_porta || 9100}`
     : String(config.impressora_host || ''))
   c.separador()

@@ -162,6 +162,7 @@ model Tenant {
   clientes             Cliente[]
   enderecosCliente     ClienteEndereco[]
   inscricoesPush       PushInscricao[]
+  biometrias           Biometria[]
   movimentacoesEstoque MovimentacaoEstoque[]
   dispositivos         Dispositivo[]
   licencas             Licenca[]
@@ -251,6 +252,7 @@ model Usuario {
   entregas              PedidoOnline[]      @relation("Entregador")
   posicoes              EntregadorPosicao[]
   inscricoesPush        PushInscricao[]
+  biometrias            Biometria[]
 
   @@unique([tenantId, codigo])
   @@unique([tenantId, email])
@@ -1034,6 +1036,27 @@ model EntregadorPosicao {
 }
 
 /// Notificação push do navegador (app do entregador): uma por aparelho
+/// Face ID / digital do celular (passkey WebAuthn) no lugar do PIN. Só a chave
+/// pública fica aqui: a biometria nunca sai do aparelho.
+model Biometria {
+  id           String    @id @default(uuid())
+  tenantId     String    @map("tenant_id")
+  usuarioId    String    @map("usuario_id")
+  credentialId String    @unique @map("credential_id")
+  chavePublica Bytes     @map("chave_publica")
+  contador     BigInt    @default(0)
+  transportes  String[]
+  aparelho     String?
+  createdAt    DateTime  @default(now()) @map("created_at")
+  usadoEm      DateTime? @map("usado_em")
+
+  tenant  Tenant  @relation(fields: [tenantId], references: [id])
+  usuario Usuario @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, usuarioId])
+  @@map("biometrias")
+}
+
 model PushInscricao {
   id        String   @id @default(uuid())
   tenantId  String   @map("tenant_id")

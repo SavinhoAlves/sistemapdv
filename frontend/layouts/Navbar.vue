@@ -88,6 +88,12 @@
                   {{ themeStore.dark ? 'Modo claro' : 'Modo escuro' }}
                 </button>
 
+                <!-- FACE ID / DIGITAL (celular com biometria, quem confirma por PIN) -->
+                <button v-if="bioDisponivel" @click="alternarBiometria" class="nb__opcao">
+                  <ScanFace :size="14" />
+                  {{ bioNesteAparelho ? 'Desativar Face ID / digital' : 'Ativar Face ID / digital' }}
+                </button>
+
                 <div class="h-px bg-[var(--linha)] my-1" />
 
                 <!-- SAIR -->
@@ -429,8 +435,10 @@ import { totaisDoResumo, vendasDoResumo, porMetodoDoResumo } from '~/lib/caixa'
 import { ref, computed, watch, nextTick, onMounted, onBeforeUnmount } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import {
-  LogOut, UtensilsCrossed, Sun, Moon, ChevronDown, Landmark
+  LogOut, UtensilsCrossed, Sun, Moon, ChevronDown, Landmark, ScanFace
 } from 'lucide-vue-next'
+import { biometriaDoAparelho, biometriaSuportada, lembrarBiometria, marcarRecusa } from '~/lib/biometria'
+import { semLeitorDeCartao } from '~/lib/identificacao'
 
 import { useAuthStore }   from '~/stores/auth'
 import { useToastStore }  from '~/stores/toast'
@@ -503,6 +511,36 @@ onMounted(mostrarAbaAtiva)
 // DROPDOWN PROFILE
 // ======================
 const dropdownAberto = ref(false)
+
+// Face ID / digital: no celular, para quem confirma ações por PIN (garçom usa a própria conta)
+const bioDisponivel    = ref(false)
+const bioNesteAparelho = ref(false)
+watch(() => [authStore.usuario?.id, dropdownAberto.value] as const, async ([id]) => {
+  bioNesteAparelho.value = !!id && !!biometriaDoAparelho(id)
+  bioDisponivel.value = !!id && authStore.usuario?.cargo !== 'garcom' && semLeitorDeCartao() && (await biometriaSuportada())
+}, { immediate: true })
+
+async function alternarBiometria() {
+  const id = authStore.usuario?.id
+  if (!id) return
+  dropdownAberto.value = false
+  const credentialId = biometriaDoAparelho(id)
+  if (credentialId) {
+    try {
+      await $fetch(`${config.public.apiUrl}/api/auth/biometria/remover`, {
+        method: 'POST', body: { credentialId }, headers: authStore.token ? { Authorization: `Bearer ${authStore.token}` } : {},
+      })
+    } catch { /* já não existia no servidor */ }
+    lembrarBiometria(id, null)
+    marcarRecusa(id, true)
+    bioNesteAparelho.value = false
+    toastStore.success('Face ID / digital desativado neste celular')
+  } else {
+    // Ativar exige o PIN: na próxima vez que digitar o PIN, o celular oferece
+    marcarRecusa(id, false)
+    toastStore.success('Na próxima vez que digitar o PIN, o celular oferece ativar o Face ID / digital')
+  }
+}
 const dropdownRef    = ref<HTMLElement | null>(null)
 
 function fecharDropdown(e: MouseEvent) {
@@ -580,7 +618,7 @@ const handleRfidCaixa = async (rfidBuffer: string) => {
     rfidErro.value = 'Cartão não reconhecido'
     return
   }
-  definirOperador(resposta.operadorToken)
+  definirOperador(resposta.operadorToken, resposta.operadorValidadeS)
 
   modalRfid.value = false
 

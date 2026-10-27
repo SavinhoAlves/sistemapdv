@@ -1,7 +1,8 @@
 import type { FastifyInstance } from 'fastify'
 import { loginSchema, loginRfidSchema, refreshSchema } from './auth.schema'
 import * as AuthService from './auth.service'
-import { verifyAccessToken, signOperadorToken, type TenantJwtPayload } from '../../lib/jwt'
+import { verifyAccessToken, verifyOperadorToken, signOperadorToken, OPERADOR_CARTAO_S, OPERADOR_CELULAR_S, type TenantJwtPayload } from '../../lib/jwt'
+import * as Biometria from './biometria.service'
 import { requireTenant } from '../../middlewares/tenant.middleware'
 import { prisma } from '../../lib/prisma'
 import { motivoSemAcessoPeloQr } from '../configuracoes/configuracoes.service'
@@ -127,23 +128,43 @@ export async function authRoutes(app: FastifyInstance) {
   // Exige a sessão do restaurante (antes era pública e revelava as mesas do garçom
   // a quem tivesse um código de cartão) e não cria sessão nova. Devolve o token
   // curto do operador (X-Operador) e as mesas abertas do garçom.
-  // No celular (sem leitor) vem `pin` no lugar do cartão: confere o PIN de quem
-  // está logado e devolve o mesmo que o cartão dele devolveria.
+  // No celular (sem leitor) vem, no lugar do cartão, a confirmação de quem está
+  // logado: `pin`, `biometria` (Face ID / digital) ou `renovar` (liberação de 5 min
+  // ainda válida, renovada a cada uso). Devolve o mesmo que o cartão dele devolveria.
   app.post('/rfid-identify', { preHandler: [requireTenant] }, async (request, reply) => {
     const body = request.body as any
     const cartaoRfid = String(body?.cartaoRfid || body?.rfid || '').trim()
     const pin = typeof body?.pin === 'string' ? body.pin.trim() : ''
-    if (!cartaoRfid && !pin) return reply.status(400).send({ error: 'RFID obrigatório' })
+    const biometria = body?.biometria && typeof body.biometria === 'object' ? body.biometria : null
+    const renovar = typeof body?.renovar === 'string' ? body.renovar : ''
+    if (!cartaoRfid && !pin && !biometria && !renovar) return reply.status(400).send({ error: 'RFID obrigatório' })
     const tenantId = request.tenantId!
     const auth = request.auth as TenantJwtPayload
+    const celular = !!(pin || biometria || renovar)
     try {
-      const usuario = pin
-        ? await AuthService.identificarPin(auth.sub, pin, tenantId)
-        : await AuthService.identificarRfid(cartaoRfid, tenantId)
+      let usuario
+      if (renovar) {
+        // Só a liberação do próprio celular, do mesmo usuário e restaurante, ainda válida
+        const anterior = verifyOperadorToken(renovar)
+        if (!anterior?.cel || anterior.sub !== auth.sub || anterior.tid !== tenantId) {
+          return reply.status(409).send({ error: 'Confirme de novo' })
+        }
+        usuario = await Biometria.usuarioLiberado(auth.sub, tenantId)
+      } else if (biometria) {
+        usuario = await Biometria.identificarBiometria(auth.sub, tenantId, biometria, request.headers.origin)
+      } else if (pin) {
+        usuario = await AuthService.identificarPin(auth.sub, pin, tenantId)
+      } else {
+        usuario = await AuthService.identificarRfid(cartaoRfid, tenantId)
+      }
       // 404 (e não 401): 401 derrubaria a sessão do caixa no navegador
-      if (!usuario) return reply.status(404).send({ error: pin ? 'Usuário não encontrado' : 'Cartão não reconhecido' })
+      if (!usuario) return reply.status(404).send({ error: celular ? 'Usuário não encontrado' : 'Cartão não reconhecido' })
       const data = { usuario }
-      const operadorToken = signOperadorToken({ sub: usuario.id, tid: tenantId, nome: usuario.nome, cargo: usuario.cargo, perfilId: usuario.perfilId, permissoes: usuario.permissoes })
+      const operadorToken = signOperadorToken(
+        { sub: usuario.id, tid: tenantId, nome: usuario.nome, cargo: usuario.cargo, perfilId: usuario.perfilId, permissoes: usuario.permissoes },
+        { celular },
+      )
+      const operadorValidadeS = celular ? OPERADOR_CELULAR_S : OPERADOR_CARTAO_S
 
       const tenant = { id: tenantId }
       let mesas: object[] = []
@@ -168,9 +189,32 @@ export async function authRoutes(app: FastifyInstance) {
         })
       }
 
-      return reply.send({ usuario: data.usuario, mesas, operadorToken })
+      return reply.send({ usuario: data.usuario, mesas, operadorToken, operadorValidadeS })
     } catch (err: any) {
       return reply.status(err.status ?? 400).send({ error: err.message })
     }
   })
+
+  // ── Face ID / digital do celular (passkey), sempre do usuário logado ────────
+  const biometriaRota = (fn: (auth: TenantJwtPayload, tenantId: string, body: any, origin: string | undefined) => Promise<unknown>) =>
+    async (request: any, reply: any) => {
+      try {
+        return reply.send(await fn(request.auth as TenantJwtPayload, request.tenantId!, request.body ?? {}, request.headers.origin))
+      } catch (err: any) {
+        return reply.status(err.status ?? 400).send({ error: err.message })
+      }
+    }
+
+  // Ativar neste celular: exige um PIN certo nos últimos minutos
+  app.post('/biometria/opcoes-cadastro', { preHandler: [requireTenant] }, biometriaRota((auth, tenantId, _b, origin) =>
+    Biometria.opcoesCadastro(auth.sub, tenantId, origin)))
+  app.post('/biometria/cadastrar', { preHandler: [requireTenant] }, biometriaRota((auth, tenantId, body, origin) =>
+    Biometria.cadastrar(auth.sub, tenantId, body.resposta, origin, typeof body.aparelho === 'string' ? body.aparelho : undefined)))
+  // Desafio para confirmar (a resposta vai em /rfid-identify como `biometria`)
+  app.post('/biometria/opcoes', { preHandler: [requireTenant] }, biometriaRota((auth, tenantId, _b, origin) =>
+    Biometria.opcoesEntrada(auth.sub, tenantId, origin)))
+  app.post('/biometria/remover', { preHandler: [requireTenant] }, biometriaRota(async (auth, tenantId, body) => {
+    await Biometria.remover(auth.sub, tenantId, String(body.credentialId ?? ''))
+    return { ok: true }
+  }))
 }

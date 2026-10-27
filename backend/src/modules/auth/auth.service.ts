@@ -1,4 +1,5 @@
 import bcrypt from 'bcryptjs'
+import { marcarPinRecente } from './biometria.service'
 import { prisma } from '../../lib/prisma'
 import { PERMISSOES_CARGO } from '../../middlewares/permission.middleware'
 import {
@@ -218,6 +219,8 @@ export async function identificarPin(usuarioId: string, pin: string, tenantId: s
   }
 
   errosPin.delete(usuarioId)
+  // PIN certo agora: pode ativar o Face ID / digital neste celular
+  marcarPinRecente(usuarioId)
   const { pin: _pin, ...dados } = usuario
   const permissoes = await getPermissoes(usuario.cargo, usuario.perfilId, tenantId)
   return { ...dados, permissoes }

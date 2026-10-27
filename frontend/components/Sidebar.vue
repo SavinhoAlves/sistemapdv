@@ -27,7 +27,7 @@
     </nav>
 
     <!-- RODAPÉ: SAIR -->
-    <div class="p-2 border-t shrink-0" style="border-color: var(--linha)">
+    <div class="p-2 shrink-0">
       <button class="sb__item sb__item--sair" :class="{ aberto: expandida }" title="Sair" @click="authStore.logout()">
         <LogOut :size="18" :stroke-width="2" class="shrink-0" />
         <span class="sb__texto" :class="{ oculto: !expandida }">Sair</span>
@@ -79,7 +79,6 @@ function navegar(rota: string) {
   display: flex; align-items: center; gap: var(--e-3);
   padding: 0 var(--e-3);
   flex-shrink: 0;
-  border-bottom: 1px solid var(--linha);
   color: var(--txt);
   font-weight: 700;
 }

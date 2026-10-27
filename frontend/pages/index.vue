@@ -12,7 +12,15 @@
           {{ saudacao }},
           <span class="text-orange-400">{{ usuarioNome }}</span>
         </h1>
-        <p class="text-sm text-gray-400 dark:text-white/30 mt-1.5 font-medium">Resumo de hoje em tempo real</p>
+        <p class="text-sm text-gray-400 dark:text-white/30 mt-1.5 font-medium">Resumo {{ PERIODOS.find(p => p.valor === periodo)?.frase }}</p>
+      </div>
+      <div class="flex items-center gap-2 flex-wrap justify-end">
+      <!-- Período: muda cards, gráfico, últimos pagamentos e métodos juntos -->
+      <div class="flex rounded-xl border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/[0.04] p-1" role="tablist" aria-label="Período do resumo">
+        <button v-for="p in PERIODOS" :key="p.valor" role="tab" :aria-selected="periodo === p.valor"
+          class="h-7 px-3 rounded-lg text-xs font-black transition-colors"
+          :class="periodo === p.valor ? 'bg-orange-500 text-white' : 'text-gray-500 dark:text-white/45 hover:text-gray-800 dark:hover:text-white/80'"
+          @click="mudarPeriodo(p.valor)">{{ p.rotulo }}</button>
       </div>
       <button
         @click="() => carregar()"
@@ -22,6 +30,7 @@
         <RefreshCw :size="13" :class="carregando ? 'animate-spin' : ''" />
         Atualizar
       </button>
+      </div>
     </div>
 
     <div class="w-full px-4 sm:px-6 lg:px-8 pb-10 space-y-5">
@@ -46,7 +55,7 @@
       </div>
 
       <!-- GRÁFICO -->
-      <GraficoFaturamento :por-hora="stats.porHora" :ultimos7-dias="stats.ultimos7Dias" :carregando="carregando" />
+      <GraficoFaturamento :rotulo="rotuloPeriodo" :por-hora="stats.porHora" :por-dia="stats.porDia" :carregando="carregando" />
 
       <!-- LINHA INFERIOR -->
       <div class="grid grid-cols-1 lg:grid-cols-3 gap-5">
@@ -71,7 +80,7 @@
             <div class="w-12 h-12 rounded-2xl bg-gray-100 dark:bg-white/[0.04] border border-gray-200 dark:border-white/[0.07] flex items-center justify-center mb-3">
               <Receipt :size="20" class="text-gray-300 dark:text-white/15" />
             </div>
-            <p class="text-sm font-bold text-gray-400 dark:text-white/20">Nenhum pagamento registrado hoje</p>
+            <p class="text-sm font-bold text-gray-400 dark:text-white/20">Nenhum pagamento {{ periodo === 'hoje' ? 'registrado hoje' : `em ${rotuloPeriodo.toLowerCase()}` }}</p>
           </div>
 
           <div v-else class="divide-y divide-gray-100 dark:divide-white/[0.04]">
@@ -87,7 +96,7 @@
                 <p class="text-sm font-bold text-gray-800 dark:text-white/85 truncate">
                   {{ pag.nomeMesa || 'Venda direta' }}
                 </p>
-                <p class="text-xs text-gray-400 dark:text-white/30">{{ pag.metodo }} · {{ fmtHora(pag.createdAt) }}</p>
+                <p class="text-xs text-gray-400 dark:text-white/30">{{ pag.metodo }} · {{ periodo === 'hoje' ? fmtHora(pag.createdAt) : fmtDataHora(pag.createdAt) }}</p>
               </div>
               <div class="text-right shrink-0">
                 <p class="text-sm font-black text-gray-900 dark:text-white tabular-nums">R$&nbsp;{{ fmtMoeda(pag.valor) }}</p>
@@ -139,14 +148,14 @@
               <div class="size-8 rounded-xl bg-gradient-to-br from-blue-600 to-blue-900 shadow-sm shadow-blue-900/50 flex items-center justify-center">
                 <CreditCard :size="13" class="text-white" />
               </div>
-              <h2 class="text-sm font-black text-gray-900 dark:text-white">Métodos Hoje</h2>
+              <h2 class="text-sm font-black text-gray-900 dark:text-white">Métodos · {{ rotuloPeriodo }}</h2>
             </div>
 
             <div v-if="carregando" class="space-y-3">
               <div v-for="n in 3" :key="n" class="h-8 bg-gray-100 dark:bg-white/[0.04] animate-pulse rounded-lg"></div>
             </div>
 
-            <p v-else-if="!stats.metodosPie?.length" class="text-xs text-gray-400 dark:text-white/25 font-medium py-2">Sem dados para hoje</p>
+            <p v-else-if="!stats.metodosPie?.length" class="text-xs text-gray-400 dark:text-white/25 font-medium py-2">Sem dados no período</p>
 
             <div v-else class="space-y-4">
               <div v-for="m in stats.metodosPie" :key="m.metodo">
@@ -194,16 +203,33 @@ const socket     = useSocket()
 
 const carregando = ref(true)
 const stats = ref({
-  faturamentoHoje:    0,
-  pagamentosHoje:     0,
+  faturamento:        0,
+  pagamentos:         0,
   mesasAbertas:       0,
-  pedidosHoje:        0,
+  pedidos:            0,
   ticketMedio:        0,
   pagamentosRecentes: [] as any[],
   metodosPie:         [] as any[],
   porHora:            [] as { hora: number; total: number; qtd: number }[],
-  ultimos7Dias:       [] as { dia: string; total: number; qtd: number }[],
+  porDia:             [] as { dia: string; total: number; qtd: number }[],
 })
+
+// Período do resumo (fica salvo no aparelho)
+type Periodo = 'hoje' | 'ontem' | '7d' | '30d'
+const PERIODOS: { valor: Periodo; rotulo: string; frase: string; sufixo: string }[] = [
+  { valor: 'hoje',  rotulo: 'Hoje',    frase: 'de hoje em tempo real', sufixo: 'hoje' },
+  { valor: 'ontem', rotulo: 'Ontem',   frase: 'de ontem',              sufixo: 'ontem' },
+  { valor: '7d',    rotulo: '7 dias',  frase: 'dos últimos 7 dias',    sufixo: 'em 7 dias' },
+  { valor: '30d',   rotulo: '30 dias', frase: 'dos últimos 30 dias',   sufixo: 'em 30 dias' },
+]
+const periodo = ref<Periodo>('hoje')
+const rotuloPeriodo = computed(() => PERIODOS.find(p => p.valor === periodo.value)?.rotulo ?? 'Hoje')
+const sufixo = computed(() => PERIODOS.find(p => p.valor === periodo.value)?.sufixo ?? 'hoje')
+function mudarPeriodo(p: Periodo) {
+  periodo.value = p
+  try { localStorage.setItem('dashboard:periodo', p) } catch {}
+  carregar()
+}
 
 const usuarioNome = computed(() => authStore.usuario?.nome?.split(' ')[0] || 'Operador')
 
@@ -222,9 +248,9 @@ const kpiCards = computed(() => [
   {
     icon: TrendingUp,
     iconBg: 'bg-gradient-to-br from-emerald-600 to-emerald-900 shadow-emerald-900/50',
-    value: `R$ ${fmtMoeda(stats.value.faturamentoHoje)}`,
+    value: `R$ ${fmtMoeda(stats.value.faturamento)}`,
     label: 'Faturamento',
-    sub: `${stats.value.pagamentosHoje ?? 0} pgto${(stats.value.pagamentosHoje ?? 0) !== 1 ? 's' : ''} hoje`,
+    sub: `${stats.value.pagamentos ?? 0} pgto${(stats.value.pagamentos ?? 0) !== 1 ? 's' : ''} ${sufixo.value}`,
   },
   {
     icon: LayoutGrid,
@@ -236,16 +262,16 @@ const kpiCards = computed(() => [
   {
     icon: ClipboardList,
     iconBg: 'bg-gradient-to-br from-blue-600 to-blue-900 shadow-blue-900/50',
-    value: String(stats.value.pedidosHoje ?? 0),
-    label: 'Pedidos hoje',
-    sub: 'comandas no dia',
+    value: String(stats.value.pedidos ?? 0),
+    label: periodo.value === 'hoje' ? 'Pedidos hoje' : 'Pedidos',
+    sub: `comandas pagas ${sufixo.value}`,
   },
   {
     icon: Receipt,
     iconBg: 'bg-gradient-to-br from-violet-600 to-violet-900 shadow-violet-900/50',
     value: `R$ ${fmtMoeda(stats.value.ticketMedio)}`,
     label: 'Ticket médio',
-    sub: 'por pagamento hoje',
+    sub: `por pagamento ${sufixo.value}`,
   },
 ])
 
@@ -293,7 +319,7 @@ function corMetodo(nome: string) {
 async function carregar(mostrarLoading = true) {
   if (mostrarLoading) carregando.value = true
   try {
-    const data = await api.get<typeof stats.value>('/dashboard/stats')
+    const data = await api.get<typeof stats.value>(`/dashboard/stats?periodo=${periodo.value}`)
     stats.value = data
   } catch (e) {
     console.error('Erro ao carregar dashboard:', e)
@@ -313,6 +339,10 @@ onMounted(() => {
   if (!authStore.isAuthenticated) return router.push('/login')
   // Mesma regra do menu (useNavItems) e da API (/dashboard/stats)
   if (!authStore.temPermissao('verDashboard') && !authStore.temPermissao('verRelatorios')) return router.replace('/mesas')
+  try {
+    const salvo = localStorage.getItem('dashboard:periodo') as Periodo | null
+    if (salvo && PERIODOS.some(p => p.valor === salvo)) periodo.value = salvo
+  } catch {}
   carregar()
   pollingTimer = setInterval(() => { if (!document.hidden) carregar(false) }, 30000)
   document.addEventListener('visibilitychange', onVisibilityChange)

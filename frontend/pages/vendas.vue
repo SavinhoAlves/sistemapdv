@@ -37,6 +37,7 @@ import Navbar from '~/layouts/Navbar.vue'
 import Sidebar from '~/components/Sidebar.vue'
 import VendaDireta from '~/components/venda/VendaDireta.vue'
 import ModalRfidAuth from '~/components/modals/ModalRfidAuth.vue'
+import { corpoDaIdentificacao } from '~/lib/identificacao'
 import { useApi } from '~/services/api'
 import { useCaixaStore }   from '~/stores/caixa'
 import { useAuthStore }    from '~/stores/auth'
@@ -69,20 +70,22 @@ async function onRfidSuccess(codigo: string) {
   rfidErro.value = ''
   rfidLendo.value = true
   let usuario: { cargo: string; permissoes: Record<string, boolean> | null } | undefined
+  let erroServidor = ''
   try {
     const resp = await $fetch<{ usuario: typeof usuario }>(
       `${config.public.apiUrl}/api/auth/rfid-identify`,
-      { method: 'POST', body: { rfid: codigo.trim() }, headers: authStore.token ? { Authorization: `Bearer ${authStore.token}` } : {} }
+      { method: 'POST', body: corpoDaIdentificacao(codigo.trim()), headers: authStore.token ? { Authorization: `Bearer ${authStore.token}` } : {} }
     )
     usuario = resp?.usuario
-  } catch {
+  } catch (e: any) {
     usuario = undefined
+    erroServidor = e?.data?.error ?? ''
   } finally {
     rfidLendo.value = false
   }
 
   if (!usuario) {
-    rfidErro.value = 'Cartão não reconhecido. Tente novamente.'
+    rfidErro.value = erroServidor || 'Cartão não reconhecido. Tente novamente.'
     return
   }
 

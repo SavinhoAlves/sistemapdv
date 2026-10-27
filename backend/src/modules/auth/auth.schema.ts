@@ -29,15 +29,9 @@ export const loginRfidSchema = z.object({
   return { cartaoRfid, slug: d.slug }
 })
 
-export const loginPinSchema = z.object({
-  pin: z.string().min(4, 'PIN deve ter pelo menos 4 dígitos'),
-  slug: z.string().min(1, 'Slug do restaurante obrigatório'),
-})
-
 export const refreshSchema = z.object({
   refreshToken: z.string().min(1),
 })
 
 export type LoginInput    = z.infer<typeof loginSchema>
 export type LoginRfidInput = z.infer<typeof loginRfidSchema>
-export type LoginPinInput  = z.infer<typeof loginPinSchema>

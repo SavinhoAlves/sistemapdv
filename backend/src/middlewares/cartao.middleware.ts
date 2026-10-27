@@ -59,12 +59,14 @@ export async function exigirCartao(request: FastifyRequest, reply: FastifyReply)
 /**
  * preHandler (depois de exigirCartao): o cartão de um garçom só vale nas mesas
  * abertas por ele. Administrador e caixa mexem em qualquer mesa.
+ * Com RFID ligado vale também para o garçom logado com a própria conta, sem
+ * cartão (celular): a conta dele faz o papel do cartão.
  */
 export function exigirDonoDaMesa(mesaDaRequisicao: (request: FastifyRequest) => Promise<string | null | undefined>) {
   return async (request: FastifyRequest, reply: FastifyReply) => {
-    if (!request.operadorRfid) return
     const auth = request.auth as TenantJwtPayload
-    if (auth.cargo !== 'garcom') return
+    if (!auth || auth.type !== 'tenant' || auth.cargo !== 'garcom') return
+    if (!request.operadorRfid && !(await rfidAtivoNoTenant(auth.tenantId))) return
 
     const mesaId = await mesaDaRequisicao(request)
     if (!mesaId) return

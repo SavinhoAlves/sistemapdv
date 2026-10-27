@@ -1,7 +1,7 @@
 import type { FastifyInstance } from 'fastify'
-import { loginSchema, loginRfidSchema, loginPinSchema, refreshSchema } from './auth.schema'
+import { loginSchema, loginRfidSchema, refreshSchema } from './auth.schema'
 import * as AuthService from './auth.service'
-import { verifyAccessToken, signOperadorToken } from '../../lib/jwt'
+import { verifyAccessToken, signOperadorToken, type TenantJwtPayload } from '../../lib/jwt'
 import { requireTenant } from '../../middlewares/tenant.middleware'
 import { prisma } from '../../lib/prisma'
 import { motivoSemAcessoPeloQr } from '../configuracoes/configuracoes.service'
@@ -48,18 +48,11 @@ export async function authRoutes(app: FastifyInstance) {
     }
   })
 
-  // POST /api/auth/pin
-  app.post('/pin', { config: { public: true } }, async (request, reply) => {
-    const result = loginPinSchema.safeParse(request.body)
-    if (!result.success) {
-      return reply.status(400).send({ error: result.error.errors[0].message })
-    }
-    try {
-      const data = await AuthService.loginComPin(result.data.pin, result.data.slug)
-      return reply.send(data)
-    } catch (err: any) {
-      return reply.status(401).send({ error: err.message })
-    }
+  // POST /api/auth/pin — desativado. Entrava só com PIN + restaurante, sem
+  // senha; com o PIN do celular (4 a 6 dígitos) cadastrado, isso abriria uma
+  // sessão de administrador para quem chutasse números. Nenhuma tela usava.
+  app.post('/pin', { config: { public: true } }, async (_request, reply) => {
+    return reply.status(410).send({ error: 'Entrada só com PIN foi desativada. Use usuário e senha, código ou QR' })
   })
 
   // POST /api/auth/refresh
@@ -134,15 +127,21 @@ export async function authRoutes(app: FastifyInstance) {
   // Exige a sessão do restaurante (antes era pública e revelava as mesas do garçom
   // a quem tivesse um código de cartão) e não cria sessão nova. Devolve o token
   // curto do operador (X-Operador) e as mesas abertas do garçom.
+  // No celular (sem leitor) vem `pin` no lugar do cartão: confere o PIN de quem
+  // está logado e devolve o mesmo que o cartão dele devolveria.
   app.post('/rfid-identify', { preHandler: [requireTenant] }, async (request, reply) => {
     const body = request.body as any
     const cartaoRfid = String(body?.cartaoRfid || body?.rfid || '').trim()
-    if (!cartaoRfid) return reply.status(400).send({ error: 'RFID obrigatório' })
+    const pin = typeof body?.pin === 'string' ? body.pin.trim() : ''
+    if (!cartaoRfid && !pin) return reply.status(400).send({ error: 'RFID obrigatório' })
     const tenantId = request.tenantId!
+    const auth = request.auth as TenantJwtPayload
     try {
-      const usuario = await AuthService.identificarRfid(cartaoRfid, tenantId)
+      const usuario = pin
+        ? await AuthService.identificarPin(auth.sub, pin, tenantId)
+        : await AuthService.identificarRfid(cartaoRfid, tenantId)
       // 404 (e não 401): 401 derrubaria a sessão do caixa no navegador
-      if (!usuario) return reply.status(404).send({ error: 'Cartão não reconhecido' })
+      if (!usuario) return reply.status(404).send({ error: pin ? 'Usuário não encontrado' : 'Cartão não reconhecido' })
       const data = { usuario }
       const operadorToken = signOperadorToken({ sub: usuario.id, tid: tenantId, nome: usuario.nome, cargo: usuario.cargo, perfilId: usuario.perfilId, permissoes: usuario.permissoes })
 
@@ -171,7 +170,7 @@ export async function authRoutes(app: FastifyInstance) {
 
       return reply.send({ usuario: data.usuario, mesas, operadorToken })
     } catch (err: any) {
-      return reply.status(400).send({ error: err.message })
+      return reply.status(err.status ?? 400).send({ error: err.message })
     }
   })
 }

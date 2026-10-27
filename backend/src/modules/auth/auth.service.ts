@@ -183,62 +183,44 @@ export async function identificarRfid(cartaoRfid: string, tenantId: string) {
   return { ...usuario, permissoes }
 }
 
-export async function loginComPin(pin: string, slug: string) {
-  const tenant = await prisma.tenant.findUnique({ where: { slug } })
-  if (!tenant || tenant.status !== 'ativo') {
-    throw new Error('Restaurante não encontrado ou suspenso')
+/**
+ * PIN no lugar do cartão, no celular (sem leitor). Confere o PIN de quem está
+ * logado — não identifica outra pessoa — e devolve o mesmo que o cartão.
+ * Cinco erros seguidos travam o PIN daquele usuário por 5 minutos.
+ */
+const PIN_MAX_ERROS = 5
+const PIN_BLOQUEIO_MS = 5 * 60_000
+const errosPin = new Map<string, { erros: number; ate: number }>()
+
+export async function identificarPin(usuarioId: string, pin: string, tenantId: string) {
+  const agora = Date.now()
+  const reg = errosPin.get(usuarioId)
+  if (reg && reg.ate > agora) {
+    const min = Math.ceil((reg.ate - agora) / 60_000)
+    throw Object.assign(new Error(`PIN bloqueado por erros seguidos. Tente de novo em ${min} min`), { status: 429 })
   }
 
-  const usuarios = await prisma.usuario.findMany({
-    where: { tenantId: tenant.id, ativo: true, pin: { not: null } },
+  const usuario = await prisma.usuario.findFirst({
+    where: { id: usuarioId, tenantId, ativo: true },
+    select: { id: true, nome: true, cargo: true, perfilId: true, pin: true },
   })
-
-  let usuarioEncontrado = null
-  for (const u of usuarios) {
-    if (u.pin) {
-      const pinValido = await bcrypt.compare(pin, u.pin)
-      if (pinValido) { usuarioEncontrado = u; break }
-    }
+  if (!usuario) return null
+  if (!usuario.pin) {
+    throw Object.assign(new Error('Você ainda não tem PIN. Peça ao administrador para cadastrar em Admin › Funcionários'), { status: 409 })
   }
 
-  if (!usuarioEncontrado) throw new Error('PIN inválido')
-
-  const permissoes = await getPermissoes(
-    usuarioEncontrado.cargo,
-    usuarioEncontrado.perfilId,
-    tenant.id
-  )
-  const accessToken = signAccessToken({
-    type: 'tenant',
-    sub: usuarioEncontrado.id,
-    nome: usuarioEncontrado.nome,
-    tenantId: tenant.id,
-    slug: tenant.slug,
-    cargo: usuarioEncontrado.cargo,
-    perfilId: usuarioEncontrado.perfilId,
-    permissoes,
-  })
-
-  const refreshRaw = generateRefreshToken()
-  await prisma.refreshToken.create({
-    data: {
-      usuarioId: usuarioEncontrado.id,
-      tokenHash: hashRefreshToken(refreshRaw),
-      expiresAt: refreshTokenExpiry(),
-    },
-  })
-
-  return {
-    accessToken,
-    refreshToken: refreshRaw,
-    usuario: {
-      id: usuarioEncontrado.id,
-      nome: usuarioEncontrado.nome,
-      cargo: usuarioEncontrado.cargo,
-      perfilId: usuarioEncontrado.perfilId,
-      permissoes,
-    },
+  if (!/^\d{4,6}$/.test(pin) || !(await bcrypt.compare(pin, usuario.pin))) {
+    // Bloqueio vencido zera a contagem
+    const erros = (reg && reg.ate === 0 ? reg.erros : 0) + 1
+    errosPin.set(usuarioId, { erros, ate: erros >= PIN_MAX_ERROS ? agora + PIN_BLOQUEIO_MS : 0 })
+    const resta = PIN_MAX_ERROS - erros
+    throw Object.assign(new Error(resta > 0 ? `PIN incorreto. ${resta} ${resta === 1 ? 'tentativa' : 'tentativas'} antes de bloquear` : 'PIN bloqueado por 5 min'), { status: resta > 0 ? 400 : 429 })
   }
+
+  errosPin.delete(usuarioId)
+  const { pin: _pin, ...dados } = usuario
+  const permissoes = await getPermissoes(usuario.cargo, usuario.perfilId, tenantId)
+  return { ...dados, permissoes }
 }
 
 export async function refreshAccessToken(refreshTokenRaw: string) {

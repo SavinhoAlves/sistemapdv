@@ -156,6 +156,7 @@ model Tenant {
   auditoria            Auditoria[]
   configuracoes        Configuracoes?
   impressoras          Impressora[]
+  terminais            Terminal[]
   pedidosOnline        PedidoOnline[]
   posicoesEntregador   EntregadorPosicao[]
   clientes             Cliente[]
@@ -616,6 +617,8 @@ model Configuracoes {
   deliveryLat            Float?  @map("delivery_lat")
   deliveryLng            Float?  @map("delivery_lng")
   /// Pix com QR Code (estático): chave, nome do recebedor e cidade como aparecem no app do banco
+  /// Modo local: IP fixo deste computador (Host) na rede dos terminais
+  hostIp                 String? @map("host_ip")
   pixChave               String? @map("pix_chave")
   pixNome                String? @map("pix_nome")
   pixCidade              String? @map("pix_cidade")
@@ -626,6 +629,26 @@ model Configuracoes {
   tenant Tenant @relation(fields: [tenantId], references: [id])
 
   @@map("configuracoes")
+}
+
+// ── Terminais (modo local / Host) ──────────────────────────────────────────────
+/// Computadores e celulares da rede do restaurante, por IP fixo. No modo local,
+/// só esses IPs (e o próprio Host) acessam o sistema.
+model Terminal {
+  id        String   @id @default(uuid())
+  tenantId  String   @map("tenant_id")
+  nome      String
+  ip        String
+  /// caixa | garcom | cozinha | app
+  funcao    String
+  ativo     Boolean  @default(true)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+
+  @@unique([tenantId, ip])
+  @@map("terminais")
 }
 
 // ── Impressoras ────────────────────────────────────────────────────────────────

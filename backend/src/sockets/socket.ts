@@ -1,4 +1,5 @@
 import { Server } from 'socket.io'
+import { bloqueioPara } from '../lib/redeLocal'
 import type { FastifyInstance } from 'fastify'
 import { verifyAccessToken } from '../lib/jwt'
 import { verificarAcessoTenant } from '../middlewares/tenant.middleware'
@@ -43,6 +44,12 @@ export function initSocket(app: FastifyInstance): Server {
     },
     pingTimeout: 60_000,
     pingInterval: 25_000,
+  })
+
+  // Modo local: só o Host e os terminais cadastrados
+  io.use((socket, next) => {
+    const motivo = bloqueioPara(socket.handshake.address)
+    return motivo ? next(new Error(motivo)) : next()
   })
 
   io.use(async (socket, next) => {

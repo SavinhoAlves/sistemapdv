@@ -71,6 +71,9 @@
       </div>
 
       <!-- ══ CARGOS E PERMISSÕES ══ -->
+      <!-- ══ TERMINAIS (modo local / Host) ══ -->
+      <AdminTerminais v-else-if="abaAtiva === 'terminais'" />
+
       <AdminCargos v-else-if="abaAtiva === 'cargos'" :funcionarios="funcionarios" :perfis="perfis" :padroes="padroes" @recarregar="recarregarEquipe" />
 
       <!-- ══ MÉTODOS ════════════════════════════════════════════ -->
@@ -203,11 +206,12 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue'
-import { Users, Tag, CreditCard, Plus, Pencil, Trash2, ChefHat, ShieldCheck, X } from 'lucide-vue-next'
+import { ref, reactive, computed, onMounted } from 'vue'
+import { Users, Tag, CreditCard, Plus, Pencil, Trash2, ChefHat, ShieldCheck, X, Monitor } from 'lucide-vue-next'
 import AdminFuncionarios from '~/components/admin/AdminFuncionarios.vue'
 import AdminCargos from '~/components/admin/AdminCargos.vue'
 import AdminPix from '~/components/admin/AdminPix.vue'
+import AdminTerminais from '~/components/admin/AdminTerminais.vue'
 import QrAcessoCelular from '~/components/QrAcessoCelular.vue'
 import Navbar from '~/layouts/Navbar.vue'
 import Sidebar from '~/components/Sidebar.vue'
@@ -219,12 +223,15 @@ definePageMeta({ layout: false })
 const api        = useApi()
 const toastStore = useToastStore()
 
-const tabs = [
+const tabsBase = [
   { id: 'funcionarios', label: 'Funcionários', icon: Users },
   { id: 'cargos',       label: 'Cargos e permissões', icon: ShieldCheck },
   { id: 'categorias',   label: 'Categorias',   icon: Tag },
   { id: 'metodos',      label: 'Métodos',       icon: CreditCard }
 ]
+// Aba Terminais só existe com o sistema rodando no Host (modo local)
+const modoLocal = ref(false)
+const tabs = computed(() => modoLocal.value ? [...tabsBase, { id: 'terminais', label: 'Terminais', icon: Monitor }] : tabsBase)
 const abaAtiva = ref('funcionarios')
 
 // ── Equipe: funcionários, perfis e o padrão de cada função ──
@@ -332,6 +339,7 @@ const qrFuncionario = ref<any>(null)
 function gerarQrMobile(f: any) { qrFuncionario.value = f }
 
 onMounted(async () => {
+  api.get<{ modoLocal: boolean }>('/terminais/rede').then(r => { modoLocal.value = !!r?.modoLocal }).catch(() => {})
   recarregarEquipe()
   carregarCategorias()
   try { padroes.value = await api.get('/perfis/funcoes') } catch {}

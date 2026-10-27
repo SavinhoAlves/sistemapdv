@@ -30,7 +30,7 @@
         <p class="text-xs text-gray-400 dark:text-white/40 mt-1">{{ funcionarios.length ? 'Ajuste a busca ou a função.' : 'Cadastre quem vai usar o sistema e escolha a função de cada um.' }}</p>
       </div>
       <div v-else class="overflow-x-auto">
-        <table class="w-full text-sm min-w-[720px]">
+        <table class="w-full text-sm min-w-[800px]">
           <thead class="bg-gray-50 dark:bg-white/[0.03]">
             <tr class="text-[10px] font-black uppercase tracking-widest text-gray-500 dark:text-white/40">
               <th class="px-5 py-3 text-left">Funcionário</th>
@@ -38,6 +38,7 @@
               <th class="px-4 py-3 text-left">Entra com</th>
               <th class="px-4 py-3 text-left">Último acesso</th>
               <th class="px-4 py-3 text-center">Ativo</th>
+              <th class="px-4 py-3 text-center">QR celular</th>
               <th class="px-5 py-3 text-right">Ações</th>
             </tr>
           </thead>
@@ -71,11 +72,12 @@
                   <span class="absolute top-0.5 size-4 rounded-full bg-white shadow transition-all" :class="f.ativo ? 'left-[22px]' : 'left-0.5'" />
                 </button>
               </td>
-              <td class="px-5 py-3">
-                <div class="flex items-center justify-end gap-1">
-                  <button v-if="f.cargo !== 'administrador' && f.ativo" class="adm-icone" title="QR de acesso pelo celular" :aria-label="`QR de acesso de ${f.nome}`" @click="emit('qr', f)"><QrCode :size="14" /></button>
-                  <button class="h-8 px-3 rounded-lg text-xs font-black text-gray-600 dark:text-white/60 hover:bg-gray-100 dark:hover:bg-white/[0.06]" @click="abrir(f)">Editar</button>
-                </div>
+              <td class="px-4 py-3 text-center">
+                <button v-if="f.cargo !== 'administrador' && f.ativo" class="adm-icone mx-auto" title="QR de acesso pelo celular" :aria-label="`QR de acesso de ${f.nome}`" @click="emit('qr', f)"><QrCode :size="14" /></button>
+                <span v-else class="text-gray-300 dark:text-white/20" :title="f.ativo ? 'O administrador entra pelo login' : 'Funcionário inativo'">—</span>
+              </td>
+              <td class="px-5 py-3 text-right">
+                <button class="h-8 px-3 rounded-lg text-xs font-black text-gray-600 dark:text-white/60 hover:bg-gray-100 dark:hover:bg-white/[0.06]" @click="abrir(f)">Editar</button>
               </td>
             </tr>
           </tbody>

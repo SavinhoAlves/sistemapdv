@@ -25,12 +25,14 @@ export async function terminaisRoutes(app: FastifyInstance) {
 
   // Situação da rede local (aberta a qualquer terminal autorizado: diz se é modo local)
   app.get('/rede', { config: { public: true } }, async (request) => {
+    // Na nuvem não há rede local: nada além disso (antes saíam os IPs do servidor)
+    if (!modoLocal()) return { modoLocal: false }
     const e = estadoRede()
     const ip = normalizarIp(request.ip)
     // IPs e motivo só para o próprio Host (quem configura)
-    return ehOProprioHost(ip) || !e.modoLocal
-      ? { ...e, noHost: ehOProprioHost(ip), meuIp: ip }
-      : { modoLocal: e.modoLocal, bloqueado: e.bloqueado, noHost: false, meuIp: ip }
+    return ehOProprioHost(ip)
+      ? { ...e, noHost: true, meuIp: ip }
+      : { modoLocal: true, bloqueado: e.bloqueado, noHost: false, meuIp: ip }
   })
 
   // Qual terminal sou eu (pelo IP): o frontend abre na tela da função

@@ -57,6 +57,7 @@ const MODELOS_COM_TENANT = new Set([
   'pedidoOnline',
   'entregadorPosicao',
   'pushInscricao',
+  'biometria',
   'cliente',
   'clienteEndereco',
 ])

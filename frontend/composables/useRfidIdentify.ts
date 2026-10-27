@@ -3,7 +3,7 @@ import { useConfigStore } from '~/stores/configuracoes'
 import { useRuntimeConfig } from '#imports'
 import { useAuthStore } from '~/stores/auth'
 import { definirOperador, limparOperador } from '~/lib/operador'
-import { semLeitorDeCartao, corpoDaIdentificacao, PREFIXO_PIN } from '~/lib/identificacao'
+import { semLeitorDeCartao, corpoDaIdentificacao, viaCelular } from '~/lib/identificacao'
 
 export interface UsuarioRfid {
   id: string
@@ -101,7 +101,7 @@ export function useRfidIdentify() {
     carregandoRfid.value = true
     try {
       // Com a sessão do caixa; devolve o token curto do dono do cartão (X-Operador)
-      const resp = await $fetch<{ usuario: UsuarioRfid; mesas: MesaVinculada[]; operadorToken?: string }>(
+      const resp = await $fetch<{ usuario: UsuarioRfid; mesas: MesaVinculada[]; operadorToken?: string; operadorValidadeS?: number }>(
         `${config.public.apiUrl}/api/auth/rfid-identify`,
         { method: 'POST', body: corpoDaIdentificacao(codigo), headers: authStore.token ? { Authorization: `Bearer ${authStore.token}` } : {} }
       )
@@ -114,10 +114,10 @@ export function useRfidIdentify() {
         _reject  = null
         return
       }
-      definirOperador(resp.operadorToken)
+      definirOperador(resp.operadorToken, resp.operadorValidadeS)
 
-      // Com PIN a pessoa acabou de se identificar: não pede confirmação
-      if (_comConfirmacao && !codigo.startsWith(PREFIXO_PIN)) {
+      // No celular (PIN, Face ID / digital ou liberação ativa) a pessoa é a própria conta: não pede confirmação
+      if (_comConfirmacao && !viaCelular(codigo)) {
         // Fase 2: exibe garçom + vendas e aguarda confirmação manual
         identificado.value = resp
       } else {

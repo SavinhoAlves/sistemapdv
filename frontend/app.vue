@@ -100,6 +100,7 @@
   </Transition>
   <UiToastContainer />
   <CartaoGlobal />
+  <OfertaBiometria />
 </template>
 
 <script setup lang="ts">

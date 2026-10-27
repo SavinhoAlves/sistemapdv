@@ -87,10 +87,20 @@ const OPERADOR_SECRET = crypto.createHmac('sha256', ACCESS_SECRET).update('opera
 export interface OperadorJwtPayload {
   tipo: 'operador'; sub: string; tid: string; nome: string; cargo: string
   perfilId: string | null; permissoes: Record<string, boolean>
+  /** Liberado no celular (PIN ou Face ID/digital do próprio usuário logado) */
+  cel?: boolean
 }
 
-export function signOperadorToken(p: Omit<OperadorJwtPayload, 'tipo'>): string {
-  return jwt.sign({ tipo: 'operador', ...p } satisfies OperadorJwtPayload, OPERADOR_SECRET, { expiresIn: '2m' })
+/**
+ * Celular é pessoal: a liberação por PIN/biometria vale 5 minutos e é renovada a
+ * cada uso (POST /auth/rfid-identify com `renovar`). O cartão segue com 2 minutos.
+ */
+export const OPERADOR_CELULAR_S = 5 * 60
+export const OPERADOR_CARTAO_S = 2 * 60
+
+export function signOperadorToken(p: Omit<OperadorJwtPayload, 'tipo' | 'cel'>, opcoes: { celular?: boolean } = {}): string {
+  const payload: OperadorJwtPayload = { tipo: 'operador', ...p, ...(opcoes.celular ? { cel: true } : {}) }
+  return jwt.sign(payload, OPERADOR_SECRET, { expiresIn: opcoes.celular ? OPERADOR_CELULAR_S : OPERADOR_CARTAO_S })
 }
 
 export function verifyOperadorToken(token: string): OperadorJwtPayload | null {

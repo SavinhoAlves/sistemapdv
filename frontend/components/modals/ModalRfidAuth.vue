@@ -19,7 +19,7 @@
 
             <!-- TÍTULO -->
             <h2 class="text-2xl font-black text-gray-900 dark:text-white uppercase tracking-tight">
-              {{ modoPin ? 'Seu PIN' : 'Leitura RFID' }}
+              {{ modoPin ? (telaBio ? 'Confirme' : 'Seu PIN') : 'Leitura RFID' }}
             </h2>
 
             <!-- MENSAGEM -->
@@ -27,8 +27,23 @@
               {{ mensagemExibida }}
             </p>
 
+            <!-- Face ID / digital (celular que ativou): um toque e pronto -->
+            <div v-if="modoPin && telaBio" class="mt-6 flex flex-col items-center gap-3">
+              <button
+                type="button"
+                class="size-24 rounded-full bg-orange-500/10 border border-orange-500/30 text-orange-500 flex items-center justify-center transition-transform active:scale-95 disabled:opacity-50"
+                :disabled="bioCarregando || carregandoRfid"
+                aria-label="Confirmar com Face ID ou digital"
+                @click="tentarBio"
+              >
+                <ScanFace :size="44" :stroke-width="1.6" />
+              </button>
+              <span class="text-xs font-bold text-gray-500 dark:text-white/50">Toque para usar Face ID / digital</span>
+              <button type="button" class="text-xs font-black uppercase tracking-widest text-orange-500" @click="usarPin">Usar PIN</button>
+            </div>
+
             <!-- PIN (celular, sem leitor de cartão) -->
-            <div v-if="modoPin" class="mt-5">
+            <div v-else-if="modoPin && !renovando" class="mt-5">
               <div class="flex justify-center gap-2.5" :aria-label="`${pin.length} de ${PIN_MAX} dígitos`">
                 <span
                   v-for="i in PIN_MAX" :key="i"
@@ -53,17 +68,20 @@
                   <template v-else>{{ t === 'ok' ? 'OK' : t }}</template>
                 </button>
               </div>
+              <button v-if="bioAtiva" type="button" class="mt-4 inline-flex items-center gap-1.5 text-xs font-black uppercase tracking-widest text-orange-500" @click="tentarBio">
+                <ScanFace :size="15" /> Usar Face ID / digital
+              </button>
             </div>
 
             <!-- CARREGANDO -->
-            <div v-if="carregandoRfid" class="mt-6 flex items-center justify-center gap-3">
+            <div v-if="carregandoRfid || bioCarregando" class="mt-6 flex items-center justify-center gap-3">
               <span class="w-3 h-3 rounded-full bg-blue-500 animate-pulse"></span>
               <span class="text-xs uppercase tracking-[0.25em] font-black text-blue-400">Identificando...</span>
             </div>
 
             <!-- ERRO -->
-            <div v-else-if="erro" class="mt-5 px-4 py-2.5 bg-red-500/10 border border-red-500/20 rounded-2xl">
-              <p class="text-sm font-bold text-red-400">{{ erro }}</p>
+            <div v-else-if="erroExibido" class="mt-5 px-4 py-2.5 bg-red-500/10 border border-red-500/20 rounded-2xl">
+              <p class="text-sm font-bold text-red-400">{{ erroExibido }}</p>
             </div>
 
             <!-- STATUS PADRÃO -->
@@ -175,9 +193,16 @@
 <script setup lang="ts">
 import { reais } from '~/lib/moeda'
 import { ref, computed, watch, onBeforeUnmount } from 'vue'
-import { CreditCard, CheckCircle2, ArrowRight, Delete } from 'lucide-vue-next'
+import { CreditCard, CheckCircle2, ArrowRight, Delete, ScanFace } from 'lucide-vue-next'
 import type { RfidIdentificado } from '~/composables/useRfidIdentify'
-import { semLeitorDeCartao, PREFIXO_PIN } from '~/lib/identificacao'
+import { semLeitorDeCartao, PREFIXO_PIN, PREFIXO_BIO, PREFIXO_RENOVAR } from '~/lib/identificacao'
+import { liberacaoDoCelular } from '~/lib/operador'
+import {
+  biometriaDoAparelho, biometriaSuportada, lembrarBiometria, mensagemDoErro,
+  ofertaBiometria, recusouBiometria, usarBiometria,
+} from '~/lib/biometria'
+import { useAuthStore } from '~/stores/auth'
+import { useRuntimeConfig } from '#imports'
 
 const props = defineProps<{
   modelValue: boolean
@@ -240,13 +265,90 @@ const PIN_MAX = 6
 const TECLAS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', 'apagar', '0', 'ok'] as const
 const pin = ref('')
 
-// "Passe o cartão para X" vira "Digite seu PIN para X"
+// "Passe o cartão para X" vira "Digite seu PIN para X" (ou "Use o Face ID / digital para X")
 const mensagemExibida = computed(() => {
   const m = props.mensagem ?? ''
   if (!modoPin) return m
-  const trocada = m.replace(/^(passe|aproxime) o cart[ãa]o.*?(?= para )/i, 'Digite seu PIN')
-  return trocada === m ? 'Digite seu PIN para continuar' : trocada
+  const acao = telaBio.value ? 'Use o Face ID / digital' : 'Digite seu PIN'
+  const trocada = m.replace(/^(passe|aproxime) o cart[ãa]o.*?(?= para )/i, acao)
+  return trocada === m ? `${acao} para continuar` : trocada
 })
+
+// ─── Face ID / digital e liberação de 5 minutos (celular) ─────
+// Ordem ao abrir: liberação ainda válida (renova sem pedir nada) → Face ID /
+// digital, se este celular ativou → PIN.
+const authStore = useAuthStore()
+const config = useRuntimeConfig()
+const bioAtiva = ref(false)
+const mostrarTeclado = ref(true)
+const bioCarregando = ref(false)
+const bioErro = ref('')
+const ultimo = ref<'pin' | 'bio' | 'renovar' | null>(null)
+const renovando = computed(() => ultimo.value === 'renovar' && !props.erro)
+const telaBio = computed(() => bioAtiva.value && !mostrarTeclado.value && !renovando.value)
+// Renovação recusada (passou dos 5 min) não é erro para quem usa: só pede de novo
+const erroExibido = computed(() => (ultimo.value === 'renovar' ? '' : props.erro) || bioErro.value)
+
+async function prepararCelular() {
+  bioErro.value = ''
+  const lib = liberacaoDoCelular()
+  if (lib) {
+    ultimo.value = 'renovar'
+    emit('auth-success', PREFIXO_RENOVAR + lib)
+    return
+  }
+  ultimo.value = null
+  const id = authStore.usuario?.id
+  bioAtiva.value = !!id && !!biometriaDoAparelho(id) && (await biometriaSuportada())
+  mostrarTeclado.value = !bioAtiva.value
+  if (bioAtiva.value) void tentarBio()
+}
+
+async function tentarBio() {
+  if (bioCarregando.value || props.carregandoRfid) return
+  mostrarTeclado.value = false
+  bioErro.value = ''
+  bioCarregando.value = true
+  try {
+    const opcoes = await $fetch(`${config.public.apiUrl}/api/auth/biometria/opcoes`, {
+      method: 'POST', body: {}, headers: authStore.token ? { Authorization: `Bearer ${authStore.token}` } : {},
+    })
+    const resposta = await usarBiometria(opcoes)
+    ultimo.value = 'bio'
+    emit('auth-success', PREFIXO_BIO + JSON.stringify(resposta))
+  } catch (e: any) {
+    // Desativado no servidor (ou em outro aparelho): volta para o PIN
+    if (e?.status === 404 || e?.statusCode === 404) {
+      if (authStore.usuario?.id) lembrarBiometria(authStore.usuario.id, null)
+      bioAtiva.value = false
+      mostrarTeclado.value = true
+    }
+    bioErro.value = mensagemDoErro(e)
+  } finally {
+    bioCarregando.value = false
+  }
+}
+
+function usarPin() {
+  bioErro.value = ''
+  mostrarTeclado.value = true
+}
+
+// Renovação recusada: segue para o Face ID / digital ou o PIN
+watch(() => props.erro, (e) => {
+  if (e && ultimo.value === 'renovar') {
+    ultimo.value = null
+    void prepararCelular()
+  }
+})
+
+/** Fechou depois de um PIN certo: oferece ativar o Face ID / digital neste celular */
+async function talvezOferecerBiometria() {
+  const id = authStore.usuario?.id
+  if (ultimo.value !== 'pin' || props.erro || !id) return
+  if (biometriaDoAparelho(id) || recusouBiometria(id)) return
+  if (await biometriaSuportada()) ofertaBiometria.value = true
+}
 
 function tecla(t: typeof TECLAS[number]) {
   if (props.carregandoRfid) return
@@ -257,6 +359,8 @@ function tecla(t: typeof TECLAS[number]) {
 
 function enviarPin() {
   if (pin.value.length < PIN_MIN) return
+  ultimo.value = 'pin'
+  bioErro.value = ''
   emit('auth-success', PREFIXO_PIN + pin.value)
 }
 
@@ -284,6 +388,7 @@ const handleKeydown = (event: KeyboardEvent) => {
 
   // Celular com teclado físico ou numérico: as teclas vão para o PIN
   if (modoPin) {
+    if (!mostrarTeclado.value) return
     if (event.key === 'Backspace') { event.preventDefault(); tecla('apagar') }
     else if (event.key === 'Enter') enviarPin()
     else if (/^\d$/.test(event.key)) tecla(event.key as typeof TECLAS[number])
@@ -343,7 +448,19 @@ const confirmar = () => {
 
 watch(
   () => props.modelValue,
-  (aberto) => { aberto ? iniciarLeitura() : pararLeitura() },
+  (aberto) => {
+    if (aberto) {
+      iniciarLeitura()
+      if (modoPin) void prepararCelular()
+    } else {
+      pararLeitura()
+      if (modoPin) {
+        void talvezOferecerBiometria()
+        ultimo.value = null
+        bioErro.value = ''
+      }
+    }
+  },
   { immediate: true }
 )
 

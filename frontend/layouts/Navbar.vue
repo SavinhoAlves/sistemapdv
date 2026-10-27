@@ -1,20 +1,21 @@
 <template>
   <header class="nb w-full shrink-0 sticky" :class="authStore.modoSuporte ? 'top-10 z-20' : 'top-0 z-20'">
-    <div class="h-14 px-5 flex items-center justify-between gap-4">
+    <div class="h-14 px-3 sm:px-5 flex items-center justify-between gap-2 sm:gap-4">
 
-      <!-- LOGO (só no mobile — em telas maiores ela vive na Sidebar) -->
-      <div class="flex sm:hidden items-center gap-2.5 shrink-0">
-        <div class="w-8 h-8 rounded-[10px] bg-[var(--acao)] flex items-center justify-center">
+      <!-- LOGO (só no mobile — em telas maiores ela vive na Sidebar).
+           Ocupa o que sobrar e encolhe primeiro: os botões da direita sempre cabem -->
+      <div class="flex sm:hidden items-center gap-2 flex-1 min-w-0">
+        <div class="w-8 h-8 rounded-[10px] bg-[var(--acao)] flex items-center justify-center shrink-0">
           <UtensilsCrossed :size="13" class="text-white" />
         </div>
-        <span class="text-sm font-bold text-[var(--txt)]">Restaurante PDV</span>
+        <span class="text-sm font-bold text-[var(--txt)] truncate max-[359px]:hidden">{{ configStore.nome_restaurante || 'Restaurante PDV' }}</span>
       </div>
 
       <!-- espaço central -->
-      <div class="flex-1"></div>
+      <div class="hidden sm:block flex-1"></div>
 
       <!-- DIREITA -->
-      <div class="flex items-center gap-2 shrink-0">
+      <div class="nb__direita flex items-center gap-1.5 sm:gap-2 shrink-0">
 
         <!-- Pedidos do cardápio online: chegam para quem está no caixa/balcão -->
         <AvisoDelivery />
@@ -32,22 +33,25 @@
             <span class="sm:hidden">{{ caixaAberto ? 'Aberto' : 'Abrir' }}</span>
             <span class="hidden sm:inline">{{ caixaAberto ? 'Caixa aberto' : 'Abrir caixa' }}</span>
           </button>
-          <div class="w-px h-6 bg-[var(--linha)]"></div>
+          <div class="hidden sm:block w-px h-6 bg-[var(--linha)]"></div>
         </template>
 
         <!-- PROFILE DROPDOWN -->
         <div ref="dropdownRef" class="relative">
+          <!-- No celular só o avatar; o nome completo está no menu -->
           <button
             @click="dropdownAberto = !dropdownAberto"
             class="nb__perfil"
+            :aria-expanded="dropdownAberto"
+            :aria-label="`Menu de ${authStore.usuario?.nome ?? 'usuário'}`"
           >
             <div class="nb__avatar">
               <span>{{ inicial }}</span>
             </div>
-            <span class="text-[13px] font-semibold text-[var(--txt)]">{{ primeiroNome }}</span>
+            <span class="hidden sm:inline text-[13px] font-semibold text-[var(--txt)] max-w-[10rem] truncate">{{ primeiroNome }}</span>
             <ChevronDown
               :size="12"
-              class="text-[var(--txt-3)] transition-transform duration-200"
+              class="hidden sm:block text-[var(--txt-3)] transition-transform duration-200"
               :class="dropdownAberto ? 'rotate-180' : ''"
             />
           </button>
@@ -63,11 +67,11 @@
           >
             <div
               v-if="dropdownAberto"
-              class="nb__menu absolute right-0 top-full mt-2 w-60 overflow-hidden z-50"
+              class="nb__menu absolute right-0 top-full mt-2 w-60 max-w-[calc(100vw-1.5rem)] overflow-hidden z-50"
             >
               <!-- INFO USUÁRIO -->
               <div class="px-4 py-3 border-b border-[var(--linha)]">
-                <p class="text-sm font-semibold text-[var(--txt)]">{{ authStore.usuario?.nome }}</p>
+                <p class="text-sm font-semibold text-[var(--txt)] break-words">{{ authStore.usuario?.nome }}</p>
                 <p class="text-[13px] text-[var(--txt-2)] mt-0.5">{{ labelCargo }}</p>
               </div>
 
@@ -104,19 +108,20 @@
     </div>
 
     <!-- NAVEGAÇÃO MOBILE (< sm) -->
-    <div class="sm:hidden overflow-x-auto nav-scroll border-t border-[var(--linha)]">
+    <nav ref="chipsRef" class="sm:hidden overflow-x-auto nav-scroll border-t border-[var(--linha)]" aria-label="Navegação">
       <div class="flex items-center gap-1 px-2 py-1.5 w-max">
         <button
           v-for="item in navItems"
           :key="'mob-' + item.rota"
           @click="router.push(item.rota)"
           class="nb__chip" :class="{ ativo: isAtivo(item.rota) }"
+          :aria-current="isAtivo(item.rota) ? 'page' : undefined"
         >
           <component :is="item.icon" :size="16" stroke-width="2" />
           <span>{{ item.label }}</span>
         </button>
       </div>
-    </div>
+    </nav>
 
   </header>
 
@@ -409,12 +414,19 @@
   color: var(--txt-2);
 }
 .nb__chip.ativo { background: var(--txt); color: var(--sup-fundo); font-weight: 600; }
+
+/* Celular: botões da direita compactos e com 40px de altura para o dedo */
+@media (max-width: 639px) {
+  .nb__caixa { height: 40px; padding: 0 12px; gap: 6px; }
+  .nb__perfil { height: 40px; padding: 0 4px; }
+  .nb__direita :deep(.av-dlv) { height: 40px; padding: 0 10px; }
+}
 </style>
 
 <script setup lang="ts">
 import { numeroBR } from '~/lib/moeda'
 import { totaisDoResumo, vendasDoResumo, porMetodoDoResumo } from '~/lib/caixa'
-import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
+import { ref, computed, watch, nextTick, onMounted, onBeforeUnmount } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import {
   LogOut, UtensilsCrossed, Sun, Moon, ChevronDown, Landmark
@@ -472,6 +484,19 @@ function isAtivo(rota: string) {
   if (rota === '/') return route.path === '/'
   return route.path.startsWith(rota)
 }
+
+// A fileira de abas rola de lado: a aba da tela atual fica à vista
+const chipsRef = ref<HTMLElement | null>(null)
+function mostrarAbaAtiva() {
+  nextTick(() => {
+    const nav = chipsRef.value
+    const ativa = nav?.querySelector<HTMLElement>('.nb__chip.ativo')
+    if (!nav || !ativa) return
+    nav.scrollLeft = ativa.offsetLeft - (nav.clientWidth - ativa.offsetWidth) / 2
+  })
+}
+watch(() => [route.path, navItems.value.length], mostrarAbaAtiva)
+onMounted(mostrarAbaAtiva)
 
 // ======================
 // DROPDOWN PROFILE

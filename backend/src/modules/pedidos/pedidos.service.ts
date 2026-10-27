@@ -324,6 +324,8 @@ export async function cancelarItem(
   itemId: string,
   motivo: string,
   usuarioId: string,
+  /** Unidades a cancelar (o "−" da comanda cancela uma); sem valor, o item todo */
+  quantidade?: number,
 ) {
   if (!motivo?.trim() || motivo.trim().length < 3) {
     throw erro(400, 'Informe o motivo do cancelamento')
@@ -339,51 +341,86 @@ export async function cancelarItem(
     })
     if (!item) throw erro(404, 'Item não encontrado')
     if (item.status === 'cancelado') throw erro(409, 'Item já cancelado')
+    if (!STATUS_ABERTOS.includes(item.pedido.status as any)) {
+      throw erro(409, 'Pedido já fechado. Use estorno para corrigir.')
+    }
+
+    const qtd = quantidade == null ? item.quantidade : Math.trunc(Number(quantidade))
+    if (!Number.isInteger(qtd) || qtd < 1 || qtd > item.quantidade) {
+      throw erro(400, 'Quantidade inválida')
+    }
 
     if (item.produto.gerenciarEstoque) {
       await tx.produto.update({
         where: { id: item.produto.id },
-        data: { estoqueAtual: { increment: item.quantidade } },
+        data: { estoqueAtual: { increment: qtd } },
       })
       await tx.movimentacaoEstoque.create({
         data: {
           produtoId: item.produto.id,
           tipo: 'entrada',
-          quantidade: item.quantidade,
+          quantidade: qtd,
           motivo: `Cancelamento: ${motivo.trim()}`,
           usuarioId,
         } as any,
       })
     }
 
-    await tx.pedidoItem.update({
-      where: { id: itemId },
-      data: {
-        status: 'cancelado',
-        canceladoPorId: usuarioId,
-        motivoCancelamento: motivo.trim(),
-      },
-    })
+    const cancelamento = {
+      status: 'cancelado' as const,
+      canceladoPorId: usuarioId,
+      motivoCancelamento: motivo.trim(),
+    }
+    let canceladoId = itemId
+    if (qtd === item.quantidade) {
+      await tx.pedidoItem.update({ where: { id: itemId }, data: cancelamento })
+    } else {
+      // Parte do item: o restante segue na comanda e as unidades canceladas
+      // viram uma linha própria, para ficar o rastro de quem cancelou e por quê.
+      await tx.pedidoItem.update({
+        where: { id: itemId },
+        data: {
+          quantidade: item.quantidade - qtd,
+          precoTotal: paraDecimal(paraCentavos(item.precoUnitario) * (item.quantidade - qtd)),
+        },
+      })
+      const linha = await tx.pedidoItem.create({
+        data: {
+          tenantId,
+          pedidoId: item.pedidoId,
+          produtoId: item.produtoId,
+          rodada: item.rodada,
+          quantidade: qtd,
+          precoUnitario: item.precoUnitario,
+          precoTotal: paraDecimal(paraCentavos(item.precoUnitario) * qtd),
+          enviadoEm: item.enviadoEm,
+          observacao: item.observacao,
+          lancadoPorId: item.lancadoPorId,
+          ...cancelamento,
+        },
+      })
+      canceladoId = linha.id
+    }
 
     await registrarAuditoria(tx, {
       usuarioId,
       acao: 'item.cancelado',
       entidade: 'PedidoItem',
-      entidadeId: itemId,
-      detalhes: { produto: item.produto.nome, quantidade: item.quantidade, motivo: motivo.trim() },
+      entidadeId: canceladoId,
+      detalhes: { produto: item.produto.nome, quantidade: qtd, motivo: motivo.trim() },
     })
 
     const conta = await contaDoPedido(tx, item.pedido.id)
-    return { item, conta }
+    return { item, conta, qtd, canceladoId }
   })
 
   emitir(tenantId).item(EVENTOS.item.statusAlterado, {
     comandaId: resultado.item.pedido.mesaId!,
     pedidoId: resultado.item.pedido.id,
-    itemId,
+    itemId: resultado.canceladoId,
     produtoId: resultado.item.produto.id,
     produtoNome: resultado.item.produto.nome,
-    quantidade: resultado.item.quantidade,
+    quantidade: resultado.qtd,
     status: 'cancelado',
     vaiCozinha: true,
     rodada: resultado.item.rodada,

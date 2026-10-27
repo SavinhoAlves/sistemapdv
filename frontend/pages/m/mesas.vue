@@ -568,8 +568,9 @@ async function decrementarItem(item: any) {
     } else {
       item.quantidade -= 1
     }
-  } catch {
-    toastStore.error('Erro ao remover')
+  } catch (err: any) {
+    // Ex.: item já entregue (só o admin/caixa cancela, com motivo, no terminal)
+    toastStore.error(err?.message || 'Erro ao remover')
   } finally {
     ajustando.value = null
   }

@@ -31,6 +31,11 @@ import { platformPlanosRoutes } from './modules/platform/platform-planos.routes'
 import { platformCobrancaRoutes } from './modules/platform/platform-cobranca.routes'
 import { platformContratosRoutes } from './modules/platform/platform-contratos.routes'
 import { platformDeliveryRoutes } from './modules/platform/platform-delivery.routes'
+import { terminaisRoutes } from './modules/terminais/terminais.routes'
+import { modoLocal, bloqueioPara, paginaBloqueio } from './lib/redeLocal'
+import fastifyStatic from '@fastify/static'
+import path from 'path'
+import fs from 'fs'
 
 export async function buildApp() {
   const app = Fastify({
@@ -39,6 +44,17 @@ export async function buildApp() {
     logger: process.env.NODE_ENV !== 'production' ? true : { level: 'warn' },
     bodyLimit: 2 * 1024 * 1024, // 2MB (para logo base64)
   })
+
+  // ── Modo local (Host): trava de rede antes de tudo ────────────────────────
+  // Só o próprio Host e os IPs cadastrados em Admin › Terminais entram.
+  if (modoLocal()) {
+    app.addHook('onRequest', async (request, reply) => {
+      const motivo = bloqueioPara(request.ip)
+      if (!motivo) return
+      if (request.url.startsWith('/api/')) return reply.status(403).send({ error: motivo, bloqueioRede: true })
+      return reply.status(403).type('text/html; charset=utf-8').send(paginaBloqueio(motivo))
+    })
+  }
 
   // ── Plugins de segurança ───────────────────────────────────────────────────
   const allowedOrigins = (process.env.CORS_ORIGIN || 'http://localhost:3000')
@@ -120,6 +136,7 @@ export async function buildApp() {
   })
 
   // ── Módulos de negócio ─────────────────────────────────────────────────────
+  await app.register(terminaisRoutes,     { prefix: '/api/terminais' })
   await app.register(categoriasRoutes,    { prefix: '/api/categorias' })
   await app.register(produtosRoutes,      { prefix: '/api/produtos' })
   await app.register(mesasRoutes,         { prefix: '/api/mesas' })
@@ -241,6 +258,18 @@ export async function buildApp() {
     success: false,
     message: 'Licença gerenciada pela plataforma central SaaS — acesse o painel em /platform',
   }))
+
+  // Modo local: o próprio Host serve as telas (frontend gerado), na mesma porta e
+  // atrás da mesma trava. Os terminais abrem http://IP-do-Host.
+  const dirFrontend = process.env.FRONTEND_DIR
+  if (modoLocal() && dirFrontend && fs.existsSync(path.join(dirFrontend, 'index.html'))) {
+    await app.register(fastifyStatic, { root: path.resolve(dirFrontend), wildcard: false })
+    // SPA: qualquer rota que não seja /api volta o index.html
+    app.setNotFoundHandler((request, reply) => {
+      if (request.method === 'GET' && !request.url.startsWith('/api/')) return reply.sendFile('index.html')
+      return reply.status(404).send({ error: 'Rota não encontrada' })
+    })
+  }
 
   return app
 }

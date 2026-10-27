@@ -3,6 +3,7 @@ import { buildApp } from './app'
 import { prisma } from './lib/prisma'
 import { initSocket } from './sockets/socket'
 import { iniciarSchedulerLicencas } from './jobs/licenca-checker'
+import { modoLocal, recarregarRede, estadoRede } from './lib/redeLocal'
 
 const PORT = parseInt(process.env.PORT ?? '3002', 10)
 const HOST = process.env.HOST ?? '0.0.0.0'
@@ -17,6 +18,12 @@ async function start() {
   iniciarSchedulerLicencas()
 
   try {
+    // Modo local: confere a rede do Host e aplica a trava antes de atender
+    if (modoLocal()) {
+      await recarregarRede()
+      const e = estadoRede()
+      console.log(`[rede-local] Host ${e.hostIp ?? '(sem IP configurado)'} · ${e.terminais.length} terminal(is)${e.bloqueado ? ' · BLOQUEADO: ' + e.motivo : ''}`)
+    }
     await app.listen({ port: PORT, host: HOST })
     console.log(`Servidor Fastify rodando em http://${HOST}:${PORT}`)
   } catch (err) {

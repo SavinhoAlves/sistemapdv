@@ -34,6 +34,7 @@ export function semEscopoDeTenant<T>(fn: () => Promise<T>): Promise<T> {
 }
 
 const MODELOS_COM_TENANT = new Set([
+  'terminal',
   'usuario',
   'perfil',
   'categoria',

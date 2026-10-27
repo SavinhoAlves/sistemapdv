@@ -213,6 +213,50 @@
         </div>
       </Transition>
 
+      <!-- FOLHA: CANCELAR ITEM JÁ ENTREGUE -->
+      <Transition name="pop">
+        <div v-if="cancelando" class="sm-veu" @click.self="fecharCancelamento">
+          <div class="sm-folha" role="dialog" aria-labelledby="sm-cancelar-titulo">
+            <div class="sm-folha__topo">
+              <h3 id="sm-cancelar-titulo">Cancelar item entregue</h3>
+              <button class="sm-fechar" aria-label="Fechar" @click="fecharCancelamento"><X :size="18" /></button>
+            </div>
+
+            <div class="sm-linha-valor">
+              <span>{{ cancelando.quantidade }}× {{ cancelando.produto.nome }}</span>
+              <strong class="pdv-valor">{{ moeda(cancelando.quantidade * Number(cancelando.produto.preco_unitario)) }}</strong>
+            </div>
+            <p class="text-xs text-gray-500 dark:text-white/50">Já foi entregue na mesa. O cancelamento fica registrado com o motivo e precisa do cartão do administrador ou do caixa.</p>
+
+            <div class="sm-campo">
+              <label for="motivo-cancelar" class="pdv-rotulo">Motivo</label>
+              <input
+                id="motivo-cancelar"
+                name="motivo-cancelar"
+                ref="inputMotivoRef"
+                v-model="motivoCancelar"
+                class="pdv-campo"
+                type="text"
+                maxlength="200"
+                placeholder="Ex.: lançado errado, cliente desistiu"
+                @keydown.enter="confirmarCancelamento"
+              />
+            </div>
+
+            <div class="sm-folha__acoes">
+              <button class="pdv-botao pdv-botao--neutro" @click="fecharCancelamento">Voltar</button>
+              <button
+                class="pdv-botao pdv-botao--acao"
+                :disabled="motivoCancelar.trim().length < 3 || salvandoCancelar"
+                @click="confirmarCancelamento"
+              >
+                {{ salvandoCancelar ? 'Salvando…' : 'Cancelar item' }}
+              </button>
+            </div>
+          </div>
+        </div>
+      </Transition>
+
       <!-- FOLHA: DESCONTO -->
       <Transition name="pop">
         <div v-if="modalDesconto" class="sm-veu" @click.self="fecharModalDesconto">
@@ -369,11 +413,60 @@ const podeTaxa       = computed(() => authStore.usuario?.cargo === 'administrado
  * não há cartão: vale a conta logada).
  */
 const lixeiraVisivel = computed(() => (configStore.rfid_ativo && !semLeitorDeCartao()) || authStore.temPermissao('excluirItemPedido'))
-function cartaoPodeExcluir(usuario: { cargo: string; permissoes: Record<string, boolean> | null } | null) {
-  if (!usuario) return authStore.temPermissao('excluirItemPedido')
+/** Sem RFID (cartão nulo) vale a conta logada */
+function cartaoTemPermissao(usuario: { cargo: string; permissoes: Record<string, boolean> | null } | null, perm: string) {
+  if (!usuario) return authStore.temPermissao(perm)
   // Mesma regra de authStore.temPermissao, aplicada ao dono do cartão
-  const v = usuario.permissoes?.excluirItemPedido
+  const v = usuario.permissoes?.[perm]
   return typeof v === 'boolean' ? v : usuario.cargo === 'administrador'
+}
+
+// ─── Cancelar item já entregue ────────────────────────────
+// Entregue não sai pelo "−" nem pela lixeira: o servidor exige motivo
+// (POST /cancelar), que fica na auditoria e devolve o estoque.
+const cancelando       = ref<{ produto: ProdutoMesa; quantidade: number } | null>(null)
+const motivoCancelar   = ref('')
+const salvandoCancelar = ref(false)
+const inputMotivoRef   = ref<HTMLInputElement | null>(null)
+
+function abrirCancelamento(produto: ProdutoMesa, quantidade: number) {
+  motivoCancelar.value = ''
+  cancelando.value = { produto, quantidade }
+  nextTick(() => inputMotivoRef.value?.focus())
+}
+
+function fecharCancelamento() {
+  cancelando.value = null
+  motivoCancelar.value = ''
+}
+
+async function confirmarCancelamento() {
+  const alvo = cancelando.value
+  if (!alvo || motivoCancelar.value.trim().length < 3 || salvandoCancelar.value) return
+  let lido
+  try {
+    lido = await cartaoDaMesa('Passe o cartão do administrador ou do caixa para cancelar')
+  } catch { return }
+  if (!cartaoTemPermissao(lido, 'cancelarItemPedido')) {
+    toastStore.error('Só o administrador ou o caixa cancela item entregue')
+    return
+  }
+
+  salvandoCancelar.value = true
+  try {
+    await api.post(`/pedidos/itens/${alvo.produto.id}/cancelar`, {
+      motivo: motivoCancelar.value.trim(),
+      quantidade: alvo.quantidade,
+    })
+    toastStore.success(`${alvo.quantidade}× ${alvo.produto.nome} cancelado`)
+    fecharCancelamento()
+    emit('estoque-atualizado')
+    await carregarProdutos()
+  } catch (err: any) {
+    toastStore.error(err?.message || 'Erro ao cancelar item')
+  } finally {
+    salvandoCancelar.value = false
+  }
 }
 
 // Identificação RFID do garçom para a sessão atual (null = sem RFID identificado)
@@ -422,6 +515,7 @@ interface ProdutoMesa {
   quantidade: number
   total: number
   preco_unitario: number
+  status?: string
 }
 
 // ─── Enviar pedido (modo "pelo botão") ─────────────────────
@@ -822,6 +916,7 @@ async function adicionarItem(produto: ProdutoMesa) {
 
 async function removerItem(produto: ProdutoMesa) {
   if (!caixaAberto.value) { exigirCaixa(); return }
+  if (produto.status === 'entregue') { abrirCancelamento(produto, 1); return }
   try {
     await cartaoDaMesa('Passe o cartão para remover item')
   } catch { return }
@@ -835,11 +930,11 @@ async function removerItem(produto: ProdutoMesa) {
     try {
       await api.patch(`/pedidos/itens/${produto.id}/quantidade`, { quantidade: 0 })
       emit('estoque-atualizado')
-    } catch {
+    } catch (err: any) {
       const lista = [...produtos.value]
       lista.splice(idx, 0, produto)
       produtos.value = lista
-      toastStore.error('Erro ao remover item')
+      toastStore.error(err?.message || 'Erro ao remover item')
     }
     return
   }
@@ -850,21 +945,23 @@ async function removerItem(produto: ProdutoMesa) {
   try {
     await api.patch(`/pedidos/itens/${produto.id}/decrementar`)
     emit('estoque-atualizado')
-  } catch {
+  } catch (err: any) {
     produto.quantidade++
     produto.total = Number(produto.total) + preco
-    toastStore.error('Erro ao remover item')
+    toastStore.error(err?.message || 'Erro ao remover item')
   }
 }
 
 async function excluirItem(id: number, silencioso = false) {
   if (!caixaAberto.value) { if (!silencioso) exigirCaixa(); return }
+  const entregue = produtos.value.find(p => p.id === id && p.status === 'entregue')
+  if (entregue && !silencioso) { abrirCancelamento(entregue, entregue.quantidade); return }
   if (!silencioso) {
     let lido
     try {
       lido = await cartaoDaMesa('Passe o cartão do administrador para excluir o item')
     } catch { return }
-    if (!cartaoPodeExcluir(lido)) {
+    if (!cartaoTemPermissao(lido, 'excluirItemPedido')) {
       toastStore.error('Só o administrador exclui o item inteiro', 'Use o "−" para tirar uma unidade')
       return
     }
@@ -879,13 +976,13 @@ async function excluirItem(id: number, silencioso = false) {
     await api.delete(`/pedidos/itens/${id}`)
     emit('estoque-atualizado')
     if (!silencioso) toastStore.success('Item excluído com sucesso!')
-  } catch (err) {
+  } catch (err: any) {
     if (item !== undefined) {
       const lista = [...produtos.value]
       lista.splice(idx, 0, item)
       produtos.value = lista
     }
-    if (!silencioso) toastStore.error('Erro ao excluir item')
+    if (!silencioso) toastStore.error(err?.message || 'Erro ao excluir item')
     throw err
   }
 }

@@ -46,6 +46,7 @@ const quantidadeBody = z.object({
 
 const cancelarBody = z.object({
   motivo: z.string().trim().min(3, 'Informe o motivo do cancelamento').max(200),
+  quantidade: z.number().int().min(1).max(999).optional(),
 })
 
 const taxaBody = z.object({ aplicar: z.boolean() })
@@ -154,7 +155,7 @@ export async function pedidosRoutes(app: FastifyInstance) {
   // POST /api/pedidos/itens/:itemId/cancelar
   app.post(
     '/itens/:itemId/cancelar',
-    { preHandler: [requireTenant, requirePermissao('cancelarItemPedido')] },
+    { preHandler: [requireTenant, exigirCartao, requirePermissao('cancelarItemPedido')] },
     async (request, reply) => {
       const params = itemParam.safeParse(request.params)
       const body = cancelarBody.safeParse(request.body)
@@ -167,6 +168,7 @@ export async function pedidosRoutes(app: FastifyInstance) {
         params.data.itemId,
         body.data.motivo,
         auth.sub,
+        body.data.quantidade,
       )
     },
   )

@@ -261,58 +261,91 @@
       </div>
     </Transition>
 
-    <!-- ── Drawer de histórico ── -->
-    <Transition name="drawer">
-      <div v-if="drawerHistorico.aberto" class="fixed inset-0 z-50 flex justify-end">
-        <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" @click="drawerHistorico.aberto = false" />
-        <div class="relative bg-[#16141f] border-l border-white/[0.10] w-full max-w-md h-full flex flex-col shadow-2xl">
-
-          <div class="flex items-center justify-between p-5 border-b border-white/[0.07]">
-            <div>
-              <h3 class="font-black text-white">Histórico de Estoque</h3>
-              <p class="text-white/40 text-xs mt-0.5 truncate max-w-[250px]">{{ drawerHistorico.produto?.nome }}</p>
+    <!-- ── Modal de histórico (desde o cadastro) ── -->
+    <Transition name="modal">
+      <div v-if="drawerHistorico.aberto" class="fixed inset-0 z-50 flex items-center justify-center p-4" @keydown.esc="fecharHistorico">
+        <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" @click="fecharHistorico" />
+        <div
+          class="relative bg-[#16141f] border border-white/[0.10] rounded-3xl w-full max-w-3xl max-h-[90vh] flex flex-col shadow-2xl"
+          role="dialog" aria-modal="true" aria-labelledby="hist-titulo"
+        >
+          <div class="flex items-start justify-between gap-4 p-5 sm:p-6 border-b border-white/[0.07]">
+            <div class="min-w-0">
+              <h3 id="hist-titulo" class="text-base font-black text-white">Histórico de estoque</h3>
+              <p class="text-white/60 text-sm mt-0.5 truncate">{{ drawerHistorico.produto?.nome }}</p>
+              <p v-if="drawerHistorico.produto?.createdAt" class="text-white/30 text-xs mt-0.5">
+                Cadastrado em {{ formatarDataCompleta(drawerHistorico.produto.createdAt) }}
+              </p>
             </div>
-            <button @click="drawerHistorico.aberto = false" class="text-white/30 hover:text-white/60 transition-colors">
+            <button ref="fecharHistoricoRef" @click="fecharHistorico" aria-label="Fechar" class="text-white/30 hover:text-white/60 transition-colors shrink-0">
               <X :size="18" />
             </button>
           </div>
 
-          <div class="flex-1 overflow-y-auto p-5">
-            <div v-if="carregandoHistorico" class="flex items-center justify-center py-12">
-              <Loader2 :size="20" class="text-white/30 animate-spin" />
-            </div>
+          <div v-if="carregandoHistorico" class="flex items-center justify-center py-16">
+            <Loader2 :size="20" class="text-white/30 animate-spin" />
+          </div>
 
-            <div v-else-if="historico.length === 0" class="flex flex-col items-center gap-2 py-12 text-white/30">
-              <History :size="28" :stroke-width="1.5" />
-              <p class="text-sm font-bold">Sem movimentações</p>
-            </div>
+          <p v-else-if="erroHistorico" class="py-16 text-center text-sm font-bold text-red-400">{{ erroHistorico }}</p>
 
-            <div v-else class="space-y-2">
-              <div
-                v-for="mov in historico"
-                :key="mov.id"
-                class="flex items-start gap-3 bg-white/[0.03] border border-white/[0.06] rounded-xl p-3"
-              >
-                <div
-                  class="mt-0.5 size-7 rounded-lg flex items-center justify-center shrink-0"
-                  :class="mov.tipo === 'entrada' ? 'bg-emerald-500/15' : 'bg-red-500/15'"
-                >
-                  <TrendingUp v-if="mov.tipo === 'entrada'" :size="13" class="text-emerald-400" />
-                  <TrendingDown v-else :size="13" class="text-red-400" />
-                </div>
-                <div class="flex-1 min-w-0">
-                  <div class="flex items-center justify-between gap-2">
-                    <span class="text-xs font-black uppercase tracking-wider" :class="mov.tipo === 'entrada' ? 'text-emerald-400' : 'text-red-400'">
-                      {{ mov.tipo === 'entrada' ? '+' : '-' }}{{ Number(mov.quantidade).toFixed(Number(mov.quantidade) % 1 === 0 ? 0 : 2) }}
-                    </span>
-                    <span class="text-white/25 text-[10px] shrink-0">{{ formatarData(mov.createdAt) }}</span>
-                  </div>
-                  <p class="text-white/50 text-xs mt-0.5 truncate">{{ mov.motivo || 'Sem motivo' }}</p>
-                  <p v-if="mov.usuario" class="text-white/25 text-[10px] mt-0.5">por {{ mov.usuario.nome }}</p>
-                </div>
+          <template v-else>
+            <!-- Resumo -->
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 p-5 sm:px-6">
+              <div class="bg-white/[0.04] rounded-2xl p-3">
+                <p class="text-white/40 text-[10px] font-black uppercase tracking-widest">No cadastro</p>
+                <p class="text-lg font-black text-white mt-0.5">{{ qtd(resumoHistorico.inicial) }}</p>
+              </div>
+              <div class="bg-white/[0.04] rounded-2xl p-3">
+                <p class="text-white/40 text-[10px] font-black uppercase tracking-widest">Entradas</p>
+                <p class="text-lg font-black text-emerald-400 mt-0.5">+{{ qtd(resumoHistorico.entradas) }}</p>
+              </div>
+              <div class="bg-white/[0.04] rounded-2xl p-3">
+                <p class="text-white/40 text-[10px] font-black uppercase tracking-widest">Saídas</p>
+                <p class="text-lg font-black text-red-400 mt-0.5">−{{ qtd(resumoHistorico.saidas) }}</p>
+              </div>
+              <div class="bg-white/[0.04] rounded-2xl p-3">
+                <p class="text-white/40 text-[10px] font-black uppercase tracking-widest">Atual</p>
+                <p class="text-lg font-black mt-0.5" :class="corEstoque(drawerHistorico.produto)">{{ qtd(resumoHistorico.atual) }}</p>
               </div>
             </div>
-          </div>
+
+            <!-- Movimentações: mais recente no topo, o cadastro por último -->
+            <div class="flex-1 overflow-y-auto px-5 sm:px-6 pb-6">
+              <p class="text-white/30 text-[11px] mb-2">{{ historico.length }} {{ historico.length === 1 ? 'movimentação' : 'movimentações' }} desde o cadastro</p>
+              <ol class="space-y-1.5">
+                <li
+                  v-for="mov in linhasHistorico"
+                  :key="mov.id"
+                  class="grid grid-cols-[auto_1fr_auto] items-center gap-3 bg-white/[0.03] border border-white/[0.06] rounded-xl px-3 py-2.5"
+                >
+                  <div
+                    class="size-7 rounded-lg flex items-center justify-center shrink-0"
+                    :class="mov.tipo === 'entrada' ? 'bg-emerald-500/15' : mov.tipo === 'saida' ? 'bg-red-500/15' : 'bg-white/[0.08]'"
+                  >
+                    <TrendingUp v-if="mov.tipo === 'entrada'" :size="13" class="text-emerald-400" />
+                    <TrendingDown v-else-if="mov.tipo === 'saida'" :size="13" class="text-red-400" />
+                    <PackagePlus v-else :size="13" class="text-white/60" />
+                  </div>
+                  <div class="min-w-0">
+                    <p class="text-white/80 text-xs font-bold truncate">{{ mov.motivo || 'Sem motivo' }}</p>
+                    <p class="text-white/30 text-[10px] mt-0.5 truncate">
+                      {{ formatarDataCompleta(mov.createdAt) }}<template v-if="mov.usuario"> · por {{ mov.usuario.nome }}</template>
+                    </p>
+                  </div>
+                  <div class="text-right">
+                    <p
+                      v-if="mov.tipo !== 'cadastro'"
+                      class="text-xs font-black tabular-nums"
+                      :class="mov.tipo === 'entrada' ? 'text-emerald-400' : 'text-red-400'"
+                    >
+                      {{ mov.tipo === 'entrada' ? '+' : '−' }}{{ qtd(mov.quantidade) }}
+                    </p>
+                    <p class="text-white/40 text-[10px] tabular-nums">saldo {{ qtd(mov.saldo) }}</p>
+                  </div>
+                </li>
+              </ol>
+            </div>
+          </template>
         </div>
       </div>
     </Transition>
@@ -322,11 +355,11 @@
 
 <script setup lang="ts">
 import { reais } from '~/lib/moeda'
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, nextTick } from 'vue'
 import { useApi } from '~/services/api'
 import {
   Boxes, Search, Eye, History, Loader2, X,
-  TrendingUp, TrendingDown
+  TrendingUp, TrendingDown, PackagePlus
 } from 'lucide-vue-next'
 
 const api = useApi()
@@ -340,6 +373,7 @@ interface Produto {
   estoqueAtual: number
   estoqueMinimo: number
   ativo: boolean
+  createdAt?: string
 }
 
 interface Movimentacao {
@@ -366,6 +400,35 @@ const ajusteForm = ref({ quantidade: 0, motivo: '' })
 const drawerHistorico = ref<{ aberto: boolean; produto: Produto | null }>({ aberto: false, produto: null })
 const historico        = ref<Movimentacao[]>([])
 const carregandoHistorico = ref(false)
+const erroHistorico    = ref('')
+const fecharHistoricoRef = ref<HTMLButtonElement | null>(null)
+
+/**
+ * O cadastro do produto não gera movimentação. Como toda mudança de estoque
+ * depois dele gera (lançamento, venda, delivery, ajuste, edição), o estoque
+ * no cadastro é o atual desfeito das movimentações.
+ */
+const resumoHistorico = computed(() => {
+  const atual    = Number(drawerHistorico.value.produto?.estoqueAtual ?? 0)
+  const entradas = historico.value.filter(m => m.tipo === 'entrada').reduce((s, m) => s + Number(m.quantidade), 0)
+  const saidas   = historico.value.filter(m => m.tipo === 'saida').reduce((s, m) => s + Number(m.quantidade), 0)
+  return { atual, entradas, saidas, inicial: atual - entradas + saidas }
+})
+
+/** Movimentações com o saldo depois de cada uma, da mais recente ao cadastro */
+const linhasHistorico = computed(() => {
+  const asc = [...historico.value].sort((a, b) => a.createdAt.localeCompare(b.createdAt))
+  let saldo = resumoHistorico.value.inicial
+  const linhas: Array<Omit<Movimentacao, 'tipo'> & { tipo: Movimentacao['tipo'] | 'cadastro'; saldo: number }> = [{
+    id: 'cadastro', tipo: 'cadastro', quantidade: saldo, motivo: 'Produto cadastrado',
+    createdAt: drawerHistorico.value.produto?.createdAt ?? asc[0]?.createdAt ?? '', usuario: null, saldo,
+  }]
+  for (const m of asc) {
+    saldo += m.tipo === 'entrada' ? Number(m.quantidade) : -Number(m.quantidade)
+    linhas.push({ ...m, saldo })
+  }
+  return linhas.reverse()
+})
 
 // ── Computed ──────────────────────────────────────────────────────────────────
 
@@ -441,10 +504,6 @@ function labelEstoque(p: Produto) {
   return 'OK'
 }
 
-function formatarData(iso: string) {
-  return new Date(iso).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })
-}
-
 // ── Ações ─────────────────────────────────────────────────────────────────────
 
 async function carregar() {
@@ -499,13 +558,28 @@ async function confirmarAjuste() {
 async function abrirHistorico(p: Produto) {
   drawerHistorico.value = { aberto: true, produto: p }
   historico.value       = []
+  erroHistorico.value   = ''
   carregandoHistorico.value = true
+  nextTick(() => fecharHistoricoRef.value?.focus())
   try {
     historico.value = await api.get<Movimentacao[]>(`/produtos/${p.id}/estoque`)
+  } catch (e: any) {
+    erroHistorico.value = e?.message || 'Não deu para carregar o histórico'
   } finally {
     carregandoHistorico.value = false
   }
 }
+
+function fecharHistorico() {
+  drawerHistorico.value = { aberto: false, produto: null }
+}
+
+function formatarDataCompleta(iso: string) {
+  if (!iso) return ''
+  return new Date(iso).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+}
+
+const qtd = (n: number) => { const v = Number(n); return v.toFixed(v % 1 === 0 ? 0 : 2) }
 
 onMounted(carregar)
 </script>
@@ -514,6 +588,4 @@ onMounted(carregar)
 .modal-enter-active, .modal-leave-active { transition: opacity 0.15s ease; }
 .modal-enter-from, .modal-leave-to       { opacity: 0; }
 
-.drawer-enter-active, .drawer-leave-active { transition: transform 0.2s ease, opacity 0.2s ease; }
-.drawer-enter-from, .drawer-leave-to       { transform: translateX(100%); opacity: 0; }
 </style>

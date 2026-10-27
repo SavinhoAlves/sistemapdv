@@ -3,6 +3,7 @@ import { useConfigStore } from '~/stores/configuracoes'
 import { useRuntimeConfig } from '#imports'
 import { useAuthStore } from '~/stores/auth'
 import { definirOperador, limparOperador } from '~/lib/operador'
+import { semLeitorDeCartao, corpoDaIdentificacao, PREFIXO_PIN } from '~/lib/identificacao'
 
 export interface UsuarioRfid {
   id: string
@@ -72,6 +73,15 @@ export function useRfidIdentify() {
     // Retorna null silenciosamente se RFID não está ativo — evita verificação duplicada nos callers
     if (!configStore.rfid_ativo) return null
 
+    // Garçom no celular com a própria conta: ele mesmo, sem cartão (o servidor
+    // dispensa o cartão e confere as mesas pela conta)
+    const sessao = authStore.usuario
+    if (sessao?.cargo === 'garcom' && semLeitorDeCartao()) {
+      const eu: UsuarioRfid = { id: sessao.id, nome: sessao.nome, cargo: sessao.cargo, permissoes: sessao.permissoes ?? null }
+      if (!podeMexerNaMesa(eu, opcoes.donoMesa)) throw new ErroMesaDeOutro(eu)
+      return eu
+    }
+
     if (modalAberto.value) return Promise.reject(new Error('RFID já aguardando'))
 
     return new Promise((resolve, reject) => {
@@ -93,7 +103,7 @@ export function useRfidIdentify() {
       // Com a sessão do caixa; devolve o token curto do dono do cartão (X-Operador)
       const resp = await $fetch<{ usuario: UsuarioRfid; mesas: MesaVinculada[]; operadorToken?: string }>(
         `${config.public.apiUrl}/api/auth/rfid-identify`,
-        { method: 'POST', body: { rfid: codigo }, headers: authStore.token ? { Authorization: `Bearer ${authStore.token}` } : {} }
+        { method: 'POST', body: corpoDaIdentificacao(codigo), headers: authStore.token ? { Authorization: `Bearer ${authStore.token}` } : {} }
       )
       if (!podeMexerNaMesa(resp.usuario, _donoMesa)) {
         // Nada é feito no nome dele nesta mesa
@@ -106,7 +116,8 @@ export function useRfidIdentify() {
       }
       definirOperador(resp.operadorToken)
 
-      if (_comConfirmacao) {
+      // Com PIN a pessoa acabou de se identificar: não pede confirmação
+      if (_comConfirmacao && !codigo.startsWith(PREFIXO_PIN)) {
         // Fase 2: exibe garçom + vendas e aguarda confirmação manual
         identificado.value = resp
       } else {

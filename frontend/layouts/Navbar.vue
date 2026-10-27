@@ -429,6 +429,7 @@ import { useImpressorasStore } from '~/stores/impressoras'
 import { useNavItems }    from '~/composables/useNavItems'
 import { useApi }         from '~/services/api'
 import { definirOperador } from '~/lib/operador'
+import { corpoDaIdentificacao } from '~/lib/identificacao'
 import { enviarImpressao } from '~/lib/qz'
 import ModalRfidAuth      from '~/components/modals/ModalRfidAuth.vue'
 import AvisoDelivery      from '~/components/AvisoDelivery.vue'
@@ -540,7 +541,7 @@ const handleRfidCaixa = async (rfidBuffer: string) => {
     // Identifica o dono do cartão (sem criar sessão); abrir/fechar caixa vai em nome dele
     resposta = await $fetch<any>(
       `${config.public.apiUrl}/api/auth/rfid-identify`,
-      { method: 'POST', body: { rfid: rfidBuffer.trim() }, headers: authStore.token ? { Authorization: `Bearer ${authStore.token}` } : {} }
+      { method: 'POST', body: corpoDaIdentificacao(rfidBuffer.trim()), headers: authStore.token ? { Authorization: `Bearer ${authStore.token}` } : {} }
     )
   } catch (error: any) {
     // Cartão errado: o modal continua aberto, com o erro nele, esperando outro cartão

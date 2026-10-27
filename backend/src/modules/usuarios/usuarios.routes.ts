@@ -10,6 +10,14 @@ function loginInvalido(login: unknown) {
 const MSG_LOGIN = 'Nome de usuário deve ter de 3 a 30 caracteres, começar com letra e usar só letras, números, ponto, hífen ou sublinhado'
 const MSG_DUPLICADO = 'Nome de usuário, e-mail ou cartão RFID já em uso'
 
+/** PIN do celular: 4 a 6 dígitos. Vazio ou null apaga; ausente não mexe. */
+function pinDoCorpo(pin: unknown): { pin?: string | null; erro?: string } {
+  if (pin === undefined) return {}
+  if (pin === null || pin === '') return { pin: null }
+  if (typeof pin !== 'string' || !/^\d{4,6}$/.test(pin)) return { erro: 'O PIN deve ter de 4 a 6 números' }
+  return { pin }
+}
+
 export async function usuariosRoutes(app: FastifyInstance) {
   // GET /api/usuarios
   app.get('/', { preHandler: [requireTenant, requirePermissao('gerenciarUsuarios')] }, async (request, reply) => {
@@ -26,6 +34,8 @@ export async function usuariosRoutes(app: FastifyInstance) {
     if (!cargosValidos.includes(body.cargo))
       return reply.status(400).send({ error: `cargo deve ser um de: ${cargosValidos.join(', ')}` })
     if (loginInvalido(body.login)) return reply.status(400).send({ error: MSG_LOGIN })
+    const pin = pinDoCorpo(body.pin)
+    if (pin.erro) return reply.status(400).send({ error: pin.erro })
 
     try {
       const usuario = await Service.criar(request.tenantId!, {
@@ -35,7 +45,7 @@ export async function usuariosRoutes(app: FastifyInstance) {
         senha: body.senha,
         cartaoRfid: body.cartaoRfid,
         cargo: body.cargo,
-        pin: body.pin,
+        pin: pin.pin,
         perfilId: body.perfilId,
         ativo: body.ativo,
       })
@@ -57,6 +67,8 @@ export async function usuariosRoutes(app: FastifyInstance) {
         return reply.status(400).send({ error: `cargo deve ser um de: ${cargosValidos.join(', ')}` })
     }
     if (loginInvalido(body.login)) return reply.status(400).send({ error: MSG_LOGIN })
+    const pin = pinDoCorpo(body.pin)
+    if (pin.erro) return reply.status(400).send({ error: pin.erro })
 
     try {
       const usuario = await Service.atualizar(request.tenantId!, id, {
@@ -66,7 +78,7 @@ export async function usuariosRoutes(app: FastifyInstance) {
         senha: body.senha,
         cartaoRfid: body.cartaoRfid,
         cargo: body.cargo,
-        pin: body.pin,
+        pin: pin.pin,
         perfilId: body.perfilId,
         ativo: body.ativo,
       })

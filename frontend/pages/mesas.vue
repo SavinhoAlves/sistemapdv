@@ -220,6 +220,7 @@ import { useApi } from '~/services/api'
 import { useCaixaStore } from '~/stores/caixa'
 import { useToastStore } from '~/stores/toast'
 import { useRfidIdentify, podeMexerNaMesa, type UsuarioRfid } from '~/composables/useRfidIdentify'
+import { semLeitorDeCartao } from '~/lib/identificacao'
 import ModalRfidAuth from '~/components/modals/ModalRfidAuth.vue'
 
 definePageMeta({ layout: false })
@@ -312,7 +313,9 @@ async function travar() {
   const quem = await identificarViaRfid('Passe o cartão para ver as suas mesas').catch(() => null)
   if (!quem) return
   garcomSessao.value = quem
-  if (quem.cargo === 'garcom') {
+  // Com cartão, garçom de uma mesa só cai direto nela. No celular não: sem
+  // cartão a trava volta na hora e a mesa reabriria a cada vez que ele saísse
+  if (quem.cargo === 'garcom' && !semLeitorDeCartao()) {
     if (loading.value) await new Promise<void>(r => { const stop = watch(loading, v => { if (!v) { stop(); r() } }) })
     if (mesasDoOperador.value.length === 1) abrirMesa(mesasDoOperador.value[0])
   }

@@ -33,7 +33,7 @@ export async function listar(tenantId: string) {
       email: true,
       cargo: true,
       cartaoRfid: true,
-      pin: false, // nunca expõe pin
+      pin: true, // só vira temPin abaixo; o hash nunca sai
       perfilId: true,
       ativo: true,
       ultimoLogin: true,
@@ -42,7 +42,7 @@ export async function listar(tenantId: string) {
     },
   })
   // Código digitado no login: restaurante-usuário (ex.: 1001-3)
-  return usuarios.map(u => ({ ...u, codigoAcesso: `${tenant?.codigo}-${u.codigo}` }))
+  return usuarios.map(({ pin, ...u }) => ({ ...u, temPin: Boolean(pin), codigoAcesso: `${tenant?.codigo}-${u.codigo}` }))
 }
 
 interface CriarUsuarioData {
@@ -52,7 +52,7 @@ interface CriarUsuarioData {
   senha?: string
   cartaoRfid?: string
   cargo: string
-  pin?: string
+  pin?: string | null
   perfilId?: string
   ativo?: boolean
 }

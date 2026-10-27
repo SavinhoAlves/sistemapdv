@@ -328,6 +328,7 @@ import { useApi } from '~/services/api'
 import { enviarImpressao } from '~/lib/qz'
 import { useToastStore } from '~/stores/toast'
 import { useRfidIdentify, ErroMesaDeOutro } from '~/composables/useRfidIdentify'
+import { semLeitorDeCartao } from '~/lib/identificacao'
 
 // Valores da comanda sempre no formato da moeda (vírgula decimal, R$)
 const formatoMoeda = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' })
@@ -364,9 +365,10 @@ const podeTaxa       = computed(() => authStore.usuario?.cargo === 'administrado
 
 /**
  * Lixeira (item inteiro) é do administrador; o garçom tira uma unidade no "−".
- * Com RFID quem decide é o cartão passado, então ela fica à vista.
+ * Com RFID quem decide é o cartão passado, então ela fica à vista (no celular
+ * não há cartão: vale a conta logada).
  */
-const lixeiraVisivel = computed(() => configStore.rfid_ativo || authStore.temPermissao('excluirItemPedido'))
+const lixeiraVisivel = computed(() => (configStore.rfid_ativo && !semLeitorDeCartao()) || authStore.temPermissao('excluirItemPedido'))
 function cartaoPodeExcluir(usuario: { cargo: string; permissoes: Record<string, boolean> | null } | null) {
   if (!usuario) return authStore.temPermissao('excluirItemPedido')
   // Mesma regra de authStore.temPermissao, aplicada ao dono do cartão

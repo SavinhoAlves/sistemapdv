@@ -122,6 +122,16 @@
                   <button v-if="form.cartaoRfid" type="button" class="adm-icone border border-gray-200 dark:border-white/10 !h-10 !w-10 shrink-0" aria-label="Remover cartão" @click="form.cartaoRfid = ''"><X :size="14" /></button>
                 </div>
               </label>
+              <label class="block">
+                <span class="adm-rotulo">PIN do celular</span>
+                <div class="flex gap-2">
+                  <input v-model="form.pin" type="password" inputmode="numeric" maxlength="6" autocomplete="new-password"
+                    :placeholder="form.temPin && !form.removerPin ? 'Definido. Digite para trocar' : '4 a 6 números'"
+                    class="adm-campo font-mono tracking-widest" @input="form.pin = form.pin.replace(/\D/g, ''); form.removerPin = false" />
+                  <button v-if="form.temPin && !form.removerPin && !form.pin" type="button" class="adm-icone border border-gray-200 dark:border-white/10 !h-10 !w-10 shrink-0" aria-label="Remover PIN" @click="form.removerPin = true"><X :size="14" /></button>
+                </div>
+                <span class="adm-ajuda">{{ form.removerPin ? 'O PIN será removido ao salvar.' : 'Confirma as ações no celular, onde não há leitor de cartão.' }}</span>
+              </label>
             </section>
 
             <!-- Função -->
@@ -220,13 +230,13 @@ async function alternarAtivo(f: any) {
 const modal = ref(false)
 const salvando = ref(false)
 const erro = ref('')
-const VAZIO = { id: null as string | null, codigoAcesso: '', nome: '', login: '', email: '', senha: '', cartaoRfid: '', cargo: '', perfilId: null as string | null }
+const VAZIO = { id: null as string | null, codigoAcesso: '', nome: '', login: '', email: '', senha: '', cartaoRfid: '', pin: '', temPin: false, removerPin: false, cargo: '', perfilId: null as string | null }
 const form = reactive({ ...VAZIO })
 
 function abrir(f: any) {
   erro.value = ''
   Object.assign(form, f
-    ? { id: f.id, codigoAcesso: f.codigoAcesso || '', nome: f.nome, login: f.login || '', email: f.email || '', senha: '', cartaoRfid: f.cartaoRfid || '', cargo: f.cargo, perfilId: f.perfilId || null }
+    ? { id: f.id, codigoAcesso: f.codigoAcesso || '', nome: f.nome, login: f.login || '', email: f.email || '', senha: '', cartaoRfid: f.cartaoRfid || '', pin: '', temPin: Boolean(f.temPin), removerPin: false, cargo: f.cargo, perfilId: f.perfilId || null }
     : { ...VAZIO })
   modal.value = true
 }
@@ -241,12 +251,14 @@ async function salvar() {
   if (!form.nome.trim()) { erro.value = 'Informe o nome'; return }
   if (!form.cargo) { erro.value = 'Escolha a função'; return }
   if (!form.id && !form.senha && !form.cartaoRfid.trim()) { erro.value = 'Defina uma senha ou um cartão RFID para a pessoa entrar'; return }
+  if (form.pin && !/^\d{4,6}$/.test(form.pin)) { erro.value = 'O PIN deve ter de 4 a 6 números'; return }
   salvando.value = true; erro.value = ''
   try {
     const payload = {
       nome: form.nome.trim(), login: form.login.trim().toLowerCase() || null, email: form.email.trim() || null,
       cargo: form.cargo, cartaoRfid: form.cartaoRfid.trim() || null, perfilId: form.perfilId || null,
       ...(form.senha ? { senha: form.senha } : {}),
+      ...(form.pin ? { pin: form.pin } : form.removerPin ? { pin: null } : {}),
     }
     if (form.id) await api.put(`/usuarios/${form.id}`, payload)
     else await api.post('/usuarios', payload)

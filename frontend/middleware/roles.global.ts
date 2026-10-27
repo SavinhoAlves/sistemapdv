@@ -8,7 +8,7 @@ const ROTAS_PUBLICAS = ['/acesso', '/login', '/ativacao', '/logout', '/admin/log
 const PERMISSAO_POR_ROTA: Record<string, string | null> = {
   '/':              null,
   '/mesas':         'adicionarPedido',
-  '/vendas':        'adicionarPedido',
+  '/vendas':        'gerenciarCaixa',
   '/caixa':         'gerenciarCaixa',
   '/delivery':      'gerenciarCaixa',
   '/entregador':    'fazerEntregas',

@@ -86,10 +86,10 @@ async function onRfidSuccess(codigo: string) {
     return
   }
 
-  // Mesma regra de authStore.temPermissao, aplicada ao dono do cartão
-  const permAdicionar = usuario.permissoes?.adicionarPedido
-  const podeAdicionar = typeof permAdicionar === 'boolean' ? permAdicionar : usuario.cargo === 'administrador'
-  const temAcesso = usuario.cargo === 'administrador' || (usuario.cargo !== 'garcom' && podeAdicionar)
+  // Mesma regra de authStore.temPermissao, aplicada ao dono do cartão. A venda
+  // direta exige gerenciarCaixa no servidor; o garçom padrão não tem.
+  const perm = usuario.permissoes?.gerenciarCaixa
+  const temAcesso = typeof perm === 'boolean' ? perm : usuario.cargo === 'administrador'
 
   if (!temAcesso) {
     rfidErro.value = 'Este cartão não tem permissão para acessar o PDV de Vendas.'
@@ -111,7 +111,8 @@ async function atualizarStatusCaixa() {
 let pararDeEscutar: (() => void) | null = null
 
 onMounted(async () => {
-  if (authStore.usuario?.cargo === 'garcom') return router.replace('/mesas')
+  // Sem permissão de caixa (ex.: garçom), a venda direta não passaria no servidor
+  if (!authStore.temPermissao('gerenciarCaixa')) return router.replace('/mesas')
 
   // Abre o gate RFID se estiver ativo
   if (!configStore.carregado) await configStore.carregar().catch(() => {})

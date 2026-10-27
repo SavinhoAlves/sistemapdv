@@ -53,9 +53,9 @@
               </span>
             </button>
 
-            <!-- Venda Direta: só o administrador tem acesso à tela de Vendas -->
+            <!-- Venda Direta: só quem pode usar a tela de Vendas (permissão de caixa) -->
             <button
-              v-if="isAdmin"
+              v-if="podeVender"
               @click="form.tipo = 'balcao'"
               class="rounded-2xl border-2 p-4 flex flex-col items-center gap-2 transition-all text-center"
               :class="form.tipo === 'balcao'
@@ -192,6 +192,7 @@ const { rfidAtivo, modalAberto: rfidModal, mensagemModal: rfidMensagem, erroModa
 
 const loading = ref(false)
 const isAdmin = computed(() => authStore.usuario?.cargo === 'administrador')
+const podeVender = computed(() => authStore.temPermissao('gerenciarCaixa'))
 
 const form = reactive({
   tipo: 'mesa' as 'mesa' | 'balcao',

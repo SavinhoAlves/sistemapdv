@@ -16,7 +16,7 @@ export interface NavItem {
 const MAPA: { rota: string; label: string; icon: any; libera: (tem: (p: string) => boolean, modo: string, admin: boolean, delivery: boolean) => boolean }[] = [
   { rota: '/',              label: 'Dashboard',     icon: BarChart2,    libera: t => t('verRelatorios') || t('verDashboard') },
   { rota: '/mesas',         label: 'Mesas',         icon: LayoutGrid,   libera: (t, m) => m !== 'direta' && ['abrirMesa', 'fecharMesa', 'adicionarPedido', 'cancelarItemPedido'].some(t) },
-  { rota: '/vendas',        label: 'Vendas',        icon: ShoppingCart, libera: (t, m) => m !== 'mesas' && t('adicionarPedido') },
+  { rota: '/vendas',        label: 'Vendas',        icon: ShoppingCart, libera: (t, m) => m !== 'mesas' && t('gerenciarCaixa') },
   { rota: '/produtos',      label: 'Produtos',      icon: Package,      libera: t => t('gerenciarProdutos') },
   { rota: '/estoque',       label: 'Estoque',       icon: Boxes,        libera: t => t('gerenciarProdutos') },
   { rota: '/caixa',         label: 'Caixa',         icon: Landmark,     libera: t => t('gerenciarCaixa') },

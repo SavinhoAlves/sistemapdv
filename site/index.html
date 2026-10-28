@@ -150,6 +150,35 @@ nav .links .btn{margin-left:10px;gap:0}
 .device b{display:block;font-size:15px;font-weight:600;line-height:1.3}
 .device small{color:var(--muted);font-size:13px}
 
+/* Telas do sistema */
+.screens{padding:112px 0 64px;overflow:hidden}
+.tabs{display:flex;justify-content:center;flex-wrap:wrap;gap:8px;margin:0 auto 36px;padding:6px;border-radius:999px;background:var(--surface);border:1px solid var(--line);width:max-content;max-width:100%;box-shadow:var(--shadow)}
+.tabs button{appearance:none;border:0;background:transparent;color:var(--muted);font:600 15px "Sora",sans-serif;height:42px;padding:0 20px;border-radius:999px;cursor:pointer;transition:background .2s,color .2s}
+.tabs button:hover{color:var(--ink)}
+.tabs button[aria-selected="true"]{background:#1E1E1E;color:#FFEFE2}
+.tabs button:focus-visible{outline:3px solid var(--focus);outline-offset:2px}
+.shot{position:relative;max-width:1080px;margin:0 auto}
+.shot .window{animation:none;box-shadow:0 40px 90px rgba(60,20,0,.22),0 0 0 1px rgba(30,30,30,.08)}
+.shot .window-bar{background:#1B1D24;border-color:#2A2D36}
+.shot .window-bar span{background:#11131A;border-color:#2A2D36;color:#8B8F9C}
+.shot-view{position:relative;aspect-ratio:1440/820;background:#0F1117}
+.shot-view img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:top left;opacity:0;transition:opacity .45s}
+.shot-view img.on{opacity:1}
+.shot-cap{text-align:center;color:var(--muted);font-size:16px;margin:26px auto 0;max-width:56ch;min-height:3.2em}
+.shot-cap b{color:var(--ink)}
+.shot .phone-real{position:absolute;right:-56px;bottom:-48px;width:200px;padding:8px;border-radius:34px;background:#1E1E1E;box-shadow:0 30px 70px rgba(40,12,0,.45)}
+.shot .phone-real img{display:block;width:100%;height:auto;border-radius:27px}
+.shot::before{content:"";position:absolute;inset:-40px -80px;z-index:-1;background:radial-gradient(50% 50% at 50% 40%,rgba(255,122,0,.18),transparent 70%);pointer-events:none}
+
+/* Números */
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:20px;margin-bottom:72px;padding-bottom:64px;border-bottom:1px solid rgba(255,239,226,.12)}
+.stat b{display:block;font:700 clamp(36px,4.4vw,54px)/1 "JetBrains Mono",monospace;font-variant-numeric:tabular-nums;letter-spacing:-.04em;color:#FF9A4D}
+.stat span{display:block;margin-top:12px;color:rgba(255,239,226,.72);font-size:15px;max-width:22ch}
+
+/* WhatsApp flutuante */
+.zap-float{position:fixed;right:20px;bottom:calc(20px + env(safe-area-inset-bottom,0px));z-index:60;width:58px;height:58px;border-radius:50%;background:#25D366;color:#fff;display:grid;place-items:center;box-shadow:0 12px 30px rgba(0,0,0,.25);transition:transform .2s}
+.zap-float:hover{transform:scale(1.07)}
+
 /* Seções */
 .section{padding:112px 0}
 .section-head{max-width:640px;margin-bottom:56px}
@@ -244,6 +273,8 @@ footer{background:var(--deep);color:rgba(255,239,226,.65);padding:56px 0 calc(28
   .phone{left:-16px}
   .toast{right:-6px}
   .highlights{grid-template-columns:1fr 1fr}
+  .stats{grid-template-columns:1fr 1fr;row-gap:40px}
+  .shot .phone-real{right:-12px;width:170px}
   .devices .card{grid-template-columns:1fr 1fr}
   .device:nth-child(3){border-left:0}
   .device:nth-child(n+3){border-top:1px solid var(--line)}
@@ -257,6 +288,9 @@ footer{background:var(--deep);color:rgba(255,239,226,.65);padding:56px 0 calc(28
   .mod,.mod.wide{grid-column:span 1}
   .mod.wide{grid-column:span 2}
   .steps{grid-template-columns:1fr;gap:40px}
+  .screens{padding-top:88px}
+  .shot .phone-real{width:140px;bottom:-36px;right:-6px;border-radius:26px;padding:6px}
+  .shot .phone-real img{border-radius:21px}
   .steps::before{display:none}
   .faq-grid{grid-template-columns:1fr;gap:36px}
   .faq-grid .section-head{position:static}
@@ -290,6 +324,16 @@ footer{background:var(--deep);color:rgba(255,239,226,.65);padding:56px 0 calc(28
   .kds .ticket:nth-child(3){display:none}
   .pay span.total{margin-left:0}
   .highlights{grid-template-columns:1fr}
+  .screens{padding-top:72px}
+  .tabs{width:100%;border-radius:16px;display:grid;grid-template-columns:1fr 1fr}
+  .tabs button{border-radius:12px;padding:0 10px}
+  .shot .phone-real{display:none}
+  .shot .window{border-radius:12px}
+  .shot .window-bar{padding:8px 10px}
+  .shot .window-bar i{width:8px;height:8px}
+  .shot .window-bar span{display:none}
+  .stats{gap:28px 16px;margin-bottom:56px;padding-bottom:48px}
+  .zap-float{width:52px;height:52px;right:16px;bottom:calc(16px + env(safe-area-inset-bottom,0px))}
   .section{padding:72px 0}
   .section-head{margin-bottom:40px}
   .final{padding-bottom:72px}
@@ -321,6 +365,7 @@ footer{background:var(--deep);color:rgba(255,239,226,.65);padding:56px 0 calc(28
         <span>Restaurante <i class="pdv">PDV</i></span>
       </a>
       <div class="links">
+        <a class="t" href="#telas">Telas</a>
         <a class="t" href="#recursos">Recursos</a>
         <a class="t" href="#como-funciona">Como funciona</a>
         <a class="t" href="#duvidas">Dúvidas</a>
@@ -416,6 +461,35 @@ footer{background:var(--deep);color:rgba(255,239,226,.65);padding:56px 0 calc(28
 </section>
 
 <main>
+  <section class="screens" id="telas">
+    <div class="wrap">
+      <div class="section-head center reveal">
+        <span class="kicker">O sistema por dentro</span>
+        <h2>Telas pensadas para quem não pode parar</h2>
+        <p>Botões grandes, cores que mostram o que precisa de atenção e tudo atualizado na hora, em qualquer tela.</p>
+      </div>
+      <div class="tabs reveal" role="tablist" aria-label="Telas do sistema">
+        <button role="tab" aria-selected="true" aria-controls="tela-view" data-i="0">Painel</button>
+        <button role="tab" aria-selected="false" aria-controls="tela-view" data-i="1" tabindex="-1">Mesas</button>
+        <button role="tab" aria-selected="false" aria-controls="tela-view" data-i="2" tabindex="-1">Cozinha</button>
+        <button role="tab" aria-selected="false" aria-controls="tela-view" data-i="3" tabindex="-1">Delivery</button>
+      </div>
+      <div class="shot reveal">
+        <div class="window">
+          <div class="window-bar"><i></i><i></i><i></i><span>app.restaurantepdv.com.br</span></div>
+          <div class="shot-view" id="tela-view" role="tabpanel">
+            <img class="on" src="img/painel.jpg" width="1440" height="820" alt="Painel com faturamento do dia, mesas abertas, pedidos e ticket médio, e gráfico de vendas por hora">
+            <img src="img/mesas.jpg" width="1440" height="820" loading="lazy" alt="Tela de mesas com o total de cada comanda e o que está na cozinha, pronto ou com a conta pedida">
+            <img src="img/cozinha.jpg" width="1440" height="820" loading="lazy" alt="Tela da cozinha com os pedidos de cada mesa e do delivery, tempo de espera e observações">
+            <img src="img/delivery.jpg" width="1440" height="820" loading="lazy" alt="Quadro de delivery com pedidos novos, na cozinha, em rota e finalizados">
+          </div>
+        </div>
+        <div class="phone-real"><img src="img/celular.jpg" width="720" height="1520" loading="lazy" alt="Celular do garçom mostrando as mesas em atendimento"></div>
+      </div>
+      <p class="shot-cap" aria-live="polite"><b>Painel do dia.</b> Faturamento, mesas abertas e vendas por hora assim que você entra.</p>
+    </div>
+  </section>
+
   <section class="section" id="recursos">
     <div class="wrap">
       <div class="section-head reveal">
@@ -519,6 +593,14 @@ footer{background:var(--deep);color:rgba(255,239,226,.65);padding:56px 0 calc(28
 
   <section class="section dark-band">
     <div class="wrap">
+      <!-- NÚMEROS FICTÍCIOS (provisórios): troque pelos dados reais quando tiver. -->
+      <div class="stats">
+        <div class="stat reveal"><b class="js-count" data-to="850" data-pre="+">+850</b><span>restaurantes atendendo com o sistema</span></div>
+        <div class="stat reveal"><b class="js-count" data-to="2.4" data-dec="1" data-suf=" mi">2,4 mi</b><span>pedidos lançados por mês</span></div>
+        <div class="stat reveal"><b class="js-count" data-to="35" data-suf="%">35%</b><span>menos tempo entre o pedido e a mesa</span></div>
+        <div class="stat reveal"><b class="js-count" data-to="4.9" data-dec="1" data-suf="/5">4,9/5</b><span>nota média dada pelos clientes</span></div>
+      </div>
+
       <div class="section-head reveal">
         <span class="kicker">Feito para a correria</span>
         <h2>Pensado para o restaurante cheio, não para a demonstração</h2>
@@ -577,6 +659,10 @@ footer{background:var(--deep);color:rgba(255,239,226,.65);padding:56px 0 calc(28
           <summary>Serve para delivery?</summary>
           <p>Serve. Você recebe pedidos para entrega ou retirada, despacha para os entregadores pelo app e o cliente acompanha o pedido por um link.</p>
         </details>
+        <details>
+          <summary>Como faço para contratar?</summary>
+          <p>Chame a gente no WhatsApp <a class="js-whatsapp" href="#" target="_blank" rel="noopener"><b>(22) 99712-7142</b></a>. Mostramos o sistema funcionando e deixamos tudo pronto para o seu restaurante.</p>
+        </details>
       </div>
     </div>
   </section>
@@ -617,7 +703,7 @@ footer{background:var(--deep);color:rgba(255,239,226,.65);padding:56px 0 calc(28
         <div>
           <h4>Acesso</h4>
           <a class="js-acessar" href="/login">Entrar no sistema</a>
-          <a class="js-whatsapp" href="#" target="_blank" rel="noopener">WhatsApp</a>
+          <a class="js-whatsapp" href="#" target="_blank" rel="noopener">WhatsApp (22) 99712-7142</a>
         </div>
       </div>
     </div>
@@ -625,10 +711,14 @@ footer{background:var(--deep);color:rgba(255,239,226,.65);padding:56px 0 calc(28
   </div>
 </footer>
 
+<a class="zap-float js-whatsapp" href="#" target="_blank" rel="noopener" aria-label="Falar no WhatsApp">
+  <svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M17.5 14.4c-.3-.1-1.7-.8-2-.9-.3-.1-.5-.1-.7.1-.2.3-.8.9-.9 1.1-.2.2-.3.2-.6.1-.3-.1-1.2-.5-2.3-1.4-.9-.8-1.4-1.7-1.6-2-.2-.3 0-.5.1-.6l.4-.5c.2-.2.2-.3.3-.5.1-.2 0-.4 0-.5l-.9-2.2c-.2-.6-.5-.5-.7-.5h-.6c-.2 0-.5.1-.8.4-.3.3-1 1-1 2.5s1.1 2.9 1.2 3.1c.1.2 2.1 3.2 5.1 4.5.7.3 1.3.5 1.7.6.7.2 1.4.2 1.9.1.6-.1 1.7-.7 1.9-1.4.2-.7.2-1.2.2-1.4-.1-.1-.3-.2-.6-.3zM12 21.8c-1.8 0-3.5-.5-5-1.4l-.4-.2-3.7 1 1-3.6-.2-.4C2.7 15.6 2.2 13.8 2.2 12 2.2 6.6 6.6 2.2 12 2.2c2.6 0 5.1 1 6.9 2.9 1.8 1.8 2.9 4.3 2.9 6.9 0 5.4-4.4 9.8-9.8 9.8zm8.4-18.2C18.2 1.3 15.2 0 12 0 5.4 0 0 5.4 0 12c0 2.1.6 4.2 1.6 6L0 24l6.2-1.6c1.8 1 3.8 1.5 5.8 1.5 6.6 0 12-5.4 12-12 0-3.2-1.2-6.2-3.6-8.4z"/></svg>
+</a>
+
 <script>
   // ── Configuração do site ────────────────────────────────────────────────
   // Preencha antes de publicar. Sem número, os botões de WhatsApp somem.
-  var WHATSAPP = ''            // ex.: '5562999999999' (DDI + DDD + número, só dígitos)
+  var WHATSAPP = '5522997127142'   // DDI + DDD + número, só dígitos (provisório)
 
   // O sistema fica em app.<domínio> (na raiz). Pelo IP ou localhost, no
   // mesmo endereço deste site.
@@ -667,6 +757,50 @@ footer{background:var(--deep);color:rgba(255,239,226,.65);padding:56px 0 calc(28
     if(idx>0) e.style.transitionDelay=Math.min(idx,5)*70+'ms'
     io.observe(e)
   })
+})();
+</script>
+
+<script>
+// Abas com os prints do sistema e contadores dos números.
+(function(){
+  var tabs=document.querySelectorAll('.tabs [role="tab"]'),imgs=document.querySelectorAll('.shot-view img'),cap=document.querySelector('.shot-cap')
+  var CAP=[
+    ['Painel do dia.','Faturamento, mesas abertas e vendas por hora assim que você entra.'],
+    ['Mesas.','Quanto cada mesa consumiu e o que está na cozinha, pronto ou com a conta pedida.'],
+    ['Cozinha.','Pedidos do salão e do delivery na ordem certa, com tempo de espera e observações.'],
+    ['Delivery.','Do pedido novo à entrega, com o entregador e o pagamento de cada um.']
+  ]
+  var atual=0,auto
+  function ir(i,foco){
+    atual=i
+    tabs.forEach(function(t,j){t.setAttribute('aria-selected',j===i);t.tabIndex=j===i?0:-1})
+    imgs.forEach(function(m,j){m.classList.toggle('on',j===i)})
+    cap.innerHTML='<b></b> '; cap.firstChild.textContent=CAP[i][0]; cap.appendChild(document.createTextNode(CAP[i][1]))
+    if(foco) tabs[i].focus()
+  }
+  tabs.forEach(function(t,i){
+    t.addEventListener('click',function(){clearInterval(auto);ir(i)})
+    t.addEventListener('keydown',function(e){
+      var d=e.key==='ArrowRight'?1:e.key==='ArrowLeft'?-1:0
+      if(d){e.preventDefault();clearInterval(auto);ir((i+d+tabs.length)%tabs.length,true)}
+    })
+  })
+  var reduz=window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  if(!reduz) auto=setInterval(function(){if(!document.hidden)ir((atual+1)%tabs.length)},6000)
+
+  var nums=document.querySelectorAll('.js-count')
+  if(reduz||!('IntersectionObserver' in window)) return
+  function fmt(el,v){
+    var dec=+(el.dataset.dec||0)
+    el.textContent=(el.dataset.pre||'')+v.toFixed(dec).replace('.',',')+(el.dataset.suf||'')
+  }
+  var io=new IntersectionObserver(function(es){es.forEach(function(en){
+    if(!en.isIntersecting) return
+    io.unobserve(en.target)
+    var el=en.target,alvo=+el.dataset.to,t0=performance.now()
+    ;(function passo(t){var k=Math.min((t-t0)/1400,1);fmt(el,alvo*(1-Math.pow(1-k,3)));if(k<1)requestAnimationFrame(passo)})(t0)
+  })},{threshold:.4})
+  nums.forEach(function(n){io.observe(n)})
 })();
 </script>
 

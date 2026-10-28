@@ -48,11 +48,11 @@
               </div>
 
               <div class="sm-qtd" @pointerdown.stop>
-                <button :aria-label="`Remover uma unidade de ${produto.nome}`" @click.stop="removerItem(produto)">
+                <button :aria-label="`Remover uma unidade de ${produto.nome}`" :disabled="!pode('adicionarPedido')" @click.stop="removerItem(produto)">
                   <Minus :size="16" />
                 </button>
                 <span class="pdv-valor">{{ produto.quantidade }}</span>
-                <button :aria-label="`Adicionar uma unidade de ${produto.nome}`" @click.stop="adicionarItem(produto)">
+                <button :aria-label="`Adicionar uma unidade de ${produto.nome}`" :disabled="!pode('adicionarPedido')" @click.stop="adicionarItem(produto)">
                   <Plus :size="16" />
                 </button>
               </div>
@@ -124,10 +124,10 @@
           <button class="sm-sec" @click="imprimir">
             <PrinterIcon :size="18" /> Conta
           </button>
-          <button class="sm-sec" :disabled="!caixaAberto" @click="caixaAberto ? (modalDesconto = true) : exigirCaixa()">
+          <button class="sm-sec" :disabled="!caixaAberto || !pode('aplicarDesconto')" :title="pode('aplicarDesconto') ? undefined : 'Sem permissão para dar desconto'" @click="caixaAberto ? (modalDesconto = true) : exigirCaixa()">
             <Divide :size="18" /> Desconto
           </button>
-          <button class="sm-sec" :disabled="!caixaAberto" @click="caixaAberto ? (modalAbater = true) : exigirCaixa()">
+          <button class="sm-sec" :disabled="!caixaAberto || !pode('aplicarDesconto')" :title="pode('aplicarDesconto') ? undefined : 'Sem permissão para abater'" @click="caixaAberto ? (modalAbater = true) : exigirCaixa()">
             <BadgePercent :size="18" /> Abater
           </button>
         </div>
@@ -136,7 +136,7 @@
         <button
           v-if="paraEnviar > 0"
           class="pdv-botao pdv-botao--acao pdv-botao--confirmar mb-2 w-full"
-          :disabled="enviando"
+          :disabled="enviando || !pode('adicionarPedido')"
           @click="enviarPedido"
         >
           <ChefHat :size="20" /> {{ enviando ? 'Enviando…' : `Enviar pedido (${paraEnviar} ${paraEnviar === 1 ? 'item' : 'itens'})` }}
@@ -145,7 +145,7 @@
         <div class="sm-principais" :class="{ dupla: podeFecharMesa }">
           <button
             class="pdv-botao pdv-botao--confirmar"
-            :class="[podeFecharMesa ? 'pdv-botao--neutro' : 'pdv-botao--acao', { 'sm-off': !caixaAberto }]"
+            :class="[podeFecharMesa ? 'pdv-botao--neutro' : 'pdv-botao--acao', { 'sm-off': !caixaAberto || !pode('adicionarPedido') }]"
             @click="emitirAbrirProdutosComRfid"
           >
             <Plus :size="20" /> {{ podeFecharMesa ? 'Produtos' : 'Lançar produtos' }}
@@ -373,6 +373,7 @@ import { enviarImpressao } from '~/lib/qz'
 import { useToastStore } from '~/stores/toast'
 import { useRfidIdentify, ErroMesaDeOutro } from '~/composables/useRfidIdentify'
 import { semLeitorDeCartao } from '~/lib/identificacao'
+import { fecharAoPerderPermissao } from '~/lib/permissaoJanela'
 
 // Valores da comanda sempre no formato da moeda (vírgula decimal, R$)
 const formatoMoeda = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' })
@@ -404,7 +405,18 @@ const {
   onRfidCancelar,
 } = useRfidIdentify()
 const caixaAberto = computed(() => caixaStore.aberto)
-const podeFecharMesa = computed(() => authStore.isCaixa || authStore.temPermissao('fecharMesa'))
+/**
+ * Com RFID quem decide é o cartão passado (a API confere o dono do cartão);
+ * sem RFID vale a conta logada — e acompanha na hora uma permissão revogada.
+ */
+const modoCartao = computed(() => configStore.rfid_ativo && !semLeitorDeCartao())
+const pode = (perm: string) => modoCartao.value || authStore.temPermissao(perm)
+function semPermissao(perm: string, acao: string) {
+  if (pode(perm)) return false
+  toastStore.warning('Sem permissão', `Você não tem permissão para ${acao}.`)
+  return true
+}
+const podeFecharMesa = computed(() => authStore.temPermissao('fecharMesa'))
 const podeTaxa       = computed(() => authStore.usuario?.cargo === 'administrador' || authStore.isCaixa)
 
 /**
@@ -430,6 +442,7 @@ const salvandoCancelar = ref(false)
 const inputMotivoRef   = ref<HTMLInputElement | null>(null)
 
 function abrirCancelamento(produto: ProdutoMesa, quantidade: number) {
+  if (semPermissao('cancelarItemPedido', 'cancelar itens')) return
   motivoCancelar.value = ''
   cancelando.value = { produto, quantidade }
   nextTick(() => inputMotivoRef.value?.focus())
@@ -491,6 +504,7 @@ async function cartaoDaMesa(mensagem: string) {
 
 async function emitirAbrirProdutosComRfid() {
   if (!caixaAberto.value) { exigirCaixa(); return }
+  if (semPermissao('adicionarPedido', 'lançar produtos')) return
   if (abrindoProdutos.value) return
   abrindoProdutos.value = true
   try {
@@ -523,6 +537,7 @@ const paraEnviar = computed(() => produtos.value.filter((p: any) => p.status ===
 const enviando   = ref(false)
 async function enviarPedido() {
   if (!props.mesa?.id || enviando.value) return
+  if (semPermissao('adicionarPedido', 'enviar pedidos')) return
   enviando.value = true
   try {
     const r = await api.post<{ enviados: number }>(`/pedidos/mesa/${props.mesa.id}/enviar`)
@@ -668,6 +683,7 @@ const modalPagamento = ref(false)
 
 async function abrirPagamentoComRfid() {
   if (!caixaAberto.value) { exigirCaixa(); return }
+  if (!podeFecharMesa.value) { semPermissao('fecharMesa', 'receber e fechar a mesa'); return }
   try {
     await cartaoDaMesa('Passe o cartão para processar o pagamento')
   } catch { return }
@@ -823,6 +839,13 @@ let pointerStartX = 0
 let pointerStartY = 0
 
 const menuAberto = ref<number | null>(null)
+
+// Janelas abertas fecham se a permissão delas for revogada enquanto estão na tela
+fecharAoPerderPermissao({ aberta: () => modalDesconto.value, permitido: () => pode('aplicarDesconto'), fechar: () => fecharModalDesconto(), acao: 'dar desconto' })
+fecharAoPerderPermissao({ aberta: () => modalAbater.value, permitido: () => pode('aplicarDesconto'), fechar: () => fecharModalAbater(), acao: 'abater valores' })
+fecharAoPerderPermissao({ aberta: () => cancelando.value !== null, permitido: () => pode('cancelarItemPedido'), fechar: () => fecharCancelamento(), acao: 'cancelar itens' })
+fecharAoPerderPermissao({ aberta: () => modalPagamento.value, permitido: () => podeFecharMesa.value, fechar: () => { modalPagamento.value = false }, acao: 'receber e fechar a mesa' })
+fecharAoPerderPermissao({ aberta: () => menuAberto.value !== null, permitido: () => pode('adicionarPedido'), fechar: () => { menuAberto.value = null }, acao: 'lançar produtos' })
 const radialPos  = ref<{ x: number; y: number } | null>(null)
 
 const produtoSelecionado = computed(() =>
@@ -892,6 +915,7 @@ function detach() {
 
 async function adicionarItem(produto: ProdutoMesa) {
   if (!caixaAberto.value) { exigirCaixa(); return }
+  if (semPermissao('adicionarPedido', 'lançar produtos')) return
   try {
     await cartaoDaMesa('Passe o cartão para adicionar item')
   } catch { return }
@@ -916,6 +940,7 @@ async function adicionarItem(produto: ProdutoMesa) {
 
 async function removerItem(produto: ProdutoMesa) {
   if (!caixaAberto.value) { exigirCaixa(); return }
+  if (produto.status !== 'entregue' && semPermissao('adicionarPedido', 'tirar itens da comanda')) return
   if (produto.status === 'entregue') { abrirCancelamento(produto, 1); return }
   try {
     await cartaoDaMesa('Passe o cartão para remover item')

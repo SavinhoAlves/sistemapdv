@@ -1,5 +1,6 @@
 import type { FastifyRequest, FastifyReply } from 'fastify'
 import { aplicarOperador } from './operador.middleware'
+import { permissoesAtuais } from '../lib/permissoesAtuais'
 
 /**
  * Permissões por cargo.
@@ -88,7 +89,13 @@ export function requireAlgumaPermissao(...lista: string[]) {
     // Cartão RFID passado: a permissão conferida é a do dono do cartão
     if (!aplicarOperador(request, reply)) return
 
-    if (!lista.some(p => temPermissao(request.auth as any, p))) {
+    // Confere pelas permissões de agora (banco), não pelas do login: uma
+    // mudança do administrador vale na hora, mesmo com o token ainda válido.
+    const auth = request.auth as any
+    const atuais = auth.tenantId && auth.sub ? await permissoesAtuais(auth.tenantId, auth.sub) : null
+    const quem = atuais ?? auth
+
+    if (!lista.some(p => temPermissao(quem, p))) {
       return reply.status(403).send({ error: 'Sem permissão para esta ação' })
     }
   }

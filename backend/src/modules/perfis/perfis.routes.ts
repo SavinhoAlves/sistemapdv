@@ -2,6 +2,7 @@ import type { FastifyInstance } from 'fastify'
 import { requireTenant } from '../../middlewares/tenant.middleware'
 import { requirePermissao, PERMISSOES_CARGO } from '../../middlewares/permission.middleware'
 import * as Service from './perfis.service'
+import { permissoesMudaram } from '../../lib/permissoesAtuais'
 
 export async function perfisRoutes(app: FastifyInstance) {
   // GET /api/perfis
@@ -19,6 +20,7 @@ export async function perfisRoutes(app: FastifyInstance) {
         descricao: body.descricao,
         permissoes: body.permissoes,
       })
+      permissoesMudaram(request.tenantId!)
       return reply.status(201).send(perfil)
     } catch (err: any) {
       if (err.code === 'P2002') return reply.status(409).send({ error: 'Já existe um perfil com esse nome' })
@@ -36,6 +38,7 @@ export async function perfisRoutes(app: FastifyInstance) {
         descricao: body.descricao,
         permissoes: body.permissoes,
       })
+      permissoesMudaram(request.tenantId!)
       return perfil
     } catch (err: any) {
       if (err.code === 'P2002') return reply.status(409).send({ error: 'Já existe um perfil com esse nome' })
@@ -63,7 +66,9 @@ export async function perfisRoutes(app: FastifyInstance) {
     if (permissoes !== null && (typeof permissoes !== 'object' || Array.isArray(permissoes))) {
       return reply.status(400).send({ error: 'permissoes inválidas' })
     }
-    return Service.salvarFuncao(request.tenantId!, cargo, permissoes)
+    const r = await Service.salvarFuncao(request.tenantId!, cargo, permissoes)
+    permissoesMudaram(request.tenantId!)
+    return r
   })
 
   // DELETE /api/perfis/:id — quem usava o perfil volta ao padrão da função
@@ -71,17 +76,21 @@ export async function perfisRoutes(app: FastifyInstance) {
     const { id } = request.params as any
     const ok = await Service.excluir(request.tenantId!, id)
     if (!ok) return reply.status(404).send({ error: 'Perfil não encontrado' })
+    permissoesMudaram(request.tenantId!)
     return { success: true }
   })
 
   // POST /api/perfis/seed
   app.post('/seed', { preHandler: [requireTenant, requirePermissao('gerenciarPerfis')] }, async (request, reply) => {
     const result = await Service.seed(request.tenantId!)
+    permissoesMudaram(request.tenantId!)
     return { success: true, perfis: result }
   })
 
   // POST /api/perfis/auto-atribuir
   app.post('/auto-atribuir', { preHandler: [requireTenant, requirePermissao('gerenciarPerfis')] }, async (request) => {
-    return Service.autoAtribuir(request.tenantId!)
+    const r = await Service.autoAtribuir(request.tenantId!)
+    permissoesMudaram(request.tenantId!)
+    return r
   })
 }

@@ -157,8 +157,10 @@ export async function autoAtribuir(tenantId: string) {
 
 /** Administrador tem acesso total e não é editável: evita o restaurante se trancar para fora. */
 export const FUNCOES_EDITAVEIS = ['garcom', 'caixa', 'cozinha', 'entregador'] as const
-// Lista completa de chaves conhecidas: o administrador tem todas
-const CHAVES = Object.keys(PERMISSOES_CARGO.administrador)
+// Lista completa de chaves conhecidas: o administrador tem todas.
+// Função (e não constante) porque este módulo entra num ciclo de imports
+// com o permission.middleware, e no carregamento PERMISSOES_CARGO ainda não existe.
+const chaves = () => Object.keys(PERMISSOES_CARGO.administrador)
 
 async function ajustesFuncoes(tenantId: string): Promise<Record<string, Record<string, boolean>>> {
   const cfg = await prisma.configuracoes.findUnique({ where: { tenantId }, select: { permissoesFuncoes: true } })
@@ -189,7 +191,7 @@ export async function salvarFuncao(tenantId: string, cargo: string, permissoes: 
   if (permissoes === null) delete ajustes[cargo]
   else {
     const limpo: Record<string, boolean> = {}
-    for (const k of CHAVES) if (typeof permissoes[k] === 'boolean') limpo[k] = permissoes[k] as boolean
+    for (const k of chaves()) if (typeof permissoes[k] === 'boolean') limpo[k] = permissoes[k] as boolean
     ajustes[cargo] = limpo
   }
   await prisma.configuracoes.upsert({

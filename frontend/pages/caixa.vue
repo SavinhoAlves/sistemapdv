@@ -229,7 +229,7 @@
                   Estornado
                 </span>
                 <button
-                  v-else-if="mov.tipo === 'pagamento' && mov.pagamento_id"
+                  v-else-if="mov.tipo === 'pagamento' && mov.pagamento_id && authStore.temPermissao('estornarPagamento')"
                   @click="movEstorno = mov"
                   class="h-7 px-2.5 rounded-lg bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 text-red-400 text-[10px] font-black transition-all flex items-center gap-1 shrink-0">
                   <Undo2 :size="10" /> Estornar
@@ -450,6 +450,7 @@ import { useApi } from '~/services/api'
 import { useCaixaStore }  from '~/stores/caixa'
 import { useToastStore }  from '~/stores/toast'
 import { useAuthStore }   from '~/stores/auth'
+import { fecharAoPerderPermissao } from '~/lib/permissaoJanela'
 import { useSocket }      from '~/services/socket'
 import { iconeMetodo } from '~/composables/useIconeMetodo'
 
@@ -487,6 +488,7 @@ const movimentosFiltrados = computed(() =>
 )
 
 const movEstorno    = ref<any>(null)
+fecharAoPerderPermissao({ aberta: () => movEstorno.value !== null, permitido: () => authStore.temPermissao('estornarPagamento'), fechar: () => { movEstorno.value = null }, acao: 'estornar pagamentos' })
 const motivoEstorno = ref('')
 const estornando    = ref(false)
 

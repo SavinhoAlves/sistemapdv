@@ -1,4 +1,5 @@
 import { useAuthStore } from '../stores/auth'
+import { avisarPermissoesMudaram } from '~/lib/permissaoJanela'
 import { useRouter, useRuntimeConfig } from '#imports'
 import { getTenantSlug } from '~/composables/useTenantSlug'
 import { ajustarRelogio } from '~/lib/relogio'
@@ -95,6 +96,8 @@ export function useApi() {
         if (response.status === 403 && errorData.licenca === false) {
           router.push('/ativacao')
         }
+        // Permissão revogada que o app ainda não sabia: relê e ajusta as telas
+        if (response.status === 403 && errorData.error === 'Sem permissão para esta ação') avisarPermissoesMudaram()
         // RFID ligado e sem cartão válido: pede o cartão e repete a ação uma vez
         if (response.status === 403 && !_isRetry &&
             (errorData.codigo === 'CARTAO_OBRIGATORIO' || errorData.codigo === 'CARTAO_EXPIRADO')) {

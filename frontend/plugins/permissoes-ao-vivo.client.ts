@@ -48,6 +48,8 @@ export default defineNuxtPlugin(() => {
     }
   }, 1000)
 
+  // A API recusou por falta de permissão (services/api): relê já
+  window.addEventListener('pdv:permissoes', () => atualizar(true))
   document.addEventListener('visibilitychange', () => { if (!document.hidden) atualizar(false) })
   setInterval(() => { if (!document.hidden) atualizar(false) }, 60_000)
 })

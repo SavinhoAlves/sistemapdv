@@ -156,6 +156,7 @@
 </template>
 
 <script setup lang="ts">
+import { fecharAoPerderPermissao } from '~/lib/permissaoJanela'
 import {
   reactive,
   ref,
@@ -203,6 +204,8 @@ const form = reactive({
 const fechar = () => {
   emit('update:modelValue', false)
 }
+
+fecharAoPerderPermissao({ aberta: () => props.modelValue, permitido: () => authStore.temPermissao('abrirMesa'), fechar, acao: 'abrir mesas' })
 
 const resetar = () => {
   form.tipo = 'mesa'

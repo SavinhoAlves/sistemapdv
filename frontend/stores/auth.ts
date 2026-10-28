@@ -128,16 +128,22 @@ export const useAuthStore = defineStore('auth', {
       navigateTo(noApp() ? '/acesso' : '/login')
     },
 
-    async refreshUsuario() {
-      if (!this.token || !process.client) return
+    /**
+     * Relê cargo e permissões de agora (/auth/me consulta o banco). `forcar`
+     * ignora o intervalo mínimo — usado quando o administrador avisa que mudou
+     * algo. Devolve true se cargo ou permissões mudaram.
+     */
+    async refreshUsuario(forcar = false): Promise<boolean> {
+      if (!this.token || !process.client) return false
       const agora = Date.now()
-      if (agora - this.ultimoRefresh < 2 * 60 * 1000) return
+      if (!forcar && agora - this.ultimoRefresh < 30 * 1000) return false
       const config = useRuntimeConfig()
       try {
         const resp = await $fetch<any>(`${config.public.apiUrl}/api/auth/me`, {
           headers: { Authorization: `Bearer ${this.token}` }
         })
         if (resp?.auth) {
+          const antes = JSON.stringify([this.usuario?.cargo, this.usuario?.permissoes ?? null])
           this.usuario = {
             ...this.usuario,
             id:         resp.auth.sub,
@@ -148,10 +154,12 @@ export const useAuthStore = defineStore('auth', {
           } as Usuario
           localStorage.setItem('auth_user', JSON.stringify(this.usuario))
           this.ultimoRefresh = agora
+          return antes !== JSON.stringify([this.usuario?.cargo, this.usuario?.permissoes ?? null])
         }
       } catch (e: any) {
         if (e?.status === 401 || e?.statusCode === 401) this.logout()
       }
+      return false
     },
 
     redirectByRole() {

@@ -38,6 +38,10 @@ export const EVENTOS = {
     /** nova posição GPS de um entregador */
     posicao: 'delivery:posicao',
   },
+  equipe: {
+    /** admin mudou permissões de função/perfil/pessoa: cada app relê as suas */
+    permissoesAtualizadas: 'equipe:permissoes-atualizadas',
+  },
 } as const
 
 /**

@@ -6,6 +6,7 @@ import * as Biometria from './biometria.service'
 import { requireTenant } from '../../middlewares/tenant.middleware'
 import { prisma } from '../../lib/prisma'
 import { motivoSemAcessoPeloQr } from '../configuracoes/configuracoes.service'
+import { permissoesAtuais } from '../../lib/permissoesAtuais'
 
 export async function authRoutes(app: FastifyInstance) {
   // POST /api/auth/login
@@ -79,6 +80,13 @@ export async function authRoutes(app: FastifyInstance) {
 
   // GET /api/auth/me
   app.get('/me', async (request, reply) => {
+    // Permissões de agora (banco), não as do login: é por aqui que o app
+    // atualiza menu e telas quando o administrador muda algo.
+    const auth = request.auth as any
+    if (auth?.type === 'tenant' && auth.tenantId && auth.sub) {
+      const atuais = await permissoesAtuais(auth.tenantId, auth.sub)
+      if (atuais) return reply.send({ auth: { ...auth, ...atuais } })
+    }
     return reply.send({ auth: request.auth })
   })
 

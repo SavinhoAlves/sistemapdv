@@ -1,31 +1,9 @@
 import { useAuthStore } from '~/stores/auth'
 import { noApp, destinoNoCelular } from '~/lib/app'
 import { ehPainel } from '~/lib/hosts'
+import { PERMISSAO_POR_ROTA, DESTINO_PADRAO } from '~/lib/rotasPermissao'
 
 const ROTAS_PUBLICAS = ['/acesso', '/login', '/ativacao', '/logout', '/admin/login', '/m', '/platform', '/cardapio', '/pedido', '/manual']
-
-// Permissão mínima exigida por rota (undefined = rota desconhecida; null = qualquer autenticado)
-const PERMISSAO_POR_ROTA: Record<string, string | null> = {
-  '/':              null,
-  '/mesas':         'adicionarPedido',
-  '/vendas':        'gerenciarCaixa',
-  '/caixa':         'gerenciarCaixa',
-  '/delivery':      'gerenciarCaixa',
-  '/entregador':    'fazerEntregas',
-  '/cozinha':       'verCozinha',
-  '/produtos':      'gerenciarProdutos',
-  '/estoque':       'gerenciarProdutos',
-  '/relatorios':    'verRelatorios',
-  '/configuracoes': 'gerenciarConfiguracoes',
-}
-
-const DESTINO_PADRAO: Record<string, string> = {
-  administrador: '/',
-  garcom:        '/mesas',
-  caixa:         '/caixa',
-  cozinha:       '/cozinha',
-  entregador:    '/entregador',
-}
 
 export default defineNuxtRouteMiddleware((to) => {
   if (ROTAS_PUBLICAS.some(r => to.path.startsWith(r)) || ehPainel()) return

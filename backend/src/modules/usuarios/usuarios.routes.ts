@@ -2,6 +2,7 @@ import type { FastifyInstance } from 'fastify'
 import { requireTenant } from '../../middlewares/tenant.middleware'
 import { requirePermissao } from '../../middlewares/permission.middleware'
 import * as Service from './usuarios.service'
+import { permissoesMudaram } from '../../lib/permissoesAtuais'
 
 function loginInvalido(login: unknown) {
   if (login === undefined || login === null || login === '') return false
@@ -82,6 +83,7 @@ export async function usuariosRoutes(app: FastifyInstance) {
         perfilId: body.perfilId,
         ativo: body.ativo,
       })
+      permissoesMudaram(request.tenantId!)
       return usuario
     } catch (err: any) {
       if (err.code === 'P2002') return reply.status(409).send({ error: MSG_DUPLICADO })
@@ -96,6 +98,7 @@ export async function usuariosRoutes(app: FastifyInstance) {
     const { ativo } = request.body as any
     try {
       const usuario = await Service.toggleAtivo(request.tenantId!, id, Boolean(ativo))
+      permissoesMudaram(request.tenantId!)
       return usuario
     } catch (err: any) {
       if (err.code === 'P2025') return reply.status(404).send({ error: 'Usuário não encontrado' })

@@ -160,5 +160,10 @@ export function emitir(tenantId: string) {
       if (!io) return
       io.to(salas.todos(tenantId)).emit(EVENTOS.delivery.posicao, payload)
     },
+
+    permissoes() {
+      if (!io) return
+      io.to(salas.todos(tenantId)).emit(EVENTOS.equipe.permissoesAtualizadas, {})
+    },
   }
 }

@@ -243,9 +243,10 @@ const loadingFunc  = ref(false)
 async function recarregarEquipe() {
   loadingFunc.value = true
   try {
-    const [f, p] = await Promise.all([api.get<any[]>('/usuarios'), api.perfis.listar<any>()])
+    const [f, p, pad] = await Promise.all([api.get<any[]>('/usuarios'), api.perfis.listar<any>(), api.get<Record<string, Record<string, boolean>>>('/perfis/funcoes').catch(() => null)])
     funcionarios.value = f
     perfis.value = p
+    if (pad) padroes.value = pad
   } catch (e: any) {
     toastStore.error(e?.message || 'Erro ao carregar a equipe')
   } finally {
@@ -342,7 +343,6 @@ onMounted(async () => {
   api.get<{ modoLocal: boolean }>('/terminais/rede').then(r => { modoLocal.value = !!r?.modoLocal }).catch(() => {})
   recarregarEquipe()
   carregarCategorias()
-  try { padroes.value = await api.get('/perfis/funcoes') } catch {}
   carregarMetodos()
 })
 </script>

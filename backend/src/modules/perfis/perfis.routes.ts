@@ -44,8 +44,27 @@ export async function perfisRoutes(app: FastifyInstance) {
     }
   })
 
-  // GET /api/perfis/funcoes — permissões padrão de cada função (cargo), base dos perfis
-  app.get('/funcoes', { preHandler: [requireTenant] }, async () => PERMISSOES_CARGO)
+  // GET /api/perfis/funcoes — permissões de cada função (cargo) neste restaurante, base dos perfis
+  app.get('/funcoes', { preHandler: [requireTenant] }, async (request) => Service.padroesFuncoes(request.tenantId!))
+
+  // GET /api/perfis/funcoes/detalhes — padrão do sistema e quais funções o restaurante alterou
+  app.get('/funcoes/detalhes', { preHandler: [requireTenant] }, async (request) => ({
+    sistema: PERMISSOES_CARGO,
+    personalizadas: await Service.funcoesPersonalizadas(request.tenantId!),
+  }))
+
+  // PUT /api/perfis/funcoes/:cargo — edita as permissões de uma função; { permissoes: null } restaura o padrão
+  app.put('/funcoes/:cargo', { preHandler: [requireTenant, requirePermissao('gerenciarPerfis')] }, async (request, reply) => {
+    const { cargo } = request.params as { cargo: string }
+    if (!(Service.FUNCOES_EDITAVEIS as readonly string[]).includes(cargo)) {
+      return reply.status(400).send({ error: 'Essa função não pode ser editada' })
+    }
+    const { permissoes } = (request.body ?? {}) as { permissoes?: Record<string, unknown> | null }
+    if (permissoes !== null && (typeof permissoes !== 'object' || Array.isArray(permissoes))) {
+      return reply.status(400).send({ error: 'permissoes inválidas' })
+    }
+    return Service.salvarFuncao(request.tenantId!, cargo, permissoes)
+  })
 
   // DELETE /api/perfis/:id — quem usava o perfil volta ao padrão da função
   app.delete('/:id', { preHandler: [requireTenant, requirePermissao('gerenciarPerfis')] }, async (request, reply) => {

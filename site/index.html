@@ -41,21 +41,22 @@ a{color:inherit}
 h1,h2,h3{font-family:"Sora",system-ui,sans-serif;letter-spacing:-.03em;margin:0}
 .mono{font-family:"JetBrains Mono",monospace;font-variant-numeric:tabular-nums}
 
-.btn{display:inline-flex;gap:10px;white-space:nowrap;align-items:center;justify-content:center;height:52px;padding:0 26px;border-radius:12px;background:var(--brand);color:var(--brand-ink);font:600 16px "Sora",sans-serif;text-decoration:none;transition:background .15s,transform .15s,box-shadow .15s}
-.btn:hover{background:var(--brand-hover)}
-.btn:active{transform:scale(.99)}
+.btn{display:inline-flex;gap:10px;white-space:nowrap;align-items:center;justify-content:center;height:52px;padding:0 26px;border-radius:12px;background:var(--brand);color:var(--brand-ink);font:600 16px "Sora",sans-serif;text-decoration:none;cursor:pointer;-webkit-user-select:none;user-select:none;box-shadow:0 1px 2px rgba(60,20,0,.12),0 6px 16px rgba(217,72,15,.22);transition:background .2s,transform .2s,box-shadow .2s,border-color .2s}
+.btn:hover{background:var(--brand-hover);transform:translateY(-2px);box-shadow:0 2px 4px rgba(60,20,0,.12),0 14px 28px rgba(217,72,15,.32)}
+.btn:active{transform:translateY(0) scale(.95);box-shadow:0 1px 2px rgba(60,20,0,.15);transition-duration:.08s}
 .btn.small{height:42px;padding:0 18px;font-size:15px}
 .btn.dark{background:#1E1E1E;color:#FFEFE2;box-shadow:0 10px 24px rgba(60,20,0,.25)}
-.btn.dark:hover{background:#000;transform:translateY(-1px)}
-.btn.ghost{background:rgba(255,255,255,.18);color:#1E1E1E;border:1.5px solid rgba(30,30,30,.35)}
-.btn.ghost:hover{background:rgba(255,255,255,.32)}
-.btn svg{flex:none}
+.btn.dark:hover{background:#000;box-shadow:0 16px 32px rgba(40,12,0,.35)}
+.btn.ghost{background:rgba(255,255,255,.18);color:#1E1E1E;border:1.5px solid rgba(30,30,30,.35);box-shadow:none}
+.btn.ghost:hover{background:rgba(255,255,255,.4);border-color:#1E1E1E;box-shadow:0 10px 22px rgba(60,20,0,.15)}
+.btn svg{flex:none;transition:transform .2s}
+.btn:hover svg{transform:translateX(3px)}
 a:focus-visible,.btn:focus-visible,summary:focus-visible{outline:3px solid var(--focus);outline-offset:3px;border-radius:10px}
 
 /* Barra de navegação */
-.topbar{position:sticky;top:0;z-index:50;background:var(--hero);transition:background .25s,box-shadow .25s;padding-top:env(safe-area-inset-top,0px)}
+.topbar{--nav-h:76px;position:sticky;top:0;z-index:50;background:transparent;transition:background .25s,box-shadow .25s;padding-top:env(safe-area-inset-top,0px)}
 .topbar.scrolled{background:rgba(255,122,0,.92);-webkit-backdrop-filter:saturate(1.4) blur(12px);backdrop-filter:saturate(1.4) blur(12px);box-shadow:0 1px 0 rgba(30,30,30,.12),0 10px 30px rgba(90,30,0,.15)}
-nav{display:flex;align-items:center;justify-content:space-between;gap:12px;height:76px}
+nav{display:flex;align-items:center;justify-content:space-between;gap:12px;height:var(--nav-h)}
 .logo{display:flex;align-items:center;gap:12px;white-space:nowrap;font:700 21px/1 "Sora",sans-serif;letter-spacing:-.02em;text-decoration:none;color:#fff}
 .logo-mark{width:40px;height:40px;border-radius:12px;background:#fff;color:#FF7A00;display:grid;place-items:center;box-shadow:0 8px 20px rgba(90,30,0,.22)}
 .logo .pdv{color:#1E1E1E;font-style:normal}
@@ -65,14 +66,13 @@ nav .links a.t:hover{background:rgba(30,30,30,.1)}
 nav .links .btn{margin-left:10px;gap:0}
 
 /* Hero */
-.hero{background:var(--hero);color:var(--hero-ink);position:relative;overflow:hidden;margin-top:-1px}
-.hero::before{content:"";position:absolute;inset:0;pointer-events:none;background:
-  radial-gradient(50% 60% at 85% 70%,rgba(255,214,150,.55),transparent 70%)}
-.hero::after{content:"";position:absolute;inset:0;pointer-events:none;opacity:.35;
-  background-image:linear-gradient(rgba(255,255,255,.35) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.35) 1px,transparent 1px);
-  background-size:56px 56px;-webkit-mask-image:radial-gradient(70% 80% at 70% 40%,#000,transparent 75%);mask-image:radial-gradient(70% 80% at 70% 40%,#000,transparent 75%)}
+.hero{--nav-h:76px;background:var(--hero);color:var(--hero-ink);position:relative;overflow:hidden;margin-top:calc(-1 * (var(--nav-h) + env(safe-area-inset-top,0px)));padding-top:calc(var(--nav-h) + env(safe-area-inset-top,0px))}
+.hero-photo{position:absolute;inset:-40px;background:url("img/fundo-restaurante.jpg") center 45%/cover no-repeat;filter:blur(3.5px) saturate(1.15);opacity:.85;mix-blend-mode:multiply;pointer-events:none}
+.hero::after{content:"";position:absolute;inset:0;pointer-events:none;background:
+  linear-gradient(90deg,rgba(255,122,0,.94) 0%,rgba(255,122,0,.8) 38%,rgba(255,122,0,.38) 70%,rgba(255,122,0,.22) 100%),
+  radial-gradient(50% 60% at 80% 75%,rgba(255,214,150,.45),transparent 70%)}
 .hero .wrap{position:relative;z-index:1}
-.hero-grid{display:grid;grid-template-columns:1fr 1.05fr;gap:56px;align-items:center;padding:56px 0 120px}
+.hero-grid{display:grid;grid-template-columns:1fr 1.1fr;gap:48px;align-items:center;padding:48px 0 120px}
 .hero-grid>*{min-width:0}
 .eyebrow{display:inline-flex;align-items:center;gap:8px;padding:6px 14px 6px 8px;border-radius:999px;background:rgba(255,255,255,.22);border:1px solid rgba(255,255,255,.4);font-size:14px;font-weight:600;margin-bottom:22px}
 .eyebrow i{width:22px;height:22px;border-radius:50%;background:#1E1E1E;display:grid;place-items:center}
@@ -84,52 +84,59 @@ nav .links .btn{margin-left:10px;gap:0}
 .checks li{display:flex;align-items:center;gap:8px}
 .checks svg{flex:none}
 
-/* Mockup do produto */
-.stage{position:relative;padding:10px 0 70px}
-.window{background:var(--paper);color:var(--paper-ink);border-radius:18px;box-shadow:0 40px 80px rgba(60,20,0,.32),0 0 0 1px rgba(30,30,30,.06);overflow:hidden;animation:rise .9s cubic-bezier(.2,.8,.2,1) both}
-.window-bar{display:flex;align-items:center;gap:8px;padding:12px 16px;background:#F4EEE2;border-bottom:1px solid #E6DCC8}
-.window-bar i{width:11px;height:11px;border-radius:50%;background:#E0D6C2}
-.window-bar i:nth-child(1){background:#FF5F57}.window-bar i:nth-child(2){background:#FEBC2E}.window-bar i:nth-child(3){background:#28C840}
-.window-bar span{margin-left:10px;flex:1;max-width:260px;height:24px;border-radius:7px;background:#fff;border:1px solid #E6DCC8;font:500 12px/22px "Sora",sans-serif;color:#8A8370;padding:0 10px;overflow:hidden;white-space:nowrap}
-.window-body{display:grid;grid-template-columns:150px 1fr}
-.side{background:#1E1E1E;color:#BDB6A8;padding:16px 10px;display:flex;flex-direction:column;gap:4px;font-size:13px}
-.side b{display:flex;align-items:center;gap:8px;color:#fff;font-size:13px;padding:2px 8px 12px}
-.side b::before{content:"";width:18px;height:18px;border-radius:6px;background:#FF7A00}
-.side span{padding:8px 10px;border-radius:8px}
-.side span.on{background:rgba(255,122,0,.18);color:#FFB27A;font-weight:600}
-.board{padding:18px 18px 8px;min-width:0}
-.board-head{display:flex;justify-content:space-between;align-items:baseline;padding:0 4px 12px;border-bottom:2px dashed #D9CFB8}
-.board-head strong{font:700 17px "Sora",sans-serif}
-.board-head span{font:600 12px "JetBrains Mono",monospace;color:#6A6757;font-variant-numeric:tabular-nums}
-.order{display:flex;align-items:center;gap:12px;padding:12px 4px;border-bottom:1px solid #EEE6D3;overflow:hidden;max-height:160px}
-.order:last-child{border-bottom:0}
-.order .tbl{width:46px;height:46px;border-radius:12px;display:grid;place-items:center;font:700 16px "JetBrains Mono",monospace;font-variant-numeric:tabular-nums;background:#FFE3CC;color:#8A2F05;flex:none}
+/* Dispositivos do topo */
+.stage{position:relative;aspect-ratio:1/.86}
+.dv{position:absolute}
+.dv img{display:block;width:100%;height:100%;object-fit:cover;object-position:top left}
+.mon-frame{background:linear-gradient(#F7F5F1,#E2DED7);border-radius:14px;padding:9px 9px 20px;box-shadow:0 30px 60px rgba(60,20,0,.28),inset 0 0 0 1px rgba(255,255,255,.7)}
+.mon-screen{position:relative;aspect-ratio:1440/820;border-radius:4px;overflow:hidden;background:#F4F5F7;box-shadow:0 0 0 3px #1E1E1E}
+.mon-neck{width:16%;height:30px;margin:0 auto;background:linear-gradient(90deg,#C9C4BB,#EEEBE6 50%,#C9C4BB)}
+.mon-foot{width:32%;height:7px;margin:0 auto;border-radius:6px 6px 3px 3px;background:#D5D0C8;box-shadow:0 10px 20px rgba(40,12,0,.25)}
+.dv-monitor{top:0;right:0;width:76%;z-index:1;animation:rise .9s cubic-bezier(.2,.8,.2,1) both}
+.dv-laptop{left:0;top:41%;width:50%;z-index:2;animation:rise 1s .15s cubic-bezier(.2,.8,.2,1) both}
+.lap-lid{margin:0 8%;background:#1E1E1E;border-radius:10px 10px 0 0;padding:5px 5px 7px;box-shadow:inset 0 0 0 1.5px #3A3A3A}
+.lap-lid .mon-screen{border-radius:2px;box-shadow:none}
+.lap-base{position:relative;height:11px;background:linear-gradient(#F1EEE9,#C9C4BB);border-radius:2px 2px 12px 12px;box-shadow:0 18px 30px rgba(40,12,0,.32)}
+.lap-base::before{content:"";position:absolute;left:42%;right:42%;top:0;height:4px;background:#B9B3A9;border-radius:0 0 5px 5px}
+.dv-tablet{right:2%;bottom:0;width:61%;z-index:3;background:#1E1E1E;border-radius:22px;padding:11px 13px;box-shadow:0 40px 70px rgba(40,12,0,.42),inset 0 0 0 1.5px #3A3A3A;animation:rise 1s .3s cubic-bezier(.2,.8,.2,1) both}
+.dv-tablet::before{content:"";position:absolute;left:5px;top:50%;width:4px;height:4px;margin-top:-2px;border-radius:50%;background:#4A4A4A}
+.tab-screen{aspect-ratio:4/3;border-radius:9px;overflow:hidden;background:#F4F5F7;color:#111827}
+.dv-phone{left:-3%;bottom:-4%;width:18%;z-index:4;background:#1E1E1E;border-radius:22px;padding:5px;box-shadow:0 30px 50px rgba(40,12,0,.45),inset 0 0 0 1.5px #3A3A3A;animation:rise 1s .45s cubic-bezier(.2,.8,.2,1) both}
+.dv-phone img{height:auto;aspect-ratio:360/760;border-radius:17px}
+.try{position:absolute;left:22px;top:-15px;z-index:5;display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:999px;background:#fff;color:#1E1E1E;font:600 12px "Sora",sans-serif;box-shadow:0 10px 24px rgba(40,12,0,.25);white-space:nowrap}
+.try svg{color:#D9480F}
+
+/* Quadro da cozinha no tablet (interativo, no visual claro do sistema) */
+.kitchen{display:flex;flex-direction:column;height:100%;padding:10px 10px 6px}
+.k-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:7px}
+.k-head strong{display:flex;align-items:center;gap:8px;font:800 15px "Sora",sans-serif;letter-spacing:-.02em}
+.k-head strong i{width:24px;height:24px;border-radius:8px;background:#F97316;color:#fff;display:grid;place-items:center;box-shadow:0 4px 10px rgba(249,115,22,.35)}
+.k-head span{font:700 11px "JetBrains Mono",monospace;font-variant-numeric:tabular-nums;padding:4px 9px;border-radius:999px;background:#FFEDD5;color:#C2410C;white-space:nowrap}
+.board{flex:1;display:flex;flex-direction:column;gap:5px;min-height:0;overflow:hidden}
+.order{flex:none;display:flex;align-items:center;gap:10px;padding:5px 7px 5px 8px;background:#fff;border:1px solid #E5E7EB;border-radius:11px;overflow:hidden;max-height:90px;transition:background .3s,border-color .3s}
+.order[data-s="1"]{background:#EFF6FF;border-color:#BFDBFE}
+.order[data-s="2"]{background:#F0FDF4;border-color:#BBF7D0}
+.order .tbl{width:31px;height:31px;border-radius:9px;display:grid;place-items:center;font:700 13px "JetBrains Mono",monospace;font-variant-numeric:tabular-nums;background:#FFEDD5;color:#C2410C;flex:none}
 .order .info{flex:1;min-width:0}
-.order .info b{display:block;font-weight:600;font-size:15px}
-.order .info small{color:#6A6757;font-size:13px;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.badge{font-size:12px;font-weight:600;padding:5px 11px;border-radius:999px;white-space:nowrap;transition:background .3s,color .3s}
-.b-prep{background:#FFE3CC;color:#8A2F05}
-.b-ok{background:#D5F0DC;color:#14602B}
-.b-wait{background:#EEE9DC;color:#5A5646}
-.badge.b-prep::before{content:"";display:inline-block;width:7px;height:7px;margin-right:6px;border-radius:50%;background:currentColor;animation:blink 1s ease-in-out infinite}
+.order .info b{display:block;font-size:13px;font-weight:700;line-height:1.3}
+.order .info small{display:block;font-size:11px;line-height:1.35;color:#6B7280;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.order .info small em{font-style:normal;font-weight:700}
+.order[data-s="0"] .info small em{color:#6B7280}
+.order[data-s="1"] .info small em{color:#2563EB}
+.order[data-s="2"] .info small em{color:#16A34A}
+.k-btn{appearance:none;border:0;cursor:pointer;flex:none;min-width:72px;height:29px;padding:0 12px;border-radius:9px;color:#fff;font:700 12px "Sora",sans-serif;transition:transform .15s,box-shadow .2s,background .2s,filter .2s;-webkit-tap-highlight-color:transparent}
+.k-btn:hover{transform:translateY(-1px);filter:brightness(1.07)}
+.k-btn:active{transform:scale(.92);transition-duration:.06s}
+.k-btn:focus-visible{outline:3px solid #F97316;outline-offset:2px}
+.order[data-s="0"] .k-btn{background:#3B82F6;box-shadow:0 4px 12px rgba(59,130,246,.35)}
+.order[data-s="1"] .k-btn{background:#22C55E;box-shadow:0 4px 12px rgba(34,197,94,.35)}
+.order[data-s="2"] .k-btn{background:#F97316;box-shadow:0 4px 12px rgba(249,115,22,.35)}
 .order.enter{animation:slideIn .5s cubic-bezier(.2,.8,.2,1) both}
 .order.leaving{animation:slideOut .45s ease-in both}
-.badge.pop{animation:pop .4s cubic-bezier(.2,.8,.2,1)}
-
-/* Celular do garçom */
-.phone{position:absolute;left:-56px;bottom:0;width:178px;background:#1E1E1E;border-radius:30px;padding:8px;box-shadow:0 30px 60px rgba(40,12,0,.4);animation:rise 1s .25s cubic-bezier(.2,.8,.2,1) both}
-.phone-screen{background:var(--paper);color:var(--paper-ink);border-radius:23px;padding:22px 12px 12px;position:relative}
-.phone-screen::before{content:"";position:absolute;top:8px;left:50%;width:46px;height:5px;margin-left:-23px;border-radius:9px;background:#1E1E1E}
-.phone h4{margin:0 0 10px;font:700 13px "Sora",sans-serif;display:flex;justify-content:space-between}
-.phone h4 span{color:#8A2F05;font-family:"JetBrains Mono",monospace}
-.tables{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
-.tables i{aspect-ratio:1;border-radius:9px;display:grid;place-items:center;font:700 12px "JetBrains Mono",monospace;font-style:normal;background:#EEE9DC;color:#5A5646}
-.tables i.busy{background:#FF7A00;color:#fff}
-.tables i.bill{background:#1E1E1E;color:#FFB27A}
-.phone .send{margin-top:10px;height:32px;border-radius:9px;background:#D9480F;color:#fff;font:600 12px/32px "Sora",sans-serif;text-align:center}
+.k-btn.pop{animation:pop .4s cubic-bezier(.2,.8,.2,1)}
 
 /* Notificação de pagamento */
-.toast{position:absolute;right:-18px;top:-18px;display:flex;align-items:center;gap:12px;padding:12px 16px 12px 12px;border-radius:14px;background:#fff;color:#1B1B18;box-shadow:0 20px 40px rgba(60,20,0,.25);animation:rise 1s .5s cubic-bezier(.2,.8,.2,1) both}
+.toast{position:absolute;right:-2%;top:-4%;z-index:5;display:flex;align-items:center;gap:12px;padding:12px 16px 12px 12px;border-radius:14px;background:#fff;color:#1B1B18;box-shadow:0 20px 40px rgba(60,20,0,.25);animation:rise 1s .5s cubic-bezier(.2,.8,.2,1) both}
 .toast .ic{width:38px;height:38px;border-radius:10px;background:#D5F0DC;color:#14602B;display:grid;place-items:center;flex:none}
 .toast small{display:block;font-size:12px;color:#6A6757}
 .toast b{font:700 16px "JetBrains Mono",monospace;font-variant-numeric:tabular-nums}
@@ -153,20 +160,23 @@ nav .links .btn{margin-left:10px;gap:0}
 /* Telas do sistema */
 .screens{padding:112px 0 64px;overflow:hidden}
 .tabs{display:flex;justify-content:center;flex-wrap:wrap;gap:8px;margin:0 auto 36px;padding:6px;border-radius:999px;background:var(--surface);border:1px solid var(--line);width:max-content;max-width:100%;box-shadow:var(--shadow)}
-.tabs button{appearance:none;border:0;background:transparent;color:var(--muted);font:600 15px "Sora",sans-serif;height:42px;padding:0 20px;border-radius:999px;cursor:pointer;transition:background .2s,color .2s}
+.tabs button{appearance:none;border:0;background:transparent;color:var(--muted);font:600 15px "Sora",sans-serif;height:42px;padding:0 20px;border-radius:999px;cursor:pointer;transition:background .2s,color .2s,transform .15s,box-shadow .2s}
+.tabs button:active{transform:scale(.94)}
+.tabs button[aria-selected="true"]{box-shadow:0 6px 14px rgba(30,30,30,.25)}
 .tabs button:hover{color:var(--ink)}
 .tabs button[aria-selected="true"]{background:#1E1E1E;color:#FFEFE2}
 .tabs button:focus-visible{outline:3px solid var(--focus);outline-offset:2px}
 .shot{position:relative;max-width:1080px;margin:0 auto}
-.shot .window{animation:none;box-shadow:0 40px 90px rgba(60,20,0,.22),0 0 0 1px rgba(30,30,30,.08)}
-.shot .window-bar{background:#1B1D24;border-color:#2A2D36}
-.shot .window-bar span{background:#11131A;border-color:#2A2D36;color:#8B8F9C}
-.shot-view{position:relative;aspect-ratio:1440/820;background:#0F1117}
+.shot .mon-frame{padding:14px 14px 30px;border-radius:22px;box-shadow:0 40px 90px rgba(60,20,0,.2),inset 0 0 0 1px rgba(255,255,255,.8)}
+.shot .mon-screen{border-radius:6px;box-shadow:0 0 0 4px #1E1E1E}
+.shot .mon-neck{height:56px;width:14%}
+.shot .mon-foot{height:10px;width:30%}
+.shot-view{background:#F4F5F7}
 .shot-view img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:top left;opacity:0;transition:opacity .45s}
 .shot-view img.on{opacity:1}
 .shot-cap{text-align:center;color:var(--muted);font-size:16px;margin:26px auto 0;max-width:56ch;min-height:3.2em}
 .shot-cap b{color:var(--ink)}
-.shot .phone-real{position:absolute;right:-56px;bottom:-48px;width:200px;padding:8px;border-radius:34px;background:#1E1E1E;box-shadow:0 30px 70px rgba(40,12,0,.45)}
+.shot .phone-real{position:absolute;right:-40px;bottom:10px;width:200px;padding:8px;border-radius:34px;background:#1E1E1E;box-shadow:0 30px 70px rgba(40,12,0,.45)}
 .shot .phone-real img{display:block;width:100%;height:auto;border-radius:27px}
 .shot::before{content:"";position:absolute;inset:-40px -80px;z-index:-1;background:radial-gradient(50% 50% at 50% 40%,rgba(255,122,0,.18),transparent 70%);pointer-events:none}
 
@@ -235,9 +245,11 @@ nav .links .btn{margin-left:10px;gap:0}
 .faq-grid{display:grid;grid-template-columns:1fr 1.4fr;gap:64px;align-items:start}
 .faq-grid .section-head{margin-bottom:0;position:sticky;top:110px}
 .faq{display:flex;flex-direction:column;gap:12px}
-.faq details{background:var(--surface);border:1px solid var(--line);border-radius:16px;transition:border-color .2s,box-shadow .2s}
+.faq details{background:var(--surface);border:1px solid var(--line);border-radius:16px;transition:border-color .2s,box-shadow .2s,transform .2s}
+.faq details:hover{border-color:color-mix(in srgb,var(--brand) 30%,var(--line));transform:translateY(-1px)}
+.faq summary:hover{color:var(--brand)}
 .faq details[open]{border-color:color-mix(in srgb,var(--brand) 40%,var(--line));box-shadow:var(--shadow)}
-.faq summary{list-style:none;cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:16px;padding:20px 22px;font-weight:600;font-size:17px}
+.faq summary{list-style:none;cursor:pointer;transition:color .2s;display:flex;align-items:center;justify-content:space-between;gap:16px;padding:20px 22px;font-weight:600;font-size:17px}
 .faq summary::-webkit-details-marker{display:none}
 .faq summary::after{content:"";flex:none;width:28px;height:28px;border-radius:50%;background:var(--surface-2) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%23D9480F' stroke-width='3' stroke-linecap='round'%3E%3Cpath d='M12 5v14M5 12h14'/%3E%3C/svg%3E") center no-repeat;transition:transform .2s}
 .faq details[open] summary::after{transform:rotate(45deg)}
@@ -270,8 +282,8 @@ footer{background:var(--deep);color:rgba(255,239,226,.65);padding:56px 0 calc(28
 .no-js .reveal{opacity:1;transform:none}
 
 @media (max-width:1080px){
-  .phone{left:-16px}
-  .toast{right:-6px}
+  .dv-phone{left:0}
+  .toast{right:0}
   .highlights{grid-template-columns:1fr 1fr}
   .stats{grid-template-columns:1fr 1fr;row-gap:40px}
   .shot .phone-real{right:-12px;width:170px}
@@ -282,14 +294,13 @@ footer{background:var(--deep);color:rgba(255,239,226,.65);padding:56px 0 calc(28
 @media (max-width:920px){
   nav .links a.t{display:none}
   .hero-grid{grid-template-columns:1fr;gap:56px;padding:32px 0 110px}
-  .stage{max-width:620px;margin:0 auto;width:100%;padding-left:60px}
-  .phone{left:0}
+  .stage{max-width:640px;margin:0 auto;width:100%}
   .bento{grid-template-columns:1fr 1fr}
   .mod,.mod.wide{grid-column:span 1}
   .mod.wide{grid-column:span 2}
   .steps{grid-template-columns:1fr;gap:40px}
   .screens{padding-top:88px}
-  .shot .phone-real{width:140px;bottom:-36px;right:-6px;border-radius:26px;padding:6px}
+  .shot .phone-real{width:120px;bottom:20px;right:-6px;border-radius:24px;padding:6px}
   .shot .phone-real img{border-radius:21px}
   .steps::before{display:none}
   .faq-grid{grid-template-columns:1fr;gap:36px}
@@ -300,7 +311,7 @@ footer{background:var(--deep);color:rgba(255,239,226,.65);padding:56px 0 calc(28
 }
 @media (max-width:640px){
   .wrap{width:calc(100% - 32px)}
-  nav{height:66px}
+  .topbar,.hero{--nav-h:66px}
   .hero h1{font-size:clamp(34px,10.5vw,46px)}
   .hero p.lead{font-size:17px;margin:18px 0 28px}
   .cta-row .btn{flex:1 1 100%}
@@ -308,12 +319,12 @@ footer{background:var(--deep);color:rgba(255,239,226,.65);padding:56px 0 calc(28
   .logo{font-size:18px;gap:10px}
   .logo-mark{width:34px;height:34px;border-radius:10px}
   .logo-mark svg{width:20px;height:20px}
-  .stage{padding:30px 0 0}
-  .window-body{grid-template-columns:1fr}
-  .side{display:none}
-  .board{padding:14px 12px 4px}
-  .phone{display:none}
-  .toast{right:8px;top:0;padding:10px 14px 10px 10px}
+  .stage{aspect-ratio:auto;padding-top:30px}
+  .dv-monitor,.dv-laptop,.dv-phone{display:none}
+  .dv-tablet{position:relative;right:auto;bottom:auto;width:100%;border-radius:20px;padding:9px 11px}
+  .try{left:16px}
+  .toast{right:8px;top:auto;bottom:-62px;padding:10px 14px 10px 10px}
+  .hero-grid{padding-bottom:150px}
   .devices .card{grid-template-columns:1fr}
   .device{padding:16px 20px}
   .device+.device{border-left:0;border-top:1px solid var(--line)}
@@ -328,10 +339,10 @@ footer{background:var(--deep);color:rgba(255,239,226,.65);padding:56px 0 calc(28
   .tabs{width:100%;border-radius:16px;display:grid;grid-template-columns:1fr 1fr}
   .tabs button{border-radius:12px;padding:0 10px}
   .shot .phone-real{display:none}
-  .shot .window{border-radius:12px}
-  .shot .window-bar{padding:8px 10px}
-  .shot .window-bar i{width:8px;height:8px}
-  .shot .window-bar span{display:none}
+  .shot .mon-frame{padding:7px 7px 16px;border-radius:12px}
+  .shot .mon-screen{box-shadow:0 0 0 2px #1E1E1E;border-radius:3px}
+  .shot .mon-neck{height:26px}
+  .shot .mon-foot{height:6px}
   .stats{gap:28px 16px;margin-bottom:56px;padding-bottom:48px}
   .zap-float{width:52px;height:52px;right:16px;bottom:calc(16px + env(safe-area-inset-bottom,0px))}
   .section{padding:72px 0}
@@ -343,9 +354,8 @@ footer{background:var(--deep);color:rgba(255,239,226,.65);padding:56px 0 calc(28
 @media (max-width:400px){
   nav .hide-xs{display:none}
   nav .btn.small{padding:0 14px}
-  .order{display:grid;grid-template-columns:44px 1fr;grid-template-rows:auto auto;column-gap:12px;row-gap:6px}
-  .order .tbl{grid-row:1 / 3;width:44px;height:44px}
-  .order .badge{justify-self:start}
+  .order .tbl{width:30px;height:30px;font-size:12px}
+  .k-btn{min-width:64px;padding:0 10px}
 }
 @media (max-width:340px){.logo{font-size:16px;gap:8px} .logo-mark{width:30px;height:30px}}
 @media (prefers-reduced-motion:reduce){
@@ -376,6 +386,7 @@ footer{background:var(--deep);color:rgba(255,239,226,.65);padding:56px 0 calc(28
 </div>
 
 <header class="hero">
+  <div class="hero-photo" aria-hidden="true"></div>
   <div class="wrap">
     <div class="hero-grid">
       <div>
@@ -394,41 +405,38 @@ footer{background:var(--deep);color:rgba(255,239,226,.65);padding:56px 0 calc(28
         </ul>
       </div>
 
-      <div class="stage" aria-hidden="true">
-        <div class="window">
-          <div class="window-bar"><i></i><i></i><i></i><span>app.restaurantepdv.com.br</span></div>
-          <div class="window-body">
-            <div class="side">
-              <b>RestaurantePDV</b>
-              <span>Mesas</span>
-              <span class="on">Cozinha</span>
-              <span>Caixa</span>
-              <span>Delivery</span>
-              <span>Estoque</span>
-              <span>Relatórios</span>
-            </div>
-            <div class="board">
-              <div class="board-head"><strong>Pedidos de agora</strong><span>3 abertos</span></div>
-              <div class="order" data-s="1"><div class="tbl">12</div><div class="info"><b>Mesa 12</b><small>2 risotos, 1 salmão</small></div><span class="badge b-prep">Preparando</span></div>
-              <div class="order" data-s="2"><div class="tbl">4</div><div class="info"><b>Mesa 4</b><small>3 sucos, 1 sobremesa</small></div><span class="badge b-ok">Pronto</span></div>
-              <div class="order" data-s="0"><div class="tbl">B7</div><div class="info"><b>Balcão 7</b><small>1 prato executivo</small></div><span class="badge b-wait">Na fila</span></div>
+      <div class="stage">
+        <div class="dv dv-monitor" aria-hidden="true">
+          <div class="mon-frame"><div class="mon-screen"><img src="img/painel.jpg" width="1440" height="820" alt=""></div></div>
+          <div class="mon-neck"></div><div class="mon-foot"></div>
+        </div>
+
+        <div class="dv dv-laptop" aria-hidden="true">
+          <div class="lap-lid"><div class="mon-screen"><img src="img/mesas.jpg" width="1440" height="820" alt=""></div></div>
+          <div class="lap-base"></div>
+        </div>
+
+        <div class="dv dv-tablet" role="group" aria-label="Demonstração do quadro da cozinha: toque nos botões para avançar os pedidos">
+          <span class="try" aria-hidden="true"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11V6a2 2 0 0 1 4 0v5M13 10a2 2 0 0 1 4 0v1M17 11a2 2 0 0 1 4 0v3a7 7 0 0 1-7 7h-1a7 7 0 0 1-6-3.4L4 14.5a2 2 0 0 1 3.3-2.2L9 14"/></svg>Toque para testar</span>
+          <div class="tab-screen">
+            <div class="kitchen">
+              <div class="k-head">
+                <strong><i aria-hidden="true"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 14a4 4 0 0 1 1-7.9A5 5 0 0 1 17 7a4 4 0 0 1 1 7.9V20H6z"/><path d="M6 17h12"/></svg></i>Cozinha</strong>
+                <span class="k-count" aria-live="polite">4 abertos</span>
+              </div>
+              <div class="board">
+                <div class="order" data-s="1"><div class="tbl">12</div><div class="info"><b>Mesa 12</b><small><em>Preparando</em> · 2 risotos, 1 salmão</small></div><button class="k-btn" type="button">Pronto</button></div>
+                <div class="order" data-s="2"><div class="tbl">4</div><div class="info"><b>Mesa 4</b><small><em>Pronto</em> · 3 sucos, 1 sobremesa</small></div><button class="k-btn" type="button">Entregar</button></div>
+                <div class="order" data-s="0"><div class="tbl">B7</div><div class="info"><b>Balcão 7</b><small><em>Na fila</em> · 1 prato executivo</small></div><button class="k-btn" type="button">Iniciar</button></div>
+                <div class="order" data-s="0"><div class="tbl">5</div><div class="info"><b>Mesa 5</b><small><em>Na fila</em> · 2 parmegianas, 1 suco</small></div><button class="k-btn" type="button">Iniciar</button></div>
+              </div>
             </div>
           </div>
         </div>
 
-        <div class="phone">
-          <div class="phone-screen">
-            <h4>Salão <span>6/9</span></h4>
-            <div class="tables">
-              <i class="busy">1</i><i>2</i><i class="busy">3</i>
-              <i class="bill">4</i><i class="busy">5</i><i>6</i>
-              <i class="busy">7</i><i>8</i><i class="busy">9</i>
-            </div>
-            <div class="send">Enviar para a cozinha</div>
-          </div>
-        </div>
+        <div class="dv dv-phone" aria-hidden="true"><img src="img/celular.jpg" width="720" height="1520" alt=""></div>
 
-        <div class="toast">
+        <div class="toast" aria-hidden="true">
           <span class="ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span>
           <span><small class="toast-label">Pix recebido · Mesa 4</small><b class="toast-value">R$ 128,50</b></span>
         </div>
@@ -445,7 +453,7 @@ footer{background:var(--deep);color:rgba(255,239,226,.65);padding:56px 0 calc(28
         <span><b>Computador do caixa</b><small>Vendas e fechamento</small></span>
       </div>
       <div class="device">
-        <span class="ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="2" width="16" height="20" rx="2"/><path d="M11 18h2"/></svg></span>
+        <span class="ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M18 11v2"/></svg></span>
         <span><b>Tablet da cozinha</b><small>Pedidos em tempo real</small></span>
       </div>
       <div class="device">
@@ -475,14 +483,14 @@ footer{background:var(--deep);color:rgba(255,239,226,.65);padding:56px 0 calc(28
         <button role="tab" aria-selected="false" aria-controls="tela-view" data-i="3" tabindex="-1">Delivery</button>
       </div>
       <div class="shot reveal">
-        <div class="window">
-          <div class="window-bar"><i></i><i></i><i></i><span>app.restaurantepdv.com.br</span></div>
-          <div class="shot-view" id="tela-view" role="tabpanel">
+        <div class="shot-monitor">
+          <div class="mon-frame"><div class="mon-screen shot-view" id="tela-view" role="tabpanel">
             <img class="on" src="img/painel.jpg" width="1440" height="820" alt="Painel com faturamento do dia, mesas abertas, pedidos e ticket médio, e gráfico de vendas por hora">
             <img src="img/mesas.jpg" width="1440" height="820" loading="lazy" alt="Tela de mesas com o total de cada comanda e o que está na cozinha, pronto ou com a conta pedida">
             <img src="img/cozinha.jpg" width="1440" height="820" loading="lazy" alt="Tela da cozinha com os pedidos de cada mesa e do delivery, tempo de espera e observações">
             <img src="img/delivery.jpg" width="1440" height="820" loading="lazy" alt="Quadro de delivery com pedidos novos, na cozinha, em rota e finalizados">
-          </div>
+          </div></div>
+          <div class="mon-neck"></div><div class="mon-foot"></div>
         </div>
         <div class="phone-real"><img src="img/celular.jpg" width="720" height="1520" loading="lazy" alt="Celular do garçom mostrando as mesas em atendimento"></div>
       </div>
@@ -661,7 +669,7 @@ footer{background:var(--deep);color:rgba(255,239,226,.65);padding:56px 0 calc(28
         </details>
         <details>
           <summary>Como faço para contratar?</summary>
-          <p>Chame a gente no WhatsApp <a class="js-whatsapp" href="#" target="_blank" rel="noopener"><b>(22) 99712-7142</b></a>. Mostramos o sistema funcionando e deixamos tudo pronto para o seu restaurante.</p>
+          <p><a class="js-whatsapp" href="#" target="_blank" rel="noopener"><b>Entre em contato com a equipe de vendas</b></a> pelo WhatsApp. Mostramos o sistema funcionando e deixamos tudo pronto para o seu restaurante.</p>
         </details>
       </div>
     </div>
@@ -676,7 +684,7 @@ footer{background:var(--deep);color:rgba(255,239,226,.65);padding:56px 0 calc(28
         </div>
         <div class="cta-row">
           <a class="btn dark js-acessar" href="/login">Acessar o sistema</a>
-          <a class="btn whats js-whatsapp" href="#" target="_blank" rel="noopener">Falar no WhatsApp</a>
+          <a class="btn whats js-whatsapp" href="#" target="_blank" rel="noopener">Falar com a equipe de vendas</a>
         </div>
       </div>
     </div>
@@ -703,7 +711,7 @@ footer{background:var(--deep);color:rgba(255,239,226,.65);padding:56px 0 calc(28
         <div>
           <h4>Acesso</h4>
           <a class="js-acessar" href="/login">Entrar no sistema</a>
-          <a class="js-whatsapp" href="#" target="_blank" rel="noopener">WhatsApp (22) 99712-7142</a>
+          <a class="js-whatsapp" href="#" target="_blank" rel="noopener">Fale com a equipe de vendas</a>
         </div>
       </div>
     </div>
@@ -711,7 +719,7 @@ footer{background:var(--deep);color:rgba(255,239,226,.65);padding:56px 0 calc(28
   </div>
 </footer>
 
-<a class="zap-float js-whatsapp" href="#" target="_blank" rel="noopener" aria-label="Falar no WhatsApp">
+<a class="zap-float js-whatsapp" href="#" target="_blank" rel="noopener" aria-label="Falar com a equipe de vendas pelo WhatsApp">
   <svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M17.5 14.4c-.3-.1-1.7-.8-2-.9-.3-.1-.5-.1-.7.1-.2.3-.8.9-.9 1.1-.2.2-.3.2-.6.1-.3-.1-1.2-.5-2.3-1.4-.9-.8-1.4-1.7-1.6-2-.2-.3 0-.5.1-.6l.4-.5c.2-.2.2-.3.3-.5.1-.2 0-.4 0-.5l-.9-2.2c-.2-.6-.5-.5-.7-.5h-.6c-.2 0-.5.1-.8.4-.3.3-1 1-1 2.5s1.1 2.9 1.2 3.1c.1.2 2.1 3.2 5.1 4.5.7.3 1.3.5 1.7.6.7.2 1.4.2 1.9.1.6-.1 1.7-.7 1.9-1.4.2-.7.2-1.2.2-1.4-.1-.1-.3-.2-.6-.3zM12 21.8c-1.8 0-3.5-.5-5-1.4l-.4-.2-3.7 1 1-3.6-.2-.4C2.7 15.6 2.2 13.8 2.2 12 2.2 6.6 6.6 2.2 12 2.2c2.6 0 5.1 1 6.9 2.9 1.8 1.8 2.9 4.3 2.9 6.9 0 5.4-4.4 9.8-9.8 9.8zm8.4-18.2C18.2 1.3 15.2 0 12 0 5.4 0 0 5.4 0 12c0 2.1.6 4.2 1.6 6L0 24l6.2-1.6c1.8 1 3.8 1.5 5.8 1.5 6.6 0 12-5.4 12-12 0-3.2-1.2-6.2-3.6-8.4z"/></svg>
 </a>
 
@@ -805,29 +813,30 @@ footer{background:var(--deep);color:rgba(255,239,226,.65);padding:56px 0 calc(28
 </script>
 
 <script>
-// Quadro de pedidos animado e notificação de pagamento do mockup.
+// Quadro da cozinha no tablet: anda sozinho e também responde aos botões,
+// como no sistema (Iniciar → Pronto → Entregar). Entregar gera o aviso de pagamento.
 (function(){
-  if(window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-  var board=document.querySelector('.board'),count=board.querySelector('.board-head span');
-  var S=[['b-wait','Na fila'],['b-prep','Preparando'],['b-ok','Pronto']];
+  var reduz=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var board=document.querySelector('.board'),count=document.querySelector('.k-count');
+  var S=[['Na fila','Iniciar'],['Preparando','Pronto'],['Pronto','Entregar']];
   var pool=[['9','Mesa 9','1 feijoada, 2 refrigerantes'],['3','Mesa 3','2 pizzas grandes'],['B2','Balcão 2','1 marmita'],['7','Mesa 7','4 pratos executivos'],['15','Mesa 15','1 picanha, 1 salada']];
-  var next=0;
-  function live(){return board.querySelectorAll('.order:not(.leaving)')}
+  var next=0,pausaAte=0;
+  function live(){return Array.prototype.slice.call(board.querySelectorAll('.order:not(.leaving)'))}
   function updateCount(){var n=live().length;count.textContent=n+(n===1?' aberto':' abertos')}
-  function setStatus(el,i){
+  function itens(el){var t=el.querySelector('small').textContent;return t.slice(t.indexOf('·')+2)}
+  function render(el,i,txt){
     el.dataset.s=i;
-    var b=el.querySelector('.badge');
-    b.className='badge '+S[i][0];b.textContent=S[i][1];
-    void b.offsetWidth;b.classList.add('pop');
+    var sm=el.querySelector('small');sm.innerHTML='<em></em> · ';sm.firstChild.textContent=S[i][0];sm.appendChild(document.createTextNode(txt));
+    var b=el.querySelector('.k-btn');b.textContent=S[i][1];
+    b.classList.remove('pop');void b.offsetWidth;b.classList.add('pop');
   }
   function addOrder(){
     var p=pool[next++%pool.length],el=document.createElement('div');
-    el.className='order enter';el.dataset.s='0';
-    el.innerHTML='<div class="tbl"></div><div class="info"><b></b><small></small></div><span class="badge b-wait">Na fila</span>';
+    el.className='order'+(reduz?'':' enter');
+    el.innerHTML='<div class="tbl"></div><div class="info"><b></b><small></small></div><button class="k-btn" type="button"></button>';
     el.querySelector('.tbl').textContent=p[0];
     el.querySelector('b').textContent=p[1];
-    el.querySelector('small').textContent=p[2];
-    board.appendChild(el);updateCount();
+    board.appendChild(el);render(el,0,p[2]);updateCount();
   }
 
   var toast=document.querySelector('.toast'),tLabel=toast.querySelector('.toast-label'),tValue=toast.querySelector('.toast-value');
@@ -839,23 +848,26 @@ footer{background:var(--deep);color:rgba(255,239,226,.65);padding:56px 0 calc(28
     toast.classList.remove('flash');void toast.offsetWidth;toast.classList.add('flash');
   }
 
-  function tick(){
-    var list=Array.prototype.slice.call(live());
-    var ready=list.filter(function(o){return o.dataset.s==='2'})[0];
-    if(ready){
-      ready.classList.add('leaving');updateCount();
-      paid(ready.querySelector('b').textContent);
-      setTimeout(function(){ready.remove();addOrder()},900);
-      return;
-    }
-    var prep=list.filter(function(o){return o.dataset.s==='1'})[0];
-    var wait=list.filter(function(o){return o.dataset.s==='0'})[0];
-    var target=prep||wait;
-    if(target) setStatus(target,+target.dataset.s+1);
+  function avancar(el){
+    var s=+el.dataset.s;
+    if(s<2){render(el,s+1,itens(el));return}
+    el.classList.add('leaving');el.querySelector('.k-btn').disabled=true;updateCount();
+    paid(el.querySelector('b').textContent);
+    setTimeout(function(){el.remove();addOrder()},reduz?0:450);
   }
-  Array.prototype.forEach.call(board.querySelectorAll('.order'),function(o,i){
-    o.classList.add('enter');o.style.animationDelay=(500+i*180)+'ms';
+  board.addEventListener('click',function(e){
+    var b=e.target.closest('.k-btn');if(!b||b.disabled)return;
+    pausaAte=Date.now()+6000;avancar(b.closest('.order'));
   });
+
+  function tick(){
+    if(Date.now()<pausaAte)return;
+    var list=live();
+    var alvo=list.filter(function(o){return o.dataset.s==='2'})[0]||list.filter(function(o){return o.dataset.s==='1'})[0]||list.filter(function(o){return o.dataset.s==='0'})[0];
+    if(alvo)avancar(alvo);
+  }
+  if(reduz)return;
+  live().forEach(function(o,i){o.classList.add('enter');o.style.animationDelay=(500+i*180)+'ms'});
   setInterval(function(){if(!document.hidden)tick()},2400);
 })();
 </script>

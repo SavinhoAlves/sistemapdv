@@ -1,4 +1,5 @@
 import { prisma } from '../../lib/prisma'
+import { PERMISSOES_CARGO } from '../../middlewares/permission.middleware'
 
 export async function listar(tenantId: string) {
   const perfis = await prisma.perfil.findMany({
@@ -150,4 +151,51 @@ export async function autoAtribuir(tenantId: string) {
   }
 
   return { atualizados, perfisFaltando }
+}
+
+// ── Permissões das funções (cargos) por restaurante ─────────────────────────
+
+/** Administrador tem acesso total e não é editável: evita o restaurante se trancar para fora. */
+export const FUNCOES_EDITAVEIS = ['garcom', 'caixa', 'cozinha', 'entregador'] as const
+// Lista completa de chaves conhecidas: o administrador tem todas
+const CHAVES = Object.keys(PERMISSOES_CARGO.administrador)
+
+async function ajustesFuncoes(tenantId: string): Promise<Record<string, Record<string, boolean>>> {
+  const cfg = await prisma.configuracoes.findUnique({ where: { tenantId }, select: { permissoesFuncoes: true } })
+  return (cfg?.permissoesFuncoes as Record<string, Record<string, boolean>>) ?? {}
+}
+
+/** Padrão de cada função neste restaurante: o do sistema com os ajustes salvos por cima. */
+export async function padroesFuncoes(tenantId: string) {
+  const ajustes = await ajustesFuncoes(tenantId)
+  const r: Record<string, Record<string, boolean>> = {}
+  for (const [cargo, padrao] of Object.entries(PERMISSOES_CARGO)) {
+    r[cargo] = cargo === 'administrador' ? { ...padrao } : { ...padrao, ...(ajustes[cargo] ?? {}) }
+  }
+  return r
+}
+
+/** Funções que o restaurante alterou (para mostrar "personalizada" e oferecer restaurar). */
+export async function funcoesPersonalizadas(tenantId: string) {
+  return Object.keys(await ajustesFuncoes(tenantId)).filter(c => (FUNCOES_EDITAVEIS as readonly string[]).includes(c))
+}
+
+/**
+ * Salva as permissões de uma função. Guarda só chaves conhecidas e booleanas.
+ * `null` volta a função ao padrão do sistema.
+ */
+export async function salvarFuncao(tenantId: string, cargo: string, permissoes: Record<string, unknown> | null) {
+  const ajustes = await ajustesFuncoes(tenantId)
+  if (permissoes === null) delete ajustes[cargo]
+  else {
+    const limpo: Record<string, boolean> = {}
+    for (const k of CHAVES) if (typeof permissoes[k] === 'boolean') limpo[k] = permissoes[k] as boolean
+    ajustes[cargo] = limpo
+  }
+  await prisma.configuracoes.upsert({
+    where: { tenantId },
+    update: { permissoesFuncoes: ajustes },
+    create: { tenantId, permissoesFuncoes: ajustes },
+  })
+  return (await padroesFuncoes(tenantId))[cargo]
 }

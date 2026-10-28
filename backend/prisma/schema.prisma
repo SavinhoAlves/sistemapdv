@@ -627,6 +627,9 @@ model Configuracoes {
   mpAtivado              Boolean @default(false) @map("mp_ativado")
   mpAccessToken          String? @map("mp_access_token")
   mpDeviceId             String? @map("mp_device_id")
+  /// Ajustes do restaurante nas permissões padrão de cada função (cargo):
+  /// { garcom: { gerenciarCaixa: true, ... }, ... }. Administrador não entra.
+  permissoesFuncoes      Json    @default("{}") @map("permissoes_funcoes")
 
   tenant Tenant @relation(fields: [tenantId], references: [id])
 

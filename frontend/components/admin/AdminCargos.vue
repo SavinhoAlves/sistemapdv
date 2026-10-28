@@ -3,6 +3,7 @@
     <!-- Como funciona -->
     <div class="rounded-2xl border border-gray-200 dark:border-white/[0.08] bg-gray-50 dark:bg-white/[0.03] p-4 text-sm text-gray-600 dark:text-white/60 leading-relaxed">
       Toda pessoa tem uma <b class="text-gray-900 dark:text-white">função</b>, que define a tela inicial e as permissões padrão.
+      Use <b class="text-gray-900 dark:text-white">Editar permissões</b> para mudar o que uma função pode fazer: vale para todas as pessoas dessa função.
       Quando alguém precisa de uma combinação diferente (ex.: um caixa que não pode estornar), crie um
       <b class="text-gray-900 dark:text-white">perfil</b> e escolha-o no cadastro da pessoa: o perfil substitui as permissões da função.
     </div>
@@ -16,12 +17,20 @@
             <span class="text-[11px] font-black px-2 py-0.5 rounded-full" :class="f.cor">{{ f.rotulo }}</span>
             <span class="text-[11px] text-gray-400 dark:text-white/40 tabular-nums">{{ qtdFuncao(f.valor) }} pessoa{{ qtdFuncao(f.valor) === 1 ? '' : 's' }}</span>
           </div>
-          <p class="text-xs text-gray-600 dark:text-white/60 mt-2 leading-snug">{{ f.descricao }}</p>
-          <ul class="mt-3 space-y-1 text-[11px]">
+          <!-- A descrição fixa ("Não mexe no caixa"...) deixa de valer quando o restaurante muda as permissões -->
+          <p class="text-xs text-gray-600 dark:text-white/60 mt-2 leading-snug">{{ personalizadas.includes(f.valor) ? 'Permissões ajustadas pelo restaurante.' : f.descricao }}</p>
+          <span v-if="personalizadas.includes(f.valor)" class="self-start mt-2 text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-orange-500/15 text-orange-700 dark:text-orange-300">Personalizada</span>
+          <ul class="mt-3 space-y-1 text-[11px] flex-1">
             <li v-for="p in TODAS_PERMISSOES" :key="p.chave" v-show="padroes[f.valor]?.[p.chave]" class="flex items-start gap-1.5 text-gray-700 dark:text-white/70">
               <Check :size="12" class="text-emerald-600 dark:text-emerald-400 mt-0.5 shrink-0" />{{ p.rotulo }}
             </li>
           </ul>
+          <p v-if="f.valor === 'administrador'" class="mt-3 text-[11px] text-gray-400 dark:text-white/40 leading-snug">Acesso total. Não pode ser editada, para ninguém perder o acesso ao sistema.</p>
+          <button v-else type="button"
+            class="mt-3 h-9 rounded-xl border border-gray-200 dark:border-white/10 text-xs font-black text-gray-700 dark:text-white/75 hover:border-orange-400/60 hover:text-orange-600 dark:hover:text-orange-300 active:scale-95 transition-all flex items-center justify-center gap-1.5"
+            @click="abrirFuncao(f.valor)">
+            <Pencil :size="13" /> Editar permissões
+          </button>
         </article>
       </div>
     </section>
@@ -65,6 +74,57 @@
         </article>
       </div>
     </section>
+
+    <!-- Modal das permissões da função -->
+    <Teleport to="body">
+      <div v-if="funcaoEditando" class="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4" @click.self="funcaoEditando = null">
+        <div class="bg-white dark:bg-[#161b26] border border-gray-200 dark:border-white/[0.08] rounded-3xl w-full max-w-xl shadow-2xl flex flex-col max-h-[92vh]" role="dialog" aria-modal="true" :aria-label="`Permissões da função ${funcao(funcaoEditando)?.rotulo}`">
+          <div class="flex items-start justify-between gap-3 px-6 pt-6 pb-4">
+            <div>
+              <h2 class="text-lg font-black text-gray-900 dark:text-white">Permissões: {{ funcao(funcaoEditando)?.rotulo }}</h2>
+              <p class="text-xs text-gray-500 dark:text-white/45 mt-0.5">Vale para {{ qtdFuncao(funcaoEditando) }} pessoa{{ qtdFuncao(funcaoEditando) === 1 ? '' : 's' }} com esta função (quem tem perfil personalizado segue o perfil).</p>
+            </div>
+            <button class="adm-icone shrink-0" aria-label="Fechar" @click="funcaoEditando = null"><X :size="16" /></button>
+          </div>
+
+          <div class="flex-1 overflow-y-auto px-6 pb-4 space-y-5">
+            <div v-for="g in GRUPOS_PERMISSOES" :key="g.grupo">
+              <p class="adm-rotulo">{{ g.grupo }}</p>
+              <div class="space-y-1">
+                <button v-for="i in g.itens" :key="i.chave" type="button" role="switch" :aria-checked="formFuncao[i.chave]"
+                  class="w-full flex items-center justify-between gap-3 px-3 py-2.5 rounded-xl border text-left transition-all"
+                  :class="formFuncao[i.chave] ? 'bg-orange-500/[0.08] border-orange-500/30' : 'border-gray-100 dark:border-white/[0.06] hover:bg-gray-50 dark:hover:bg-white/[0.04]'"
+                  @click="formFuncao[i.chave] = !formFuncao[i.chave]">
+                  <span>
+                    <span class="flex items-center gap-1.5 text-xs font-bold" :class="formFuncao[i.chave] ? 'text-gray-900 dark:text-white' : 'text-gray-500 dark:text-white/50'">
+                      {{ i.rotulo }}
+                      <span v-if="formFuncao[i.chave] !== Boolean(sistema[funcaoEditando]?.[i.chave])" class="text-[9px] font-black uppercase tracking-wider px-1.5 py-px rounded bg-orange-500/15 text-orange-700 dark:text-orange-300">alterada</span>
+                    </span>
+                    <span v-if="i.ajuda" class="block text-[10px] text-gray-400 dark:text-white/35">{{ i.ajuda }}</span>
+                  </span>
+                  <span class="w-9 h-5 rounded-full relative shrink-0 transition-colors" :class="formFuncao[i.chave] ? 'bg-orange-500' : 'bg-gray-200 dark:bg-white/10'">
+                    <span class="absolute top-0.5 size-4 rounded-full bg-white shadow transition-all" :class="formFuncao[i.chave] ? 'left-[18px]' : 'left-0.5'" />
+                  </span>
+                </button>
+              </div>
+            </div>
+            <p v-if="erroFuncao" class="text-xs text-red-500 font-bold">{{ erroFuncao }}</p>
+          </div>
+
+          <div class="px-6 py-4 border-t border-gray-100 dark:border-white/[0.07] flex flex-wrap gap-3">
+            <button v-if="personalizadas.includes(funcaoEditando)" type="button"
+              class="h-11 px-4 rounded-2xl text-sm font-black text-gray-500 dark:text-white/50 hover:text-orange-600 dark:hover:text-orange-300 hover:bg-gray-50 dark:hover:bg-white/5 flex items-center gap-1.5"
+              :disabled="salvandoFuncao" @click="restaurarFuncao">
+              <RotateCcw :size="14" /> Restaurar padrão
+            </button>
+            <div class="flex-1 flex gap-3 min-w-[16rem]">
+              <button class="flex-1 h-11 rounded-2xl border border-gray-200 dark:border-white/10 text-gray-600 dark:text-white/60 text-sm font-black hover:bg-gray-50 dark:hover:bg-white/5" @click="funcaoEditando = null">Cancelar</button>
+              <button class="flex-1 h-11 rounded-2xl bg-orange-500 hover:bg-orange-600 active:scale-95 disabled:opacity-40 text-white text-sm font-black transition-all" :disabled="salvandoFuncao" @click="salvarFuncao">{{ salvandoFuncao ? 'Salvando…' : 'Salvar permissões' }}</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </Teleport>
 
     <!-- Modal do perfil -->
     <Teleport to="body">
@@ -140,11 +200,11 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive } from 'vue'
-import { Plus, Pencil, Trash2, X, Check } from 'lucide-vue-next'
+import { ref, reactive, onMounted } from 'vue'
+import { Plus, Pencil, Trash2, X, Check, RotateCcw } from 'lucide-vue-next'
 import { useApi } from '~/services/api'
 import { useToastStore } from '~/stores/toast'
-import { FUNCOES, GRUPOS_PERMISSOES, TODAS_PERMISSOES, MODOS_VENDA, rotuloPermissao, efetivas } from '~/lib/permissoes'
+import { FUNCOES, GRUPOS_PERMISSOES, TODAS_PERMISSOES, MODOS_VENDA, rotuloPermissao, efetivas, funcao } from '~/lib/permissoes'
 
 const props = defineProps<{ funcionarios: any[]; perfis: any[]; padroes: Record<string, Record<string, boolean>> }>()
 const emit = defineEmits<{ (e: 'recarregar'): void }>()
@@ -154,6 +214,50 @@ const toast = useToastStore()
 const qtdFuncao = (v: string) => props.funcionarios.filter(f => f.ativo && f.cargo === v).length
 const ativas = (p: any) => TODAS_PERMISSOES.map(x => x.chave).filter(k => p.permissoes?.[k] === true)
 
+// ── Permissões das funções ──
+// `sistema` é o padrão de fábrica (para marcar o que foi alterado e restaurar)
+const sistema = ref<Record<string, Record<string, boolean>>>({})
+const personalizadas = ref<string[]>([])
+const funcaoEditando = ref<string | null>(null)
+const formFuncao = reactive<Record<string, boolean>>({})
+const salvandoFuncao = ref(false)
+const erroFuncao = ref('')
+
+async function carregarDetalhes() {
+  try {
+    const d = await api.get<{ sistema: Record<string, Record<string, boolean>>; personalizadas: string[] }>('/perfis/funcoes/detalhes')
+    sistema.value = d.sistema
+    personalizadas.value = d.personalizadas
+  } catch {}
+}
+onMounted(carregarDetalhes)
+
+function abrirFuncao(f: string) {
+  erroFuncao.value = ''
+  Object.assign(formFuncao, efetivas(props.padroes[f]))
+  funcaoEditando.value = f
+}
+
+async function gravarFuncao(permissoes: Record<string, boolean> | null, msg: string) {
+  const f = funcaoEditando.value
+  if (!f) return
+  salvandoFuncao.value = true; erroFuncao.value = ''
+  try {
+    await api.put(`/perfis/funcoes/${f}`, { permissoes })
+    toast.success(msg, 'Vale a partir do próximo login de cada pessoa.')
+    funcaoEditando.value = null
+    await carregarDetalhes()
+    emit('recarregar')
+  } catch (e: any) { erroFuncao.value = e?.message || 'Erro ao salvar' }
+  finally { salvandoFuncao.value = false }
+}
+const salvarFuncao = () => gravarFuncao({ ...formFuncao }, `Permissões de ${funcao(funcaoEditando.value!)?.rotulo} salvas`)
+function restaurarFuncao() {
+  if (!confirm(`Voltar a função ${funcao(funcaoEditando.value!)?.rotulo} para as permissões padrão do sistema?`)) return
+  gravarFuncao(null, `${funcao(funcaoEditando.value!)?.rotulo} voltou ao padrão`)
+}
+
+// ── Perfis ──
 const modal = ref(false)
 const salvando = ref(false)
 const erro = ref('')

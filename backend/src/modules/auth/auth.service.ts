@@ -1,7 +1,7 @@
 import bcrypt from 'bcryptjs'
 import { marcarPinRecente } from './biometria.service'
 import { prisma } from '../../lib/prisma'
-import { PERMISSOES_CARGO } from '../../middlewares/permission.middleware'
+import { padroesFuncoes } from '../perfis/perfis.service'
 import {
   signAccessToken,
   generateRefreshToken,
@@ -20,7 +20,8 @@ export async function getPermissoes(
   perfilId: string | null,
   tenantId: string
 ): Promise<Record<string, boolean>> {
-  const padrao = PERMISSOES_CARGO[cargo] ?? {}
+  // Padrão da função com os ajustes que o restaurante fez em Cargos e permissões
+  const padrao = (await padroesFuncoes(tenantId))[cargo] ?? {}
   if (!perfilId) return { ...padrao }
   const perfil = await prisma.perfil.findFirst({
     where: { id: perfilId, tenantId },

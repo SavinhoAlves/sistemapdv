@@ -11,19 +11,23 @@
     </button>
 
     <!-- NAVEGAÇÃO -->
-    <nav class="flex-1 py-3 px-2 space-y-1 overflow-y-auto overflow-x-hidden">
-      <button
-        v-for="item in navItems"
-        :key="item.rota"
-        class="sb__item"
-        :class="{ ativo: isAtivo(item.rota), aberto: expandida }"
-        :aria-current="isAtivo(item.rota) ? 'page' : undefined"
-        :title="item.label"
-        @click="navegar(item.rota)"
-      >
-        <component :is="item.icon" :size="18" :stroke-width="2" class="shrink-0" />
-        <span class="sb__texto" :class="{ oculto: !expandida }">{{ item.label }}</span>
-      </button>
+    <nav class="flex-1 py-3 px-2 overflow-y-auto overflow-x-hidden flex flex-col gap-3">
+      <div v-for="g in grupos" :key="g.nome" class="space-y-1">
+        <!-- Título do grupo só com o menu aberto; recolhido fica só o espaço entre os grupos -->
+        <span v-if="expandida" class="sb__grupo">{{ g.nome }}</span>
+        <button
+          v-for="item in g.itens"
+          :key="item.rota"
+          class="sb__item"
+          :class="{ ativo: isAtivo(item.rota), aberto: expandida }"
+          :aria-current="isAtivo(item.rota) ? 'page' : undefined"
+          :title="item.label"
+          @click="navegar(item.rota)"
+        >
+          <component :is="item.icon" :size="18" :stroke-width="2" class="shrink-0" />
+          <span class="sb__texto" :class="{ oculto: !expandida }">{{ item.label }}</span>
+        </button>
+      </div>
     </nav>
 
     <!-- RODAPÉ: SAIR -->
@@ -37,7 +41,7 @@
 </template>
 
 <script setup lang="ts">
-import { watch } from 'vue'
+import { watch, computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { sidebarExpandida as expandida } from '~/composables/useSidebar'
 import { useNavItems } from '~/composables/useNavItems'
@@ -49,6 +53,10 @@ const route     = useRoute()
 const authStore = useAuthStore()
 
 const { navItems } = useNavItems()
+
+const grupos = computed(() => (['Operação', 'Gestão', 'Sistema'] as const)
+  .map(nome => ({ nome, itens: navItems.value.filter(i => i.grupo === nome) }))
+  .filter(g => g.itens.length))
 
 function isAtivo(rota: string) {
   if (rota === '/') return route.path === '/'
@@ -95,6 +103,13 @@ function navegar(rota: string) {
   transition: opacity var(--tempo-folha) var(--curva);
 }
 .sb__texto.oculto { opacity: 0; width: 0; overflow: hidden; }
+.sb__grupo {
+  display: block;
+  padding: 6px var(--e-3) 2px;
+  font-size: 11px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase;
+  color: var(--txt-3);
+  white-space: nowrap;
+}
 
 .sb__item {
   position: relative;

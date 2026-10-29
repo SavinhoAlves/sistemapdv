@@ -27,15 +27,6 @@
             </div>
 
             <div class="flex items-center gap-2">
-              <button
-                v-if="rfidAtivo && garcomSessao"
-                class="pdv-botao pdv-botao--neutro"
-                title="Trava a tela para o próximo garçom passar o cartão"
-                @click="travar"
-              >
-                <Lock :size="16" />
-                <span class="max-w-[10rem] truncate">{{ garcomSessao.nome }}</span>
-              </button>
               <div class="salao__alternar" role="group" aria-label="Visualização">
                 <button :class="{ ativo: viewMode === 'grade' }" :aria-pressed="viewMode === 'grade'" title="Grade" @click="viewMode = 'grade'">
                   <LayoutGrid :size="18" />
@@ -188,24 +179,12 @@
       @mesa-aberta="() => carregarMesas()"
     />
 
-    <!-- Trava do terminal: sem cartão não há mesas na tela -->
-    <ModalRfidAuth
-      v-model="rfidModal"
-      :mensagem="rfidMensagem"
-      :erro="erroModal"
-      :carregando-rfid="carregandoRfid"
-      obrigatorio
-      rotulo-sair="Sair das Mesas"
-      @auth-success="onRfidSuccess"
-      @sair="router.replace('/')"
-    />
-
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue'
-import { Plus, LayoutGrid, List, Lock } from 'lucide-vue-next'
+import { Plus, LayoutGrid, List } from 'lucide-vue-next'
 import { useRouter } from 'vue-router'
 import ComandaCard from '~/components/salao/ComandaCard.vue'
 import { chaveEstado, minutosDesde, duracao, ROTULO_ESTADO, type ChaveEstado, type ComandaResumo } from '~/composables/useEstadoComanda'
@@ -221,8 +200,6 @@ import { useCaixaStore } from '~/stores/caixa'
 import { useToastStore } from '~/stores/toast'
 import { useAuthStore } from '~/stores/auth'
 import { useRfidIdentify, podeMexerNaMesa, type UsuarioRfid } from '~/composables/useRfidIdentify'
-import { semLeitorDeCartao } from '~/lib/identificacao'
-import ModalRfidAuth from '~/components/modals/ModalRfidAuth.vue'
 
 definePageMeta({ layout: false })
 
@@ -237,19 +214,20 @@ const caixaStore  = useCaixaStore()
 const toastStore  = useToastStore()
 const authStore   = useAuthStore()
 const router      = useRouter()
-const { rfidAtivo, modalAberto: rfidModal, mensagemModal: rfidMensagem, erroModal, carregandoRfid, identificarViaRfid, onRfidSuccess } = useRfidIdentify()
+const { rfidAtivo } = useRfidIdentify()
 const caixaAberto = computed(() => caixaStore.aberto)
 const sidebarRef  = ref()
 const painelRef   = ref()
 
 /**
- * Com RFID ligado, a tela fica travada até alguém passar o cartão. O garçom
- * vê só as mesas abertas por ele; administrador e caixa veem todas. Cada ação
- * dentro da mesa pede o cartão de novo, e ao terminar a tela trava outra vez.
+ * Sem trava de tela: com RFID ligado, cada ação (lançar, fechar, receber…)
+ * pede o cartão de quem está fazendo, e o servidor registra em nome dele. O
+ * garçom logado com a própria conta vê só as mesas dele.
  */
-const garcomSessao = ref<UsuarioRfid | null>(null)
-// Administrador (e o suporte) entra direto: a trava do cartão é para o terminal da equipe
-const semTrava = computed(() => authStore.usuario?.cargo === 'administrador' || !!authStore.modoSuporte)
+const contaDoGarcom = computed<UsuarioRfid | null>(() => {
+  const u = authStore.usuario
+  return rfidAtivo.value && u?.cargo === 'garcom' ? { id: u.id, nome: u.nome, cargo: u.cargo, permissoes: u.permissoes ?? null } : null
+})
 
 const loading         = ref(true)
 const mesas           = ref<Mesa[]>([])
@@ -269,10 +247,8 @@ const ordemEstados: ChaveEstado[] = ['pronto', 'enviar', 'cozinha', 'conta', 'at
 const filtro = ref<ChaveEstado | null>(null)
 
 const mesasDoOperador = computed(() => {
-  if (!rfidAtivo.value || semTrava.value) return mesas.value
-  if (!garcomSessao.value) return []
-  const quem = garcomSessao.value
-  return mesas.value.filter(m => podeMexerNaMesa(quem, m.garcom_id))
+  const quem = contaDoGarcom.value
+  return quem ? mesas.value.filter(m => podeMexerNaMesa(quem, m.garcom_id)) : mesas.value
 })
 
 const contagem = computed(() => {
@@ -295,40 +271,13 @@ function novaMesa() {
 
 const abrirProdutos = () => { modoProdutos.value = true }
 
-// Cartão de outro garçom numa ação da mesa: nada foi feito; a tela passa a
-// mostrar as mesas de quem passou o cartão
-let trocandoGarcom = false
-async function onGarcomMismatch(usuario: UsuarioRfid) {
-  trocandoGarcom = true
+// Cartão de outro garçom numa ação da mesa: nada foi feito
+function onGarcomMismatch(usuario: UsuarioRfid) {
   sidebarMesa.value     = false
   modoProdutos.value    = false
   mesaSelecionada.value = undefined
-  garcomSessao.value    = usuario
-  toastStore.warning(`Esta mesa não é de ${usuario.nome}. Mostrando as mesas dele.`)
-  await nextTick()
-  trocandoGarcom = false
+  toastStore.warning(`Esta mesa não é de ${usuario.nome}. Nada foi lançado.`)
 }
-
-async function travar() {
-  garcomSessao.value = null
-  sidebarMesa.value  = false
-  modoProdutos.value = false
-  filtro.value       = null
-  const quem = await identificarViaRfid('Passe o cartão para ver as suas mesas').catch(() => null)
-  if (!quem) return
-  garcomSessao.value = quem
-  // Com cartão, garçom de uma mesa só cai direto nela. No celular não: sem
-  // cartão a trava volta na hora e a mesa reabriria a cada vez que ele saísse
-  if (quem.cargo === 'garcom' && !semLeitorDeCartao()) {
-    if (loading.value) await new Promise<void>(r => { const stop = watch(loading, v => { if (!v) { stop(); r() } }) })
-    if (mesasDoOperador.value.length === 1) abrirMesa(mesasDoOperador.value[0])
-  }
-}
-
-// Terminou na mesa (fechou o painel e o cardápio): trava para o próximo
-watch([sidebarMesa, modoProdutos], ([painel, produtos]) => {
-  if (!painel && !produtos && rfidAtivo.value && !semTrava.value && garcomSessao.value && !trocandoGarcom) travar()
-})
 
 const produtoSelecionado = async () => {
   if (sidebarMesa.value) sidebarRef.value?.recarregar()
@@ -382,7 +331,6 @@ function onVisibilityChange() {
 
 onMounted(async () => {
   carregarMesas(true)
-  if (!semTrava.value) travar()
 
   pollingTimer = setInterval(() => { if (!document.hidden) carregarMesas() }, 20000)
   document.addEventListener('visibilitychange', onVisibilityChange)

@@ -31,9 +31,20 @@
           <section class="mp-bloco">
             <div class="mp-cab">
               <h2>Dados pessoais</h2>
-              <NuxtLink v-if="ehAdmin" to="/admin?aba=funcionarios" class="mp-link">Editar cadastro</NuxtLink>
+              <button v-if="editando !== 'pessoais'" class="mp-btn mini" :disabled="!!editando" @click="editar('pessoais')"><Pencil :size="14" />Editar</button>
             </div>
-            <dl class="mp-campos">
+            <form v-if="editando === 'pessoais'" class="mp-campos mp-edita" @submit.prevent="salvarDados">
+              <label class="largo">Nome completo<input ref="primeiroEdita" v-model="form.nome" maxlength="120" autocomplete="name" required></label>
+              <label>CPF<input :value="form.cpf" class="mono" inputmode="numeric" placeholder="000.000.000-00" @input="form.cpf = cpfBR(valor($event))"></label>
+              <label>Nascimento<input v-model="form.nascimento" type="date" :max="hoje"></label>
+              <label>Telefone<input :value="form.telefone" class="mono" inputmode="tel" placeholder="(00) 00000-0000" autocomplete="tel" @input="form.telefone = telefoneBR(valor($event))"></label>
+              <label>E-mail<input v-model="form.email" type="email" autocomplete="email" placeholder="voce@exemplo.com"></label>
+              <div class="largo mp-acoes">
+                <button type="button" class="mp-btn" :disabled="salvando === 'dados'" @click="cancelarEdicao">Cancelar</button>
+                <button class="mp-btn pri" :disabled="salvando === 'dados'">{{ salvando === 'dados' ? 'Salvando…' : 'Salvar' }}</button>
+              </div>
+            </form>
+            <dl v-else class="mp-campos">
               <div class="largo"><dt>Nome completo</dt><dd>{{ dados.nome }}</dd></div>
               <div><dt>CPF</dt><dd :class="{ vazio: !dados.cpf }" class="mono">{{ dados.cpf ? cpfBR(dados.cpf) : 'Não informado' }}</dd></div>
               <div><dt>Nascimento</dt><dd :class="{ vazio: !dados.nascimento }">{{ dados.nascimento ? dataSoBR(dados.nascimento) : 'Não informado' }}</dd></div>
@@ -44,13 +55,25 @@
 
           <!-- ENDEREÇO -->
           <section class="mp-bloco">
-            <div class="mp-cab"><h2>Endereço</h2></div>
-            <dl class="mp-campos">
+            <div class="mp-cab">
+              <h2>Endereço</h2>
+              <button v-if="editando !== 'endereco'" class="mp-btn mini" :disabled="!!editando" @click="editar('endereco')"><Pencil :size="14" />Editar</button>
+            </div>
+            <form v-if="editando === 'endereco'" class="mp-campos mp-edita" @submit.prevent="salvarDados">
+              <label class="largo">Logradouro<input ref="primeiroEdita" v-model="form.endereco" maxlength="200" autocomplete="street-address" placeholder="Rua, número, bairro"></label>
+              <label>Cidade<input v-model="form.cidade" maxlength="200" autocomplete="address-level2"></label>
+              <label>UF<input v-model="form.uf" class="uf" maxlength="2" autocomplete="address-level1" placeholder="SP" @input="form.uf = form.uf.replace(/[^a-z]/gi, '').toUpperCase()"></label>
+              <label>CEP<input :value="form.cep" class="mono" inputmode="numeric" placeholder="00000-000" autocomplete="postal-code" @input="form.cep = cepBR(valor($event))"></label>
+              <div class="largo mp-acoes">
+                <button type="button" class="mp-btn" :disabled="salvando === 'dados'" @click="cancelarEdicao">Cancelar</button>
+                <button class="mp-btn pri" :disabled="salvando === 'dados'">{{ salvando === 'dados' ? 'Salvando…' : 'Salvar' }}</button>
+              </div>
+            </form>
+            <dl v-else class="mp-campos">
               <div class="largo"><dt>Logradouro</dt><dd :class="{ vazio: !dados.endereco }">{{ dados.endereco || 'Não informado' }}</dd></div>
               <div><dt>Cidade</dt><dd :class="{ vazio: !dados.cidade }">{{ dados.cidade ? `${dados.cidade}${dados.uf ? ` / ${dados.uf}` : ''}` : 'Não informado' }}</dd></div>
               <div><dt>CEP</dt><dd :class="{ vazio: !dados.cep }" class="mono">{{ dados.cep ? cepBR(dados.cep) : 'Não informado' }}</dd></div>
             </dl>
-            <p v-if="!ehAdmin" class="mp-nota">Para corrigir seus dados, fale com o administrador do restaurante.</p>
           </section>
 
           <!-- RESTAURANTE E PLANO (administrador) -->
@@ -166,7 +189,7 @@
 
 <script setup lang="ts">
 import { ref, computed, nextTick, onMounted, onBeforeUnmount } from 'vue'
-import { KeyRound, CreditCard, Smartphone, ScanFace, UserRound, Check, Minus, X } from 'lucide-vue-next'
+import { KeyRound, CreditCard, Smartphone, ScanFace, UserRound, Check, Minus, X, Pencil } from 'lucide-vue-next'
 import { useAuthStore } from '~/stores/auth'
 import { useApi } from '~/services/api'
 import { useToastStore } from '~/stores/toast'
@@ -198,16 +221,21 @@ const toast = useToastStore()
 const dados = ref<Perfil | null>(null)
 const carregando = ref(true)
 const erro = ref('')
-const salvando = ref<'' | 'senha' | 'pin'>('')
+const salvando = ref<'' | 'senha' | 'pin' | 'dados'>('')
 const senha = ref({ atual: '', nova: '', repete: '' })
 const pin = ref({ senha: '', valor: '' })
 const janela = ref<'' | 'senha' | 'pin'>('')
 const primeiroCampo = ref<HTMLInputElement | null>(null)
+// Edição no próprio card: um card por vez, os outros ficam travados
+const editando = ref<'' | 'pessoais' | 'endereco'>('')
+const form = ref({ nome: '', cpf: '', nascimento: '', telefone: '', email: '', endereco: '', cidade: '', uf: '', cep: '' })
+const primeiroEdita = ref<HTMLInputElement | null>(null)
+const hoje = new Date().toISOString().slice(0, 10)
+const valor = (e: Event) => (e.target as HTMLInputElement).value
 
 const CARGOS: Record<string, string> = { administrador: 'Administrador', garcom: 'Garçom', caixa: 'Caixa', cozinha: 'Cozinha', entregador: 'Entregador' }
 const SITUACAO: Record<string, string> = { ativo: 'Ativo', suspenso: 'Suspenso', cancelado: 'Cancelado' }
 const cargoRotulo = computed(() => { const c = dados.value?.cargo ?? authStore.usuario?.cargo ?? ''; return CARGOS[c] ?? c })
-const ehAdmin = computed(() => (dados.value?.cargo ?? authStore.usuario?.cargo) === 'administrador')
 const inicial = computed(() => ((dados.value?.nome ?? authStore.usuario?.nome ?? 'U').trim()[0] ?? 'U').toUpperCase())
 const data = (d: string) => new Date(d).toLocaleDateString('pt-BR')
 const dataHora = (d: string) => new Date(d).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
@@ -234,6 +262,37 @@ async function carregar() {
   finally { carregando.value = false }
 }
 
+async function editar(qual: 'pessoais' | 'endereco') {
+  const d = dados.value!
+  form.value = {
+    nome: d.nome, cpf: cpfBR(d.cpf), nascimento: d.nascimento?.slice(0, 10) ?? '', telefone: telefoneBR(d.telefone), email: d.email ?? '',
+    endereco: d.endereco ?? '', cidade: d.cidade ?? '', uf: d.uf ?? '', cep: cepBR(d.cep),
+  }
+  editando.value = qual
+  await nextTick()
+  primeiroEdita.value?.focus()
+}
+function cancelarEdicao() { if (salvando.value !== 'dados') editando.value = '' }
+
+async function salvarDados() {
+  const f = form.value
+  // Só os campos do card aberto; o servidor guarda CPF, telefone e CEP só com os números
+  const corpo = editando.value === 'pessoais'
+    ? { nome: f.nome, cpf: f.cpf, nascimento: f.nascimento || null, telefone: f.telefone, email: f.email }
+    : { endereco: f.endereco, cidade: f.cidade, uf: f.uf, cep: f.cep }
+  salvando.value = 'dados'
+  try {
+    await api.put('/perfil', corpo)
+    const novo = await api.get<Perfil>('/perfil')
+    dados.value = novo
+    if (authStore.usuario && novo.nome !== authStore.usuario.nome) authStore.usuario.nome = novo.nome
+    toast.success('Dados salvos')
+    salvando.value = ''
+    editando.value = ''
+  } catch (e: any) { toast.error(e?.message || 'Não deu para salvar os seus dados') }
+  finally { salvando.value = '' }
+}
+
 async function abrirJanela(qual: 'senha' | 'pin') {
   senha.value = { atual: '', nova: '', repete: '' }
   pin.value = { senha: '', valor: '' }
@@ -242,7 +301,11 @@ async function abrirJanela(qual: 'senha' | 'pin') {
   primeiroCampo.value?.focus()
 }
 function fecharJanela() { if (!salvando.value) janela.value = '' }
-const aoTeclar = (e: KeyboardEvent) => { if (e.key === 'Escape' && janela.value) fecharJanela() }
+const aoTeclar = (e: KeyboardEvent) => {
+  if (e.key !== 'Escape') return
+  if (janela.value) fecharJanela()
+  else if (editando.value) cancelarEdicao()
+}
 
 async function trocarSenha() {
   if (senha.value.nova !== senha.value.repete) return toast.error('As duas senhas novas não são iguais')
@@ -297,8 +360,6 @@ onBeforeUnmount(() => window.removeEventListener('keydown', aoTeclar))
 .mp-bloco{background:var(--sup-cartao);border:1px solid var(--linha);border-radius:var(--r-cartao,16px);padding:22px 24px}
 .mp-cab{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:18px}
 .mp-cab h2{font-size:16px;font-weight:700;color:var(--txt)}
-.mp-link{font-size:13px;font-weight:700;color:var(--acao)}
-.mp-link:hover{text-decoration:underline}
 .mp-sk{height:260px;animation:pulse 1.5s ease-in-out infinite}
 .mp-erro{color:var(--st-atencao)}
 .mp-nota{margin-top:16px;font-size:13px;color:var(--txt-3)}
@@ -340,6 +401,15 @@ onBeforeUnmount(() => window.removeEventListener('keydown', aoTeclar))
 .mp-btn.pri:hover{background:var(--acao-hover)}
 .mp-btn.perigo{color:var(--st-atencao)}
 .mp-btn[disabled]{opacity:.6}
+.mp-btn.mini{height:34px;padding:0 12px;font-size:13px;display:inline-flex;align-items:center;gap:6px}
+
+/* Card em edição */
+.mp-edita label{display:grid;gap:6px;font-size:12px;color:var(--txt-3)}
+.mp-edita input{height:44px;padding:0 12px;border-radius:var(--r-controle);border:1px solid var(--linha-forte, var(--linha));background:var(--sup-fundo);color:var(--txt);font:600 15px var(--fonte-texto);min-width:0}
+.mp-edita input.mono{font-family:var(--fonte-numero)}
+.mp-edita input.uf{text-transform:uppercase}
+.mp-edita input:focus{outline:none;border-color:var(--acao);box-shadow:0 0 0 3px var(--acao-fraca)}
+.mp-acoes{display:flex;justify-content:flex-end;gap:8px}
 
 /* Janela */
 .mp-fundo{position:fixed;inset:0;z-index:60;display:grid;place-items:center;padding:16px;background:rgba(8,10,16,.55)}
@@ -372,6 +442,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', aoTeclar))
   .mp-itens li{flex-wrap:wrap}
   .mp-itens li>div{flex-basis:calc(100% - 52px)}
   .mp-itens li>.mp-btn{margin-left:52px}
+  .mp-acoes .mp-btn{flex:1}
   .mp-janela footer{flex-wrap:wrap}
   .mp-janela footer>span{display:none}
   .mp-janela footer .mp-btn{flex:1}

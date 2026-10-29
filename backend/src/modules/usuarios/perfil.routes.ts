@@ -4,9 +4,10 @@ import { requireTenant } from '../../middlewares/tenant.middleware'
 import type { TenantJwtPayload } from '../../lib/jwt'
 import { prisma } from '../../lib/prisma'
 import { CAMPOS_PESSOAIS } from './usuarios.service'
+import { dadosPessoaisDoCorpo } from './usuarios.routes'
 
 /**
- * Meu perfil: o próprio usuário vê os seus dados e troca senha e PIN.
+ * Meu perfil: o próprio usuário vê e corrige os seus dados e troca senha e PIN.
  * Sempre o usuário da sessão (request.auth.sub), nunca outro id. Trocar a
  * senha ou o PIN pede a senha atual.
  */
@@ -66,6 +67,31 @@ export async function perfilRoutes(app: FastifyInstance) {
         recursos: { rfid: t.rfidDisponivel, celular: t.vendaMobilePermitida, delivery: t.deliveryDisponivel, nfce: !!t.plano?.nfce },
       } : null,
     }
+  })
+
+  // PUT /api/perfil  { nome?, email?, cpf?, nascimento?, telefone?, cep?, endereco?, cidade?, uf? }
+  // Cargo, função, login, crachá e acesso continuam só no Admin › Funcionários
+  app.put('/', { preHandler: [requireTenant] }, async (request, reply) => {
+    const auth = request.auth as TenantJwtPayload
+    const body = (request.body ?? {}) as Record<string, unknown>
+    const { dados, erro } = dadosPessoaisDoCorpo(body)
+    if (erro) return reply.status(400).send({ error: erro })
+    const extra: { nome?: string; email?: string | null } = {}
+    if (body.nome !== undefined) {
+      const nome = typeof body.nome === 'string' ? body.nome.trim() : ''
+      if (nome.length < 2) return reply.status(400).send({ error: 'Informe o seu nome' })
+      extra.nome = nome.slice(0, 120)
+    }
+    if (body.email !== undefined) {
+      const email = typeof body.email === 'string' ? body.email.trim() : ''
+      if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return reply.status(400).send({ error: 'E-mail inválido' })
+      extra.email = email || null
+    }
+    const r = await prisma.usuario.updateMany({ where: { id: auth.sub, tenantId: request.tenantId! }, data: { ...extra, ...dados } })
+      .catch((e: any) => { if (e?.code === 'P2002') return 'duplicado' as const; throw e })
+    if (r === 'duplicado') return reply.status(409).send({ error: 'Este e-mail já está em uso' })
+    if (!r.count) return reply.status(404).send({ error: 'Usuário não encontrado' })
+    return { ok: true }
   })
 
   // POST /api/perfil/senha  { senhaAtual, novaSenha }

@@ -85,7 +85,9 @@ export async function authRoutes(app: FastifyInstance) {
     const auth = request.auth as any
     if (auth?.type === 'tenant' && auth.tenantId && auth.sub) {
       const atuais = await permissoesAtuais(auth.tenantId, auth.sub)
-      if (atuais) return reply.send({ auth: { ...auth, ...atuais } })
+      // Nome de agora também: o próprio usuário pode corrigi-lo em Meu perfil
+      const u = atuais && await prisma.usuario.findFirst({ where: { id: auth.sub, tenantId: auth.tenantId }, select: { nome: true } })
+      if (atuais) return reply.send({ auth: { ...auth, ...atuais, ...(u ? { nome: u.nome } : {}) } })
     }
     return reply.send({ auth: request.auth })
   })

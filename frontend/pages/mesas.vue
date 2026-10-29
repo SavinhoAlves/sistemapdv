@@ -494,11 +494,12 @@ onUnmounted(() => {
 .salao__vazio p  { max-width: 34ch; color: var(--txt-2); font-size: var(--t-corpo); margin-bottom: var(--e-2); }
 
 /* Lista */
-.salao__lista { overflow: hidden; }
+/* Cada linha é uma grade própria: colunas de largura fixa para o cabeçalho e as linhas baterem */
+.salao__lista { overflow: hidden; --col-acao: 40px; }
 .salao__linha {
   width: 100%;
   display: grid;
-  grid-template-columns: minmax(0, 2fr) minmax(0, 1.4fr) auto auto;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1.4fr) 110px var(--col-acao);
   gap: var(--e-4);
   align-items: center;
   min-height: 60px;
@@ -507,8 +508,9 @@ onUnmounted(() => {
   font-size: var(--t-corpo);
   border-top: 1px solid var(--linha);
 }
-@media (min-width: 640px) { .salao__linha { grid-template-columns: minmax(0, 2fr) minmax(0, 1.4fr) 90px 120px auto; } }
-@media (min-width: 768px) { .salao__linha { grid-template-columns: minmax(0, 2fr) minmax(0, 1.4fr) minmax(0, 1.2fr) 90px 120px auto; } }
+@media (min-width: 640px) { .salao__linha { grid-template-columns: minmax(0, 2fr) minmax(0, 1.4fr) 90px 120px var(--col-acao); } }
+@media (min-width: 768px) { .salao__linha { grid-template-columns: minmax(0, 2fr) minmax(0, 1.4fr) minmax(0, 1.2fr) 90px 120px var(--col-acao); } }
+@media (min-width: 1024px) { .salao__lista { --col-acao: 112px; } }
 .salao__linha--cabeca {
   min-height: 44px;
   border-top: none;

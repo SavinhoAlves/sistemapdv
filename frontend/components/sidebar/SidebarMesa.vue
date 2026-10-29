@@ -493,10 +493,11 @@ async function emitirAbrirProdutosComRfid() {
   if (!caixaAberto.value) { exigirCaixa(); return }
   if (abrindoProdutos.value) return
   abrindoProdutos.value = true
-  // Abrir o cardápio não pede cartão: o cartão é pedido ao enviar o lançamento
-  // (o servidor exige e o app pede e repete a ação)
   try {
+    await cartaoDaMesa('Passe o cartão para lançar produtos')
     emit('abrir-produtos')
+  } catch {
+    // cartão de outro garçom
   } finally {
     abrindoProdutos.value = false
   }

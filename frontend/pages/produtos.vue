@@ -208,21 +208,21 @@
           <!-- CATEGORIA -->
           <p class="text-xs text-gray-400 dark:text-white/40 mt-1 font-medium">{{ p.categoria || '—' }}</p>
 
-          <!-- ESTOQUE -->
+          <!-- ESTOQUE: número e barra até o dobro do mínimo (cheia = folgado) -->
           <button
             v-if="controlaEstoque(p)"
             @click="abrirEstoque(p)"
-            class="mt-3 text-xs text-left text-gray-400 dark:text-white/40 hover:text-orange-400 transition-colors"
+            class="mt-3 w-full text-left group"
             title="Ajustar estoque"
           >
-            Estoque:
-            <b :class="baixoEstoque(p) ? 'text-orange-500' : 'text-gray-600 dark:text-white/80'">{{ p.estoqueAtual }}</b>
-            <span v-if="p.estoqueMinimo > 0" class="text-gray-300 dark:text-white/20"> / mín. {{ p.estoqueMinimo }}</span>
+            <span class="flex justify-between text-xs text-gray-500 dark:text-white/50">
+              <span class="group-hover:text-orange-500">Estoque</span>
+              <span class="tabular-nums"><b :class="baixoEstoque(p) ? 'text-orange-500' : 'text-gray-700 dark:text-white/80'">{{ p.estoqueAtual }}</b><template v-if="p.estoqueMinimo > 0"> / mín. {{ p.estoqueMinimo }}</template></span>
+            </span>
+            <span class="mt-1.5 block h-1.5 rounded-full bg-gray-100 dark:bg-white/[0.08] overflow-hidden">
+              <span class="block h-full rounded-full" :class="baixoEstoque(p) ? 'bg-orange-500' : 'bg-emerald-500'" :style="{ width: barraEstoque(p) + '%' }" />
+            </span>
           </button>
-          <div v-if="baixoEstoque(p)" class="mt-1.5 flex items-center gap-1 text-[10px] font-black text-orange-500 uppercase tracking-wide">
-            <TriangleAlert :size="10" />
-            Estoque baixo
-          </div>
 
           <!-- RODAPÉ -->
           <div class="mt-4 flex items-center justify-between pt-3 border-t border-gray-100 dark:border-white/[0.06]">
@@ -390,6 +390,13 @@ function setVisualizacao(v: 'grade' | 'lista') {
 
 function controlaEstoque(p: any) {
   return p.gerenciarEstoque || p.estoqueAtual > 0
+}
+
+/** Barra do estoque: 100% no dobro do mínimo (sem mínimo, cheia se tiver estoque) */
+function barraEstoque(p: any) {
+  const atual = Number(p.estoqueAtual) || 0, min = Number(p.estoqueMinimo) || 0
+  if (min <= 0) return atual > 0 ? 100 : 0
+  return Math.max(4, Math.min(100, (atual / (min * 2)) * 100))
 }
 
 function baixoEstoque(p: any) {

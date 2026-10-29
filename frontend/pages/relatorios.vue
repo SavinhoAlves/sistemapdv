@@ -24,7 +24,7 @@
         <div class="flex bg-gray-100 dark:bg-white/5 border border-gray-200 dark:border-white/[0.08] rounded-xl p-1 gap-0.5 overflow-x-auto max-w-full">
           <button v-for="a in ATALHOS" :key="a.tipo" @click="aplicarAtalho(a.tipo)"
             class="h-8 px-3 rounded-lg text-xs font-black transition-all whitespace-nowrap"
-            :class="atalho === a.tipo ? 'bg-orange-500 text-white shadow-sm' : 'text-gray-500 dark:text-white/50 hover:text-gray-800 dark:hover:text-white/80'">
+            :class="atalho === a.tipo ? 'bg-white dark:bg-white/10 text-gray-900 dark:text-white shadow-sm' : 'text-gray-500 dark:text-white/50 hover:text-gray-800 dark:hover:text-white/80'">
             {{ a.rotulo }}
           </button>
         </div>

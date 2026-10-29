@@ -14,10 +14,10 @@
       </div>
 
       <!-- ABAS -->
-      <div class="flex flex-wrap gap-1 bg-gray-100 dark:bg-white/5 border border-gray-200 dark:border-white/[0.08] rounded-xl p-1 w-fit mb-6">
+      <div class="flex flex-wrap gap-1 border-b border-gray-200 dark:border-white/[0.08] mb-6">
         <button v-for="tab in tabs" :key="tab.id" @click="abaAtiva = tab.id"
-          class="flex items-center gap-1.5 h-8 px-4 rounded-lg text-xs font-black transition-all"
-          :class="abaAtiva === tab.id ? 'bg-orange-500 text-white' : 'text-gray-500 dark:text-white/50 hover:text-gray-900 dark:hover:text-white'">
+          class="flex items-center gap-1.5 h-10 px-3 -mb-px border-b-2 text-sm font-bold transition-colors"
+          :class="abaAtiva === tab.id ? 'border-orange-500 text-gray-900 dark:text-white' : 'border-transparent text-gray-500 dark:text-white/50 hover:text-gray-900 dark:hover:text-white'">
           <component :is="tab.icon" :size="12" /> {{ tab.label }}
         </button>
       </div>

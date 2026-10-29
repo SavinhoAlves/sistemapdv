@@ -6,7 +6,7 @@
         <nav class="pf-rail-in" aria-label="Navegação principal">
           <NuxtLink to="/platform" class="pf-logo">
             <span class="pf-logo-m"><UtensilsCrossed :size="20" /></span>
-            <span>Restaurante <i>PDV</i></span>
+            <span>Restaurante <i>PDV</i><small>Central do gestor</small></span>
           </NuxtLink>
 
           <template v-for="grupo in NAV" :key="grupo.nome">
@@ -57,8 +57,8 @@
       </aside>
 
       <main class="pf-main">
-        <div class="pf-top"><span class="pf-bob">Central do Restaurante PDV · {{ titulo }}</span></div>
-        <slot />
+        <div class="pf-top"><span>{{ grupoAtual }}</span><span aria-hidden="true">/</span><b>{{ titulo }}</b></div>
+        <div class="pf-conteudo"><slot /></div>
       </main>
     </div>
 
@@ -81,7 +81,7 @@ import { useThemeStore } from '~/stores/theme'
  * conteúdo à direita. Itens sem rota ainda não existem no backend e
  * aparecem como "Em breve" (Testes, Avisos, Backups).
  */
-defineProps<{
+const props = defineProps<{
   ativo: 'painel' | 'restaurantes' | 'tickets' | 'planos' | 'cobranca' | 'delivery'
   titulo: string
   contagens?: Partial<Record<string, number>>
@@ -107,6 +107,9 @@ const NAV: { nome: string; itens: ItemNav[] }[] = [
     { chave: 'backups', rotulo: 'Backups', icone: Database },
   ] },
 ]
+
+// Caminho do topo: grupo do item ativo / título da página
+const grupoAtual = computed(() => NAV.find(g => g.itens.some(i => i.chave === props.ativo))?.nome ?? 'Central')
 
 const platformAuth = usePlatformAuthStore()
 const themeStore   = useThemeStore()

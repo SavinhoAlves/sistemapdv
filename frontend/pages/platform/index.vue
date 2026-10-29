@@ -1,7 +1,6 @@
 <template>
   <PlatformShell ativo="painel" titulo="Visão geral" :contagens="{ restaurantes: tenants.length }">
 
-    <div class="pf-crumb">Clientes</div>
     <div class="pf-head">
       <div>
         <h1>Visão geral</h1>
@@ -23,22 +22,22 @@
     <template v-else>
       <div class="pf-strip">
         <div class="pf-st">
-          <small>Restaurantes</small>
+          <small>Restaurantes <span class="pf-chip" :class="(dashboard?.totais?.ativos ?? 0) ? 'ok' : ''">{{ (dashboard?.totais?.ativos ?? 0) ? 'Ativo' : 'Nenhum ativo' }}</span></small>
           <strong>{{ dashboard?.totais?.tenants ?? tenants.length }}</strong>
           <em>{{ dashboard?.totais?.ativos ?? 0 }} ativos<template v-if="dashboard?.totais?.suspensos"> · {{ dashboard.totais.suspensos }} suspensos</template></em>
         </div>
         <div class="pf-st">
-          <small>Receita do mês</small>
+          <small>Receita do mês <span class="pf-chip">MRR</span></small>
           <strong>{{ moeda(dashboard?.financeiro?.mrr ?? 0) }}</strong>
           <em>{{ moeda(dashboard?.financeiro?.arr ?? 0) }} por ano</em>
         </div>
         <div class="pf-st" :class="{ hot: (dashboard?.licencas?.bloqueadas ?? 0) > 0 }">
-          <small>Liberados</small>
+          <small>Liberados <span class="pf-chip" :class="dashboard?.licencas?.bloqueadas ? 'bad' : 'ok'">{{ dashboard?.licencas?.bloqueadas ? `${dashboard.licencas.bloqueadas} bloqueio${dashboard.licencas.bloqueadas > 1 ? 's' : ''}` : 'OK' }}</span></small>
           <strong>{{ dashboard?.licencas?.ativas ?? 0 }}</strong>
           <em>{{ dashboard?.licencas?.bloqueadas ? `${dashboard.licencas.bloqueadas} bloqueados` : 'nenhum bloqueado' }}<template v-if="dashboard?.licencas?.teste"> · {{ dashboard.licencas.teste }} em teste</template></em>
         </div>
         <div class="pf-st" :class="{ hot: vencimentos > 0 }">
-          <small>Cobranças a acompanhar</small>
+          <small>Cobranças a acompanhar <span class="pf-chip" :class="vencimentos ? 'warn' : 'ok'">{{ vencimentos ? 'Atenção' : 'Em dia' }}</span></small>
           <strong>{{ vencimentos }}</strong>
           <em>{{ dashboard?.licencas?.vencidas ? `${dashboard.licencas.vencidas} em atraso` : 'vencendo nos próximos 5 dias' }}</em>
         </div>
@@ -52,9 +51,12 @@
               <h2>Pendências</h2>
               <p>{{ alertas.length ? `${alertas.length} ${alertas.length === 1 ? 'restaurante pede' : 'restaurantes pedem'} uma ação` : 'Nenhum restaurante travado' }}</p>
             </div>
+            <div v-if="alertas.length" class="pf-seg pf-r" role="group" aria-label="Filtrar pendências">
+              <button v-for="fl in FILTROS" :key="fl.chave" :aria-pressed="filtro === fl.chave" @click="filtro = fl.chave">{{ fl.rotulo }}</button>
+            </div>
           </div>
-          <template v-if="alertas.length">
-            <NuxtLink v-for="a in alertas" :key="a.tenantId + a.tipo" :to="(a as any).link ?? `/platform/tenants/${a.tenantId}`" class="pf-att">
+          <template v-if="alertasVisiveis.length">
+            <NuxtLink v-for="a in alertasVisiveis" :key="a.tenantId + a.tipo" :to="(a as any).link ?? `/platform/tenants/${a.tenantId}`" class="pf-att">
               <span class="pf-ico" :class="a.tom"><component :is="a.icone" :size="20" /></span>
               <div>
                 <b>{{ a.titulo }}</b>
@@ -63,6 +65,7 @@
               <span class="pf-btn s">Abrir</span>
             </NuxtLink>
           </template>
+          <div v-else-if="alertas.length" class="pf-empty"><b>Nada neste filtro</b>As outras pendências estão em "Todas".</div>
           <div v-else class="pf-empty"><b>Sem pendências</b>Ninguém atrasado nem bloqueado.</div>
         </div>
 
@@ -70,15 +73,18 @@
         <div>
           <div class="pf-card">
             <div class="pf-card-h">
-              <div><h2>Receita por plano</h2><p>Quanto os contratos de cada plano somam por mês</p></div>
+              <div><h2>Receita por plano</h2><p>Soma mensal dos contratos</p></div>
+              <b v-if="porPlano.length" class="pf-num pf-r" style="font-size:18px">{{ moeda(totalMrr) }}</b>
             </div>
             <div v-if="porPlano.length" class="pf-pad" style="display:grid;gap:16px">
-              <div v-for="p in porPlano" :key="p.plano">
-                <div style="display:flex;justify-content:space-between;gap:12px">
-                  <span><b>{{ p.plano }}</b> <span class="pf-tag">{{ p.count }}×</span></span>
-                  <b>{{ moeda(p.mrr) }}</b>
-                </div>
-                <div class="pf-bar"><i :style="{ width: maxMrr ? `${(p.mrr / maxMrr) * 100}%` : '0%' }" /></div>
+              <div class="pf-pilha" aria-hidden="true">
+                <i v-for="(p, i) in porPlano" :key="p.plano" :style="{ width: totalMrr ? `${(p.mrr / totalMrr) * 100}%` : '0%', background: TONS[i % TONS.length] }" />
+              </div>
+              <div v-for="(p, i) in porPlano" :key="p.plano" class="pf-leg">
+                <i :style="{ background: TONS[i % TONS.length] }" />
+                <b>{{ p.plano }}</b>
+                <small>{{ p.count }}×</small>
+                <b>{{ moeda(p.mrr) }}</b>
               </div>
             </div>
             <div v-else class="pf-empty"><b>Sem contratos ativos</b>A receita aparece quando um restaurante assinar.</div>
@@ -120,7 +126,21 @@ const modalNovo = ref(false)
 
 const vencimentos = computed(() => (dashboard.value?.licencas?.vencidas ?? 0) + (dashboard.value?.licencas?.vencendo ?? 0))
 const porPlano = computed(() => dashboard.value?.financeiro?.porPlano ?? [])
-const maxMrr = computed(() => Math.max(0, ...porPlano.value.map(p => p.mrr)))
+const totalMrr = computed(() => porPlano.value.reduce((s, p) => s + p.mrr, 0))
+// Cores da barra empilhada: laranja da marca, tinta e um laranja claro
+const TONS = ['var(--pf-brand)', 'var(--pf-ink)', '#FFB052', 'var(--pf-muted)']
+
+// Filtro das pendências
+type Filtro = 'todas' | 'cobranca' | 'bloqueio' | 'teste'
+const FILTROS: { chave: Filtro; rotulo: string }[] = [
+  { chave: 'todas', rotulo: 'Todas' }, { chave: 'cobranca', rotulo: 'Cobrança' },
+  { chave: 'bloqueio', rotulo: 'Bloqueio' }, { chave: 'teste', rotulo: 'Teste' },
+]
+const filtro = ref<Filtro>('todas')
+const alertasVisiveis = computed(() => alertas.value.filter(a => filtro.value === 'todas'
+  || (filtro.value === 'cobranca' && (a.tipo === 'tolerancia' || a.tipo === 'vencendo'))
+  || (filtro.value === 'teste' && a.tipo === 'teste_acabando')
+  || (filtro.value === 'bloqueio' && !['tolerancia', 'vencendo', 'teste_acabando'].includes(a.tipo))))
 
 const recursos = computed<{ rotulo: string; icone: Component; qtd: number }[]>(() => [
   { rotulo: 'RFID',              icone: CreditCard, qtd: tenants.value.filter(t => t.rfidDisponivel).length },

@@ -1,7 +1,6 @@
 <template>
   <PlatformShell ativo="delivery" titulo="Delivery" :contagens="{ delivery: dados?.resumo.emAndamento || 0 }">
 
-    <div class="pf-crumb">Clientes</div>
     <div class="pf-head">
       <div>
         <h1>Delivery</h1>

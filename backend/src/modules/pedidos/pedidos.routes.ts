@@ -89,6 +89,8 @@ export async function pedidosRoutes(app: FastifyInstance) {
 
   app.post('/lancar', { preHandler: [requireTenant, exigirCartao, requirePermissao('adicionarPedido'), exigirDonoDaMesa(mesaDoCorpo)] }, lancar)
   app.post('/adicionar', { preHandler: [requireTenant, exigirCartao, requirePermissao('adicionarPedido'), exigirDonoDaMesa(mesaDoCorpo)] }, lancar)
+  // + de uma unidade na comanda: sem cartão (ajuste rápido de quantidade). Garçom só na mesa dele.
+  app.post('/adicionar-unidade', { preHandler: [requireTenant, requirePermissao('adicionarPedido'), exigirDonoDaMesa(mesaDoCorpo)] }, lancar)
 
   // POST /api/pedidos/mesa/:mesaId/enviar — "Enviar pedido": rascunhos vão para a cozinha
   app.post('/mesa/:mesaId/enviar', { preHandler: [requireTenant, requirePermissao('adicionarPedido')] }, async (request, reply) => {
@@ -105,7 +107,7 @@ export async function pedidosRoutes(app: FastifyInstance) {
   // PATCH /api/pedidos/itens/:itemId/quantidade
   app.patch(
     '/itens/:itemId/quantidade',
-    { preHandler: [requireTenant, exigirCartao, requirePermissao('adicionarPedido'), exigirDonoDaMesa(mesaDoItem)] },
+    { preHandler: [requireTenant, requirePermissao('adicionarPedido'), exigirDonoDaMesa(mesaDoItem)] },
     async (request, reply) => {
       const params = itemParam.safeParse(request.params)
       const body = quantidadeBody.safeParse(request.body)
@@ -125,7 +127,7 @@ export async function pedidosRoutes(app: FastifyInstance) {
   // PATCH /api/pedidos/itens/:itemId/decrementar — compatibilidade com o app atual
   app.patch(
     '/itens/:itemId/decrementar',
-    { preHandler: [requireTenant, exigirCartao, requirePermissao('adicionarPedido'), exigirDonoDaMesa(mesaDoItem)] },
+    { preHandler: [requireTenant, requirePermissao('adicionarPedido'), exigirDonoDaMesa(mesaDoItem)] },
     async (request, reply) => {
       const params = itemParam.safeParse(request.params)
       if (!params.success) return reply.status(400).send({ error: primeiroErro(params.error) })

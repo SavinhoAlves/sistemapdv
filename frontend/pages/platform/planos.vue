@@ -6,7 +6,10 @@
         <h1>Planos</h1>
         <p>Os pacotes que você vende. Cada restaurante recebe na hora os recursos do plano que contratou.</p>
       </div>
-      <button class="pf-btn p" @click="abrir(null)"><Plus :size="18" /> Novo plano</button>
+      <div style="display:flex;align-items:center;gap:8px">
+        <AlternarVisao v-model="visao" />
+        <button class="pf-btn p" @click="abrir(null)"><Plus :size="18" /> Novo plano</button>
+      </div>
     </div>
 
     <div v-if="loading && !planos.length" class="pf-loading"><span class="pf-spin" /></div>
@@ -15,7 +18,7 @@
       <div class="pf-empty"><b>Não deu para carregar os planos</b><p>{{ erro }}</p><button class="pf-btn" @click="carregar">Tentar novamente</button></div>
     </div>
 
-    <div v-else class="pf-plans">
+    <div v-else class="pf-plans" :class="{ lista: visao === 'lista' }">
       <article v-for="p in planos" :key="p.id" class="pf-pc" :class="{ inativo: !p.ativo }">
         <div class="pf-pc-topo">
           <div style="display:flex;align-items:center;gap:8px;justify-content:space-between">
@@ -125,10 +128,13 @@ import { Plus, Check, X, Tag, Loader2 } from 'lucide-vue-next'
 import { usePlatformAuthStore } from '~/stores/platformAuth'
 import { usePlanos, RECURSOS, type Plano } from '~/composables/usePlanos'
 import { moeda } from '~/composables/usePlatformTenants'
+import AlternarVisao from '~/components/ui/AlternarVisao.vue'
+import { useVisao } from '~/composables/useVisao'
 
 definePageMeta({ layout: false })
 
 const platformAuth = usePlatformAuthStore()
+const visao = useVisao('painel-planos')
 const toast = useToast()
 const { planos, loading, erro, carregar, salvar, excluir } = usePlanos()
 

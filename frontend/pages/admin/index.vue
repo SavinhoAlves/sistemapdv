@@ -33,13 +33,16 @@
       <div v-else-if="abaAtiva === 'categorias'">
         <div class="flex items-center justify-between mb-4">
           <p class="text-sm text-gray-500 dark:text-white/50">{{ categorias.length }} categoria(s)</p>
+          <div class="flex items-center gap-2">
+          <AlternarVisao v-model="visaoCat" />
           <button @click="abrirModalCat(null)"
             class="h-9 px-4 rounded-xl bg-orange-500 hover:bg-orange-600 active:scale-95 text-white text-xs font-black transition-all flex items-center gap-1.5">
             <Plus :size="13" /> Nova Categoria
           </button>
+          </div>
         </div>
 
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+        <div :class="visaoCat === 'lista' ? 'flex flex-col gap-2' : 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3'">
           <div v-for="cat in categorias" :key="cat.id"
             class="bg-white dark:bg-white/5 backdrop-blur-xl border border-gray-200 dark:border-white/[0.08] rounded-2xl p-4 flex items-center justify-between gap-3">
             <div class="flex items-center gap-3">
@@ -81,13 +84,16 @@
         <AdminPix />
         <div class="flex items-center justify-between mb-4">
           <p class="text-sm text-gray-500 dark:text-white/50">{{ metodos.length }} método(s)</p>
+          <div class="flex items-center gap-2">
+          <AlternarVisao v-model="visaoMet" />
           <button @click="modalMetodoAberto = true"
             class="h-9 px-4 rounded-xl bg-orange-500 hover:bg-orange-600 active:scale-95 text-white text-xs font-black transition-all flex items-center gap-1.5">
             <Plus :size="13" /> Novo Método
           </button>
+          </div>
         </div>
 
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+        <div :class="visaoMet === 'lista' ? 'flex flex-col gap-2' : 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3'">
           <div v-for="m in metodos" :key="m.id"
             class="bg-white dark:bg-white/5 backdrop-blur-xl border border-gray-200 dark:border-white/[0.08] rounded-2xl p-4 flex items-center justify-between gap-3">
             <div class="flex items-center gap-3">
@@ -211,6 +217,8 @@ import { Users, Tag, CreditCard, Plus, Pencil, Trash2, ChefHat, ShieldCheck, X, 
 import AdminFuncionarios from '~/components/admin/AdminFuncionarios.vue'
 import AdminCargos from '~/components/admin/AdminCargos.vue'
 import AdminPix from '~/components/admin/AdminPix.vue'
+import AlternarVisao from '~/components/ui/AlternarVisao.vue'
+import { useVisao } from '~/composables/useVisao'
 import AdminTerminais from '~/components/admin/AdminTerminais.vue'
 import QrAcessoCelular from '~/components/QrAcessoCelular.vue'
 import Navbar from '~/layouts/Navbar.vue'
@@ -235,6 +243,9 @@ const tabs = computed(() => modoLocal.value ? [...tabsBase, { id: 'terminais', l
 // ?aba=metodos (link de Configurações › Integrações) abre direto na aba
 const abaPedida = String(useRoute().query.aba ?? '')
 const abaAtiva = ref(tabs.value.some(t => t.id === abaPedida) ? abaPedida : 'funcionarios')
+// Grade ou lista das abas de cartões
+const visaoCat = useVisao('admin-categorias')
+const visaoMet = useVisao('admin-metodos')
 
 // ── Equipe: funcionários, perfis e o padrão de cada função ──
 const funcionarios = ref<any[]>([])

@@ -10,8 +10,11 @@
 
     <!-- Funções -->
     <section>
-      <h2 class="text-xs font-black uppercase tracking-widest text-gray-500 dark:text-white/45 mb-3">Funções</h2>
-      <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-5 gap-3">
+      <div class="flex items-center justify-between gap-3 mb-3">
+        <h2 class="text-xs font-black uppercase tracking-widest text-gray-500 dark:text-white/45">Funções</h2>
+        <AlternarVisao v-model="visao" />
+      </div>
+      <div :class="visao === 'lista' ? 'flex flex-col gap-2' : 'grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-5 gap-3'">
         <article v-for="f in FUNCOES" :key="f.valor" class="bg-white dark:bg-white/[0.04] border border-gray-200 dark:border-white/[0.08] rounded-2xl p-4 flex flex-col">
           <div class="flex items-center justify-between gap-2">
             <span class="text-[11px] font-black px-2 py-0.5 rounded-full" :class="f.cor">{{ f.rotulo }}</span>
@@ -52,7 +55,7 @@
         <p class="text-xs text-gray-400 dark:text-white/40 mt-1">Todos usam as permissões da própria função.</p>
       </div>
 
-      <div v-else class="grid grid-cols-1 md:grid-cols-2 gap-3">
+      <div v-else :class="visao === 'lista' ? 'flex flex-col gap-2' : 'grid grid-cols-1 md:grid-cols-2 gap-3'">
         <article v-for="p in perfis" :key="p.id" class="bg-white dark:bg-white/[0.04] border border-gray-200 dark:border-white/[0.08] rounded-2xl p-4">
           <div class="flex items-start justify-between gap-3">
             <div class="min-w-0">
@@ -204,11 +207,15 @@ import { ref, reactive, onMounted } from 'vue'
 import { Plus, Pencil, Trash2, X, Check, RotateCcw } from 'lucide-vue-next'
 import { useApi } from '~/services/api'
 import { useToastStore } from '~/stores/toast'
+import AlternarVisao from '~/components/ui/AlternarVisao.vue'
+import { useVisao } from '~/composables/useVisao'
 import { FUNCOES, GRUPOS_PERMISSOES, TODAS_PERMISSOES, MODOS_VENDA, rotuloPermissao, efetivas, funcao } from '~/lib/permissoes'
 
 const props = defineProps<{ funcionarios: any[]; perfis: any[]; padroes: Record<string, Record<string, boolean>> }>()
 const emit = defineEmits<{ (e: 'recarregar'): void }>()
 const api = useApi()
+// Grade ou lista (vale para funções e perfis)
+const visao = useVisao('admin-cargos')
 const toast = useToastStore()
 
 const qtdFuncao = (v: string) => props.funcionarios.filter(f => f.ativo && f.cargo === v).length

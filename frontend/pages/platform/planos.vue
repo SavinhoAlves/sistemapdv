@@ -1,7 +1,6 @@
 <template>
   <PlatformShell ativo="planos" titulo="Planos">
 
-    <div class="pf-crumb">Configuração</div>
     <div class="pf-head">
       <div>
         <h1>Planos</h1>

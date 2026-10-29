@@ -1,7 +1,6 @@
 <template>
   <PlatformShell ativo="cobranca" titulo="Cobranças" :contagens="{ cobranca: (dados?.totais.qtd.tolerancia || 0) + (dados?.totais.qtd.bloqueado || 0) }">
 
-    <div class="pf-crumb">Clientes</div>
     <div class="pf-head">
       <div>
         <h1>Cobranças</h1>

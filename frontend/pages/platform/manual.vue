@@ -1,6 +1,5 @@
 <template>
   <PlatformShell ativo="manual" titulo="Manual">
-    <div class="pf-crumb">Atendimento</div>
     <div class="pf-head">
       <div>
         <h1>Manual de uso</h1>

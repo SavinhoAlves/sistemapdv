@@ -11,8 +11,13 @@
         <span class="text-sm font-bold text-[var(--txt)] truncate max-[359px]:hidden">{{ configStore.nome_restaurante || 'Restaurante PDV' }}</span>
       </div>
 
-      <!-- espaço central -->
-      <div class="hidden sm:block flex-1"></div>
+      <!-- Caminho da página (grupo do menu / página) -->
+      <nav class="hidden sm:flex flex-1 min-w-0 items-center gap-2 text-sm text-[var(--txt-3)]" aria-label="Você está em">
+        <template v-if="paginaAtual">
+          <span>{{ paginaAtual.grupo }}</span><span aria-hidden="true">/</span>
+          <span class="font-semibold text-[var(--txt)] truncate">{{ paginaAtual.label }}</span>
+        </template>
+      </nav>
 
       <!-- DIREITA -->
       <div class="nb__direita flex items-center gap-1.5 sm:gap-2 shrink-0">
@@ -48,7 +53,10 @@
             <div class="nb__avatar">
               <span>{{ inicial }}</span>
             </div>
-            <span class="hidden sm:inline text-[13px] font-semibold text-[var(--txt)] max-w-[10rem] truncate">{{ primeiroNome }}</span>
+            <span class="hidden sm:flex flex-col items-start leading-tight max-w-[10rem]">
+              <span class="text-[13px] font-semibold text-[var(--txt)] truncate max-w-full">{{ primeiroNome }}</span>
+              <span class="text-[11px] text-[var(--txt-3)]">{{ cargoRotulo }}</span>
+            </span>
             <ChevronDown
               :size="12"
               class="hidden sm:block text-[var(--txt-3)] transition-transform duration-200"
@@ -478,6 +486,14 @@ const caixaAberto  = computed(() => caixaStore.aberto)
 
 // Navegação mobile (< sm)
 const { navItems } = useNavItems()
+
+// Caminho do topo: o item do menu da rota atual (Meu perfil fica fora do menu)
+const paginaAtual = computed(() => {
+  if (route.path.startsWith('/perfil')) return { grupo: 'Conta', label: 'Meu perfil' }
+  return [...navItems.value].sort((a, b) => b.rota.length - a.rota.length).find(i => isAtivo(i.rota)) ?? null
+})
+const CARGOS: Record<string, string> = { administrador: 'Administrador', garcom: 'Garçom', caixa: 'Caixa', cozinha: 'Cozinha', entregador: 'Entregador' }
+const cargoRotulo = computed(() => CARGOS[authStore.usuario?.cargo ?? ''] ?? authStore.usuario?.cargo ?? '')
 
 function isAtivo(rota: string) {
   if (rota === '/') return route.path === '/'

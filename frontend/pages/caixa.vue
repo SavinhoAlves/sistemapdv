@@ -22,27 +22,26 @@
         <!-- HEADER + ABAS + AÇÕES -->
         <div class="px-4 sm:px-6 pt-5 pb-3 flex flex-wrap items-center justify-between gap-3 shrink-0">
           <div class="flex flex-wrap items-center gap-x-4 gap-y-2">
-            <div class="flex items-center gap-2.5">
-              <div class="w-1 h-6 bg-orange-500 rounded-full shrink-0"></div>
-              <div>
-                <h2 class="text-base font-black text-gray-900 dark:text-white">Painel do Caixa</h2>
-                <p v-if="aba === 'atual' && caixaAberto && caixaStore.caixaAtual?.dataAbertura" class="text-xs text-gray-400 dark:text-white/40 mt-0.5">
-                  Aberto às {{ fmtHora(caixaStore.caixaAtual.dataAbertura) }}
-                </p>
-              </div>
+            <div>
+              <h1 class="text-2xl font-black text-gray-900 dark:text-white">Caixa</h1>
+              <p class="text-sm text-gray-500 dark:text-white/50 mt-0.5">
+                <template v-if="aba === 'atual' && caixaAberto && caixaStore.caixaAtual?.dataAbertura">Aberto às {{ fmtHora(caixaStore.caixaAtual.dataAbertura) }}</template>
+                <template v-else-if="aba === 'historico'">Caixas abertos e fechados</template>
+                <template v-else>Caixa fechado</template>
+              </p>
             </div>
             <div class="flex items-center gap-1 bg-gray-100 dark:bg-white/[0.06] rounded-xl p-1">
               <button @click="aba = 'atual'"
                 class="h-7 px-3 rounded-lg text-[11px] font-black transition-all"
                 :class="aba === 'atual'
-                  ? 'bg-gray-200 dark:bg-white/10 text-gray-900 dark:text-white shadow-sm'
+                  ? 'bg-white dark:bg-white/10 text-gray-900 dark:text-white shadow-sm'
                   : 'text-gray-400 dark:text-white/40 hover:text-gray-700 dark:hover:text-white'">
-                Caixa Atual
+                Caixa atual
               </button>
               <button @click="abrirHistorico"
                 class="h-7 px-3 rounded-lg text-[11px] font-black transition-all flex items-center gap-1.5"
                 :class="aba === 'historico'
-                  ? 'bg-gray-200 dark:bg-white/10 text-gray-900 dark:text-white shadow-sm'
+                  ? 'bg-white dark:bg-white/10 text-gray-900 dark:text-white shadow-sm'
                   : 'text-gray-400 dark:text-white/40 hover:text-gray-700 dark:hover:text-white'">
                 <History :size="11" /> Histórico
               </button>
@@ -50,11 +49,11 @@
           </div>
           <div v-if="aba === 'atual' && caixaAberto" class="flex items-center gap-2">
             <button @click="modalMovimento = 'suprimento'"
-              class="h-8 px-3 rounded-xl bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/20 text-blue-400 text-xs font-black transition-all flex items-center gap-1.5">
+              class="h-9 px-3.5 rounded-xl bg-white dark:bg-white/[0.04] hover:bg-gray-50 dark:hover:bg-white/[0.08] border border-gray-200 dark:border-white/10 text-gray-700 dark:text-white/80 text-xs font-black transition-all flex items-center gap-1.5">
               <ArrowDownLeft :size="12" /> Suprimento
             </button>
             <button @click="modalMovimento = 'sangria'"
-              class="h-8 px-3 rounded-xl bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 text-red-400 text-xs font-black transition-all flex items-center gap-1.5">
+              class="h-9 px-3.5 rounded-xl bg-white dark:bg-white/[0.04] hover:bg-gray-50 dark:hover:bg-white/[0.08] border border-gray-200 dark:border-white/10 text-gray-700 dark:text-white/80 text-xs font-black transition-all flex items-center gap-1.5">
               <ArrowUpRight :size="12" /> Sangria
             </button>
             <button @click="buscarAdmin(true)" :disabled="carregandoAdmin"

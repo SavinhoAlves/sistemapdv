@@ -1,20 +1,19 @@
 <template>
   <div class="lg">
-    <div class="bg" aria-hidden="true"><div class="orb o1" /><div class="orb o2" /></div>
-
     <div class="page">
-      <section class="hero" aria-label="Apresentação do sistema">
-        <span class="tagline">Plataforma para restaurantes</span>
-        <h2>Cada perfil com a <i>ferramenta certa.</i></h2>
-        <p class="lead">Clientes operam o restaurante no dia a dia. Gestores acompanham toda a plataforma: licenças, cobrança e planos.</p>
-        <div class="mods">
-          <div class="mod"><span class="ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 5h18v5H3zM6 10v10M18 10v10" /></svg></span><div><h3>Mesas e comandas</h3><p>Abra, junte e transfira mesas, com a divisão de conta.</p></div></div>
-          <div class="mod"><span class="ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 14a4 4 0 0 1 1-7.9A5 5 0 0 1 17 7a4 4 0 0 1 1 7.9V20H6zM6 17h12" /></svg></span><div><h3>Cozinha integrada</h3><p>O pedido do salão chega na hora na tela da cozinha.</p></div></div>
-          <div class="mod"><span class="ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 6h14a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2zM3 10h18M7 15h4" /></svg></span><div><h3>Caixa e pagamentos</h3><p>Dinheiro, cartão e Pix, com fechamento do dia.</p></div></div>
-          <div class="mod"><span class="ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2" /></svg></span><div><h3>Relatórios</h3><p>Vendas, horários de pico e faturamento em tempo real.</p></div></div>
+      <aside class="hero" aria-label="Apresentação do sistema">
+        <a class="logo" :href="linkInicio">Restaurante<i>PDV</i></a>
+        <div class="hero-mid">
+          <h2>Do pedido ao pagamento, <i>tudo em um só lugar.</i></h2>
+          <ol class="mods">
+            <li><span>01</span><div><strong>Mesas e comandas</strong><p>Abra, junte e transfira mesas.</p></div></li>
+            <li><span>02</span><div><strong>Cozinha</strong><p>Pedidos na tela ou na impressora.</p></div></li>
+            <li><span>03</span><div><strong>Caixa</strong><p>Dinheiro, cartão e Pix.</p></div></li>
+            <li><span>04</span><div><strong>Delivery</strong><p>Entregas e cardápio digital.</p></div></li>
+          </ol>
         </div>
-        <div class="chips"><span>Perfis dedicados</span><span>Vários restaurantes</span><span>Relatórios em tempo real</span><span>100% online</span></div>
-      </section>
+        <span class="copy">© Restaurante PDV · Sistema PDV para restaurante</span>
+      </aside>
 
       <div class="side">
         <div class="top">
@@ -90,7 +89,6 @@
             </div>
           </div>
         </main>
-        <div class="copy">© Restaurante PDV</div>
       </div>
     </div>
 
@@ -361,102 +359,92 @@ onUnmounted(() => {
 
 <style scoped>
 /* ═══════════════════════════════════════════════════════════════════════════
-   Login — design "Entrar · Restaurante PDV" (escuro, vidro e laranja).
-   Fiel ao arquivo de referência; só as fontes seguem a identidade do PDV
-   (Sora no texto) e a lógica é a real do sistema.
+   Login — claro, no mesmo estilo do site (restaurantepdv.com.br).
+   Cores e fontes da marca (frontend/design/marca.cjs).
    ═══════════════════════════════════════════════════════════════════════════ */
 .lg {
-  --bg:#12100E; --card:rgba(30,27,24,.72); --ink:#F6F2EA; --muted:#A8A196; --line:rgba(255,255,255,.12);
-  --field:#171513; --brand:#FF7A00; --brand-hover:#FF8F2B; --danger:#FF8F94; --focus:#FFA14D; --ok:#5DDBA8;
-  min-height:100vh; background:var(--bg); color:var(--ink); color-scheme:dark;
+  --bg:#F6F7F9; --card:#FFFFFF; --ink:#0E1119; --muted:#4A5567; --soft:#6B7688; --line:#DDE3EC; --line-2:#C3CCDA;
+  --field:#FFFFFF; --brand:#FF7A00; --brand-hover:#E06A00; --brand-text:#B85500; --danger:#C0262D; --focus:#E06A00; --ok:#12805C;
+  --tint:#FFF4E5; --tint-line:#FFCC8F;
+  min-height:100vh; background:var(--bg); color:var(--ink); color-scheme:light;
   font:400 16px/1.5 var(--fonte-texto),system-ui,sans-serif; -webkit-font-smoothing:antialiased; overflow-x:hidden;
   padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
 }
 .lg *,.lg *::before,.lg *::after{box-sizing:border-box}
-.lg h1,.lg h2,.lg h3{font-family:var(--fonte-texto);letter-spacing:-.02em;margin:0}
+.lg h1,.lg h2,.lg h3{font-family:var(--fonte-texto);letter-spacing:-.03em;margin:0}
 .lg :where(button){font:inherit;color:inherit}
 
-.bg{position:fixed;inset:0;overflow:hidden;z-index:0}
-.orb{position:absolute;border-radius:50%;filter:blur(110px);animation:drift 22s ease-in-out infinite alternate}
-.o1{width:620px;height:620px;left:-200px;top:-200px;background:#FF7A00;opacity:.4}
-.o2{width:520px;height:520px;right:-160px;bottom:-200px;background:#FF9B33;opacity:.26;animation-duration:28s;animation-delay:-8s}
-@keyframes drift{from{transform:translate(0,0) scale(1)}to{transform:translate(60px,40px) scale(1.12)}}
-
-.page{position:relative;z-index:1;min-height:100vh;display:grid;grid-template-columns:1.1fr 1fr;gap:14px;padding:14px}
+.page{min-height:100vh;display:grid;grid-template-columns:1fr 1fr}
 
 /* Painel de apresentação */
-.hero{border:1px solid var(--line);border-radius:30px;background:linear-gradient(160deg,rgba(255,122,0,.16),rgba(30,27,24,.55) 45%);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);padding:44px 48px;display:flex;flex-direction:column;justify-content:center;gap:28px}
-.tagline{align-self:flex-start;font-size:13px;font-weight:600;color:var(--focus);padding:6px 14px;border-radius:999px;background:rgba(255,122,0,.14);border:1px solid rgba(255,122,0,.35)}
-.hero h2{font-size:clamp(32px,3.6vw,50px);line-height:1.04;font-weight:800;max-width:15ch}
-.hero h2 i{font-style:normal;color:var(--brand)}
-.hero p.lead{margin:0;color:var(--muted);font-size:17px;max-width:48ch}
-.mods{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-.mod{display:flex;gap:14px;padding:16px;border-radius:20px;border:1px solid var(--line);background:rgba(255,255,255,.04);transition:background .2s,transform .2s,border-color .2s}
-.mod:hover{background:rgba(255,255,255,.07);transform:translateY(-2px);border-color:rgba(255,122,0,.4)}
-.mod .ic{flex:none;width:44px;height:44px;border-radius:13px;background:rgba(255,122,0,.16);color:var(--brand);display:grid;place-items:center}
-.mod h3{font-size:16px;margin-bottom:2px}
-.mod p{margin:0;color:var(--muted);font-size:14px;line-height:1.4}
-.chips{display:flex;flex-wrap:wrap;gap:8px}
-.chips span{font-size:13px;font-weight:500;padding:5px 12px;border-radius:999px;background:rgba(255,255,255,.06);color:#D8D2C7}
+.hero{background:var(--tint);border-right:1px solid var(--tint-line);padding:clamp(28px,4vw,48px);display:flex;flex-direction:column;justify-content:space-between;gap:48px}
+.logo{align-self:flex-start;font-weight:800;font-size:21px;letter-spacing:-.02em;color:var(--ink);text-decoration:none}
+.logo i{color:var(--brand-text)}
+.hero-mid{display:flex;flex-direction:column;gap:32px;max-width:500px}
+.hero h2{font-size:clamp(34px,4.2vw,54px);line-height:1;font-weight:800;letter-spacing:-.04em;text-wrap:balance}
+.hero h2 i{font-style:normal;color:var(--brand-text)}
+.mods{list-style:none;margin:0;padding:0;border-top:1px solid var(--tint-line)}
+.mods li{display:grid;grid-template-columns:40px minmax(0,1fr);gap:12px;padding:16px 0;border-bottom:1px solid var(--tint-line)}
+.mods span{font:600 13px var(--fonte-numero),monospace;color:var(--brand-text);padding-top:2px}
+.mods strong{font-size:16px;font-weight:600}
+.mods p{margin:2px 0 0;font-size:14px;color:var(--muted)}
+.copy{font-size:13px;color:var(--soft)}
 
 /* Coluna do formulário */
-.side{display:flex;flex-direction:column;padding:6px 10px}
+.side{display:flex;flex-direction:column;padding:20px 24px 24px}
 .top{display:flex;align-items:center;justify-content:space-between;min-height:42px}
-.back{display:inline-flex;align-items:center;gap:8px;height:42px;padding:0 16px 0 12px;border-radius:999px;border:1px solid var(--line);background:rgba(255,255,255,.04);color:var(--ink);text-decoration:none;font-weight:500;font-size:14px;transition:background .15s}
-.back:hover{background:rgba(255,255,255,.1)}
+.back{display:inline-flex;align-items:center;gap:8px;height:42px;padding:0 16px 0 12px;border-radius:999px;border:1px solid var(--line);background:var(--card);color:var(--ink);text-decoration:none;font-weight:600;font-size:14px;transition:background .15s}
+.back:hover{background:#EEF1F6}
 .center{flex:1;display:flex;align-items:center;justify-content:center;padding:16px 0}
 .lg-card{width:100%;max-width:430px}
 .brand{text-align:center;margin-bottom:22px}
-.mark{width:84px;height:84px;margin:0 auto 14px;border-radius:26px;background:linear-gradient(145deg,#FFA23D,#FF7A00 60%,#E85F00);color:#fff;display:grid;place-items:center;box-shadow:0 18px 40px rgba(255,122,0,.45),inset 0 2px 0 rgba(255,255,255,.35)}
+.mark{width:80px;height:80px;margin:0 auto 14px;border-radius:22px;background:var(--brand);color:var(--ink);display:grid;place-items:center;box-shadow:0 14px 30px -12px rgba(184,85,0,.6)}
 .brand h1{font-size:30px;line-height:1.1;font-weight:800}
-.brand h1 i{font-style:normal;color:var(--brand)}
-.welcome{margin:6px 0 0;color:var(--muted);font-size:14px}
+.brand h1 i{font-style:normal;color:var(--brand-text)}
+.welcome{margin:6px 0 0;color:var(--muted);font-size:15px}
 
-.tabs{display:grid;grid-template-columns:1fr 1fr;gap:4px;padding:4px;border-radius:16px;background:rgba(255,255,255,.06);border:1px solid var(--line);margin-bottom:12px}
-.tab{height:46px;border:0;border-radius:12px;background:none;color:var(--muted);font-weight:600;display:flex;align-items:center;justify-content:center;gap:8px;cursor:pointer;transition:background .2s,color .2s}
+.tabs{display:grid;grid-template-columns:1fr 1fr;gap:4px;padding:4px;border-radius:16px;background:#EEF1F6;border:1px solid var(--line);margin-bottom:12px}
+.tab{height:48px;border:0;border-radius:12px;background:none;color:var(--muted);font-weight:600;display:flex;align-items:center;justify-content:center;gap:8px;cursor:pointer;transition:background .2s,color .2s}
 .tab:hover{color:var(--ink)}
-.tab[aria-selected=true]{background:var(--brand);color:#1E1E1E;box-shadow:0 8px 20px rgba(255,122,0,.3)}
-.tabdesc{margin:0 2px 20px;color:var(--muted);font-size:14px;min-height:42px}
+.tab[aria-selected=true]{background:var(--brand);color:var(--ink)}
+.tabdesc{margin:0 2px 20px;color:var(--muted);font-size:15px;min-height:44px}
 
-/* Restaurante do acesso */
-
-.field{margin-bottom:16px}
-label{display:block;font-weight:500;font-size:14px;margin-bottom:7px;color:#D8D2C7}
+.field{margin-bottom:18px}
+label{display:block;font-weight:600;font-size:15px;margin-bottom:8px;color:var(--ink)}
 .control{position:relative}
-.lead-ic{position:absolute;left:16px;top:50%;transform:translateY(-50%);color:var(--muted);pointer-events:none;display:flex;transition:color .15s}
-.control:focus-within .lead-ic{color:var(--brand)}
-input{width:100%;height:56px;padding:0 16px 0 48px;font:inherit;color:var(--ink);background:var(--field);border:1.5px solid var(--line);border-radius:16px;transition:border-color .15s,box-shadow .15s}
-input::placeholder{color:#6F695F}
-input:hover{border-color:rgba(255,255,255,.22)}
-input:focus-visible{outline:none;border-color:var(--brand);box-shadow:0 0 0 4px rgba(255,122,0,.2)}
+.lead-ic{position:absolute;left:16px;top:50%;transform:translateY(-50%);color:var(--soft);pointer-events:none;display:flex;transition:color .15s}
+.control:focus-within .lead-ic{color:var(--brand-text)}
+input{width:100%;height:56px;padding:0 16px 0 48px;font:500 16px var(--fonte-texto),sans-serif;color:var(--ink);background:var(--field);border:1px solid var(--line-2);border-radius:14px;transition:border-color .15s,box-shadow .15s}
+input::placeholder{color:#8F98A8;font-weight:400}
+input:hover{border-color:#A9B3C6}
+input:focus-visible{outline:none;border-color:var(--brand);box-shadow:0 0 0 3px rgba(255,122,0,.22)}
 input[aria-invalid=true]{border-color:var(--danger)}
-input.pw{padding-right:54px}
-.toggle{position:absolute;right:7px;top:7px;width:42px;height:42px;border:0;border-radius:12px;background:transparent;color:var(--muted);cursor:pointer;display:grid;place-items:center}
-.toggle:hover{color:var(--ink);background:rgba(255,255,255,.08)}
+input.pw{padding-right:56px}
+.toggle{position:absolute;right:6px;top:6px;width:44px;height:44px;border:0;border-radius:10px;background:transparent;color:var(--soft);cursor:pointer;display:grid;place-items:center}
+.toggle:hover{color:var(--ink);background:#EEF1F6}
 .hint{display:none;margin:7px 2px 0;font-size:13px;color:var(--muted)}
 .hint.show{display:block}
-.row{display:flex;justify-content:space-between;align-items:center;margin:2px 0 22px;font-size:14px;gap:12px;flex-wrap:wrap}
-.link{color:var(--focus);font-weight:500;text-decoration:none;border:0;background:none;padding:0;cursor:pointer;border-radius:4px;font-size:inherit}
+.row{display:flex;justify-content:space-between;align-items:center;margin:2px 0 22px;font-size:15px;gap:12px;flex-wrap:wrap}
+.link{color:var(--brand-text);font-weight:600;text-decoration:none;border:0;background:none;padding:0;cursor:pointer;border-radius:4px;font-size:inherit}
 .link:hover{text-decoration:underline}
-.btn{width:100%;height:58px;border:0;border-radius:16px;background:var(--brand);color:#1E1E1E !important;font:700 17px var(--fonte-texto),sans-serif;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;box-shadow:0 14px 30px rgba(255,122,0,.35);transition:background .15s,transform .05s,box-shadow .15s}
-.btn:hover{background:var(--brand-hover);box-shadow:0 18px 38px rgba(255,122,0,.45)}
+.btn{width:100%;height:58px;border:0;border-radius:14px;background:var(--brand);color:var(--ink) !important;font:700 17px var(--fonte-texto),sans-serif;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;box-shadow:0 14px 28px -14px rgba(184,85,0,.7);transition:background .15s,transform .05s}
+.btn:hover{background:var(--brand-hover)}
 .btn:active{transform:scale(.99)}
-.btn[disabled]{opacity:.8;cursor:progress}
-.btn.ghost{background:rgba(255,255,255,.07);color:var(--ink) !important;box-shadow:none;border:1px solid var(--line);height:52px;font-weight:600}
-.btn.ghost:hover{background:rgba(255,255,255,.12);box-shadow:none}
-.spin{width:18px;height:18px;border:2.5px solid rgba(30,30,30,.3);border-top-color:#1E1E1E;border-radius:50%;animation:s .7s linear infinite;display:none}
+.btn[disabled]{opacity:.75;cursor:progress}
+.btn.ghost{background:var(--card);color:var(--ink) !important;box-shadow:none;border:1px solid var(--line-2);height:52px;font-weight:600}
+.btn.ghost:hover{background:#EEF1F6}
+.spin{width:18px;height:18px;border:2.5px solid rgba(14,17,25,.25);border-top-color:var(--ink);border-radius:50%;animation:s .7s linear infinite;display:none}
 .btn[disabled] .spin{display:block}
 @keyframes s{to{transform:rotate(360deg)}}
 .msg{display:flex;align-items:center;gap:10px;margin:0 0 16px;padding:12px 14px;border-radius:14px;font-size:14px}
-.msg.err{color:var(--danger);background:rgba(255,143,148,.1);border:1px solid rgba(255,143,148,.35)}
-.msg.ok{color:var(--ok);background:rgba(93,219,168,.1);border:1px solid rgba(93,219,168,.35)}
-.help{margin:22px 0 0;text-align:center;font-size:13px;color:var(--muted)}
-.copy{text-align:center;font-size:13px;color:#7C766B}
-a:focus-visible,button:focus-visible{outline:3px solid var(--focus);outline-offset:2px}
+.msg.err{color:var(--danger);background:#FDECEC;border:1px solid #F3B9BC}
+.msg.ok{color:var(--ok);background:#E7F6EF;border:1px solid #A6DCC4}
+.help{margin:22px 0 0;text-align:center;font-size:14px;color:var(--soft)}
+a:focus-visible,button:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
 
 /* Crachá RFID */
 .rfid{text-align:center;cursor:pointer}
-.rfid-ic{width:76px;height:76px;margin:0 auto 14px;border-radius:24px;background:rgba(255,122,0,.14);color:var(--brand);border:1px solid rgba(255,122,0,.35);display:grid;place-items:center}
+.rfid-ic{width:76px;height:76px;margin:0 auto 14px;border-radius:22px;background:var(--tint);color:var(--brand-text);border:1px solid var(--tint-line);display:grid;place-items:center}
 .rfid-ic.lendo{animation:pulso 1s ease-in-out infinite}
 @keyframes pulso{50%{box-shadow:0 0 0 10px rgba(255,122,0,.15)}}
 .rfid p{color:var(--muted);margin:0 0 20px}
@@ -464,23 +452,23 @@ a:focus-visible,button:focus-visible{outline:3px solid var(--focus);outline-offs
 
 /* Acesso bloqueado */
 .blocked{text-align:center;padding:8px 0}
-.blocked .lock{width:76px;height:76px;margin:0 auto 18px;border-radius:24px;background:rgba(255,143,148,.12);color:var(--danger);border:1px solid rgba(255,143,148,.35);display:grid;place-items:center}
+.blocked .lock{width:76px;height:76px;margin:0 auto 18px;border-radius:22px;background:#FDECEC;color:var(--danger);border:1px solid #F3B9BC;display:grid;place-items:center}
 .blocked h2{font-size:26px;margin-bottom:8px}
 .blocked p{color:var(--muted);margin:0 0 24px}
 .blocked .btn{margin-bottom:10px}
 
 /* Recuperar senha */
-dialog{border:1px solid var(--line);background:#1B1815;color:var(--ink);border-radius:26px;padding:28px;width:min(440px,calc(100% - 32px));box-shadow:0 40px 90px rgba(0,0,0,.6);font-family:var(--fonte-texto)}
-dialog::backdrop{background:rgba(0,0,0,.62);backdrop-filter:blur(4px)}
+dialog{border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:22px;padding:28px;width:min(440px,calc(100% - 32px));box-shadow:0 40px 90px rgba(14,17,25,.25);font-family:var(--fonte-texto)}
+dialog::backdrop{background:rgba(14,17,25,.45);backdrop-filter:blur(4px)}
 dialog h2{font-size:24px;margin-bottom:6px}
 dialog .sub{margin:0 0 20px;color:var(--muted);font-size:14px}
 .dact{display:grid;grid-template-columns:1fr 1.4fr;gap:10px;margin-top:20px}
 .dact .btn{height:52px;font-size:16px}
 
 @media (max-width:980px){
-  .page{grid-template-columns:1fr;padding:12px}
+  .page{grid-template-columns:1fr}
   .hero{display:none}
 }
-@media (max-width:520px){.back span{display:none}.back{padding:0 12px}}
-@media (prefers-reduced-motion:reduce){.orb{animation:none}.spin{animation-duration:1.5s}.mod{transition:none}}
+@media (max-width:520px){.back span{display:none}.back{padding:0 12px}.side{padding:14px 16px 20px}}
+@media (prefers-reduced-motion:reduce){.spin{animation-duration:1.5s}}
 </style>

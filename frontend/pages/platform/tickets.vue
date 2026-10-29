@@ -1,7 +1,6 @@
 <template>
   <PlatformShell ativo="tickets" titulo="Chamados" :contagens="{ tickets: stats.abertos }">
 
-    <div class="pf-crumb">Atendimento</div>
     <div class="pf-head">
       <div>
         <h1>Chamados</h1>

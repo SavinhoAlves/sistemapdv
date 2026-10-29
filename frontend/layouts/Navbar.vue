@@ -17,8 +17,8 @@
       <!-- DIREITA -->
       <div class="nb__direita flex items-center gap-1.5 sm:gap-2 shrink-0">
 
-        <!-- Pedidos do cardápio online: chegam para quem está no caixa/balcão -->
-        <AvisoDelivery />
+        <!-- Notificações: delivery esperando, estoque baixo -->
+        <Notificacoes />
 
         <!-- STATUS CAIXA (só admin) -->
         <template v-if="isAdmin">
@@ -452,7 +452,7 @@ import { definirOperador } from '~/lib/operador'
 import { corpoDaIdentificacao } from '~/lib/identificacao'
 import { enviarImpressao } from '~/lib/qz'
 import ModalRfidAuth      from '~/components/modals/ModalRfidAuth.vue'
-import AvisoDelivery      from '~/components/AvisoDelivery.vue'
+import Notificacoes       from '~/components/Notificacoes.vue'
 import { lerValor } from '~/lib/valor'
 
 const router      = useRouter()

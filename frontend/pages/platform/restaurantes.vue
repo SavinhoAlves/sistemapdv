@@ -1,7 +1,6 @@
 <template>
   <PlatformShell ativo="restaurantes" titulo="Restaurantes" :contagens="{ restaurantes: tenants.length }">
 
-    <div class="pf-crumb">Clientes</div>
     <div class="pf-head">
       <div>
         <h1>Restaurantes</h1>

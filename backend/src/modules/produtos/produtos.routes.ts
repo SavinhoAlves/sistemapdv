@@ -130,6 +130,22 @@ export async function produtosRoutes(app: FastifyInstance) {
   })
 
   // GET /api/produtos/:id/estoque
+  // GET /estoque-baixo — produtos com controle de estoque no mínimo ou abaixo (sino do topo)
+  app.get('/estoque-baixo', { preHandler: [requireTenant, requirePermissao('gerenciarProdutos')] }, async (request) => {
+    const produtos = await prisma.produto.findMany({
+      where: {
+        tenantId: request.tenantId!,
+        ativo: true,
+        gerenciarEstoque: true,
+        estoqueAtual: { lte: prisma.produto.fields.estoqueMinimo },
+      },
+      select: { id: true, nome: true, estoqueAtual: true, estoqueMinimo: true },
+      orderBy: { estoqueAtual: 'asc' },
+      take: 30,
+    })
+    return produtos.map((p) => ({ ...p, estoqueAtual: Number(p.estoqueAtual), estoqueMinimo: Number(p.estoqueMinimo) }))
+  })
+
   app.get('/:id/estoque', { preHandler: [requireTenant] }, async (request, reply) => {
     const { id } = request.params as any
     return Service.historicoEstoque(request.tenantId!, id)

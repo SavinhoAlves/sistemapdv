@@ -27,7 +27,7 @@ import { contaClienteRoutes } from './modules/clientes/clientes.routes'
 import { platformAuthRoutes } from './modules/platform/platform-auth.routes'
 import { platformTenantsRoutes } from './modules/platform/platform-tenants.routes'
 import { platformTicketsRoutes } from './modules/platform/platform-tickets.routes'
-import { platformPlanosRoutes } from './modules/platform/platform-planos.routes'
+import { platformPlanosRoutes, planosPublicosRoutes } from './modules/platform/platform-planos.routes'
 import { platformCobrancaRoutes } from './modules/platform/platform-cobranca.routes'
 import { platformContratosRoutes } from './modules/platform/platform-contratos.routes'
 import { platformDeliveryRoutes } from './modules/platform/platform-delivery.routes'
@@ -61,6 +61,8 @@ export async function buildApp() {
     .split(',')
     .map((s) => s.trim())
     .filter(Boolean)
+  // O site (restaurantepdv.com.br) lê os planos em /api/publico/planos
+  allowedOrigins.push('https://restaurantepdv.com.br', 'https://www.restaurantepdv.com.br')
 
   await app.register(cors, {
     origin: (origin, cb) => {
@@ -155,6 +157,7 @@ export async function buildApp() {
   await app.register(suporteRoutes,       { prefix: '/api/suporte' })
   await app.register(deliveryRoutes,      { prefix: '/api/delivery' })
   await app.register(deliveryPublicoRoutes, { prefix: '/api/publico' })
+  await app.register(planosPublicosRoutes,  { prefix: '/api/publico' })
   await app.register(contaClienteRoutes,    { prefix: '/api/publico' })
   await app.register(entregadorRoutes,    { prefix: '/api/entregador' })
   await app.register(platformTenantsRoutes, { prefix: '/api/platform/tenants' })

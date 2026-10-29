@@ -240,6 +240,38 @@ nav .links .btn{margin-left:10px;gap:0}
 .hl p{margin:0;font-size:15px;color:var(--muted)}
 
 /* Dúvidas */
+/* Planos */
+.planos{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:20px;align-items:stretch}
+.plano{background:var(--surface);border:1px solid var(--line);border-radius:20px;padding:30px 26px;display:flex;flex-direction:column;gap:18px;transition:border-color .2s,box-shadow .2s,transform .2s}
+.plano:hover{transform:translateY(-3px);box-shadow:var(--shadow)}
+.plano.destaque{border:2px solid var(--hero);box-shadow:var(--shadow);position:relative}
+.plano.destaque::before{content:"Mais escolhido";position:absolute;top:-13px;left:26px;background:var(--hero);color:var(--hero-ink);font:700 12px "JetBrains Mono",monospace;letter-spacing:.06em;text-transform:uppercase;padding:5px 10px;border-radius:999px}
+.plano h3{margin:0;font-size:22px}
+.plano .desc{margin:0;color:var(--muted);font-size:15px;min-height:44px}
+.plano .preco{display:flex;align-items:baseline;gap:6px}
+.plano .preco b{font:700 38px/1 "JetBrains Mono",monospace;letter-spacing:-.02em}
+.plano .preco span{color:var(--muted);font-size:15px}
+.plano ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:10px;flex:1}
+.plano li{display:flex;gap:10px;align-items:flex-start;font-size:15px}
+.plano li::before{content:"";flex:none;width:18px;height:18px;margin-top:2px;border-radius:50%;background:var(--brand-soft) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23B85500' stroke-width='3.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 6 9 17l-5-5'/%3E%3C/svg%3E") center no-repeat}
+.plano li.nao{color:var(--muted);text-decoration:line-through}
+.plano li.nao::before{background:var(--surface-2)}
+.plano .btn{width:100%}
+.planos-nota{margin:22px 0 0;text-align:center;color:var(--muted);font-size:15px}
+/* Demonstração */
+.demo{display:grid;grid-template-columns:1fr 1fr;gap:56px;align-items:center}
+.demo .section-head{margin-bottom:0}
+.demo-lista{list-style:none;margin:24px 0 0;padding:0;display:flex;flex-direction:column;gap:12px}
+.demo-lista li{display:flex;gap:12px;align-items:center;font-size:16px}
+.demo-lista li b{flex:none;width:30px;height:30px;border-radius:50%;background:var(--brand-soft);color:var(--brand-soft-ink);display:grid;place-items:center;font:700 13px "JetBrains Mono",monospace}
+.demo-form{background:var(--surface);border:1px solid var(--line);border-radius:20px;padding:30px;box-shadow:var(--shadow);display:grid;gap:16px}
+.demo-form label{display:grid;gap:6px;font-weight:600;font-size:14px}
+.demo-form input,.demo-form select{height:48px;border:1.5px solid var(--line);border-radius:12px;padding:0 14px;font:400 16px "Sora",sans-serif;background:var(--bg);color:var(--ink)}
+.demo-form input:focus,.demo-form select:focus{outline:none;border-color:var(--focus);box-shadow:0 0 0 3px color-mix(in srgb,var(--focus) 22%,transparent)}
+.demo-form .duas{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.demo-form .btn{width:100%;margin-top:4px}
+.demo-form small{color:var(--muted);text-align:center}
+@media (max-width:860px){.demo{grid-template-columns:1fr;gap:36px}.demo-form .duas{grid-template-columns:1fr}}
 .faq-grid{display:grid;grid-template-columns:1fr 1.4fr;gap:64px;align-items:start}
 .faq-grid .section-head{margin-bottom:0;position:sticky;top:110px}
 .faq{display:flex;flex-direction:column;gap:12px}
@@ -381,6 +413,7 @@ footer{background:var(--deep);color:rgba(255,239,226,.65);padding:56px 0 calc(28
         <a class="t" href="#telas">Telas</a>
         <a class="t" href="#recursos">Recursos</a>
         <a class="t" href="#como-funciona">Como funciona</a>
+        <a class="t" href="#planos">Planos</a>
         <a class="t" href="#duvidas">Dúvidas</a>
         <a class="btn small dark js-acessar" href="/login">Acessar<span class="hide-xs">&nbsp;sistema</span></a>
       </div>
@@ -662,6 +695,46 @@ footer{background:var(--deep);color:rgba(255,239,226,.65);padding:56px 0 calc(28
     </div>
   </section>
 
+  <section class="section" id="planos">
+    <div class="wrap">
+      <div class="section-head center reveal">
+        <span class="kicker">Planos</span>
+        <h2>Escolha o plano do seu restaurante</h2>
+        <p>Mensalidade fixa, sem taxa por pedido. Implantação e treinamento da equipe incluídos.</p>
+      </div>
+      <div class="planos reveal" id="lista-planos">
+        <article class="plano"><h3>Carregando planos…</h3></article>
+      </div>
+      <p class="planos-nota">Precisa de algo diferente? <a class="js-whatsapp" href="#" target="_blank" rel="noopener"><b>Fale com a equipe de vendas</b></a>.</p>
+    </div>
+  </section>
+
+  <section class="section" id="demonstracao" style="background:var(--surface-2)">
+    <div class="wrap demo">
+      <div class="section-head reveal">
+        <span class="kicker">Demonstração</span>
+        <h2>Veja o sistema funcionando no seu restaurante</h2>
+        <p>Uma conversa de 30 minutos, por vídeo ou presencial, com o cardápio e a rotina da sua casa.</p>
+        <ul class="demo-lista">
+          <li><b>1</b>Você escolhe o dia e o horário</li>
+          <li><b>2</b>Mostramos mesas, cozinha, caixa e delivery</li>
+          <li><b>3</b>Tiramos as dúvidas e montamos a proposta</li>
+        </ul>
+      </div>
+      <form class="demo-form reveal" id="form-demo">
+        <label>Seu nome<input name="nome" required autocomplete="name" maxlength="80"></label>
+        <label>Nome do restaurante<input name="restaurante" required maxlength="80"></label>
+        <label>Cidade<input name="cidade" autocomplete="address-level2" maxlength="60"></label>
+        <div class="duas">
+          <label>Dia<input name="dia" type="date" required></label>
+          <label>Período<select name="periodo"><option>Manhã</option><option selected>Tarde</option><option>Noite</option></select></label>
+        </div>
+        <button class="btn" type="submit">Agendar pelo WhatsApp</button>
+        <small>Abrimos o WhatsApp com a mensagem pronta. É só enviar.</small>
+      </form>
+    </div>
+  </section>
+
   <section class="section" id="duvidas">
     <div class="wrap faq-grid">
       <div class="section-head reveal">
@@ -729,6 +802,8 @@ footer{background:var(--deep);color:rgba(255,239,226,.65);padding:56px 0 calc(28
           <h4>Produto</h4>
           <a href="#recursos">Recursos</a>
           <a href="#como-funciona">Como funciona</a>
+          <a href="#planos">Planos</a>
+          <a href="#demonstracao">Demonstração</a>
           <a href="#duvidas">Dúvidas</a>
         </div>
         <div>
@@ -765,6 +840,55 @@ footer{background:var(--deep);color:rgba(255,239,226,.65);padding:56px 0 calc(28
   } else {
     zap.forEach(function (a) { a.remove() })
   }
+
+  function zapHref(m) { return 'https://wa.me/' + WHATSAPP + '?text=' + encodeURIComponent(m) }
+
+  // ── Planos (vêm do painel da plataforma) ────────────────────────────────
+  ;(function () {
+    var lista = document.getElementById('lista-planos')
+    if (!lista) return
+    var api = (mesmoEndereco ? '' : location.protocol + '//app.' + host) + '/api/publico/planos'
+    var brl = function (v) { return v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) }
+    var esc = function (t) { var d = document.createElement('div'); d.textContent = t == null ? '' : String(t); return d.innerHTML }
+    var base = ['Mesas, comandas e conta dividida', 'Tela da cozinha e impressão', 'Caixa com dinheiro, cartão e Pix', 'Cardápio digital com QR code', 'Relatórios de vendas']
+    function render(planos) {
+      if (!planos.length) { lista.innerHTML = '<article class="plano"><h3>Planos sob consulta</h3><p class="desc">Fale com a equipe de vendas para montar o plano do seu restaurante.</p><a class="btn js-whatsapp" href="' + zapHref('Olá! Quero saber os planos do RestaurantePDV.') + '" target="_blank" rel="noopener">Falar com vendas</a></article>'; return }
+      var meio = planos.length >= 3 ? 1 : -1
+      lista.innerHTML = planos.map(function (p, i) {
+        var itens = base.map(function (t) { return '<li>' + t + '</li>' })
+        var extra = [['vendaMobile', 'Garçom pelo celular'], ['rfid', 'Login por crachá RFID'], ['delivery', 'Delivery com app do entregador'], ['nfce', 'Emissão de NFC-e']]
+        extra.forEach(function (e) { itens.push('<li' + (p[e[0]] ? '' : ' class="nao"') + '>' + e[1] + '</li>') })
+        return '<article class="plano' + (i === meio ? ' destaque' : '') + '">' +
+          '<div><h3>' + esc(p.nome) + '</h3></div>' +
+          '<p class="desc">' + esc(p.descricao || '') + '</p>' +
+          '<div class="preco"><b>' + brl(p.valor) + '</b><span>/mês</span></div>' +
+          '<ul>' + itens.join('') + '</ul>' +
+          '<a class="btn' + (i === meio ? '' : ' dark') + '" href="' + zapHref('Olá! Quero contratar o plano ' + p.nome + ' do RestaurantePDV.') + '" target="_blank" rel="noopener">Quero este plano</a>' +
+          '</article>'
+      }).join('')
+    }
+    fetch(api).then(function (r) { if (!r.ok) throw 0; return r.json() }).then(render).catch(function () { render([]) })
+  })()
+
+  // ── Agendar demonstração (abre o WhatsApp com a mensagem pronta) ────────
+  ;(function () {
+    var f = document.getElementById('form-demo')
+    if (!f) return
+    var dia = f.elements.dia
+    var amanha = new Date(Date.now() + 864e5)
+    dia.min = new Date(Date.now() - amanha.getTimezoneOffset() * 6e4).toISOString().slice(0, 10)
+    f.addEventListener('submit', function (ev) {
+      ev.preventDefault()
+      var d = f.elements
+      var data = d.dia.value ? d.dia.value.split('-').reverse().join('/') : ''
+      var msg = 'Olá! Quero agendar uma demonstração do RestaurantePDV.\n' +
+        'Nome: ' + d.nome.value.trim() + '\n' +
+        'Restaurante: ' + d.restaurante.value.trim() + '\n' +
+        (d.cidade.value.trim() ? 'Cidade: ' + d.cidade.value.trim() + '\n' : '') +
+        'Dia: ' + data + ' (' + d.periodo.value + ')'
+      window.open(zapHref(msg), '_blank', 'noopener')
+    })
+  })()
 
   document.getElementById('ano').textContent = new Date().getFullYear()
   document.body.classList.remove('no-js')

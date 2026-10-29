@@ -87,3 +87,15 @@ export async function platformPlanosRoutes(app: FastifyInstance) {
     }
   })
 }
+
+/** GET /api/publico/planos — planos ativos para a página de preços do site. */
+export async function planosPublicosRoutes(app: FastifyInstance) {
+  app.get('/planos', { config: { public: true } }, async (_request, reply) => {
+    const planos = await prisma.plano.findMany({
+      where: { ativo: true },
+      orderBy: [{ valor: 'asc' }, { nome: 'asc' }],
+      select: { nome: true, descricao: true, valor: true, rfid: true, vendaMobile: true, delivery: true, nfce: true },
+    })
+    return reply.send(planos.map((p) => ({ ...p, valor: Number(p.valor) })))
+  })
+}

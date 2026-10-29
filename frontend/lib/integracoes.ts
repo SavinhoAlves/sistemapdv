@@ -16,6 +16,8 @@ export interface Provedor {
   disponivel: boolean
   campos: Campo[]
   comoObter?: string
+  /** Configurado em outra tela do sistema: o cartão leva para lá em vez de abrir o formulário */
+  link?: string
 }
 
 export const PROVEDORES: Provedor[] = [
@@ -33,6 +35,7 @@ export const PROVEDORES: Provedor[] = [
   { id: 'cielo',       nome: 'Cielo LIO',      sigla: 'CL', cor: '#0B5BA9', disponivel: false, resumo: 'Cielo LIO com cobrança integrada.', campos: [] },
   { id: 'getnet',      nome: 'Getnet',         sigla: 'GN', cor: '#EC0000', disponivel: false, resumo: 'Maquininhas Getnet com cobrança integrada.', campos: [] },
   { id: 'infinitepay', nome: 'InfinitePay',    sigla: 'IP', cor: '#2E2E2E', disponivel: false, resumo: 'Maquininha e Pix InfinitePay.', campos: [] },
-  { id: 'pix',         nome: 'Pix direto (QR na tela)', sigla: 'PX', cor: '#32BCAD', disponivel: false, resumo: 'QR Pix com confirmação automática pelo banco.', campos: [] },
+  // Já existe: a chave fica em Admin › Métodos e o QR com o valor aparece ao escolher Pix na venda
+  { id: 'pix',         nome: 'Pix com QR na tela', sigla: 'PX', cor: '#32BCAD', disponivel: true, link: '/admin?aba=metodos', resumo: 'QR Code do Pix com o valor na hora de receber, com a chave cadastrada em Admin › Métodos.', campos: [] },
 ]
 export const provedor = (id: string) => PROVEDORES.find(p => p.id === id)

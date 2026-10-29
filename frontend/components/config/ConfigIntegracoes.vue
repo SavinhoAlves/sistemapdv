@@ -1,7 +1,7 @@
 <template>
   <div class="space-y-4">
     <div class="flex items-center justify-between gap-3">
-      <p class="text-sm text-gray-500 dark:text-white/50">Conecte a maquininha para a cobrança sair do PDV direto para ela.</p>
+      <p class="text-sm text-gray-500 dark:text-white/50">Conecte a maquininha ou o Pix para a cobrança sair do PDV direto para eles.</p>
       <button class="h-9 px-4 rounded-xl bg-orange-500 hover:bg-orange-600 active:scale-95 text-white text-xs font-black flex items-center gap-1.5 shrink-0" @click="catalogo = true">
         <Plus :size="14" /> Adicionar integração
       </button>
@@ -23,7 +23,9 @@
         <p class="text-[11px] text-gray-500 dark:text-white/45 mt-0.5">{{ i.detalhe }}</p>
       </div>
       <span class="text-[10px] font-black uppercase px-2 py-1 rounded-full" :class="SITUACAO[i.situacao].classe">{{ SITUACAO[i.situacao].rotulo }}</span>
-      <div class="flex items-center gap-1">
+      <!-- Pix: a chave é editada em Admin › Métodos -->
+      <NuxtLink v-if="i.link" :to="i.link" class="h-8 px-3 rounded-lg text-xs font-black text-gray-600 dark:text-white/60 hover:bg-gray-100 dark:hover:bg-white/[0.06] flex items-center">Configurar em Métodos</NuxtLink>
+      <div v-else class="flex items-center gap-1">
         <button v-if="i.situacao !== 'incompleta'" class="h-8 px-3 rounded-lg text-xs font-black text-gray-600 dark:text-white/60 hover:bg-gray-100 dark:hover:bg-white/[0.06]" :disabled="ocupado" @click="pausar(i)">{{ i.situacao === 'ativa' ? 'Pausar' : 'Ativar' }}</button>
         <button class="h-8 px-3 rounded-lg text-xs font-black text-gray-600 dark:text-white/60 hover:bg-gray-100 dark:hover:bg-white/[0.06]" @click="editar(i.p)">Configurar</button>
         <button class="h-8 w-8 rounded-lg flex items-center justify-center text-gray-400 hover:text-red-500 hover:bg-red-500/10" :aria-label="`Remover ${i.p.nome}`" :disabled="ocupado" @click="remover(i)"><Trash2 :size="14" /></button>
@@ -135,12 +137,17 @@ const SITUACAO = {
   incompleta: { rotulo: 'Incompleta', classe: 'bg-amber-500/15 text-amber-700 dark:text-amber-300' },
 } as const
 
-// Hoje só o Mercado Pago tem backend; a lista vem do que está salvo
+// Chave Pix do restaurante (Admin › Métodos): com ela, o QR já aparece na venda
+const pixChave = ref('')
+
+// Mercado Pago tem backend próprio; o Pix vem da chave cadastrada no Admin
 const instaladas = computed(() => {
+  const lista: { id: string; p: Provedor; situacao: keyof typeof SITUACAO; detalhe: string; link?: string }[] = []
+  if (pixChave.value) lista.push({ id: 'pix', p: provedor('pix')!, situacao: 'ativa', detalhe: `Chave ${pixChave.value} · QR na venda direta e no cardápio online`, link: '/admin?aba=metodos' })
   const m = mpStore.mp
-  if (!m.token_salvo && !m.ativado) return []
+  if (!m.token_salvo && !m.ativado) return lista
   const completa = m.token_salvo && !!m.device_id
-  return [{
+  return [...lista, {
     id: 'mercadopago_point', p: provedor('mercadopago_point')!,
     situacao: (!completa ? 'incompleta' : m.ativado ? 'ativa' : 'pausada') as keyof typeof SITUACAO,
     detalhe: completa ? `Maquininha ${m.device_id} · token •••• ${m.token_sufixo}` : 'Falta escolher a maquininha',
@@ -160,6 +167,7 @@ const erroDispositivos = ref('')
 
 function escolher(p: Provedor) {
   catalogo.value = false
+  if (p.link) { navigateTo(p.link); return }
   if (!p.disponivel) {
     navigateTo({ path: '/suporte', query: { assunto: `Quero a integração com ${p.nome}` } })
     return
@@ -215,7 +223,10 @@ async function remover(i: any) {
   finally { ocupado.value = false }
 }
 
-onMounted(() => mpStore.carregar())
+onMounted(() => {
+  mpStore.carregar()
+  api.get<{ chave?: string }>('/pagamentos/pix').then(r => { pixChave.value = r?.chave ?? '' }).catch(() => {})
+})
 </script>
 
 <style scoped>

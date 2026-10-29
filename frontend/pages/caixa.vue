@@ -79,36 +79,33 @@
             <div class="bg-white dark:bg-white/5 backdrop-blur-xl rounded-2xl border border-gray-200 dark:border-white/[0.08] overflow-hidden">
               <div class="h-0.5 bg-gray-200 dark:bg-white/10"></div>
               <div class="p-4 sm:p-5">
-                <p class="text-[10px] font-black uppercase tracking-widest text-gray-500 dark:text-white/40">Saldo Inicial</p>
+                <p class="text-[13px] font-medium text-gray-500 dark:text-white/40">Saldo inicial</p>
                 <p class="text-xl sm:text-2xl font-black text-gray-900 dark:text-white mt-2 leading-none">R$ {{ fmt(totaisCaixa?.valorInicial) }}</p>
               </div>
             </div>
             <div class="bg-white dark:bg-white/5 backdrop-blur-xl rounded-2xl border border-gray-200 dark:border-white/[0.08] overflow-hidden">
-              <div class="h-0.5 bg-gradient-to-r from-green-400 to-emerald-500"></div>
               <div class="p-4 sm:p-5">
-                <p class="text-[10px] font-black uppercase tracking-widest text-gray-500 dark:text-white/40">Entradas</p>
+                <p class="text-[13px] font-medium text-gray-500 dark:text-white/40">Entradas</p>
                 <p class="text-xl sm:text-2xl font-black text-green-400 mt-2 leading-none">R$ {{ fmt(totaisCaixa?.entradas) }}</p>
               </div>
             </div>
             <div class="bg-white dark:bg-white/5 backdrop-blur-xl rounded-2xl border border-gray-200 dark:border-white/[0.08] overflow-hidden">
-              <div class="h-0.5 bg-gradient-to-r from-red-400 to-red-500"></div>
               <div class="p-4 sm:p-5">
-                <p class="text-[10px] font-black uppercase tracking-widest text-gray-500 dark:text-white/40">Saídas</p>
+                <p class="text-[13px] font-medium text-gray-500 dark:text-white/40">Saídas</p>
                 <p class="text-xl sm:text-2xl font-black text-red-400 mt-2 leading-none">R$ {{ fmt(totaisCaixa?.saidas) }}</p>
               </div>
             </div>
             <div class="bg-white dark:bg-white/5 backdrop-blur-xl rounded-2xl border border-gray-200 dark:border-white/[0.08] overflow-hidden">
-              <div class="h-0.5 bg-gradient-to-r from-emerald-400 to-teal-500"></div>
               <div class="p-4 sm:p-5">
-                <p class="text-[10px] font-black uppercase tracking-widest text-green-400">Dinheiro em Gaveta</p>
+                <p class="text-[13px] font-medium text-gray-500 dark:text-white/40">Dinheiro na gaveta</p>
                 <p class="text-xl sm:text-2xl font-black text-green-400 mt-2 leading-none">R$ {{ fmt(totaisCaixa?.esperadoDinheiro) }}</p>
               </div>
             </div>
-            <div class="bg-white dark:bg-white/5 backdrop-blur-xl rounded-2xl border border-gray-200 dark:border-white/[0.08] overflow-hidden">
-              <div class="h-0.5 bg-gradient-to-r from-orange-400 to-amber-500"></div>
+            <!-- Saldo atual em destaque (cartão escuro) -->
+            <div class="bg-gray-900 dark:bg-white/[0.12] rounded-2xl border border-gray-900 dark:border-white/10 overflow-hidden">
               <div class="p-4 sm:p-5">
-                <p class="text-[10px] font-black uppercase tracking-widest text-orange-400">Saldo Atual</p>
-                <p class="text-xl sm:text-2xl font-black text-orange-400 mt-2 leading-none">R$ {{ fmt(totaisCaixa?.saldoAtual) }}</p>
+                <p class="text-[13px] font-medium text-white/70">Saldo atual</p>
+                <p class="text-xl sm:text-2xl font-black text-white mt-2 leading-none">R$ {{ fmt(totaisCaixa?.saldoAtual) }}</p>
               </div>
             </div>
           </div>
@@ -121,7 +118,7 @@
               <div class="px-5 py-4 border-b border-gray-100 dark:border-white/[0.06] flex items-center justify-between gap-2">
                 <div class="flex items-center gap-2.5">
                   <div class="w-1.5 h-5 bg-orange-500 rounded-full"></div>
-                  <h3 class="text-xs font-black uppercase tracking-widest text-gray-600 dark:text-white/80">Vendas por Método</h3>
+                  <h3 class="text-sm font-bold text-gray-600 dark:text-white/80">Vendas por Método</h3>
                 </div>
                 <span v-if="vendasResumo?.quantidade" class="text-[11px] font-bold text-gray-400 dark:text-white/40 truncate">
                   {{ vendasResumo.quantidade }} vendas · ticket R$ {{ fmt(vendasResumo.ticketMedio) }}
@@ -158,7 +155,7 @@
               <div class="px-5 py-4 border-b border-gray-100 dark:border-white/[0.06] flex items-center justify-between">
                 <div class="flex items-center gap-2.5">
                   <div class="w-1.5 h-5 bg-orange-500 rounded-full"></div>
-                  <h3 class="text-xs font-black uppercase tracking-widest text-gray-600 dark:text-white/80">Mesas Abertas</h3>
+                  <h3 class="text-sm font-bold text-gray-600 dark:text-white/80">Mesas Abertas</h3>
                 </div>
                 <span class="text-xs font-black text-orange-400">{{ mesasAbertas.length }}</span>
               </div>
@@ -192,7 +189,7 @@
           <!-- MOVIMENTOS -->
           <div class="bg-white dark:bg-white/5 backdrop-blur-xl rounded-2xl border border-gray-200 dark:border-white/[0.08] overflow-hidden">
             <div class="px-5 py-4 border-b border-gray-100 dark:border-white/[0.06] flex flex-wrap items-center justify-between gap-2">
-              <h3 class="text-xs font-black uppercase tracking-widest text-gray-500 dark:text-white/40">Movimentos do Caixa</h3>
+              <h3 class="text-sm font-bold text-gray-500 dark:text-white/40">Movimentos do Caixa</h3>
               <div class="flex gap-1.5 overflow-x-auto scrollbar-none">
                 <button v-for="f in filtrosMov" :key="f.id" @click="filtroMov = f.id"
                   class="h-6 px-2.5 rounded-lg text-[10px] font-black whitespace-nowrap shrink-0 transition-all"
@@ -297,26 +294,26 @@
               <template v-else>
                 <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
                   <div class="bg-gray-50 dark:bg-white/5 rounded-xl p-3">
-                    <p class="text-[9px] font-black uppercase tracking-widest text-gray-500 dark:text-white/40">Saldo Inicial</p>
+                    <p class="text-[13px] font-medium text-gray-500 dark:text-white/40">Saldo inicial</p>
                     <p class="text-sm font-black text-gray-900 dark:text-white mt-1">R$ {{ fmt(detalhes[cx.id].totais?.valorInicial) }}</p>
                   </div>
                   <div class="bg-gray-50 dark:bg-white/5 rounded-xl p-3">
-                    <p class="text-[9px] font-black uppercase tracking-widest text-gray-500 dark:text-white/40">Entradas</p>
+                    <p class="text-[13px] font-medium text-gray-500 dark:text-white/40">Entradas</p>
                     <p class="text-sm font-black text-green-400 mt-1">R$ {{ fmt(detalhes[cx.id].totais?.entradas) }}</p>
                   </div>
                   <div class="bg-gray-50 dark:bg-white/5 rounded-xl p-3">
-                    <p class="text-[9px] font-black uppercase tracking-widest text-gray-500 dark:text-white/40">Saídas</p>
+                    <p class="text-[13px] font-medium text-gray-500 dark:text-white/40">Saídas</p>
                     <p class="text-sm font-black text-red-400 mt-1">R$ {{ fmt(detalhes[cx.id].totais?.saidas) }}</p>
                   </div>
                   <div class="bg-gray-50 dark:bg-white/5 rounded-xl p-3">
-                    <p class="text-[9px] font-black uppercase tracking-widest text-gray-500 dark:text-white/40">Dinheiro Esperado</p>
+                    <p class="text-[13px] font-medium text-gray-500 dark:text-white/40">Dinheiro Esperado</p>
                     <p class="text-sm font-black text-gray-900 dark:text-white mt-1">R$ {{ fmt(detalhes[cx.id].totais?.esperadoDinheiro) }}</p>
                   </div>
                 </div>
 
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
                   <div>
-                    <p class="text-[10px] font-black uppercase tracking-widest text-gray-500 dark:text-white/40 mb-2">Vendas por Método</p>
+                    <p class="text-[13px] font-medium text-gray-500 dark:text-white/40 mb-2">Vendas por Método</p>
                     <p v-if="!detalhes[cx.id].porMetodo?.length" class="text-xs text-gray-400 dark:text-white/40">Sem vendas</p>
                     <div v-else class="space-y-1.5">
                       <div v-for="m in detalhes[cx.id].porMetodo" :key="m.metodo" class="flex justify-between text-xs">
@@ -326,7 +323,7 @@
                     </div>
                   </div>
                   <div>
-                    <p class="text-[10px] font-black uppercase tracking-widest text-gray-500 dark:text-white/40 mb-2">
+                    <p class="text-[13px] font-medium text-gray-500 dark:text-white/40 mb-2">
                       Movimentos ({{ detalhes[cx.id].movimentos.length }})
                     </p>
                     <div class="max-h-44 overflow-y-auto space-y-1.5 pr-1">
@@ -370,10 +367,10 @@
                 <X :size="15" />
               </button>
             </div>
-            <label for="mov-valor" class="block text-[10px] font-black uppercase tracking-widest text-gray-500 dark:text-white/40 mb-2">Valor (R$)</label>
+            <label for="mov-valor" class="block text-[13px] font-medium text-gray-500 dark:text-white/40 mb-2">Valor (R$)</label>
             <input id="mov-valor" name="mov-valor" v-model="movForm.valor" type="number" min="0.01" step="0.01" placeholder="0,00"
               class="w-full h-12 px-4 bg-gray-50 dark:bg-white/[0.06] border border-gray-200 dark:border-white/10 rounded-2xl text-gray-900 dark:text-white font-bold text-sm outline-none focus:border-orange-500 transition-all mb-3" />
-            <label for="mov-desc" class="block text-[10px] font-black uppercase tracking-widest text-gray-500 dark:text-white/40 mb-2">Descrição (opcional)</label>
+            <label for="mov-desc" class="block text-[13px] font-medium text-gray-500 dark:text-white/40 mb-2">Descrição (opcional)</label>
             <input id="mov-desc" name="mov-desc" v-model="movForm.descricao" type="text" placeholder="Ex: Troco inicial"
               class="w-full h-12 px-4 bg-gray-50 dark:bg-white/[0.06] border border-gray-200 dark:border-white/10 rounded-2xl text-gray-900 dark:text-white font-medium text-sm outline-none focus:border-orange-500 transition-all mb-5" />
             <div class="flex gap-3">
@@ -406,7 +403,7 @@
             <p class="text-xs text-gray-500 dark:text-white/40 mb-1 truncate">{{ movEstorno.descricao || 'Pagamento' }}</p>
             <p class="text-base font-black text-red-400 mb-5">R$ {{ fmt(movEstorno.valor) }}</p>
 
-            <label for="estorno-motivo" class="block text-[10px] font-black uppercase tracking-widest text-gray-500 dark:text-white/40 mb-2">Motivo</label>
+            <label for="estorno-motivo" class="block text-[13px] font-medium text-gray-500 dark:text-white/40 mb-2">Motivo</label>
             <input id="estorno-motivo" name="estorno-motivo" v-model="motivoEstorno" type="text" maxlength="120" placeholder="Ex: cobrança duplicada (mín. 5 letras)"
               class="w-full h-12 px-4 bg-gray-50 dark:bg-white/[0.06] border border-gray-200 dark:border-white/10 rounded-2xl text-gray-900 dark:text-white font-medium text-sm outline-none focus:border-orange-500 transition-all mb-3" />
 

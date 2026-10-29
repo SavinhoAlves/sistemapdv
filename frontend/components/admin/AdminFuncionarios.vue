@@ -9,7 +9,7 @@
       <div class="flex flex-wrap gap-1.5" role="group" aria-label="Filtrar por função">
         <button v-for="f in [{ valor: '', rotulo: 'Todas' }, ...FUNCOES]" :key="f.valor"
           class="h-9 px-3 rounded-xl text-xs font-bold border transition-all"
-          :class="filtroFuncao === f.valor ? 'bg-orange-500 border-orange-500 text-white' : 'border-gray-200 dark:border-white/10 text-gray-500 dark:text-white/50 hover:text-gray-900 dark:hover:text-white'"
+          :class="filtroFuncao === f.valor ? 'bg-gray-900 border-gray-900 text-white dark:bg-white dark:border-white dark:text-gray-900' : 'border-gray-200 dark:border-white/10 text-gray-500 dark:text-white/50 hover:text-gray-900 dark:hover:text-white'"
           :aria-pressed="filtroFuncao === f.valor" @click="filtroFuncao = f.valor">
           {{ f.rotulo }} <span class="opacity-70 tabular-nums">{{ contar(f.valor) }}</span>
         </button>

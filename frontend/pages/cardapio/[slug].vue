@@ -324,7 +324,6 @@ useHead({
   meta: [{ name: 'viewport', content: 'width=device-width, initial-scale=1, viewport-fit=cover' }],
   link: [
     { rel: 'preconnect', href: 'https://fonts.googleapis.com' },
-    { rel: 'stylesheet', href: 'https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&display=swap' },
   ],
 })
 // Tema: o cliente escolhe no menu da conta (fica no aparelho); sem escolha, segue o aparelho
@@ -724,7 +723,7 @@ onMounted(async () => {
 <style>
 /* Global (prefixo .cdp): as folhas são componentes de render function e não recebem o atributo do scoped */
 .cdp-ativo { background: var(--cdp-txt); color: var(--cdp-fundo); }
-.cdp { background: var(--cdp-fundo); color: var(--cdp-txt); font: 400 15px/1.45 'Bricolage Grotesque', system-ui, sans-serif; }
+.cdp { background: var(--cdp-fundo); color: var(--cdp-txt); font: 400 15px/1.45 var(--fonte-texto); }
 .cdp :focus-visible { outline: 2px solid var(--cdp-ac); outline-offset: 2px; }
 .cdp-ac { background: var(--cdp-ac); color: var(--cdp-acx); }
 .cdp-ac-inv { background: var(--cdp-acx); color: var(--cdp-ac); }
@@ -771,6 +770,7 @@ onMounted(async () => {
 
 <style>
 /* Tokens do cardápio: seguem o tema do aparelho do cliente (useTemaDoAparelho) */
-:root { --cdp-fundo: #f7f4ef; --cdp-cartao: #ffffff; --cdp-chip: #efebe4; --cdp-linha: #e2ddd3; --cdp-txt: #1b1812; --cdp-mudo: #6c6759; --cdp-ac: #e8550a; --cdp-acx: #ffffff; --cdp-ok: #0f9d6a; }
-html.dark { --cdp-fundo: #0d1017; --cdp-cartao: #161a24; --cdp-chip: #1e2330; --cdp-linha: #272d3c; --cdp-txt: #f4f0ea; --cdp-mudo: #9aa2b5; --cdp-ac: #ff6a1a; --cdp-acx: #1a0c03; --cdp-ok: #34d399; }
+/* Cores da marca (design/marca.cjs). Botão laranja com texto escuro: passa no contraste nos dois temas */
+:root { --cdp-fundo: var(--neutro-50); --cdp-cartao: var(--neutro-0); --cdp-chip: var(--neutro-100); --cdp-linha: var(--neutro-200); --cdp-txt: var(--neutro-900); --cdp-mudo: var(--neutro-500); --cdp-ac: var(--marca-500); --cdp-acx: var(--marca-950); --cdp-ok: var(--ok-forte); }
+html.dark { --cdp-fundo: var(--neutro-900); --cdp-cartao: var(--neutro-850); --cdp-chip: var(--neutro-800); --cdp-linha: var(--neutro-700); --cdp-txt: var(--neutro-100); --cdp-mudo: var(--neutro-350); --cdp-ac: var(--marca-500); --cdp-acx: var(--marca-950); --cdp-ok: var(--ok-vivo); }
 </style>

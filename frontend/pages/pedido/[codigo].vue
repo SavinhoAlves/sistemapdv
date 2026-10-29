@@ -201,6 +201,7 @@ onUnmounted(() => { if (timer) clearInterval(timer); document.removeEventListene
 </style>
 
 <style>
-:root { --cdp-fundo: #ffffff; --cdp-cartao: #ffffff; --cdp-chip: #f3f4f6; --cdp-linha: #e5e7eb; --cdp-txt: #111827; --cdp-mudo: #6b7280; }
-html.dark { --cdp-fundo: #0e1119; --cdp-cartao: #171c27; --cdp-chip: #222938; --cdp-linha: #2b3345; --cdp-txt: #f1f4f9; --cdp-mudo: #a9b3c6; }
+/* Mesmas cores do cardápio (design/marca.cjs) */
+:root { --cdp-fundo: var(--neutro-50); --cdp-cartao: var(--neutro-0); --cdp-chip: var(--neutro-100); --cdp-linha: var(--neutro-200); --cdp-txt: var(--neutro-900); --cdp-mudo: var(--neutro-500); }
+html.dark { --cdp-fundo: var(--neutro-900); --cdp-cartao: var(--neutro-850); --cdp-chip: var(--neutro-800); --cdp-linha: var(--neutro-700); --cdp-txt: var(--neutro-100); --cdp-mudo: var(--neutro-350); }
 </style>

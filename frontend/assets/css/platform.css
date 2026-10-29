@@ -66,9 +66,10 @@ html.dark .pf, html.dark .pf-portal {
 }
 .pf-nv:hover { background: var(--pf-soft); color: var(--pf-ink); }
 .pf-nv.ativo { background: var(--pf-dark); color: var(--pf-dark-ink); font-weight: 600; }
-.pf-nv .pf-n { flex: none; font-size: 12px; font-weight: 700; border-radius: 999px; padding: 0 8px; min-width: 22px; text-align: center; background: var(--pf-soft); color: var(--pf-muted); }
-.pf-nv .pf-n.hot { background: var(--pf-bad); color: #fff; }
-.pf-nv.ativo .pf-n { background: rgba(255,255,255,.18); color: #fff; }
+.pf-nv .pf-n { flex: none; font-size: 12px; font-weight: 700; border-radius: 999px; padding: 0 8px; min-width: 22px; text-align: center; line-height: 20px; background: var(--pf-ink); color: var(--pf-card); }
+/* Contador do menu: tinta sobre o fundo do menu, nos dois temas (o cinza-claro anterior sumia no fundo) */
+.pf-nv .pf-n.hot { background: var(--pf-bad); color: var(--pf-card); }
+.pf-nv.ativo .pf-n { background: var(--pf-brand); color: #0E1119; }
 .pf-nv.breve { opacity: .55; cursor: default; }
 .pf-nv.breve:hover { background: none; color: var(--pf-muted); }
 .pf-nv-txt { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }

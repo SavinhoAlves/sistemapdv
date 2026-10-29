@@ -68,7 +68,6 @@ watch(expandida, aberta => {
 }, { immediate: true })
 
 function navegar(rota: string) {
-  expandida.value = false
   router.push(rota)
 }
 </script>

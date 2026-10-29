@@ -69,14 +69,14 @@
               v-if="dropdownAberto"
               class="nb__menu absolute right-0 top-full mt-2 w-60 max-w-[calc(100vw-1.5rem)] overflow-hidden z-50"
             >
-              <!-- INFO USUÁRIO -->
-              <div class="px-4 py-3 border-b border-[var(--linha)]">
-                <p class="text-sm font-semibold text-[var(--txt)] break-words">{{ authStore.usuario?.nome }}</p>
-                <p class="text-[13px] text-[var(--txt-2)] mt-0.5">{{ labelCargo }}</p>
-              </div>
-
               <!-- ITENS -->
               <div class="p-1.5">
+
+                <!-- MEU PERFIL (nome, cargo, senha e PIN ficam na página) -->
+                <NuxtLink to="/perfil" class="nb__opcao" @click="dropdownAberto = false">
+                  <UserRound :size="14" />
+                  Meu perfil
+                </NuxtLink>
 
                 <!-- TEMA -->
                 <button
@@ -435,7 +435,7 @@ import { totaisDoResumo, vendasDoResumo, porMetodoDoResumo } from '~/lib/caixa'
 import { ref, computed, watch, nextTick, onMounted, onBeforeUnmount } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import {
-  LogOut, UtensilsCrossed, Sun, Moon, ChevronDown, Landmark, ScanFace
+  LogOut, UtensilsCrossed, Sun, Moon, ChevronDown, Landmark, ScanFace, UserRound
 } from 'lucide-vue-next'
 import { biometriaDoAparelho, biometriaSuportada, lembrarBiometria, marcarRecusa } from '~/lib/biometria'
 import { semLeitorDeCartao } from '~/lib/identificacao'
@@ -475,16 +475,6 @@ const isCozinha = computed(() => cargo.value === 'cozinha')
 const inicial      = computed(() => (authStore.usuario?.nome || 'U')[0].toUpperCase())
 const primeiroNome = computed(() => authStore.usuario?.nome?.split(' ')[0] || '')
 const caixaAberto  = computed(() => caixaStore.aberto)
-
-const LABEL_CARGO: Record<string, string> = {
-  administrador: 'Administrador',
-  garcom:        'Garçom',
-  caixa:         'Caixa',
-  cozinha:       'Cozinheiro',
-}
-const labelCargo = computed(() =>
-  LABEL_CARGO[authStore.usuario?.cargo ?? ''] ?? authStore.usuario?.cargo ?? ''
-)
 
 // Navegação mobile (< sm)
 const { navItems } = useNavItems()

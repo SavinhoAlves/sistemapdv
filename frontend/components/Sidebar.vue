@@ -132,6 +132,17 @@ function navegar(rota: string) {
   background: var(--acao);
 }
 .sb__item:focus-visible { outline: 2px solid var(--acao); outline-offset: -2px; }
+/* Telas baixas (notebook ~660px de altura): o menu inteiro cabe sem rolar */
+@media (max-height: 820px) {
+  .sb__item { min-height: 38px; }
+  .sb__grupo { padding-top: 2px; padding-bottom: 0; }
+  nav.flex-col { gap: 6px; padding-top: 6px; padding-bottom: 6px; }
+  nav .space-y-1 > * + * { margin-top: 2px; }
+}
+@media (max-height: 720px) {
+  .sb__item { min-height: 33px; font-size: 13px; }
+  .sb__logo { height: 48px; }
+}
 .sb__item--sair       { color: var(--txt-3); }
 .sb__item--sair:hover { color: var(--st-atencao); background: var(--st-atencao-bg); }
 </style>

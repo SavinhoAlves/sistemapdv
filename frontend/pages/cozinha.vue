@@ -105,6 +105,8 @@
           </button>
         </div>
 
+        <AlternarVisao v-model="visao" class="order-last sm:order-none" />
+
         <div v-if="categorias.length > 1" class="flex items-center gap-1.5 overflow-x-auto scrollbar-none">
           <span class="text-[10px] font-black uppercase tracking-widest text-gray-400 dark:text-white/30 shrink-0">Estação:</span>
           <button @click="estacoes = []"
@@ -139,7 +141,7 @@
       </div>
 
       <!-- GRID DE MESAS -->
-      <div v-else class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+      <div v-else :class="visao === 'lista' ? 'flex flex-col gap-3' : 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4'">
         <div v-for="mesa in mesasVisiveis" :key="mesa.mesa_id"
           class="bg-white dark:bg-white/5 backdrop-blur-xl border rounded-2xl overflow-hidden transition-all shadow-lg shadow-gray-200/50 dark:shadow-black/30"
           :class="abaAtiva === 'preparo' && mesaAtrasada(mesa) ? 'border-red-500/40 shadow-red-900/20' : 'border-gray-200 dark:border-white/[0.08]'">
@@ -259,6 +261,8 @@ import { useSocket } from '~/services/socket'
 import { fichasDaCozinha, type ItemCozinha, type FichaCozinha } from '~/lib/cozinha'
 import { useToastStore } from '~/stores/toast'
 import { useAuthStore } from '~/stores/auth'
+import AlternarVisao from '~/components/ui/AlternarVisao.vue'
+import { useVisao } from '~/composables/useVisao'
 
 definePageMeta({ layout: false })
 
@@ -289,6 +293,8 @@ function lsSet(chave: string, valor: string) {
 }
 
 const estacoes = ref<string[]>([])
+// Cartões em grade ou um por linha (lista)
+const visao = useVisao('cozinha')
 try { estacoes.value = JSON.parse(lsGet('kds_estacoes') || '[]') } catch {}
 watch(estacoes, v => lsSet('kds_estacoes', JSON.stringify(v)), { deep: true })
 

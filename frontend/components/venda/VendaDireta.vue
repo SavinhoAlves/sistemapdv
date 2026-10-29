@@ -6,7 +6,8 @@
     <div class="flex-1 flex flex-col min-w-0 overflow-hidden px-4 sm:px-6 pt-5">
 
       <!-- BUSCA (F2) -->
-      <label class="vd-busca flex items-center gap-2.5 h-12 px-3.5 rounded-[14px] shrink-0">
+      <div class="flex items-center gap-2 shrink-0">
+      <label class="vd-busca flex-1 min-w-0 flex items-center gap-2.5 h-12 px-3.5 rounded-[14px]">
         <Search :size="18" class="text-[var(--vd-mu)] shrink-0" />
         <input
           id="busca-produto" ref="buscaEl" name="busca-produto"
@@ -15,6 +16,8 @@
         />
         <kbd class="hidden sm:inline text-[11px] font-semibold text-[var(--vd-mu)] border border-[var(--vd-bd)] rounded-md px-1.5 py-0.5">F2</kbd>
       </label>
+      <AlternarVisao v-model="visao" />
+      </div>
 
       <!-- CATEGORIAS -->
       <div class="flex gap-2 overflow-x-auto pt-3.5 pb-3.5 scrollbar-none shrink-0">
@@ -33,26 +36,28 @@
         <div v-if="!produtosFiltrados.length" class="text-center text-[var(--vd-mu)] py-16 text-sm font-semibold">
           Nenhum produto encontrado.
         </div>
-        <div v-else class="grid grid-cols-[repeat(auto-fill,minmax(168px,1fr))] gap-3 content-start">
+        <div v-else :class="emLista ? 'flex flex-col gap-2' : 'grid grid-cols-[repeat(auto-fill,minmax(168px,1fr))] gap-3 content-start'">
           <button
             v-for="p in produtosFiltrados" :key="p.id" type="button"
             @click="adicionarAoCarrinho(p)"
-            class="vd-card relative text-left rounded-2xl p-3.5 flex flex-col gap-1 transition active:scale-[.97]"
-            :class="semEstoque(p) ? 'opacity-45 pointer-events-none' : ''"
+            class="vd-card relative text-left rounded-2xl transition active:scale-[.97]"
+            :class="[semEstoque(p) ? 'opacity-45 pointer-events-none' : '', emLista ? 'px-3 py-2.5 flex items-center gap-3' : 'p-3.5 flex flex-col gap-1']"
             :aria-label="`Adicionar ${p.nome}`"
           >
-            <span v-if="qtdNoCarrinho(p.id)" class="absolute top-3 right-3 min-w-6 h-6 px-[7px] rounded-full bg-[var(--vd-or)] text-white text-xs font-extrabold grid place-items-center">
+            <span v-if="qtdNoCarrinho(p.id)" class="min-w-6 h-6 px-[7px] rounded-full bg-[var(--vd-or)] text-white text-xs font-extrabold grid place-items-center" :class="emLista ? 'order-last shrink-0' : 'absolute top-3 right-3'">
               {{ qtdNoCarrinho(p.id) }}
             </span>
             <!-- Foto, ou o ícone da categoria quando não há foto -->
-            <ProdutoFoto :imagem="p.imagemUrl" :categoria="p.categoria" classe="size-[52px] rounded-[14px] mb-2 vd-thumb" :tamanho-icone="26" />
+            <ProdutoFoto :imagem="p.imagemUrl" :categoria="p.categoria" :classe="lista ? 'size-10 rounded-xl vd-thumb shrink-0' : 'size-[52px] rounded-[14px] mb-2 vd-thumb'" :tamanho-icone="emLista ? 20 : 26" />
+            <span :class="emLista ? 'flex-1 min-w-0 flex flex-col' : 'contents'">
             <b class="text-[15px] font-bold leading-snug line-clamp-2">{{ p.nome }}</b>
             <small class="text-[var(--vd-mu)] font-semibold text-xs truncate">
               {{ p.categoria || 'Sem categoria' }}<template v-if="p.gerenciarEstoque"> ·
                 <span :class="estoqueBaixo(p) ? 'text-[var(--vd-rd)]' : ''">{{ semEstoque(p) ? 'Sem estoque' : `${p.estoqueAtual} un.` }}</span>
               </template>
             </small>
-            <span class="mt-2 text-[17px] font-extrabold text-[var(--vd-or)] tabular-nums">R$ {{ fmt(p.preco) }}</span>
+            </span>
+            <span class="text-[17px] font-extrabold text-[var(--vd-or)] tabular-nums" :class="emLista ? 'shrink-0' : 'mt-2'">R$ {{ fmt(p.preco) }}</span>
           </button>
         </div>
       </div>
@@ -323,6 +328,8 @@ import { useProdutosStore, type Produto } from '~/stores/produtos'
 import { iconeMetodo } from '~/composables/useIconeMetodo'
 import { useRfidIdentify } from '~/composables/useRfidIdentify'
 import ModalRfidAuth from '~/components/modals/ModalRfidAuth.vue'
+import AlternarVisao from '~/components/ui/AlternarVisao.vue'
+import { useVisao } from '~/composables/useVisao'
 
 const emit = defineEmits(['venda-registrada'])
 
@@ -345,6 +352,9 @@ const categorias      = ref<string[]>([])
 const categoriaAtiva  = ref('Todos')
 const busca           = ref('')
 const buscaEl         = ref<HTMLInputElement | null>(null)
+// Produtos em grade ou em lista (uma linha por produto)
+const visao           = useVisao('vendas-produtos')
+const emLista         = computed(() => visao.value === 'lista')
 
 const produtosFiltrados = computed(() => {
   let lista = todosProdutos.value.filter(p => p.ativo)

@@ -374,3 +374,13 @@ select.pf-inp { appearance: auto; }
 .pf-leg > i { width: 10px; height: 10px; border-radius: 3px; }
 .pf-leg small { font: 500 12px var(--fonte-numero); color: var(--pf-muted); }
 .pf-leg b:last-child { font-family: var(--fonte-numero); font-weight: 500; min-width: 84px; text-align: right; }
+
+/* Planos em lista: um por linha, recursos lado a lado */
+.pf-plans.lista { grid-template-columns: minmax(0, 1fr); gap: 12px; }
+.pf-plans.lista .pf-pc { flex-direction: row; flex-wrap: wrap; align-items: center; column-gap: 24px; }
+.pf-plans.lista .pf-pc-topo { height: auto; width: 220px; }
+.pf-plans.lista .pf-pc ul { flex: 1 1 320px; display: flex; flex-wrap: wrap; gap: 6px 18px; margin: 0; padding: 0; border-top: 0; }
+.pf-plans.lista .pf-pc-desc { flex-basis: 100%; order: 5; margin: 0; }
+.pf-plans.lista .pf-pc .pf-btn { margin-top: 0 !important; }
+.pf-plans.lista .pf-use { margin: 0 !important; }
+.pf-plans.lista .pf-pc { -webkit-mask: none; mask: none; }

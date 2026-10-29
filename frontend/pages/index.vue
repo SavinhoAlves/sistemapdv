@@ -77,7 +77,7 @@
           </div>
           <div v-if="stats.salao.length" class="db-mesas">
             <component :is="podeMesas ? NuxtLink : 'div'" v-for="m in stats.salao" :key="m.id" :to="podeMesas ? '/mesas' : undefined" class="db-mesa" :class="{ conta: m.contaPedida }" :title="m.nome || `Mesa ${m.numero}`">
-              <b>{{ m.nome || String(m.numero).padStart(2, '0') }}</b>
+              <b>{{ rotuloMesa(m) }}</b>
               <small>R$&nbsp;{{ moeda(m.total) }}</small>
             </component>
           </div>
@@ -252,6 +252,12 @@ const mix = computed(() => {
 })
 
 // ── Salão ──────────────────────────────────────────────────────────────────
+// No quadradinho cabe pouco: nome curto inteiro, senão o número da mesa
+function rotuloMesa(m: { numero: number; nome: string | null }) {
+  const nome = m.nome?.trim()
+  if (nome && nome.length <= 9) return nome
+  return 'Mesa ' + m.numero
+}
 const contaPedida = computed(() => stats.value.salao.filter(m => m.contaPedida).length)
 const ocupadas = computed(() => stats.value.salao.length - contaPedida.value)
 const resumoSalao = computed(() => {
@@ -378,7 +384,7 @@ onUnmounted(() => {
 .db-barra-occ{display:flex;gap:2px;height:8px;margin:14px 22px 0;border-radius:999px;overflow:hidden;background:var(--sup-elevado)}
 .db-barra-occ .o{background:var(--acao)}
 .db-barra-occ .c{background:var(--txt)}
-.db-mesas{padding:16px 22px;display:grid;grid-template-columns:repeat(auto-fill,minmax(68px,1fr));gap:8px}
+.db-mesas{padding:16px 22px;display:grid;grid-template-columns:repeat(auto-fill,minmax(84px,1fr));gap:8px}
 .db-mesa{display:flex;flex-direction:column;gap:2px;padding:9px 10px;border-radius:10px;min-height:54px;background:var(--acao);color:#0E1119;transition:transform var(--tempo-toque)}
 a.db-mesa:hover{transform:translateY(-1px)}
 .db-mesa.conta{background:var(--txt);color:var(--sup-fundo)}

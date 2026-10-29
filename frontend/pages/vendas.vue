@@ -117,9 +117,10 @@ onMounted(async () => {
   // Sem permissão de caixa (ex.: garçom), a venda direta não passaria no servidor
   if (!authStore.temPermissao('gerenciarCaixa')) return router.replace('/mesas')
 
-  // Abre o gate RFID se estiver ativo
+  // Abre o gate RFID se estiver ativo (o administrador e o suporte entram direto)
   if (!configStore.carregado) await configStore.carregar().catch(() => {})
-  if (configStore.rfid_ativo) rfidAberto.value = true
+  const semTrava = authStore.usuario?.cargo === 'administrador' || !!authStore.modoSuporte
+  if (configStore.rfid_ativo && !semTrava) rfidAberto.value = true
 
   await atualizarStatusCaixa()
 

@@ -219,6 +219,7 @@ import PainelProdutos from '~/components/produtos/PainelProdutos.vue'
 import { useApi } from '~/services/api'
 import { useCaixaStore } from '~/stores/caixa'
 import { useToastStore } from '~/stores/toast'
+import { useAuthStore } from '~/stores/auth'
 import { useRfidIdentify, podeMexerNaMesa, type UsuarioRfid } from '~/composables/useRfidIdentify'
 import { semLeitorDeCartao } from '~/lib/identificacao'
 import ModalRfidAuth from '~/components/modals/ModalRfidAuth.vue'
@@ -234,6 +235,7 @@ type Mesa = ComandaResumo & { nome_mesa: string; garcom_id: string | null }
 const api         = useApi()
 const caixaStore  = useCaixaStore()
 const toastStore  = useToastStore()
+const authStore   = useAuthStore()
 const router      = useRouter()
 const { rfidAtivo, modalAberto: rfidModal, mensagemModal: rfidMensagem, erroModal, carregandoRfid, identificarViaRfid, onRfidSuccess } = useRfidIdentify()
 const caixaAberto = computed(() => caixaStore.aberto)
@@ -246,6 +248,8 @@ const painelRef   = ref()
  * dentro da mesa pede o cartão de novo, e ao terminar a tela trava outra vez.
  */
 const garcomSessao = ref<UsuarioRfid | null>(null)
+// Administrador (e o suporte) entra direto: a trava do cartão é para o terminal da equipe
+const semTrava = computed(() => authStore.usuario?.cargo === 'administrador' || !!authStore.modoSuporte)
 
 const loading         = ref(true)
 const mesas           = ref<Mesa[]>([])
@@ -265,7 +269,7 @@ const ordemEstados: ChaveEstado[] = ['pronto', 'enviar', 'cozinha', 'conta', 'at
 const filtro = ref<ChaveEstado | null>(null)
 
 const mesasDoOperador = computed(() => {
-  if (!rfidAtivo.value) return mesas.value
+  if (!rfidAtivo.value || semTrava.value) return mesas.value
   if (!garcomSessao.value) return []
   const quem = garcomSessao.value
   return mesas.value.filter(m => podeMexerNaMesa(quem, m.garcom_id))
@@ -323,7 +327,7 @@ async function travar() {
 
 // Terminou na mesa (fechou o painel e o cardápio): trava para o próximo
 watch([sidebarMesa, modoProdutos], ([painel, produtos]) => {
-  if (!painel && !produtos && rfidAtivo.value && garcomSessao.value && !trocandoGarcom) travar()
+  if (!painel && !produtos && rfidAtivo.value && !semTrava.value && garcomSessao.value && !trocandoGarcom) travar()
 })
 
 const produtoSelecionado = async () => {
@@ -378,7 +382,7 @@ function onVisibilityChange() {
 
 onMounted(async () => {
   carregarMesas(true)
-  travar()
+  if (!semTrava.value) travar()
 
   pollingTimer = setInterval(() => { if (!document.hidden) carregarMesas() }, 20000)
   document.addEventListener('visibilitychange', onVisibilityChange)

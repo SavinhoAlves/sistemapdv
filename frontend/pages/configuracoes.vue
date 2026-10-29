@@ -7,9 +7,6 @@
 
       <!-- HEADER -->
       <div class="flex items-center gap-3 mb-7">
-        <div class="size-11 rounded-xl bg-gradient-to-br from-orange-500 to-orange-700 shadow-md shadow-orange-900/50 flex items-center justify-center shrink-0">
-          <Settings :size="18" class="text-white" />
-        </div>
         <div>
           <h1 class="text-2xl font-black text-gray-900 dark:text-white">Configurações</h1>
           <p class="text-sm text-gray-500 dark:text-white/50 mt-0.5">Estabelecimento, impressão, integrações e acesso</p>

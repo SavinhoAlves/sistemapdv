@@ -8,9 +8,6 @@
       <!-- ══ CABEÇALHO ══ -->
       <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-5">
         <div class="flex items-center gap-3">
-          <div class="size-11 rounded-xl bg-gradient-to-br from-orange-500 to-orange-700 shadow-md shadow-orange-900/50 flex items-center justify-center shrink-0">
-            <FileText :size="18" class="text-white" />
-          </div>
           <div>
             <h1 class="text-2xl font-black text-gray-900 dark:text-white">Relatórios</h1>
             <p class="text-sm text-gray-500 dark:text-white/50 mt-0.5">{{ abaAtual.rotulo }} · {{ rotuloPeriodo }}</p>

@@ -7,7 +7,10 @@
     <!-- LOGO (clique expande/recolhe) -->
     <button class="sb__logo" @click="expandida = !expandida" :title="expandida ? 'Recolher menu' : 'Expandir menu'">
       <span class="sb__marca"><UtensilsCrossed :size="16" /></span>
-      <span class="sb__texto" :class="{ oculto: !expandida }">Restaurante PDV</span>
+      <span class="sb__texto sb__nome" :class="{ oculto: !expandida }">
+        <b>Restaurante <i>PDV</i></b>
+        <small>{{ configStore.nome_restaurante || 'Seu restaurante' }}</small>
+      </span>
     </button>
 
     <!-- NAVEGAÇÃO -->
@@ -47,10 +50,12 @@ import { sidebarExpandida as expandida } from '~/composables/useSidebar'
 import { useNavItems } from '~/composables/useNavItems'
 import { UtensilsCrossed, LogOut } from 'lucide-vue-next'
 import { useAuthStore } from '~/stores/auth'
+import { useConfigStore } from '~/stores/configuracoes'
 
 const router    = useRouter()
 const route     = useRoute()
 const authStore = useAuthStore()
+const configStore = useConfigStore()
 
 const { navItems } = useNavItems()
 
@@ -101,6 +106,10 @@ function navegar(rota: string) {
   font-size: var(--t-micro);
   transition: opacity var(--tempo-folha) var(--curva);
 }
+.sb__nome { display: flex; flex-direction: column; align-items: flex-start; line-height: 1.15; text-align: left; min-width: 0; }
+.sb__nome b { font-size: 15px; font-weight: 800; letter-spacing: -.02em; color: var(--txt); }
+.sb__nome b i { font-style: normal; color: var(--acao); }
+.sb__nome small { font-size: 12px; font-weight: 400; color: var(--txt-3); max-width: 150px; overflow: hidden; text-overflow: ellipsis; }
 .sb__texto.oculto { opacity: 0; width: 0; overflow: hidden; }
 .sb__grupo {
   display: block;
@@ -124,13 +133,8 @@ function navegar(rota: string) {
 .sb__item:not(.aberto) { gap: 0; }
 .sb__item.aberto { justify-content: flex-start; padding: 0 var(--e-3); }
 .sb__item:hover  { background: var(--sup-elevado); color: var(--txt); }
-.sb__item.ativo  { background: var(--sup-elevado); color: var(--txt); font-weight: 600; }
-.sb__item.ativo::before {
-  content: '';
-  position: absolute; left: -8px; top: 10px; bottom: 10px;
-  width: 3px; border-radius: 0 3px 3px 0;
-  background: var(--acao);
-}
+/* Item ativo: fundo laranja claro e ícone/texto na cor da marca */
+.sb__item.ativo  { background: var(--acao-fraca); color: var(--acao); font-weight: 600; }
 .sb__item:focus-visible { outline: 2px solid var(--acao); outline-offset: -2px; }
 /* Telas baixas (notebook ~660px de altura): o menu inteiro cabe sem rolar */
 @media (max-height: 820px) {

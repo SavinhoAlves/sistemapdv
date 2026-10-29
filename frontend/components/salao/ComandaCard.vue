@@ -52,7 +52,7 @@ const estado = computed(() => {
     enviar:  `${c.qtd_para_enviar} para enviar à cozinha`,
     conta:   c.pago > 0 ? `Pago ${moeda.format(c.pago)} de ${moeda.format(c.total)}` : 'Conta pedida',
     cozinha: `${c.qtd_na_cozinha} na cozinha`,
-    atencao: `Sem lançamento há ${duracao(minutosParada.value)}`,
+    atencao: `Sem pedido há ${duracao(minutosParada.value)}`,
     parado:  null,
   }[chave]
   return { chave, selo }

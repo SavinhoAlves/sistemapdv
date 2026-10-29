@@ -134,7 +134,7 @@
                   <span v-if="mesa.cliente" class="block truncate text-[var(--txt-2)] text-[13px]">{{ mesa.cliente }}</span>
                 </span>
               </span>
-              <span role="cell"><span class="salao__selo" :class="`s--${chaveEstado(mesa)}`">{{ ROTULO_ESTADO[chaveEstado(mesa)] }}</span></span>
+              <span role="cell"><span class="salao__selo" :class="`s--${chaveEstado(mesa)}`">{{ rotuloEstado(mesa) }}</span></span>
               <span role="cell" class="hidden md:block truncate text-[var(--txt-2)]">{{ mesa.garcom?.nome ?? '—' }}</span>
               <span role="cell" class="hidden sm:block text-right pdv-valor text-[var(--txt-3)]">{{ mesa.aberta_em ? duracao(minutosDesde(mesa.aberta_em)) : '—' }}</span>
               <span role="cell" class="text-right pdv-valor font-semibold" :class="mesa.qtd_itens ? 'text-[var(--txt)]' : 'text-[var(--txt-3)]'">{{ moeda.format(mesa.total) }}</span>
@@ -208,7 +208,7 @@ import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue'
 import { Plus, LayoutGrid, List, Lock } from 'lucide-vue-next'
 import { useRouter } from 'vue-router'
 import ComandaCard from '~/components/salao/ComandaCard.vue'
-import { chaveEstado, minutosDesde, duracao, ROTULO_ESTADO, type ChaveEstado, type ComandaResumo } from '~/composables/useEstadoComanda'
+import { chaveEstado, rotuloEstado, minutosDesde, duracao, ROTULO_ESTADO, type ChaveEstado, type ComandaResumo } from '~/composables/useEstadoComanda'
 
 import Navbar from '~/layouts/Navbar.vue'
 import Sidebar from '~/components/Sidebar.vue'

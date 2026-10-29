@@ -33,7 +33,8 @@ export const ROTULO_ESTADO: Record<ChaveEstado, string> = {
   enviar:  'Enviar à cozinha',
   cozinha: 'Na cozinha',
   conta:   'Conta pedida',
-  atencao: 'Sem movimento',
+  // Tem consumo, mas nada lançado há LIMITE_PARADA_MIN ou mais (não é mesa vazia)
+  atencao: 'Sem pedido novo',
   parado:  'Em atendimento',
 }
 
@@ -57,4 +58,11 @@ export function chaveEstado(c: ComandaResumo, limiteParadaMin = LIMITE_PARADA_MI
   if (c.qtd_na_cozinha > 0) return 'cozinha'
   if (minutosDesde(c.ultimo_lancamento_em ?? c.aberta_em) >= limiteParadaMin) return 'atencao'
   return 'parado'
+}
+
+/** Rótulo da linha da lista: o alerta de mesa parada diz há quanto tempo. */
+export function rotuloEstado(c: ComandaResumo, limiteParadaMin = LIMITE_PARADA_MIN) {
+  const chave = chaveEstado(c, limiteParadaMin)
+  if (chave === 'atencao') return `Sem pedido há ${duracao(minutosDesde(c.ultimo_lancamento_em ?? c.aberta_em))}`
+  return ROTULO_ESTADO[chave]
 }

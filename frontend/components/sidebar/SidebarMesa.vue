@@ -480,7 +480,7 @@ const abrindoProdutos  = ref(false)
  */
 async function cartaoDaMesa(mensagem: string) {
   try {
-    const lido = await identificarViaRfid(mensagem, true, { donoMesa: props.mesa?.garcom_id })
+    const lido = await identificarViaRfid(mensagem, false, { donoMesa: props.mesa?.garcom_id })
     if (lido) garcomRfid.value = { id: lido.id as any, nome: lido.nome }
     return lido
   } catch (e) {

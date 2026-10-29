@@ -225,6 +225,13 @@ model Usuario {
   cartaoRfid  String?   @map("cartao_rfid")
   cargo       UserCargo
   pin         String?
+  cpf         String?
+  telefone    String?
+  nascimento  DateTime? @db.Date
+  cep         String?
+  endereco    String?
+  cidade      String?
+  uf          String?
   perfilId    String?   @map("perfil_id")
   ativo       Boolean   @default(true)
   ultimoLogin DateTime? @map("ultimo_login")

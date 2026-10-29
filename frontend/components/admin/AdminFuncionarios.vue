@@ -136,6 +136,41 @@
               </label>
             </section>
 
+            <!-- Dados pessoais (aparecem em Meu perfil) -->
+            <section>
+              <p class="adm-rotulo mb-2">Dados pessoais</p>
+              <div class="grid grid-cols-1 sm:grid-cols-6 gap-3">
+                <label class="block sm:col-span-2">
+                  <span class="adm-rotulo">CPF</span>
+                  <input :value="form.cpf" inputmode="numeric" placeholder="000.000.000-00" class="adm-campo font-mono" @input="form.cpf = cpfBR(($event.target as HTMLInputElement).value)" />
+                </label>
+                <label class="block sm:col-span-2">
+                  <span class="adm-rotulo">Nascimento</span>
+                  <input v-model="form.nascimento" type="date" class="adm-campo" />
+                </label>
+                <label class="block sm:col-span-2">
+                  <span class="adm-rotulo">Telefone</span>
+                  <input :value="form.telefone" inputmode="tel" placeholder="(00) 00000-0000" class="adm-campo font-mono" @input="form.telefone = telefoneBR(($event.target as HTMLInputElement).value)" />
+                </label>
+                <label class="block sm:col-span-2">
+                  <span class="adm-rotulo">CEP</span>
+                  <input :value="form.cep" inputmode="numeric" placeholder="00000-000" class="adm-campo font-mono" @input="form.cep = cepBR(($event.target as HTMLInputElement).value)" />
+                </label>
+                <label class="block sm:col-span-4">
+                  <span class="adm-rotulo">Endereço</span>
+                  <input v-model="form.endereco" type="text" placeholder="Rua, número, complemento, bairro" class="adm-campo" />
+                </label>
+                <label class="block sm:col-span-4">
+                  <span class="adm-rotulo">Cidade</span>
+                  <input v-model="form.cidade" type="text" class="adm-campo" />
+                </label>
+                <label class="block sm:col-span-2">
+                  <span class="adm-rotulo">UF</span>
+                  <input v-model="form.uf" type="text" maxlength="2" placeholder="RJ" class="adm-campo uppercase" @input="form.uf = form.uf.replace(/[^a-z]/gi, '').toUpperCase()" />
+                </label>
+              </div>
+            </section>
+
             <!-- Função -->
             <section>
               <p class="adm-rotulo">Função *</p>
@@ -190,6 +225,7 @@ import { useApi } from '~/services/api'
 import { useToastStore } from '~/stores/toast'
 import { useAuthStore } from '~/stores/auth'
 import { FUNCOES, funcao, efetivas, rotuloPermissao, TODAS_PERMISSOES } from '~/lib/permissoes'
+import { cpfBR, telefoneBR, cepBR } from '~/lib/documento'
 
 const props = defineProps<{ funcionarios: any[]; perfis: any[]; padroes: Record<string, Record<string, boolean>>; carregando: boolean }>()
 const emit = defineEmits<{ (e: 'recarregar'): void; (e: 'qr', f: any): void }>()
@@ -232,13 +268,15 @@ async function alternarAtivo(f: any) {
 const modal = ref(false)
 const salvando = ref(false)
 const erro = ref('')
-const VAZIO = { id: null as string | null, codigoAcesso: '', nome: '', login: '', email: '', senha: '', cartaoRfid: '', pin: '', temPin: false, removerPin: false, cargo: '', perfilId: null as string | null }
+const PESSOAIS_VAZIO = { cpf: '', nascimento: '', telefone: '', cep: '', endereco: '', cidade: '', uf: '' }
+const VAZIO = { id: null as string | null, codigoAcesso: '', nome: '', login: '', email: '', senha: '', cartaoRfid: '', pin: '', temPin: false, removerPin: false, cargo: '', perfilId: null as string | null, ...PESSOAIS_VAZIO }
 const form = reactive({ ...VAZIO })
 
 function abrir(f: any) {
   erro.value = ''
   Object.assign(form, f
-    ? { id: f.id, codigoAcesso: f.codigoAcesso || '', nome: f.nome, login: f.login || '', email: f.email || '', senha: '', cartaoRfid: f.cartaoRfid || '', pin: '', temPin: Boolean(f.temPin), removerPin: false, cargo: f.cargo, perfilId: f.perfilId || null }
+    ? { id: f.id, codigoAcesso: f.codigoAcesso || '', nome: f.nome, login: f.login || '', email: f.email || '', senha: '', cartaoRfid: f.cartaoRfid || '', pin: '', temPin: Boolean(f.temPin), removerPin: false, cargo: f.cargo, perfilId: f.perfilId || null,
+        cpf: cpfBR(f.cpf), nascimento: f.nascimento?.slice(0, 10) ?? '', telefone: telefoneBR(f.telefone), cep: cepBR(f.cep), endereco: f.endereco || '', cidade: f.cidade || '', uf: f.uf || '' }
     : { ...VAZIO })
   modal.value = true
 }
@@ -259,6 +297,8 @@ async function salvar() {
     const payload = {
       nome: form.nome.trim(), login: form.login.trim().toLowerCase() || null, email: form.email.trim() || null,
       cargo: form.cargo, cartaoRfid: form.cartaoRfid.trim() || null, perfilId: form.perfilId || null,
+      cpf: form.cpf, nascimento: form.nascimento || null, telefone: form.telefone, cep: form.cep,
+      endereco: form.endereco.trim(), cidade: form.cidade.trim(), uf: form.uf,
       ...(form.senha ? { senha: form.senha } : {}),
       ...(form.pin ? { pin: form.pin } : form.removerPin ? { pin: null } : {}),
     }

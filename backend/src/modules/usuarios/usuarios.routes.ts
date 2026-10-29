@@ -19,6 +19,58 @@ function pinDoCorpo(pin: unknown): { pin?: string | null; erro?: string } {
   return { pin }
 }
 
+const so = (v: unknown) => String(v ?? '').replace(/\D/g, '')
+
+function cpfValido(cpf: string) {
+  if (!/^\d{11}$/.test(cpf) || /^(\d)\1{10}$/.test(cpf)) return false
+  for (const n of [9, 10]) {
+    let soma = 0
+    for (let i = 0; i < n; i++) soma += Number(cpf[i]) * (n + 1 - i)
+    if (((soma * 10) % 11) % 10 !== Number(cpf[n])) return false
+  }
+  return true
+}
+
+/**
+ * Dados pessoais (CPF, telefone, nascimento, endereço). Campo ausente não
+ * mexe; vazio apaga. CPF, telefone e CEP são guardados só com os números.
+ */
+export function dadosPessoaisDoCorpo(body: any): { dados: Service.DadosPessoais; erro?: string } {
+  const dados: Service.DadosPessoais = {}
+  const texto = (v: unknown) => (typeof v === 'string' && v.trim() ? v.trim().slice(0, 200) : null)
+  if (body.cpf !== undefined) {
+    const cpf = so(body.cpf)
+    if (cpf && !cpfValido(cpf)) return { dados, erro: 'CPF inválido' }
+    dados.cpf = cpf || null
+  }
+  if (body.telefone !== undefined) {
+    const tel = so(body.telefone)
+    if (tel && !/^\d{10,11}$/.test(tel)) return { dados, erro: 'Telefone deve ter DDD e 8 ou 9 números' }
+    dados.telefone = tel || null
+  }
+  if (body.cep !== undefined) {
+    const cep = so(body.cep)
+    if (cep && cep.length !== 8) return { dados, erro: 'CEP deve ter 8 números' }
+    dados.cep = cep || null
+  }
+  if (body.nascimento !== undefined) {
+    if (!body.nascimento) dados.nascimento = null
+    else {
+      const d = new Date(`${String(body.nascimento).slice(0, 10)}T00:00:00Z`)
+      if (isNaN(d.getTime()) || d > new Date() || d.getUTCFullYear() < 1900) return { dados, erro: 'Data de nascimento inválida' }
+      dados.nascimento = d
+    }
+  }
+  if (body.endereco !== undefined) dados.endereco = texto(body.endereco)
+  if (body.cidade !== undefined) dados.cidade = texto(body.cidade)
+  if (body.uf !== undefined) {
+    const uf = String(body.uf ?? '').trim().toUpperCase()
+    if (uf && !/^[A-Z]{2}$/.test(uf)) return { dados, erro: 'UF deve ter 2 letras' }
+    dados.uf = uf || null
+  }
+  return { dados }
+}
+
 export async function usuariosRoutes(app: FastifyInstance) {
   // GET /api/usuarios
   app.get('/', { preHandler: [requireTenant, requirePermissao('gerenciarUsuarios')] }, async (request, reply) => {
@@ -37,9 +89,12 @@ export async function usuariosRoutes(app: FastifyInstance) {
     if (loginInvalido(body.login)) return reply.status(400).send({ error: MSG_LOGIN })
     const pin = pinDoCorpo(body.pin)
     if (pin.erro) return reply.status(400).send({ error: pin.erro })
+    const pessoais = dadosPessoaisDoCorpo(body)
+    if (pessoais.erro) return reply.status(400).send({ error: pessoais.erro })
 
     try {
       const usuario = await Service.criar(request.tenantId!, {
+        ...pessoais.dados,
         nome: body.nome,
         login: body.login,
         email: body.email,
@@ -70,9 +125,12 @@ export async function usuariosRoutes(app: FastifyInstance) {
     if (loginInvalido(body.login)) return reply.status(400).send({ error: MSG_LOGIN })
     const pin = pinDoCorpo(body.pin)
     if (pin.erro) return reply.status(400).send({ error: pin.erro })
+    const pessoais = dadosPessoaisDoCorpo(body)
+    if (pessoais.erro) return reply.status(400).send({ error: pessoais.erro })
 
     try {
       const usuario = await Service.atualizar(request.tenantId!, id, {
+        ...pessoais.dados,
         nome: body.nome,
         login: body.login,
         email: body.email,

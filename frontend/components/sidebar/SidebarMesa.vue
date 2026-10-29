@@ -892,16 +892,13 @@ function detach() {
 
 async function adicionarItem(produto: ProdutoMesa) {
   if (!caixaAberto.value) { exigirCaixa(); return }
-  try {
-    await cartaoDaMesa('Passe o cartão para adicionar item')
-  } catch { return }
-
+  // + e − de unidade não pedem cartão (ajuste rápido); lançar produtos pede
   const preco = Number(produto.preco_unitario)
   produto.quantidade++
   produto.total = Number(produto.total) + preco
 
   try {
-    await api.post('/pedidos/adicionar', {
+    await api.post('/pedidos/adicionar-unidade', {
       mesaId:     props.mesa.id,
       produtoId:  produto.produto_id,
       quantidade: 1,
@@ -917,9 +914,6 @@ async function adicionarItem(produto: ProdutoMesa) {
 async function removerItem(produto: ProdutoMesa) {
   if (!caixaAberto.value) { exigirCaixa(); return }
   if (produto.status === 'entregue') { abrirCancelamento(produto, 1); return }
-  try {
-    await cartaoDaMesa('Passe o cartão para remover item')
-  } catch { return }
 
   const preco = Number(produto.preco_unitario)
 

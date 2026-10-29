@@ -4,15 +4,15 @@
     <!-- Cabeçalho -->
     <div class="flex items-center justify-between">
       <div>
-        <h1 class="text-2xl font-black text-white tracking-tight">Estoque</h1>
-        <p class="text-white/40 text-sm mt-0.5">Controle de estoque dos produtos</p>
+        <h1 class="text-2xl font-black text-[var(--txt)] tracking-tight">Estoque</h1>
+        <p class="text-[var(--txt-3)] text-sm mt-0.5">Controle de estoque dos produtos</p>
       </div>
       <button
         @click="mostrarTodos = !mostrarTodos"
         class="flex items-center gap-2 px-4 py-2 rounded-xl border text-xs font-bold uppercase tracking-wider transition-all"
         :class="mostrarTodos
-          ? 'bg-white/[0.08] border-white/20 text-white'
-          : 'bg-transparent border-white/10 text-white/40 hover:border-white/20 hover:text-white/60'"
+          ? 'bg-[var(--sup-pressed)] border-[var(--linha)] text-[var(--txt)]'
+          : 'bg-transparent border-[var(--linha)] text-[var(--txt-3)] hover:border-[var(--linha)] hover:text-[var(--txt-2)]'"
       >
         <Eye :size="13" />
         {{ mostrarTodos ? 'Monitorados + Todos' : 'Só monitorados' }}
@@ -21,53 +21,53 @@
 
     <!-- Cards de resumo -->
     <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
-      <div class="bg-white/[0.04] border border-white/[0.07] rounded-2xl p-4">
-        <p class="text-white/40 text-[11px] font-black uppercase tracking-widest mb-1">Monitorados</p>
-        <p class="text-2xl font-black text-white">{{ totais.monitorados }}</p>
+      <div class="bg-[var(--sup-elevado)] border border-[var(--linha)] rounded-2xl p-4">
+        <p class="text-[var(--txt-3)] text-[11px] font-black uppercase tracking-widest mb-1">Monitorados</p>
+        <p class="text-2xl font-black text-[var(--txt)]">{{ totais.monitorados }}</p>
       </div>
-      <div class="bg-white/[0.04] border border-white/[0.07] rounded-2xl p-4">
-        <p class="text-white/40 text-[11px] font-black uppercase tracking-widest mb-1">Em dia</p>
+      <div class="bg-[var(--sup-elevado)] border border-[var(--linha)] rounded-2xl p-4">
+        <p class="text-[var(--txt-3)] text-[11px] font-black uppercase tracking-widest mb-1">Em dia</p>
         <p class="text-2xl font-black text-emerald-400">{{ totais.ok }}</p>
       </div>
       <div
         class="rounded-2xl p-4 border"
-        :class="totais.baixo > 0 ? 'bg-amber-500/10 border-amber-500/20' : 'bg-white/[0.04] border-white/[0.07]'"
+        :class="totais.baixo > 0 ? 'bg-amber-500/10 border-amber-500/20' : 'bg-[var(--sup-elevado)] border-[var(--linha)]'"
       >
-        <p class="text-[11px] font-black uppercase tracking-widest mb-1" :class="totais.baixo > 0 ? 'text-amber-400/70' : 'text-white/40'">Estoque baixo</p>
-        <p class="text-2xl font-black" :class="totais.baixo > 0 ? 'text-amber-400' : 'text-white'">{{ totais.baixo }}</p>
+        <p class="text-[11px] font-black uppercase tracking-widest mb-1" :class="totais.baixo > 0 ? 'text-amber-400/70' : 'text-[var(--txt-3)]'">Estoque baixo</p>
+        <p class="text-2xl font-black" :class="totais.baixo > 0 ? 'text-amber-400' : 'text-[var(--txt)]'">{{ totais.baixo }}</p>
       </div>
       <div
         class="rounded-2xl p-4 border"
-        :class="totais.zerado > 0 ? 'bg-red-500/10 border-red-500/20' : 'bg-white/[0.04] border-white/[0.07]'"
+        :class="totais.zerado > 0 ? 'bg-red-500/10 border-red-500/20' : 'bg-[var(--sup-elevado)] border-[var(--linha)]'"
       >
-        <p class="text-[11px] font-black uppercase tracking-widest mb-1" :class="totais.zerado > 0 ? 'text-red-400/70' : 'text-white/40'">Zerado / Crítico</p>
-        <p class="text-2xl font-black" :class="totais.zerado > 0 ? 'text-red-400' : 'text-white'">{{ totais.zerado }}</p>
+        <p class="text-[11px] font-black uppercase tracking-widest mb-1" :class="totais.zerado > 0 ? 'text-red-400/70' : 'text-[var(--txt-3)]'">Zerado / Crítico</p>
+        <p class="text-2xl font-black" :class="totais.zerado > 0 ? 'text-red-400' : 'text-[var(--txt)]'">{{ totais.zerado }}</p>
       </div>
     </div>
 
     <!-- Tabela -->
-    <div class="bg-white/[0.03] border border-white/[0.07] rounded-2xl overflow-hidden">
+    <div class="bg-[var(--sup-elevado)] border border-[var(--linha)] rounded-2xl overflow-hidden">
 
       <!-- Barra de busca -->
-      <div class="p-4 border-b border-white/[0.06]">
+      <div class="p-4 border-b border-[var(--linha)]">
         <div class="relative max-w-xs">
-          <Search :size="13" class="absolute left-3 top-1/2 -translate-y-1/2 text-white/25 pointer-events-none" />
+          <Search :size="13" class="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--txt-3)] pointer-events-none" />
           <input
             v-model="busca"
             type="text"
             placeholder="Buscar produto..."
-            class="w-full h-9 pl-9 pr-4 bg-white/[0.05] border border-white/[0.08] rounded-xl text-sm text-white placeholder:text-white/20 focus:outline-none focus:border-orange-500/50 transition-colors"
+            class="w-full h-9 pl-9 pr-4 bg-[var(--sup-elevado)] border border-[var(--linha)] rounded-xl text-sm text-[var(--txt)] placeholder:text-[var(--txt-3)] focus:outline-none focus:border-orange-500/50 transition-colors"
           />
         </div>
       </div>
 
       <!-- Loading -->
       <div v-if="carregando" class="py-16 flex items-center justify-center">
-        <Loader2 :size="20" class="text-white/30 animate-spin" />
+        <Loader2 :size="20" class="text-[var(--txt-3)] animate-spin" />
       </div>
 
       <!-- Vazio -->
-      <div v-else-if="produtosFiltrados.length === 0" class="py-16 flex flex-col items-center gap-3 text-white/30">
+      <div v-else-if="produtosFiltrados.length === 0" class="py-16 flex flex-col items-center gap-3 text-[var(--txt-3)]">
         <Boxes :size="32" :stroke-width="1.5" />
         <p class="text-sm font-bold">Nenhum produto encontrado</p>
         <p v-if="!mostrarTodos" class="text-xs">Ative o monitoramento em algum produto ou clique em "Só monitorados" para ver todos</p>
@@ -76,32 +76,32 @@
       <!-- Tabela de produtos -->
       <table v-else class="w-full text-sm">
         <thead>
-          <tr class="border-b border-white/[0.06]">
-            <th class="text-left px-5 py-3 text-[10px] font-black uppercase tracking-widest text-white/30">Produto</th>
-            <th class="text-left px-4 py-3 text-[10px] font-black uppercase tracking-widest text-white/30 hidden md:table-cell">Categoria</th>
-            <th class="text-center px-4 py-3 text-[10px] font-black uppercase tracking-widest text-white/30">Atual</th>
-            <th class="text-center px-4 py-3 text-[10px] font-black uppercase tracking-widest text-white/30 hidden lg:table-cell">Mínimo</th>
-            <th class="text-center px-4 py-3 text-[10px] font-black uppercase tracking-widest text-white/30">Status</th>
-            <th class="text-center px-4 py-3 text-[10px] font-black uppercase tracking-widest text-white/30">Monitor</th>
-            <th class="text-right px-5 py-3 text-[10px] font-black uppercase tracking-widest text-white/30">Ações</th>
+          <tr class="border-b border-[var(--linha)]">
+            <th class="text-left px-5 py-3 text-[10px] font-black uppercase tracking-widest text-[var(--txt-3)]">Produto</th>
+            <th class="text-left px-4 py-3 text-[10px] font-black uppercase tracking-widest text-[var(--txt-3)] hidden md:table-cell">Categoria</th>
+            <th class="text-center px-4 py-3 text-[10px] font-black uppercase tracking-widest text-[var(--txt-3)]">Atual</th>
+            <th class="text-center px-4 py-3 text-[10px] font-black uppercase tracking-widest text-[var(--txt-3)] hidden lg:table-cell">Mínimo</th>
+            <th class="text-center px-4 py-3 text-[10px] font-black uppercase tracking-widest text-[var(--txt-3)]">Status</th>
+            <th class="text-center px-4 py-3 text-[10px] font-black uppercase tracking-widest text-[var(--txt-3)]">Monitor</th>
+            <th class="text-right px-5 py-3 text-[10px] font-black uppercase tracking-widest text-[var(--txt-3)]">Ações</th>
           </tr>
         </thead>
         <tbody>
           <tr
             v-for="p in produtosFiltrados"
             :key="p.id"
-            class="border-b border-white/[0.04] hover:bg-white/[0.02] transition-colors"
+            class="border-b border-[var(--linha)] hover:bg-[var(--sup-elevado)] transition-colors"
             :class="{ 'opacity-50': !p.ativo }"
           >
             <!-- Produto -->
             <td class="px-5 py-3.5">
-              <p class="font-bold text-white truncate max-w-[180px]">{{ p.nome }}</p>
-              <p class="text-white/30 text-xs">{{ reais(Number(p.preco)) }}</p>
+              <p class="font-bold text-[var(--txt)] truncate max-w-[180px]">{{ p.nome }}</p>
+              <p class="text-[var(--txt-3)] text-xs">{{ reais(Number(p.preco)) }}</p>
             </td>
 
             <!-- Categoria -->
             <td class="px-4 py-3.5 hidden md:table-cell">
-              <span class="text-white/50 text-xs">{{ p.categoria || '—' }}</span>
+              <span class="text-[var(--txt-3)] text-xs">{{ p.categoria || '—' }}</span>
             </td>
 
             <!-- Estoque atual -->
@@ -109,20 +109,20 @@
               <span v-if="p.gerenciarEstoque" class="text-base font-black" :class="corEstoque(p)">
                 {{ Number(p.estoqueAtual).toFixed(p.estoqueAtual % 1 === 0 ? 0 : 2) }}
               </span>
-              <span v-else class="text-white/20 text-xs">—</span>
+              <span v-else class="text-[var(--txt-3)] text-xs">—</span>
             </td>
 
             <!-- Estoque mínimo -->
             <td class="px-4 py-3.5 text-center hidden lg:table-cell">
-              <span v-if="p.gerenciarEstoque" class="text-white/40 text-xs">
+              <span v-if="p.gerenciarEstoque" class="text-[var(--txt-3)] text-xs">
                 {{ Number(p.estoqueMinimo).toFixed(p.estoqueMinimo % 1 === 0 ? 0 : 2) }}
               </span>
-              <span v-else class="text-white/20 text-xs">—</span>
+              <span v-else class="text-[var(--txt-3)] text-xs">—</span>
             </td>
 
             <!-- Status badge -->
             <td class="px-4 py-3.5 text-center">
-              <span v-if="!p.gerenciarEstoque" class="text-white/20 text-[10px] font-bold uppercase tracking-wider">Inativo</span>
+              <span v-if="!p.gerenciarEstoque" class="text-[var(--txt-3)] text-[10px] font-bold uppercase tracking-wider">Inativo</span>
               <span
                 v-else
                 class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider"
@@ -138,7 +138,7 @@
                 @click="toggleMonitoramento(p)"
                 :disabled="togglingId === p.id"
                 class="relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none disabled:opacity-50"
-                :class="p.gerenciarEstoque ? 'bg-orange-500' : 'bg-white/10'"
+                :class="p.gerenciarEstoque ? 'bg-orange-500' : 'bg-[var(--sup-pressed)]'"
               >
                 <span
                   class="inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow transition-transform"
@@ -170,7 +170,7 @@
                   v-if="p.gerenciarEstoque"
                   @click="abrirHistorico(p)"
                   title="Histórico"
-                  class="h-7 w-7 rounded-lg bg-white/[0.05] hover:bg-white/[0.10] text-white/40 flex items-center justify-center transition-colors"
+                  class="h-7 w-7 rounded-lg bg-[var(--sup-elevado)] hover:bg-[var(--sup-pressed)] text-[var(--txt-3)] flex items-center justify-center transition-colors"
                 >
                   <History :size="13" />
                 </button>
@@ -185,23 +185,23 @@
     <Transition name="modal">
       <div v-if="modalAjuste.aberto" class="fixed inset-0 z-50 flex items-center justify-center p-4">
         <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" @click="fecharAjuste" />
-        <div class="relative bg-[#16141f] border border-white/[0.10] rounded-3xl p-6 w-full max-w-sm shadow-2xl">
+        <div class="relative bg-[var(--sup-painel)] border border-[var(--linha)] rounded-3xl p-6 w-full max-w-sm shadow-2xl">
 
           <div class="flex items-center justify-between mb-5">
             <div>
-              <h3 class="text-base font-black text-white">
+              <h3 class="text-base font-black text-[var(--txt)]">
                 {{ modalAjuste.tipo === 'entrada' ? '+ Entrada de Estoque' : '− Saída de Estoque' }}
               </h3>
-              <p class="text-white/40 text-xs mt-0.5 truncate max-w-[200px]">{{ modalAjuste.produto?.nome }}</p>
+              <p class="text-[var(--txt-3)] text-xs mt-0.5 truncate max-w-[200px]">{{ modalAjuste.produto?.nome }}</p>
             </div>
-            <button @click="fecharAjuste" class="text-white/30 hover:text-white/60 transition-colors">
+            <button @click="fecharAjuste" class="text-[var(--txt-3)] hover:text-[var(--txt-2)] transition-colors">
               <X :size="18" />
             </button>
           </div>
 
           <!-- Estoque atual -->
-          <div class="bg-white/[0.04] rounded-2xl p-3 mb-4 text-center">
-            <p class="text-white/40 text-[10px] font-black uppercase tracking-widest">Estoque atual</p>
+          <div class="bg-[var(--sup-elevado)] rounded-2xl p-3 mb-4 text-center">
+            <p class="text-[var(--txt-3)] text-[10px] font-black uppercase tracking-widest">Estoque atual</p>
             <p class="text-2xl font-black mt-0.5" :class="corEstoque(modalAjuste.produto)">
               {{ modalAjuste.produto ? Number(modalAjuste.produto.estoqueAtual).toFixed(0) : 0 }}
             </p>
@@ -210,32 +210,32 @@
           <form @submit.prevent="confirmarAjuste" class="space-y-4">
             <!-- Quantidade -->
             <div>
-              <label class="block text-[10px] font-black uppercase tracking-widest text-white/40 mb-1.5">Quantidade</label>
+              <label class="block text-[10px] font-black uppercase tracking-widest text-[var(--txt-3)] mb-1.5">Quantidade</label>
               <input
                 v-model.number="ajusteForm.quantidade"
                 type="number"
                 min="0.001"
                 step="0.001"
                 placeholder="0"
-                class="w-full h-11 px-4 bg-white/[0.05] border border-white/[0.10] rounded-2xl text-white text-center text-lg font-black focus:outline-none focus:border-orange-500/60 transition-colors"
+                class="w-full h-11 px-4 bg-[var(--sup-elevado)] border border-[var(--linha)] rounded-2xl text-[var(--txt)] text-center text-lg font-black focus:outline-none focus:border-orange-500/60 transition-colors"
                 required
               />
             </div>
 
             <!-- Motivo -->
             <div>
-              <label class="block text-[10px] font-black uppercase tracking-widest text-white/40 mb-1.5">Motivo</label>
+              <label class="block text-[10px] font-black uppercase tracking-widest text-[var(--txt-3)] mb-1.5">Motivo</label>
               <input
                 v-model="ajusteForm.motivo"
                 type="text"
                 placeholder="Ex: compra de fornecedor, quebra..."
-                class="w-full h-11 px-4 bg-white/[0.05] border border-white/[0.10] rounded-2xl text-white text-sm placeholder:text-white/20 focus:outline-none focus:border-orange-500/60 transition-colors"
+                class="w-full h-11 px-4 bg-[var(--sup-elevado)] border border-[var(--linha)] rounded-2xl text-[var(--txt)] text-sm placeholder:text-[var(--txt-3)] focus:outline-none focus:border-orange-500/60 transition-colors"
               />
             </div>
 
             <!-- Previsão -->
-            <div v-if="ajusteForm.quantidade > 0" class="bg-white/[0.03] rounded-xl px-4 py-2.5 flex items-center justify-between">
-              <span class="text-white/40 text-xs">Estoque após ajuste</span>
+            <div v-if="ajusteForm.quantidade > 0" class="bg-[var(--sup-elevado)] rounded-xl px-4 py-2.5 flex items-center justify-between">
+              <span class="text-[var(--txt-3)] text-xs">Estoque após ajuste</span>
               <span class="font-black text-sm" :class="corPrevisao">
                 {{ previsaoEstoque }}
               </span>
@@ -243,7 +243,7 @@
 
             <div class="flex gap-2 pt-1">
               <button type="button" @click="fecharAjuste"
-                class="flex-1 h-11 rounded-2xl border border-white/10 text-white/40 text-sm font-bold hover:bg-white/[0.04] transition-colors">
+                class="flex-1 h-11 rounded-2xl border border-[var(--linha)] text-[var(--txt-3)] text-sm font-bold hover:bg-[var(--sup-elevado)] transition-colors">
                 Cancelar
               </button>
               <button type="submit" :disabled="salvandoAjuste || !ajusteForm.quantidade"
@@ -266,24 +266,24 @@
       <div v-if="drawerHistorico.aberto" class="fixed inset-0 z-50 flex items-center justify-center p-4" @keydown.esc="fecharHistorico">
         <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" @click="fecharHistorico" />
         <div
-          class="relative bg-[#16141f] border border-white/[0.10] rounded-3xl w-full max-w-3xl max-h-[90vh] flex flex-col shadow-2xl"
+          class="relative bg-[var(--sup-painel)] border border-[var(--linha)] rounded-3xl w-full max-w-3xl max-h-[90vh] flex flex-col shadow-2xl"
           role="dialog" aria-modal="true" aria-labelledby="hist-titulo"
         >
-          <div class="flex items-start justify-between gap-4 p-5 sm:p-6 border-b border-white/[0.07]">
+          <div class="flex items-start justify-between gap-4 p-5 sm:p-6 border-b border-[var(--linha)]">
             <div class="min-w-0">
-              <h3 id="hist-titulo" class="text-base font-black text-white">Histórico de estoque</h3>
-              <p class="text-white/60 text-sm mt-0.5 truncate">{{ drawerHistorico.produto?.nome }}</p>
-              <p v-if="drawerHistorico.produto?.createdAt" class="text-white/30 text-xs mt-0.5">
+              <h3 id="hist-titulo" class="text-base font-black text-[var(--txt)]">Histórico de estoque</h3>
+              <p class="text-[var(--txt-2)] text-sm mt-0.5 truncate">{{ drawerHistorico.produto?.nome }}</p>
+              <p v-if="drawerHistorico.produto?.createdAt" class="text-[var(--txt-3)] text-xs mt-0.5">
                 Cadastrado em {{ formatarDataCompleta(drawerHistorico.produto.createdAt) }}
               </p>
             </div>
-            <button ref="fecharHistoricoRef" @click="fecharHistorico" aria-label="Fechar" class="text-white/30 hover:text-white/60 transition-colors shrink-0">
+            <button ref="fecharHistoricoRef" @click="fecharHistorico" aria-label="Fechar" class="text-[var(--txt-3)] hover:text-[var(--txt-2)] transition-colors shrink-0">
               <X :size="18" />
             </button>
           </div>
 
           <div v-if="carregandoHistorico" class="flex items-center justify-center py-16">
-            <Loader2 :size="20" class="text-white/30 animate-spin" />
+            <Loader2 :size="20" class="text-[var(--txt-3)] animate-spin" />
           </div>
 
           <p v-else-if="erroHistorico" class="py-16 text-center text-sm font-bold text-red-400">{{ erroHistorico }}</p>
@@ -291,44 +291,44 @@
           <template v-else>
             <!-- Resumo -->
             <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 p-5 sm:px-6">
-              <div class="bg-white/[0.04] rounded-2xl p-3">
-                <p class="text-white/40 text-[10px] font-black uppercase tracking-widest">No cadastro</p>
-                <p class="text-lg font-black text-white mt-0.5">{{ qtd(resumoHistorico.inicial) }}</p>
+              <div class="bg-[var(--sup-elevado)] rounded-2xl p-3">
+                <p class="text-[var(--txt-3)] text-[10px] font-black uppercase tracking-widest">No cadastro</p>
+                <p class="text-lg font-black text-[var(--txt)] mt-0.5">{{ qtd(resumoHistorico.inicial) }}</p>
               </div>
-              <div class="bg-white/[0.04] rounded-2xl p-3">
-                <p class="text-white/40 text-[10px] font-black uppercase tracking-widest">Entradas</p>
+              <div class="bg-[var(--sup-elevado)] rounded-2xl p-3">
+                <p class="text-[var(--txt-3)] text-[10px] font-black uppercase tracking-widest">Entradas</p>
                 <p class="text-lg font-black text-emerald-400 mt-0.5">+{{ qtd(resumoHistorico.entradas) }}</p>
               </div>
-              <div class="bg-white/[0.04] rounded-2xl p-3">
-                <p class="text-white/40 text-[10px] font-black uppercase tracking-widest">Saídas</p>
+              <div class="bg-[var(--sup-elevado)] rounded-2xl p-3">
+                <p class="text-[var(--txt-3)] text-[10px] font-black uppercase tracking-widest">Saídas</p>
                 <p class="text-lg font-black text-red-400 mt-0.5">−{{ qtd(resumoHistorico.saidas) }}</p>
               </div>
-              <div class="bg-white/[0.04] rounded-2xl p-3">
-                <p class="text-white/40 text-[10px] font-black uppercase tracking-widest">Atual</p>
+              <div class="bg-[var(--sup-elevado)] rounded-2xl p-3">
+                <p class="text-[var(--txt-3)] text-[10px] font-black uppercase tracking-widest">Atual</p>
                 <p class="text-lg font-black mt-0.5" :class="corEstoque(drawerHistorico.produto)">{{ qtd(resumoHistorico.atual) }}</p>
               </div>
             </div>
 
             <!-- Movimentações: mais recente no topo, o cadastro por último -->
             <div class="flex-1 overflow-y-auto px-5 sm:px-6 pb-6">
-              <p class="text-white/30 text-[11px] mb-2">{{ historico.length }} {{ historico.length === 1 ? 'movimentação' : 'movimentações' }} desde o cadastro</p>
+              <p class="text-[var(--txt-3)] text-[11px] mb-2">{{ historico.length }} {{ historico.length === 1 ? 'movimentação' : 'movimentações' }} desde o cadastro</p>
               <ol class="space-y-1.5">
                 <li
                   v-for="mov in linhasHistorico"
                   :key="mov.id"
-                  class="grid grid-cols-[auto_1fr_auto] items-center gap-3 bg-white/[0.03] border border-white/[0.06] rounded-xl px-3 py-2.5"
+                  class="grid grid-cols-[auto_1fr_auto] items-center gap-3 bg-[var(--sup-elevado)] border border-[var(--linha)] rounded-xl px-3 py-2.5"
                 >
                   <div
                     class="size-7 rounded-lg flex items-center justify-center shrink-0"
-                    :class="mov.tipo === 'entrada' ? 'bg-emerald-500/15' : mov.tipo === 'saida' ? 'bg-red-500/15' : 'bg-white/[0.08]'"
+                    :class="mov.tipo === 'entrada' ? 'bg-emerald-500/15' : mov.tipo === 'saida' ? 'bg-red-500/15' : 'bg-[var(--sup-pressed)]'"
                   >
                     <TrendingUp v-if="mov.tipo === 'entrada'" :size="13" class="text-emerald-400" />
                     <TrendingDown v-else-if="mov.tipo === 'saida'" :size="13" class="text-red-400" />
-                    <PackagePlus v-else :size="13" class="text-white/60" />
+                    <PackagePlus v-else :size="13" class="text-[var(--txt-2)]" />
                   </div>
                   <div class="min-w-0">
-                    <p class="text-white/80 text-xs font-bold truncate">{{ mov.motivo || 'Sem motivo' }}</p>
-                    <p class="text-white/30 text-[10px] mt-0.5 truncate">
+                    <p class="text-[var(--txt-2)] text-xs font-bold truncate">{{ mov.motivo || 'Sem motivo' }}</p>
+                    <p class="text-[var(--txt-3)] text-[10px] mt-0.5 truncate">
                       {{ formatarDataCompleta(mov.createdAt) }}<template v-if="mov.usuario"> · por {{ mov.usuario.nome }}</template>
                     </p>
                   </div>
@@ -340,7 +340,7 @@
                     >
                       {{ mov.tipo === 'entrada' ? '+' : '−' }}{{ qtd(mov.quantidade) }}
                     </p>
-                    <p class="text-white/40 text-[10px] tabular-nums">saldo {{ qtd(mov.saldo) }}</p>
+                    <p class="text-[var(--txt-3)] text-[10px] tabular-nums">saldo {{ qtd(mov.saldo) }}</p>
                   </div>
                 </li>
               </ol>
@@ -469,7 +469,7 @@ const previsaoEstoque = computed(() => {
 
 const corPrevisao = computed(() => {
   const p = modalAjuste.value.produto
-  if (!p) return 'text-white'
+  if (!p) return 'text-[var(--txt)]'
   const prev = previsaoEstoque.value
   if (prev <= 0) return 'text-red-400'
   if (p.estoqueMinimo > 0 && prev <= p.estoqueMinimo) return 'text-amber-400'
@@ -486,7 +486,7 @@ function prioridade(p: Produto) {
 }
 
 function corEstoque(p: Produto | null) {
-  if (!p || !p.gerenciarEstoque) return 'text-white/40'
+  if (!p || !p.gerenciarEstoque) return 'text-[var(--txt-3)]'
   if (p.estoqueAtual <= 0) return 'text-red-400'
   if (ehBaixo(p)) return 'text-amber-400'
   return 'text-emerald-400'

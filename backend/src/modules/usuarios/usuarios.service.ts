@@ -34,6 +34,7 @@ export async function listar(tenantId: string) {
       cargo: true,
       cartaoRfid: true,
       pin: true, // só vira temPin abaixo; o hash nunca sai
+      ...CAMPOS_PESSOAIS,
       perfilId: true,
       ativo: true,
       ultimoLogin: true,
@@ -45,7 +46,19 @@ export async function listar(tenantId: string) {
   return usuarios.map(({ pin, ...u }) => ({ ...u, temPin: Boolean(pin), codigoAcesso: `${tenant?.codigo}-${u.codigo}` }))
 }
 
-interface CriarUsuarioData {
+/** Dados pessoais do funcionário: null apaga, ausente não mexe */
+export interface DadosPessoais {
+  cpf?: string | null
+  telefone?: string | null
+  nascimento?: Date | null
+  cep?: string | null
+  endereco?: string | null
+  cidade?: string | null
+  uf?: string | null
+}
+export const CAMPOS_PESSOAIS = { cpf: true, telefone: true, nascimento: true, cep: true, endereco: true, cidade: true, uf: true } as const
+
+interface CriarUsuarioData extends DadosPessoais {
   nome: string
   login?: string
   email?: string
@@ -55,6 +68,12 @@ interface CriarUsuarioData {
   pin?: string | null
   perfilId?: string
   ativo?: boolean
+}
+
+function pessoais(data: DadosPessoais) {
+  const r: DadosPessoais = {}
+  for (const k of Object.keys(CAMPOS_PESSOAIS) as (keyof DadosPessoais)[]) if (data[k] !== undefined) (r as any)[k] = data[k]
+  return r
 }
 
 export async function criar(tenantId: string, data: CriarUsuarioData) {
@@ -73,6 +92,7 @@ export async function criar(tenantId: string, data: CriarUsuarioData) {
       pin: pinHash,
       perfilId: data.perfilId || null,
       ativo: data.ativo ?? true,
+      ...pessoais(data),
     },
     select: {
       id: true,
@@ -90,7 +110,7 @@ export async function criar(tenantId: string, data: CriarUsuarioData) {
   return usuario
 }
 
-interface AtualizarUsuarioData {
+interface AtualizarUsuarioData extends DadosPessoais {
   nome?: string
   login?: string | null
   email?: string
@@ -118,6 +138,7 @@ export async function atualizar(tenantId: string, id: string, data: AtualizarUsu
       ...(pinHash !== undefined ? { pin: pinHash } : {}),
       ...(data.perfilId !== undefined ? { perfilId: data.perfilId } : {}),
       ...(data.ativo !== undefined ? { ativo: data.ativo } : {}),
+      ...pessoais(data),
     },
     select: {
       id: true,

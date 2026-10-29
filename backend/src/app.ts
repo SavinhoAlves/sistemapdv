@@ -13,6 +13,7 @@ import { pedidosRoutes } from './modules/pedidos/pedidos.routes'
 import { pagamentosRoutes } from './modules/pagamentos/pagamentos.routes'
 import { caixaRoutes } from './modules/caixa/caixa.routes'
 import { usuariosRoutes } from './modules/usuarios/usuarios.routes'
+import { perfilRoutes } from './modules/usuarios/perfil.routes'
 import { configuracoesRoutes } from './modules/configuracoes/configuracoes.routes'
 import { perfisRoutes } from './modules/perfis/perfis.routes'
 import { dashboardRoutes } from './modules/dashboard/dashboard.routes'
@@ -146,6 +147,7 @@ export async function buildApp() {
   await app.register(pagamentosRoutes,    { prefix: '/api/pagamentos' })
   await app.register(caixaRoutes,         { prefix: '/api/caixa' })
   await app.register(usuariosRoutes,      { prefix: '/api/usuarios' })
+  await app.register(perfilRoutes,        { prefix: '/api/perfil' })
   await app.register(configuracoesRoutes, { prefix: '/api/configuracoes' })
   await app.register(perfisRoutes,        { prefix: '/api/perfis' })
   await app.register(dashboardRoutes,     { prefix: '/api/dashboard' })

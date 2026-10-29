@@ -29,51 +29,52 @@
   /* ── Superfícies ──────────────────────────────────────────────────────────
      Base azul-escura em vez de preto puro: preto absoluto num painel OLED de
      tablet cria halo em volta do texto claro. */
-  --sup-fundo:     #0e1119;
-  --sup-painel:    #161b26;
-  --sup-cartao:    #1c2231;
-  --sup-elevado:   #242c3d;
-  --sup-pressed:   #2d3648;
+  /* Valores da marca: design/marca.cjs (variáveis --neutro-*, --marca-*, estados) */
+  --sup-fundo:     var(--neutro-900);
+  --sup-painel:    var(--neutro-850);
+  --sup-cartao:    var(--neutro-800);
+  --sup-elevado:   var(--neutro-750);
+  --sup-pressed:   var(--neutro-700);
 
-  --linha:         #2b3345;
-  --linha-forte:   #3a445a;
+  --linha:         var(--neutro-700);
+  --linha-forte:   var(--neutro-650);
 
   /* ── Texto ────────────────────────────────────────────────────────────────
      Três níveis. O terciário é o piso: abaixo dele, não é informação. */
-  --txt:           #f1f4f9;   /* 15.8:1 sobre --sup-fundo */
-  --txt-2:         #a9b3c6;   /*  7.4:1 — legendas, nomes secundários */
-  --txt-3:         #7b8598;   /*  4.6:1 — mínimo AA, só metadados */
+  --txt:           var(--neutro-100);   /* 15.8:1 sobre --sup-fundo */
+  --txt-2:         var(--neutro-350);   /*  7.4:1 — legendas, nomes secundários */
+  --txt-3:         var(--neutro-450);   /*  4.6:1 — mínimo AA, só metadados */
 
   /* ── Ação ─────────────────────────────────────────────────────────────────
      O laranja da marca, e SÓ para ação. Não é mais cor de "selecionado",
      de avatar, de ícone decorativo nem de gradiente de fundo. */
-  --acao:          #f97316;
-  --acao-hover:    #fb8b3c;
-  --acao-press:    #dd5f08;
-  --acao-fraca:    #f973161f;
+  --acao:          var(--marca-500);
+  --acao-hover:    var(--marca-400);
+  --acao-press:    var(--marca-600);
+  --acao-fraca:    color-mix(in srgb, var(--marca-500) 12%, transparent);
   --acao-txt:      #ffffff;
 
   /* ── Estado da comanda ────────────────────────────────────────────────────
      Cada uma responde a uma pergunta operacional distinta. */
-  --st-cozinha:    #f5a524;   /* tem item em preparo */
-  --st-pronto:     #2ec27e;   /* tem item pronto esperando garçom */
-  --st-conta:      #4d8df6;   /* conta pedida, não aceita lançamento */
-  --st-atencao:    #ef5350;   /* tempo excedido ou saldo em risco */
-  --st-parado:     #7b8598;   /* sem movimento */
+  --st-cozinha:    var(--alerta-vivo);   /* tem item em preparo */
+  --st-pronto:     var(--ok-vivo);   /* tem item pronto esperando garçom */
+  --st-conta:      var(--info-vivo);   /* conta pedida, não aceita lançamento */
+  --st-atencao:    var(--perigo-vivo);   /* tempo excedido ou saldo em risco */
+  --st-parado:     var(--neutro-450);   /* sem movimento */
 
   /* Fundos de estado — 12% de opacidade mantém o texto legível por cima. */
-  --st-cozinha-bg: #f5a5241f;
-  --st-pronto-bg:  #2ec27e1f;
-  --st-conta-bg:   #4d8df61f;
-  --st-atencao-bg: #ef53501f;
+  --st-cozinha-bg: color-mix(in srgb, var(--alerta-vivo) 12%, transparent);
+  --st-pronto-bg:  color-mix(in srgb, var(--ok-vivo) 12%, transparent);
+  --st-conta-bg:   color-mix(in srgb, var(--info-vivo) 12%, transparent);
+  --st-atencao-bg: color-mix(in srgb, var(--perigo-vivo) 12%, transparent);
 
   /* ── Tipografia ───────────────────────────────────────────────────────────
      Duas famílias com papéis separados, não por estilo:
      Sora para linguagem, mono para número. Ambas AUTO-HOSPEDADAS — o deploy
      é em LAN isolada (o README descreve 10.0.0.100) e o carregamento via
      fonts.googleapis.com simplesmente falha sem internet. */
-  --fonte-texto:   'Sora', system-ui, -apple-system, 'Segoe UI', sans-serif;
-  --fonte-numero:  'JetBrains Mono', ui-monospace, 'SF Mono', monospace;
+  --fonte-texto:   var(--fonte-marca-texto);
+  --fonte-numero:  var(--fonte-marca-numero);
 
   /* Escala. Piso em 13px; nada abaixo disso carrega informação.
      O antigo `text-[10px]` era usado em rótulo de mesa e nome de garçom. */
@@ -117,18 +118,18 @@
    `text-white/30` e `bg-white/[0.02]` sem prefixo `dark:` — no tema claro
    ficava branco sobre branco. */
 html.light {
-  --sup-fundo:   #f4f6f9;
-  --sup-painel:  #ffffff;
-  --sup-cartao:  #ffffff;
-  --sup-elevado: #eef1f6;
-  --sup-pressed: #e3e8ef;
+  --sup-fundo:   var(--neutro-50);
+  --sup-painel:  var(--neutro-0);
+  --sup-cartao:  var(--neutro-0);
+  --sup-elevado: var(--neutro-100);
+  --sup-pressed: var(--neutro-200);
 
-  --linha:       #dde3ec;
-  --linha-forte: #c3ccda;
+  --linha:       var(--neutro-200);
+  --linha-forte: var(--neutro-300);
 
-  --txt:         #131820;
-  --txt-2:       #4a5567;
-  --txt-3:       #6b7688;
+  --txt:         var(--neutro-900);
+  --txt-2:       var(--neutro-600);
+  --txt-3:       var(--neutro-500);
 
   --sombra-cartao: 0 1px 2px #0f172a14;
   --sombra-folha:  0 12px 32px #0f172a29;

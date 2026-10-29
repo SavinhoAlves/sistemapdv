@@ -12,12 +12,13 @@
 
 /* .pf-portal: janelas teleportadas para o body, fora do .pf da página */
 .pf, .pf-portal {
-  --pf-bg: #F4F3F0; --pf-card: #FFFFFF; --pf-ink: #1E1E1E; --pf-muted: #6F6C66; --pf-line: #E4E1DA; --pf-soft: #F0EEE9;
-  --pf-brand: #FF7A00; --pf-brand-d: #B85500; --pf-brand-soft: #FFEAD3; --pf-dark: #1E1E1E; --pf-dark-ink: #F7F4EE;
-  --pf-ok: #12805C; --pf-ok-bg: #DAF3E8; --pf-bad: #C0262D; --pf-bad-bg: #FCE3E4; --pf-warn: #9A5800; --pf-warn-bg: #FFEFD0;
-  --pf-info: #1F5FBF; --pf-info-bg: #DDE9FB;
+  /* Cores da marca: design/marca.cjs (mesmos neutros, laranja e estados do app) */
+  --pf-bg: var(--neutro-50); --pf-card: var(--neutro-0); --pf-ink: var(--neutro-900); --pf-muted: var(--neutro-500); --pf-line: var(--neutro-200); --pf-soft: var(--neutro-100);
+  --pf-brand: var(--marca-500); --pf-brand-d: var(--marca-700); --pf-brand-soft: var(--marca-100); --pf-dark: var(--neutro-900); --pf-dark-ink: var(--neutro-50);
+  --pf-ok: var(--ok-forte); --pf-ok-bg: #DAF3E8; --pf-bad: var(--perigo-forte); --pf-bad-bg: #FCE3E4; --pf-warn: var(--alerta-forte); --pf-warn-bg: #FFEFD0;
+  --pf-info: var(--info-forte); --pf-info-bg: #DDE9FB;
   /* Papel de bobina (fechamento, comandas de plano) */
-  --pf-paper: #FFFDF7; --pf-paper-ink: #1B1B18; --pf-paper-muted: #6A6757; --pf-paper-line: #D9CFB8;
+  --pf-paper: var(--neutro-0); --pf-paper-ink: #1B1B18; --pf-paper-muted: #6A6757; --pf-paper-line: #D9CFB8;
   --pf-shadow: 0 1px 2px rgba(30,20,0,.05), 0 12px 30px rgba(30,20,0,.05);
 
   color: var(--pf-ink);
@@ -31,8 +32,8 @@
   -webkit-font-smoothing: antialiased;
 }
 html.dark .pf, html.dark .pf-portal {
-  --pf-bg: #121110; --pf-card: #1D1B19; --pf-ink: #F5F2EC; --pf-muted: #A39E94; --pf-line: #2E2B27; --pf-soft: #262320;
-  --pf-brand-soft: #3A2411; --pf-brand-d: #FFB066; --pf-dark: #0A0908;
+  --pf-bg: var(--neutro-900); --pf-card: var(--neutro-850); --pf-ink: var(--neutro-100); --pf-muted: var(--neutro-350); --pf-line: var(--neutro-700); --pf-soft: var(--neutro-800);
+  --pf-brand-soft: color-mix(in srgb, var(--marca-500) 18%, var(--neutro-850)); --pf-brand-d: var(--marca-300); --pf-dark: var(--neutro-950);
   --pf-ok: #4FD6A3; --pf-ok-bg: #12382B; --pf-bad: #FF8F94; --pf-bad-bg: #40181B; --pf-warn: #FFC266; --pf-warn-bg: #3D2A0A;
   --pf-info: #8DB8FF; --pf-info-bg: #172A47;
   --pf-paper: #22201C; --pf-paper-ink: #F5F2EC; --pf-paper-muted: #A39E94; --pf-paper-line: #3A362F;

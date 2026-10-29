@@ -1,3 +1,7 @@
+const plugin = require('tailwindcss/plugin')
+// Cores e fontes da marca: fonte única em design/marca.cjs
+const marca = require('./design/marca.cjs')
+
 /** @type {import('tailwindcss').Config} */
 module.exports = {
   darkMode: 'class',
@@ -19,19 +23,10 @@ module.exports = {
         mono: ['JetBrains Mono', 'monospace']
       },
       colors: {
-        brand: {
-          50:  '#fff7ed',
-          100: '#ffedd5',
-          200: '#fed7aa',
-          300: '#fdba74',
-          400: '#fb923c',
-          500: '#f97316',
-          600: '#ea580c',
-          700: '#c2410c',
-          800: '#9a3412',
-          900: '#7c2d12',
-          950: '#431407'
-        },
+        // brand e orange são o laranja da marca (orange-* aparece em centenas de telas)
+        brand: marca.laranja,
+        orange: marca.laranja,
+        neutro: marca.neutro,
         surface: {
           50:  '#f8f7f4',
           100: '#f0ede6',
@@ -77,5 +72,8 @@ module.exports = {
       }
     }
   },
-  plugins: []
+  plugins: [
+    // Variáveis CSS da marca no :root (--marca-*, --neutro-*, --ok-*…), usadas por tokens.css e platform.css
+    plugin(({ addBase }) => addBase({ ':root': marca.variaveis() })),
+  ]
 }

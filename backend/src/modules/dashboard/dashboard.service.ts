@@ -51,8 +51,17 @@ export async function stats(tenantId: string, periodo: Periodo = 'hoje') {
     select: { id: true, nome: true },
   })
 
+  const [anterior, maisVendidos, salao] = await Promise.all([
+    periodoAnterior(tenantId, gte, lt),
+    topProdutos(tenantId, gte, lt),
+    mesasDoSalao(tenantId),
+  ])
+
   return {
     periodo,
+    anterior,
+    maisVendidos,
+    salao,
     dia: dias.length === 1 ? dias[0] : null,
     porHora: dias.length === 1 ? arred(porHora) : [],
     porDia: dias.length > 1 ? arred(porDia) : [],
@@ -75,4 +84,62 @@ export async function stats(tenantId: string, periodo: Periodo = 'hoje') {
       total: Number(g._sum.valor ?? 0),
     })),
   }
+}
+
+/**
+ * O mesmo trecho de tempo logo antes, para a tendência dos cards. Em "hoje"
+ * compara com ontem até a mesma hora (não com o dia inteiro de ontem).
+ */
+async function periodoAnterior(tenantId: string, gte: Date, lt: Date) {
+  const fim = Math.min(lt.getTime(), Date.now())
+  const span = lt.getTime() - gte.getTime()
+  const filtro = { tenantId, status: 'confirmado' as const, createdAt: { gte: new Date(gte.getTime() - span), lt: new Date(fim - span) } }
+  const [aggs, pedidos] = await Promise.all([
+    prisma.pagamento.aggregate({ where: filtro, _sum: { valor: true }, _avg: { valor: true } }),
+    prisma.pagamento.findMany({ where: filtro, select: { pedidoId: true }, distinct: ['pedidoId'] }),
+  ])
+  return {
+    faturamento: Number(aggs._sum.valor ?? 0),
+    pedidos: pedidos.length,
+    ticketMedio: Number(Number(aggs._avg.valor ?? 0).toFixed(2)),
+  }
+}
+
+/** Os 5 produtos com mais unidades lançadas no período (sem os cancelados). */
+async function topProdutos(tenantId: string, gte: Date, lt: Date) {
+  const grupos = await prisma.pedidoItem.groupBy({
+    by: ['produtoId'],
+    where: { tenantId, status: { notIn: ['cancelado', 'rascunho'] }, createdAt: { gte, lt } },
+    _sum: { quantidade: true, precoTotal: true },
+    orderBy: { _sum: { quantidade: 'desc' } },
+    take: 5,
+  })
+  const produtos = await prisma.produto.findMany({
+    where: { tenantId, id: { in: grupos.map((g) => g.produtoId) } },
+    select: { id: true, nome: true },
+  })
+  return grupos.map((g) => ({
+    nome: produtos.find((p) => p.id === g.produtoId)?.nome ?? '?',
+    qtd: g._sum.quantidade ?? 0,
+    total: Number(g._sum.precoTotal ?? 0),
+  }))
+}
+
+/** Mesas abertas agora, com o consumo de cada uma (para o "Salão agora"). */
+async function mesasDoSalao(tenantId: string) {
+  const mesas = await prisma.mesa.findMany({
+    where: { tenantId, status: { in: ['aberta', 'fechando'] }, dataFechamento: null },
+    orderBy: { numero: 'asc' },
+    select: {
+      id: true, numero: true, nomeMesa: true, status: true,
+      pedidos: { select: { itens: { where: { status: { notIn: ['cancelado'] } }, select: { precoTotal: true } } } },
+    },
+  })
+  return mesas.map((m) => ({
+    id: m.id,
+    numero: m.numero,
+    nome: m.nomeMesa,
+    contaPedida: m.status === 'fechando',
+    total: Number(m.pedidos.flatMap((p) => p.itens).reduce((s, i) => s + Number(i.precoTotal), 0).toFixed(2)),
+  }))
 }

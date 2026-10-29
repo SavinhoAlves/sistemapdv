@@ -2,7 +2,7 @@ import { ref, computed } from 'vue'
 import { useConfigStore } from '~/stores/configuracoes'
 import { useRuntimeConfig } from '#imports'
 import { useAuthStore } from '~/stores/auth'
-import { definirOperador, limparOperador } from '~/lib/operador'
+import { definirOperador, limparOperador, mostrarNaTela } from '~/lib/operador'
 import { semLeitorDeCartao, corpoDaIdentificacao, viaCelular } from '~/lib/identificacao'
 
 export interface UsuarioRfid {
@@ -115,6 +115,7 @@ export function useRfidIdentify() {
         return
       }
       definirOperador(resp.operadorToken, resp.operadorValidadeS)
+      mostrarNaTela(resp.usuario)
 
       // No celular (PIN, Face ID / digital ou liberação ativa) a pessoa é a própria conta: não pede confirmação
       if (_comConfirmacao && !viaCelular(codigo)) {

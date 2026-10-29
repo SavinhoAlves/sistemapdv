@@ -222,6 +222,7 @@ import { useToastStore } from '~/stores/toast'
 import { useAuthStore } from '~/stores/auth'
 import { useRfidIdentify, podeMexerNaMesa, type UsuarioRfid } from '~/composables/useRfidIdentify'
 import { semLeitorDeCartao } from '~/lib/identificacao'
+import { mostrarNaTela } from '~/lib/operador'
 import ModalRfidAuth from '~/components/modals/ModalRfidAuth.vue'
 
 definePageMeta({ layout: false })
@@ -304,6 +305,7 @@ async function onGarcomMismatch(usuario: UsuarioRfid) {
   modoProdutos.value    = false
   mesaSelecionada.value = undefined
   garcomSessao.value    = usuario
+  mostrarNaTela(usuario)
   toastStore.warning(`Esta mesa não é de ${usuario.nome}. Mostrando as mesas dele.`)
   await nextTick()
   trocandoGarcom = false
@@ -311,6 +313,7 @@ async function onGarcomMismatch(usuario: UsuarioRfid) {
 
 async function travar() {
   garcomSessao.value = null
+  mostrarNaTela(null)
   sidebarMesa.value  = false
   modoProdutos.value = false
   filtro.value       = null

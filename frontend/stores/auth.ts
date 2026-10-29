@@ -1,6 +1,7 @@
 import { navigateTo, useRuntimeConfig } from 'nuxt/app'
 import { defineStore } from 'pinia'
 import { noApp } from '~/lib/app'
+import { limparOperador } from '~/lib/operador'
 
 export interface Usuario {
   id: string
@@ -114,6 +115,7 @@ export const useAuthStore = defineStore('auth', {
     },
 
     logout() {
+      limparOperador()
       this.token        = null
       this.refreshToken = null
       this.usuario      = null

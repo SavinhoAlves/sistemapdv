@@ -48,7 +48,7 @@
             @click="dropdownAberto = !dropdownAberto"
             class="nb__perfil"
             :aria-expanded="dropdownAberto"
-            :aria-label="`Menu de ${authStore.usuario?.nome ?? 'usuário'}`"
+            :aria-label="`Menu de ${pessoaNaTela?.nome ?? 'usuário'}`"
           >
             <div class="nb__avatar">
               <span>{{ inicial }}</span>
@@ -456,7 +456,7 @@ import { useConfigStore }      from '~/stores/configuracoes'
 import { useImpressorasStore } from '~/stores/impressoras'
 import { useNavItems }    from '~/composables/useNavItems'
 import { useApi }         from '~/services/api'
-import { definirOperador } from '~/lib/operador'
+import { definirOperador, mostrarNaTela, quemNaTela } from '~/lib/operador'
 import { corpoDaIdentificacao } from '~/lib/identificacao'
 import { enviarImpressao } from '~/lib/qz'
 import ModalRfidAuth      from '~/components/modals/ModalRfidAuth.vue'
@@ -480,8 +480,10 @@ const isGarcom = computed(() => cargo.value === 'garcom')
 const isCaixa  = computed(() => cargo.value === 'caixa')
 const isCozinha = computed(() => cargo.value === 'cozinha')
 
-const inicial      = computed(() => (authStore.usuario?.nome || 'U')[0].toUpperCase())
-const primeiroNome = computed(() => authStore.usuario?.nome?.split(' ')[0] || '')
+// Quem passou o cartão nesta página aparece no lugar da conta do terminal
+const pessoaNaTela = computed(() => (quemNaTela.value?.rota === route.path ? quemNaTela.value : null) ?? authStore.usuario)
+const inicial      = computed(() => (pessoaNaTela.value?.nome || 'U')[0].toUpperCase())
+const primeiroNome = computed(() => pessoaNaTela.value?.nome?.split(' ')[0] || '')
 const caixaAberto  = computed(() => caixaStore.aberto)
 
 // Navegação mobile (< sm)
@@ -493,7 +495,7 @@ const paginaAtual = computed(() => {
   return [...navItems.value].sort((a, b) => b.rota.length - a.rota.length).find(i => isAtivo(i.rota)) ?? null
 })
 const CARGOS: Record<string, string> = { administrador: 'Administrador', garcom: 'Garçom', caixa: 'Caixa', cozinha: 'Cozinha', entregador: 'Entregador' }
-const cargoRotulo = computed(() => CARGOS[authStore.usuario?.cargo ?? ''] ?? authStore.usuario?.cargo ?? '')
+const cargoRotulo = computed(() => CARGOS[pessoaNaTela.value?.cargo ?? ''] ?? pessoaNaTela.value?.cargo ?? '')
 
 function isAtivo(rota: string) {
   if (rota === '/') return route.path === '/'
@@ -625,6 +627,7 @@ const handleRfidCaixa = async (rfidBuffer: string) => {
     return
   }
   definirOperador(resposta.operadorToken, resposta.operadorValidadeS)
+  mostrarNaTela(resposta.usuario)
 
   modalRfid.value = false
 

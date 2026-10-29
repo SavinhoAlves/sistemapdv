@@ -5,6 +5,8 @@
  * O token do cartão vale 2 minutos no servidor; o do celular (PIN ou Face ID /
  * digital), 5. Aqui ele é descartado um pouco antes.
  */
+import { ref } from 'vue'
+
 const VALIDADE_CARTAO_S = 120
 const FOLGA_MS = 10_000
 
@@ -16,6 +18,20 @@ export function definirOperador(t: string | null | undefined, validadeS = VALIDA
   token = t || null
   expiraEm = t ? Date.now() + validadeS * 1000 - FOLGA_MS : 0
   doCelular = !!t && validadeS > VALIDADE_CARTAO_S
+  if (!t) quemNaTela.value = null
+}
+
+/**
+ * Passar o cartão vale como login na tela: o perfil do topo mostra quem passou
+ * o cartão (não a conta do terminal) até a tela travar, mudar de página ou sair.
+ */
+export interface QuemNaTela { id: string; nome: string; cargo: string; rota: string }
+export const quemNaTela = ref<QuemNaTela | null>(null)
+
+export function mostrarNaTela(usuario: { id: string | number; nome: string; cargo: string } | null) {
+  quemNaTela.value = usuario && process.client
+    ? { id: String(usuario.id), nome: usuario.nome, cargo: usuario.cargo, rota: location.pathname }
+    : null
 }
 
 /**

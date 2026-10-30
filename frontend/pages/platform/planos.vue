@@ -92,7 +92,7 @@
             <button type="button" class="pf-sw" role="switch" :aria-checked="form[r.chave]" :aria-label="r.rotulo" @click="form[r.chave] = !form[r.chave]" />
           </div>
           <div class="pf-feat">
-            <div><b>À venda</b><small>Fora de venda, o plano some do cadastro, mas continua valendo para quem já tem</small></div>
+            <div><b>À venda</b><small>Desligado, o plano some do site; ainda dá para escolher no contrato (ex.: plano de teste) e continua valendo para quem já tem</small></div>
             <button type="button" class="pf-sw" role="switch" :aria-checked="form.ativo" aria-label="Plano ativo" @click="form.ativo = !form.ativo" />
           </div>
         </div>

@@ -131,7 +131,7 @@
         </section>
       </div>
 
-      <p v-if="cfg && !cfg.disponivel" class="mt-6 text-sm text-gray-500 dark:text-white/50">O delivery não está incluído no seu plano. Fale com o suporte para incluir.</p>
+      <p v-if="cfg && !cfg.disponivel" class="mt-6 text-sm text-gray-500 dark:text-white/50">Seu plano tem o cardápio com retirada. Para entregar com o app do entregador, fale com o suporte para incluir o Delivery.</p>
     </main>
 
     <!-- Recusar -->

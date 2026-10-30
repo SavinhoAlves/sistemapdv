@@ -17,7 +17,7 @@ export async function tenantDoSlug(slug: string) {
   const t = await semEscopoDeTenant(async () => prisma.tenant.findUnique({
     where: { slug: slug.trim().toLowerCase() }, select: { id: true, deliveryDisponivel: true },
   }))
-  if (!t || !t.deliveryDisponivel) throw erro(404, 'Cardápio não encontrado')
+  if (!t) throw erro(404, 'Cardápio não encontrado') // cardápio vale para todos os planos
   return t
 }
 

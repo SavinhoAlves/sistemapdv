@@ -18,7 +18,7 @@ const MAPA: { rota: string; grupo: GrupoNav; label: string; icon: any; libera: (
   { rota: '/mesas',         grupo: 'Operação', label: 'Mesas',         icon: LayoutGrid,   libera: (t, m) => m !== 'direta' && ['abrirMesa', 'fecharMesa', 'adicionarPedido', 'cancelarItemPedido'].some(t) },
   { rota: '/vendas',        grupo: 'Operação', label: 'Vendas',        icon: ShoppingCart, libera: (t, m) => m !== 'mesas' && t('gerenciarCaixa') },
   { rota: '/caixa',         grupo: 'Operação', label: 'Caixa',         icon: Landmark,     libera: t => t('gerenciarCaixa') },
-  { rota: '/delivery',      grupo: 'Operação', label: 'Delivery',      icon: Bike,         libera: (t, _m, _a, delivery) => delivery && t('gerenciarCaixa') },
+  { rota: '/delivery',      grupo: 'Operação', label: 'Delivery',      icon: Bike,         libera: t => t('gerenciarCaixa') }, // pedidos do cardápio (retirada) valem para todos os planos
   { rota: '/entregador',    grupo: 'Operação', label: 'Minhas entregas', icon: Bike,       libera: (t, _m, admin) => !admin && t('fazerEntregas') },
   { rota: '/cozinha',       grupo: 'Operação', label: 'Cozinha',       icon: ChefHat,      libera: t => t('verCozinha') },
   { rota: '/produtos',      grupo: 'Gestão', label: 'Produtos',      icon: Package,      libera: t => t('gerenciarProdutos') },

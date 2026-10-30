@@ -60,7 +60,8 @@ async function situacao(tenant: { id: string; status: string; deliveryDisponivel
     prisma.caixa.findFirst({ where: { tenantId: tenant.id, status: 'aberto' }, select: { id: true } }),
   ]))
   let motivo: string | null = null
-  if (!tenant.deliveryDisponivel || !acesso.ok) motivo = 'Este restaurante não está recebendo pedidos online.'
+  // O cardápio vale para todos os planos; o Delivery do plano libera só a entrega
+  if (!acesso.ok) motivo = 'Este restaurante não está recebendo pedidos online.'
   else if (!cfg?.deliveryAtivo) motivo = 'O restaurante pausou os pedidos online.'
   else if (!caixa) motivo = 'O restaurante está fechado agora. Tente mais tarde.'
   return { aberto: !motivo, motivo, cfg }
@@ -70,7 +71,7 @@ async function situacao(tenant: { id: string; status: string; deliveryDisponivel
 
 export async function cardapio(slug: string) {
   const tenant = await tenantPorSlug(slug)
-  if (!tenant || !tenant.deliveryDisponivel) throw erro(404, 'Cardápio não encontrado')
+  if (!tenant) throw erro(404, 'Cardápio não encontrado')
   const { aberto, motivo, cfg } = await situacao(tenant)
 
   const produtos = await comTenant(tenant.id, async () => await prisma.produto.findMany({
@@ -96,8 +97,9 @@ export async function cardapio(slug: string) {
   return {
     restaurante: { nome: cfg?.nomeRestaurante || tenant.nome, slug: tenant.slug, logo: cfg?.logoBase64 ?? null },
     aberto, motivo,
-    entrega: cfg?.deliveryEntrega ?? true,
-    retirada: cfg?.deliveryRetirada ?? true,
+    // Sem Delivery no plano: só retirada
+    entrega: tenant.deliveryDisponivel && (cfg?.deliveryEntrega ?? true),
+    retirada: !tenant.deliveryDisponivel || (cfg?.deliveryRetirada ?? true),
     taxaEntrega: Number(cfg?.deliveryTaxa ?? 0),
     pedidoMinimo: Number(cfg?.deliveryPedidoMinimo ?? 0),
     tempoMin: cfg?.deliveryTempoMin ?? 40,
@@ -121,11 +123,12 @@ export interface NovoPedidoOnline {
 /** conta: cliente logado no cardápio (pedido ligado à conta; salva o endereço se pedir) */
 export async function criarPedido(slug: string, d: NovoPedidoOnline, conta?: { clienteId: string; tenantId: string; salvarEndereco?: boolean; enderecoId?: string } | null) {
   const tenant = await tenantPorSlug(slug)
-  if (!tenant || !tenant.deliveryDisponivel) throw erro(404, 'Cardápio não encontrado')
+  if (!tenant) throw erro(404, 'Cardápio não encontrado')
   const { aberto, motivo, cfg } = await situacao(tenant)
   if (!aberto) throw erro(409, motivo!)
+  if (d.tipo === 'entrega' && !tenant.deliveryDisponivel) throw erro(400, 'Este restaurante não faz entregas')
   if (d.tipo === 'entrega' && cfg?.deliveryEntrega === false) throw erro(400, 'Este restaurante não faz entregas')
-  if (d.tipo === 'retirada' && cfg?.deliveryRetirada === false) throw erro(400, 'Este restaurante não aceita retirada')
+  if (d.tipo === 'retirada' && cfg?.deliveryRetirada === false && tenant.deliveryDisponivel) throw erro(400, 'Este restaurante não aceita retirada')
   if (d.tipo === 'entrega' && (!d.endereco?.trim() || !d.numero?.trim() || !d.bairro?.trim()))
     throw erro(400, 'Informe rua, número e bairro para a entrega')
 
@@ -571,8 +574,9 @@ export async function salvarConfig(tenantId: string, d: {
   mensagemWhatsapp?: string | null; local?: Coordenadas | null
 }) {
   const atual = await config(tenantId)
-  if (d.ativo && !atual.disponivel) throw erro(403, 'Delivery não está liberado para o seu restaurante')
-  if (d.entrega === false && d.retirada === false) throw erro(400, 'Deixe ao menos entrega ou retirada')
+  // Sem Delivery no plano o cardápio funciona só com retirada
+  if (!atual.disponivel && d.retirada === false) throw erro(400, 'Sem delivery no plano, o cardápio funciona com retirada')
+  if (atual.disponivel && d.entrega === false && d.retirada === false) throw erro(400, 'Deixe ao menos entrega ou retirada')
   await prisma.configuracoes.updateMany({
     where: { tenantId },
     data: {

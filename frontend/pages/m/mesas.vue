@@ -1,392 +1,222 @@
 <template>
-  <div class="flex flex-col min-h-full">
+  <div class="msa">
 
-    <!-- ══════════════════════════════════════
-         TELA 1: GRID DE MESAS
-    ══════════════════════════════════════ -->
+    <!-- ══════════════ SALÃO ══════════════ -->
     <template v-if="!mesaSelecionada">
+      <div class="msa-cab">
+        <h1 class="eq-titulo msa-h1">Salão</h1>
+        <button v-if="authStore.temPermissao('abrirMesa')" class="msa-nova" @click="modalNovaMesa = true">
+          <Plus :size="18" :stroke-width="2.6" /> Nova mesa
+        </button>
+      </div>
 
-      <!-- Header -->
-      <div class="relative px-5 pt-5 pb-5 overflow-hidden shrink-0">
-        <div
-          class="absolute inset-0 pointer-events-none"
-          style="background: radial-gradient(ellipse 70% 90% at 0% 0%, rgba(249,115,22,0.09) 0%, transparent 70%);"
-        ></div>
-        <div class="relative flex items-start justify-between">
-          <div>
-            <h1 class="text-[26px] font-black text-white tracking-tight leading-none">Mesas</h1>
-            <p class="text-[12px] font-medium mt-1.5" :class="mesasAbertas.length ? 'text-white/35' : 'text-white/20'">
-              <template v-if="mesasAbertas.length">{{ mesasAbertas.length }} mesa{{ mesasAbertas.length !== 1 ? 's' : '' }} em atendimento</template>
-              <template v-else>Nenhuma mesa aberta</template>
-            </p>
-          </div>
-          <button
-            v-if="authStore.temPermissao('abrirMesa')"
-            @click="modalNovaMesa = true"
-            class="flex items-center gap-2 h-9 px-4 rounded-[14px] bg-orange-500 text-white text-[12px] font-black active:scale-95 transition-all mt-0.5"
-            style="box-shadow: 0 4px 14px rgba(249,115,22,0.35);"
-          >
-            <Plus :size="13" />
-            Nova Mesa
-          </button>
-        </div>
+      <div v-if="mesasAbertas.length" class="eq-pilulas msa-filtros" role="group" aria-label="Filtrar mesas">
+        <button v-for="f in filtros" :key="f.id" class="eq-pilula" :aria-pressed="filtro === f.id" @click="filtro = f.id">
+          {{ f.label }}<span class="eq-pilula-num">{{ f.n }}</span>
+        </button>
       </div>
 
       <!-- Loading -->
-      <div v-if="loading" class="flex-1 flex items-center justify-center">
-        <Loader2 :size="22" class="animate-spin text-orange-500/60" />
+      <div v-if="loading" class="msa-centro">
+        <Loader2 :size="26" class="animate-spin" style="color:var(--eq-marca)" />
       </div>
 
-      <!-- Empty -->
-      <div v-else-if="!mesasAbertas.length" class="flex-1 flex flex-col items-center justify-center gap-5 text-center px-8 pb-24">
-        <div
-          class="w-20 h-20 rounded-[24px] flex items-center justify-center"
-          style="background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.06);"
-        >
-          <LayoutGrid :size="26" class="text-white/15" />
-        </div>
-        <div>
-          <p class="text-[15px] font-black text-white/35">Nenhuma mesa aberta</p>
-          <p class="text-[12px] text-white/20 mt-1.5 font-medium">Toque em "Nova Mesa" para começar</p>
-        </div>
+      <!-- Vazio -->
+      <div v-else-if="!mesasAbertas.length" class="msa-vazio">
+        <span class="msa-vazio-ic"><LayoutGrid :size="30" /></span>
+        <h3 class="eq-titulo">Nenhuma mesa aberta.</h3>
+        <p>{{ authStore.temPermissao('abrirMesa') ? 'Toque em "Nova mesa" para começar um atendimento.' : 'Quando o caixa abrir uma mesa, ela aparece aqui.' }}</p>
       </div>
 
-      <!-- Grid de mesas -->
-      <div v-else class="px-4 pb-36">
-        <div class="grid grid-cols-2 gap-3">
+      <template v-else>
+        <p v-if="!mesasFiltradas.length" class="msa-nada">Nenhuma mesa neste filtro.</p>
+        <div class="msa-grade">
           <button
-            v-for="mesa in mesasAbertas"
+            v-for="mesa in mesasFiltradas"
             :key="mesa.id"
+            class="msa-mesa"
+            :class="mesa.status === 'fechando' ? 'conta' : 'aberta'"
+            :aria-label="`${mesa.nome_mesa}, ${mesa.status === 'fechando' ? 'pediu a conta' : 'aberta'}, R$ ${fmt(mesa.total)}`"
             @click="selecionarMesa(mesa)"
-            class="text-left transition-all rounded-[20px] p-4 active:scale-[0.96]"
-            style="background:#161619; border:1px solid rgba(255,255,255,0.07);"
           >
-            <div class="flex items-center justify-between mb-3.5">
-              <div class="flex items-center gap-1.5">
-                <span
-                  class="w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0"
-                  style="box-shadow: 0 0 5px rgba(52,211,153,0.7);"
-                ></span>
-                <span class="text-[10px] font-bold text-emerald-400/60">Aberta</span>
-              </div>
-              <span class="text-[10px] font-semibold text-white/20 tabular-nums">{{ formatarTempo(mesa.data_abertura) }}</span>
-            </div>
-            <p class="text-[16px] font-black text-white leading-tight line-clamp-2">{{ mesa.nome_mesa || `Mesa ${mesa.numero}` }}</p>
-            <p class="text-[11px] font-medium mt-1.5 truncate" :class="mesa.garcom?.nome ? 'text-white/30' : 'text-white/10'">
-              {{ mesa.garcom?.nome || '—' }}
-            </p>
+            <i class="cad t" /><i class="cad b" /><i class="cad l" /><i class="cad r" />
+            <span class="msa-mesa-corpo">
+              <span class="msa-mesa-topo">
+                <span class="msa-mesa-num" :class="{ longo: rotuloMesa(mesa).length > 3 }">{{ rotuloMesa(mesa) }}</span>
+                <span v-if="rotuloMesa(mesa).length <= 3" class="msa-mesa-tempo eq-mono">{{ tempoCurto(mesa.data_abertura) }}</span>
+              </span>
+              <!-- Nome por extenso ocupa o topo: o tempo desce para junto do valor -->
+              <span class="msa-mesa-valor eq-mono">
+                <span class="truncate">{{ fmt(mesa.total) }}</span>
+                <span v-if="rotuloMesa(mesa).length > 3" class="msa-mesa-tempo">{{ tempoCurto(mesa.data_abertura) }}</span>
+              </span>
+            </span>
           </button>
         </div>
-      </div>
-
+        <div class="msa-legenda">
+          <span><i class="aberta" />Aberta</span>
+          <span><i class="conta" />Pediu a conta</span>
+        </div>
+      </template>
     </template>
 
-    <!-- ══════════════════════════════════════
-         TELA 2: SELEÇÃO DE PRODUTOS (full screen)
-    ══════════════════════════════════════ -->
+    <!-- ══════════════ MESA: CARDÁPIO ══════════════ -->
     <template v-else>
+      <div class="msa-mesa-cab">
+        <button class="eq-icone msa-voltar" aria-label="Voltar ao salão" @click="voltarParaMesas"><ChevronLeft :size="22" /></button>
+        <div class="flex-1" />
+        <div class="text-right">
+          <p class="eq-rotulo" style="font-size:11px;letter-spacing:.08em">Consumo</p>
+          <p class="eq-mono msa-consumo">R$ {{ fmt(totalMesa) }}</p>
+        </div>
+      </div>
 
-      <!-- Header: voltar + nome da mesa -->
-      <div class="relative px-5 pt-5 pb-4 overflow-hidden shrink-0">
+      <div class="msa-titulo">
+        <template v-if="numeroGrande(mesaSelecionada)">
+          <span class="eq-titulo msa-numerao">{{ numeroGrande(mesaSelecionada) }}</span>
+          <div class="msa-titulo-txt">
+            <p class="eq-titulo">Mesa</p>
+            <p class="eq-mudo">{{ kickerMesa }}</p>
+          </div>
+        </template>
+        <div v-else class="msa-titulo-txt">
+          <p class="eq-titulo msa-nome-longo">{{ mesaSelecionada.nome_mesa }}</p>
+          <p class="eq-mudo">{{ kickerMesa }}</p>
+        </div>
+      </div>
+
+      <div class="msa-filtro-prod">
+        <label class="eq-busca">
+          <Search :size="18" />
+          <input v-model="buscaProduto" type="search" placeholder="Buscar produto…" aria-label="Buscar produto">
+        </label>
+        <div class="eq-pilulas" style="margin-top:12px" role="group" aria-label="Categorias">
+          <button v-for="cat in ['Todos', ...categorias]" :key="cat" class="eq-pilula" :aria-pressed="categoriaAtiva === cat" @click="categoriaAtiva = cat">{{ cat }}</button>
+        </div>
+      </div>
+
+      <p v-if="!produtosFiltrados.length" class="msa-nada">Nenhum produto encontrado.</p>
+      <div v-else class="msa-produtos">
         <div
-          class="absolute inset-0 pointer-events-none"
-          style="background: radial-gradient(ellipse 60% 80% at 100% 0%, rgba(249,115,22,0.07) 0%, transparent 65%);"
-        ></div>
-        <div class="relative flex items-center gap-3">
-          <button
-            @click="voltarParaMesas"
-            class="w-9 h-9 rounded-[12px] flex items-center justify-center shrink-0 transition-all active:scale-90"
-            style="background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.07);"
-          >
-            <ChevronLeft :size="18" class="text-white/60" />
-          </button>
-          <div class="min-w-0">
-            <p class="text-[10px] font-bold uppercase tracking-[0.14em] text-orange-500/70 truncate">Mesa aberta<template v-if="mesaSelecionada.garcom?.nome && mesaSelecionada.garcom_id !== authStore.usuario?.id"> · de {{ mesaSelecionada.garcom.nome }}</template></p>
-            <h1 class="text-[20px] font-black text-white leading-tight truncate">{{ mesaSelecionada.nome_mesa || `Mesa ${mesaSelecionada.numero}` }}</h1>
-          </div>
-        </div>
-      </div>
-
-      <!-- Busca -->
-      <div class="px-5 pb-3 shrink-0">
-        <div class="relative">
-          <Search :size="13" class="absolute left-3.5 top-1/2 -translate-y-1/2 text-white/20" />
-          <input
-            v-model="buscaProduto"
-            type="text"
-            placeholder="Buscar produto..."
-            class="w-full h-10 pl-9 pr-4 rounded-[12px] text-[13px] text-white placeholder:text-white/20 outline-none transition-all"
-            style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.07);"
-            @focus="($event.target as HTMLInputElement).style.borderColor='rgba(249,115,22,0.35)'"
-            @blur="($event.target as HTMLInputElement).style.borderColor='rgba(255,255,255,0.07)'"
-          />
-        </div>
-      </div>
-
-      <!-- Chips de categoria -->
-      <div class="flex gap-2 overflow-x-auto px-5 pb-3 shrink-0 scrollbar-none">
-        <button
-          v-for="cat in ['Todos', ...categorias]"
-          :key="cat"
-          @click="categoriaAtiva = cat"
-          class="h-[28px] px-3.5 rounded-[10px] text-[11px] font-black whitespace-nowrap shrink-0 transition-all active:scale-95"
-          :class="categoriaAtiva === cat ? 'text-white' : 'text-white/30'"
-          :style="categoriaAtiva === cat
-            ? 'background: #f97316; box-shadow: 0 2px 10px rgba(249,115,22,0.3);'
-            : 'background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.07);'"
-        >{{ cat }}</button>
-      </div>
-
-      <div class="h-px mx-5 shrink-0 bg-white/[0.05]"></div>
-
-      <!-- Grid de produtos -->
-      <div class="px-4 pt-3 pb-36">
-        <div v-if="!produtosFiltrados.length" class="flex flex-col items-center justify-center h-48 gap-3">
-          <UtensilsCrossed :size="26" class="text-white/[0.07]" />
-          <p class="text-[13px] font-semibold text-white/20">Nenhum produto encontrado</p>
-        </div>
-        <div v-else class="grid grid-cols-2 gap-2.5">
-          <button
-            v-for="p in produtosFiltrados"
-            :key="p.id"
-            @click="adicionarItemMesa(p)"
-            :disabled="adicionando === p.id"
-            class="relative rounded-[20px] p-4 flex flex-col items-center text-center transition-all active:scale-[0.95] disabled:opacity-40"
-            style="background:#161619; border:1px solid rgba(255,255,255,0.06);"
-          >
-            <div
-              class="w-10 h-10 rounded-[14px] flex items-center justify-center mb-3 shrink-0"
-              style="background: rgba(249,115,22,0.08);"
-            >
-              <Loader2 v-if="adicionando === p.id" :size="15" class="animate-spin text-orange-400" />
-              <UtensilsCrossed v-else :size="15" class="text-orange-400/50" />
-            </div>
-            <p class="text-[12px] font-black text-white leading-snug line-clamp-2">{{ p.nome }}</p>
-            <p v-if="p.categoria" class="text-[10px] font-medium text-white/20 mt-0.5 truncate w-full">{{ p.categoria }}</p>
-            <p class="text-[15px] font-black text-orange-400/80 mt-2">R$ {{ fmt(p.preco) }}</p>
-          </button>
-        </div>
-      </div>
-
-      <!-- FAB: itens já pedidos na mesa -->
-      <Transition name="fab">
-        <button
-          v-if="itensMesa.length"
-          @click="carrinhoAberto = true"
-          class="fixed bottom-[88px] right-4 z-20 w-[54px] h-[54px] rounded-[16px] flex items-center justify-center active:scale-[0.95] transition-transform duration-150"
-          style="background: linear-gradient(135deg, #fb923c, #ea580c); box-shadow: 0 8px 28px rgba(249,115,22,0.5);"
+          v-for="p in produtosFiltrados"
+          :key="p.id"
+          class="msa-prod"
+          :class="{ tem: qtdNaMesa(p.id) }"
+          @click="adicionarItemMesa(p)"
         >
-          <div class="relative">
-            <ShoppingBag :size="22" class="text-white" />
-            <div
-              :key="quantidadeItensMesa"
-              class="absolute -top-3 -right-3 min-w-[18px] h-[18px] rounded-full flex items-center justify-center text-[10px] font-black badge-pop"
-              style="background: white; color: #ea580c;"
-            >
-              {{ quantidadeItensMesa > 9 ? '9+' : quantidadeItensMesa }}
-            </div>
+          <span class="msa-prod-ic"><UtensilsCrossed :size="20" /></span>
+          <div class="flex-1">
+            <p class="msa-prod-nome">{{ p.nome }}</p>
+            <p v-if="p.categoria" class="msa-prod-cat">{{ p.categoria }}</p>
           </div>
+          <div v-if="!qtdNaMesa(p.id)" class="msa-prod-pe">
+            <span class="eq-mono msa-prod-preco">R$ {{ fmt(p.preco) }}</span>
+            <button class="msa-mais" :aria-label="`Adicionar ${p.nome}`" :disabled="adicionando === p.id" @click.stop="adicionarItemMesa(p)">
+              <Loader2 v-if="adicionando === p.id" :size="18" class="animate-spin" /><Plus v-else :size="20" :stroke-width="2.6" />
+            </button>
+          </div>
+          <template v-else>
+            <span class="eq-mono msa-prod-preco">R$ {{ fmt(p.preco) }}</span>
+            <div class="msa-passo" @click.stop>
+              <button :aria-label="`Tirar um ${p.nome}`" :disabled="!!ajustando" @click="tirarUm(p)"><Minus :size="18" /></button>
+              <span class="eq-mono" aria-live="polite">{{ qtdNaMesa(p.id) }}</span>
+              <button class="mais" :aria-label="`Adicionar ${p.nome}`" :disabled="adicionando === p.id" @click="adicionarItemMesa(p)">
+                <Loader2 v-if="adicionando === p.id" :size="16" class="animate-spin" /><Plus v-else :size="18" :stroke-width="2.6" />
+              </button>
+            </div>
+          </template>
+        </div>
+      </div>
+
+      <!-- Barra "Ver pedido" -->
+      <Transition name="msa-barra">
+        <button v-if="itensMesa.length" class="eq-btn eq-btn-primario msa-ver" @click="carrinhoAberto = true">
+          <span :key="quantidadeItensMesa" class="msa-ver-qtd eq-mono">{{ quantidadeItensMesa }}</span>
+          <span class="flex-1">{{ paraEnviar ? `Ver pedido · ${paraEnviar} a enviar` : 'Ver pedido' }}</span>
+          <span class="eq-mono msa-ver-total">R$ {{ fmt(totalMesa) }}</span>
         </button>
       </Transition>
-
     </template>
 
-    <!-- ══════════════════════════════════════
-         BOTTOM SHEET: ITENS DA MESA (carrinho)
-    ══════════════════════════════════════ -->
+    <!-- ══════════════ FOLHA: PEDIDO DA MESA ══════════════ -->
     <Teleport to="body">
-      <Transition name="sheet">
-        <div v-if="carrinhoAberto" class="fixed inset-0 z-50">
-          <div class="absolute inset-0 bg-black/70 backdrop-blur-[2px]" @click="carrinhoAberto = false"></div>
-          <div
-            class="absolute bottom-0 left-0 right-0 rounded-t-[28px] max-h-[80vh] flex flex-col"
-            style="background: #141417; border-top: 1px solid rgba(255,255,255,0.08);"
-          >
-            <!-- Handle -->
-            <div class="flex justify-center pt-3 pb-2 shrink-0">
-              <div class="w-9 h-[3px] rounded-full bg-white/[0.1]"></div>
-            </div>
-
-            <!-- Header -->
-            <div class="px-5 pb-3 flex items-start justify-between shrink-0">
+      <Transition name="eq-folha">
+        <div v-if="carrinhoAberto" class="eq eq-folha-fundo" @click.self="carrinhoAberto = false">
+          <div class="eq-folha" role="dialog" aria-modal="true" aria-labelledby="msa-ped-t">
+            <div class="eq-folha-alca" />
+            <div class="msa-folha-cab">
               <div>
-                <p class="text-[10px] font-bold uppercase tracking-[0.14em] text-orange-500/70">Pedido atual</p>
-                <h3 class="text-[20px] font-black text-white mt-0.5">{{ mesaSelecionada?.nome_mesa || `Mesa ${mesaSelecionada?.numero}` }}</h3>
+                <p class="eq-rotulo eq-rotulo-marca">Pedido da mesa</p>
+                <h3 id="msa-ped-t" class="eq-titulo msa-folha-h3">{{ mesaSelecionada?.nome_mesa }}</h3>
               </div>
-              <button
-                @click="carrinhoAberto = false"
-                class="w-8 h-8 rounded-full flex items-center justify-center shrink-0 mt-1 active:scale-90 transition-all"
-                style="background: rgba(255,255,255,0.07);"
-              >
-                <X :size="15" class="text-white/50" />
-              </button>
+              <button class="eq-icone eq-icone-plano" aria-label="Fechar" @click="carrinhoAberto = false"><X :size="20" /></button>
             </div>
 
-            <div class="h-px mx-5 shrink-0 bg-white/[0.05]"></div>
-
-            <!-- Lista de itens com steppers -->
-            <div class="flex-1 overflow-y-auto">
-              <div v-if="loadingItens" class="flex justify-center py-10">
-                <Loader2 :size="20" class="animate-spin text-orange-400/60" />
-              </div>
-              <div v-else-if="!itensMesa.length" class="flex flex-col items-center justify-center py-12 gap-3">
-                <ShoppingBag :size="24" class="text-white/[0.08]" />
-                <p class="text-[12px] font-semibold text-white/20">Nenhum item ainda</p>
-              </div>
-              <div v-else>
-                <div
-                  v-for="(item, idx) in itensMesa"
-                  :key="item.id"
-                  class="flex items-center justify-between px-5 py-3"
-                  :style="idx < itensMesa.length - 1 ? 'border-bottom: 1px solid rgba(255,255,255,0.04);' : ''"
-                >
-                  <!-- Esquerda: nome -->
-                  <div class="flex-1 min-w-0">
-                    <p class="text-[13px] font-semibold text-white/85 truncate">{{ item.produto_nome || item.nome }}</p>
-                    <p v-if="item.status === 'rascunho'" class="text-[10px] font-black uppercase tracking-wide text-amber-400">Não enviado à cozinha</p>
-                  </div>
-
-                  <!-- Centro: stepper -->
-                  <div class="flex items-center gap-1.5 shrink-0 mx-3">
-                    <button
-                      @click="decrementarItem(item)"
-                      :disabled="ajustando === item.id"
-                      class="w-8 h-8 rounded-[10px] flex items-center justify-center font-black text-[16px] transition-all active:scale-90 disabled:opacity-30"
-                      :style="item.quantidade === 1
-                        ? 'background: rgba(239,68,68,0.12); color: #f87171; border: 1px solid rgba(239,68,68,0.2);'
-                        : 'background: rgba(255,255,255,0.07); color: rgba(255,255,255,0.5); border: 1px solid rgba(255,255,255,0.09);'"
-                    >
-                      <Loader2 v-if="ajustando === item.id" :size="12" class="animate-spin" />
-                      <span v-else>−</span>
-                    </button>
-
-                    <span class="text-[15px] font-black text-white tabular-nums w-5 text-center shrink-0">{{ item.quantidade }}</span>
-
-                    <button
-                      @click="incrementarItem(item)"
-                      :disabled="ajustando === item.id"
-                      class="w-8 h-8 rounded-[10px] flex items-center justify-center font-black text-[16px] transition-all active:scale-90 disabled:opacity-30"
-                      style="background: rgba(249,115,22,0.12); color: #fb923c; border: 1px solid rgba(249,115,22,0.2);"
-                    >
-                      <span>+</span>
-                    </button>
-                  </div>
-
-                  <!-- Direita: valor -->
-                  <span class="shrink-0 text-[13px] font-black text-white/45 tabular-nums whitespace-nowrap text-right">
-                    R$ {{ fmt((item.preco_unitario || 0) * item.quantidade) }}
-                  </span>
+            <div class="msa-folha-itens">
+              <div v-if="loadingItens" class="msa-centro"><Loader2 :size="22" class="animate-spin" style="color:var(--eq-marca)" /></div>
+              <p v-else-if="!itensMesa.length" class="msa-nada">Nenhum item ainda.</p>
+              <div v-for="item in itensMesa" v-else :key="item.id" class="msa-linha">
+                <span class="eq-mono msa-linha-qtd">{{ item.quantidade }}×</span>
+                <div class="flex-1 min-w-0">
+                  <p class="msa-linha-nome">{{ item.produto_nome || item.nome }}</p>
+                  <p v-if="item.status === 'rascunho'" class="msa-linha-rasc">Não enviado à cozinha</p>
                 </div>
-
-                <!-- Total da mesa -->
-                <div
-                  class="flex justify-between items-center mx-5 my-3 rounded-[14px] px-4 py-3"
-                  style="background: rgba(249,115,22,0.07); border: 1px solid rgba(249,115,22,0.15);"
-                >
-                  <span class="text-[12px] font-bold text-white/40">Total da mesa</span>
-                  <span class="text-[16px] font-black text-orange-400 tabular-nums">R$ {{ fmt(totalMesa) }}</span>
-                </div>
+                <span class="eq-mono msa-linha-sub">{{ fmt((item.preco_unitario || 0) * item.quantidade) }}</span>
+                <button class="eq-icone eq-icone-plano msa-linha-btn" :aria-label="`Tirar um ${item.produto_nome || item.nome}`" :disabled="ajustando === item.id" @click="decrementarItem(item)">
+                  <Loader2 v-if="ajustando === item.id" :size="16" class="animate-spin" /><Minus v-else :size="18" />
+                </button>
+                <button class="eq-icone eq-icone-plano msa-linha-btn" :aria-label="`Mais um ${item.produto_nome || item.nome}`" :disabled="ajustando === item.id" @click="incrementarItem(item)"><Plus :size="18" /></button>
               </div>
             </div>
 
-            <!-- Footer: ações -->
-            <!-- Modo "pelo botão": manda à cozinha os itens que estão esperando -->
-            <div v-if="paraEnviar > 0" class="px-5 pt-3 shrink-0" style="border-top: 1px solid rgba(255,255,255,0.05);">
-              <button
-                @click="enviarPedido"
-                :disabled="enviando"
-                class="w-full h-[52px] rounded-[16px] text-white font-black text-[14px] flex items-center justify-center gap-2 active:scale-[0.98] disabled:opacity-50"
-                style="background: #16a34a; box-shadow: 0 6px 20px rgba(22,163,74,0.3);"
-              >
-                <ChefHat :size="17" />
-                {{ enviando ? 'Enviando…' : `Enviar pedido (${paraEnviar} ${paraEnviar === 1 ? 'item' : 'itens'})` }}
-              </button>
+            <div class="msa-folha-total">
+              <span>Total da mesa</span>
+              <span class="eq-titulo">R$ {{ fmt(totalMesa) }}</span>
             </div>
-            <div
-              class="px-5 pt-3 flex gap-3 shrink-0"
-              style="border-top: 1px solid rgba(255,255,255,0.05); padding-bottom: max(20px, env(safe-area-inset-bottom));"
-            >
-              <button
-                @click="imprimirComanda"
-                :disabled="!itensMesa.length"
-                class="h-[52px] px-4 rounded-[16px] flex items-center justify-center gap-2 font-black text-[13px] transition-all active:scale-[0.98] disabled:opacity-30 shrink-0"
-                style="background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.09); color: rgba(255,255,255,0.5);"
-              >
-                <Printer :size="16" />
-                Imprimir
+
+            <div class="msa-folha-acoes">
+              <!-- Modo "pelo botão": manda à cozinha os itens que estão esperando -->
+              <button v-if="paraEnviar > 0" class="eq-btn eq-btn-primario" :disabled="enviando" @click="enviarPedido">
+                <span class="flex-1">{{ enviando ? 'Enviando…' : `Enviar para a cozinha (${paraEnviar} ${paraEnviar === 1 ? 'item' : 'itens'})` }}</span>
+                <span class="eq-btn-seta"><ChefHat :size="20" /></span>
               </button>
-              <button
-                @click="carrinhoAberto = false"
-                class="flex-1 h-[52px] rounded-[16px] text-white font-black text-[14px] transition-all active:scale-[0.98] flex items-center justify-center gap-2"
-                style="background: #f97316; box-shadow: 0 6px 20px rgba(249,115,22,0.3);"
-              >
-                <Plus :size="17" />
-                Adicionar itens
-              </button>
+              <div class="msa-folha-dupla">
+                <button class="eq-btn eq-btn-secundario" :disabled="!itensMesa.length" @click="imprimirComanda"><Printer :size="18" /> Imprimir</button>
+                <button class="eq-btn eq-btn-secundario" @click="carrinhoAberto = false"><Plus :size="18" /> Adicionar itens</button>
+              </div>
             </div>
           </div>
         </div>
       </Transition>
     </Teleport>
 
-    <!-- ══════════════════════════════════════
-         BOTTOM SHEET: NOVA MESA
-    ══════════════════════════════════════ -->
+    <!-- ══════════════ FOLHA: NOVA MESA ══════════════ -->
     <Teleport to="body">
-      <Transition name="sheet">
-        <div v-if="modalNovaMesa" class="fixed inset-0 z-50">
-          <div class="absolute inset-0 bg-black/65" @click="modalNovaMesa = false; novaMesaNome = ''"></div>
-          <div
-            class="absolute bottom-0 left-0 right-0 rounded-t-[28px] px-5 pt-3"
-            style="background: #141417; border-top: 1px solid rgba(255,255,255,0.07); padding-bottom: max(28px, env(safe-area-inset-bottom));"
-          >
-            <div class="flex justify-center mb-5">
-              <div class="w-10 h-1 rounded-full bg-white/[0.09]"></div>
-            </div>
-
-            <div class="flex items-center justify-between mb-6">
+      <Transition name="eq-folha">
+        <div v-if="modalNovaMesa" class="eq eq-folha-fundo" @click.self="modalNovaMesa = false; novaMesaNome = ''">
+          <form class="eq-folha msa-nova-folha" role="dialog" aria-modal="true" aria-labelledby="msa-nova-t" @submit.prevent="abrirMesa">
+            <div class="eq-folha-alca" />
+            <div class="msa-folha-cab">
               <div>
-                <p class="text-[10px] font-bold uppercase tracking-[0.14em] text-orange-500/70">Novo atendimento</p>
-                <h3 class="text-[18px] font-black text-white mt-0.5">Abrir Mesa</h3>
+                <p class="eq-rotulo eq-rotulo-marca">Novo atendimento</p>
+                <h3 id="msa-nova-t" class="eq-titulo msa-folha-h3">Abrir mesa</h3>
               </div>
-              <button
-                @click="modalNovaMesa = false; novaMesaNome = ''"
-                class="w-8 h-8 rounded-full flex items-center justify-center text-white/25 active:scale-90"
-                style="background: rgba(255,255,255,0.06);"
-              >
-                <X :size="15" />
+              <button type="button" class="eq-icone eq-icone-plano" aria-label="Fechar" @click="modalNovaMesa = false; novaMesaNome = ''"><X :size="20" /></button>
+            </div>
+            <div style="padding:4px 20px 0">
+              <label class="eq-campo">
+                <span>Nome da mesa (opcional)</span>
+                <input v-model="novaMesaNome" type="text" placeholder="Mesa 5, Varanda…" style="font-family:var(--eq-texto);font-weight:600;font-size:18px" enterkeyhint="go">
+              </label>
+              <p class="eq-apagado" style="margin:8px 4px 0;font-size:13px">Sem nome, ela recebe o próximo número.</p>
+            </div>
+            <div class="msa-folha-acoes">
+              <button type="submit" class="eq-btn eq-btn-primario" :disabled="abrindoMesa">
+                <span class="flex-1">{{ abrindoMesa ? 'Abrindo…' : 'Abrir mesa' }}</span>
+                <span class="eq-btn-seta"><ArrowRight :size="20" /></span>
               </button>
             </div>
-
-            <input
-              v-model="novaMesaNome"
-              type="text"
-              placeholder="Nome da mesa (ex: Mesa 5, Varanda...)"
-              class="w-full h-[50px] px-4 rounded-[14px] text-[14px] text-white placeholder:text-white/20 outline-none transition-all mb-4"
-              style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.07);"
-              @focus="($event.target as HTMLInputElement).style.borderColor='rgba(249,115,22,0.4)'"
-              @blur="($event.target as HTMLInputElement).style.borderColor='rgba(255,255,255,0.07)'"
-              @keypress.enter="abrirMesa"
-            />
-
-            <div class="flex gap-3">
-              <button
-                @click="modalNovaMesa = false; novaMesaNome = ''"
-                class="flex-1 h-[50px] rounded-[14px] text-white/30 text-[13px] font-black transition-all active:scale-95"
-                style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.07);"
-              >
-                Cancelar
-              </button>
-              <button
-                @click="abrirMesa"
-                :disabled="abrindoMesa"
-                class="flex-1 h-[50px] rounded-[14px] text-white text-[13px] font-black transition-all active:scale-95 disabled:opacity-50"
-                style="background: #f97316; box-shadow: 0 4px 16px rgba(249,115,22,0.3);"
-              >
-                {{ abrindoMesa ? 'Abrindo...' : 'Abrir Mesa' }}
-              </button>
-            </div>
-          </div>
+          </form>
         </div>
       </Transition>
     </Teleport>
@@ -398,12 +228,12 @@
 import { minutosDesde } from '~/lib/relogio'
 import { reais, numeroBR } from '~/lib/moeda'
 import { itensDaComanda } from '~/lib/comanda'
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import {
-  Plus, X, Loader2, LayoutGrid, UtensilsCrossed,
-  ShoppingBag, Search, ChevronLeft, Printer,
-  ChefHat,
+  Plus, Minus, X, Loader2, LayoutGrid, UtensilsCrossed,
+  Search, ChevronLeft, Printer, ChefHat, ArrowRight,
 } from 'lucide-vue-next'
+import { useTopoMobile } from '~/composables/useTopoMobile'
 import { useApi } from '~/services/api'
 import { useAuthStore } from '~/stores/auth'
 import { useToastStore } from '~/stores/toast'
@@ -428,8 +258,8 @@ const carrinhoAberto  = ref(false)
 const produtos       = ref<any[]>([])
 const buscaProduto   = ref('')
 const categoriaAtiva = ref('Todos')
-const adicionando    = ref<number | null>(null)
-const ajustando      = ref<number | null>(null)
+const adicionando    = ref<string | null>(null)
+const ajustando      = ref<string | null>(null)
 
 // ── Nova mesa ─────────────────────────────────────────────
 const modalNovaMesa = ref(false)
@@ -450,6 +280,51 @@ function formatarTempo(data: string) {
   const h = Math.floor(diff / 60), m = diff % 60
   return m > 0 ? `${h}h ${m}min` : `${h}h`
 }
+
+/** Minutos abertos, curto como no brief: 48′, 1h20 */
+function tempoCurto(data: string) {
+  if (!data) return ''
+  const diff = minutosDesde(data)
+  if (diff < 60) return `${diff}′`
+  const h = Math.floor(diff / 60), m = diff % 60
+  return m ? `${h}h${String(m).padStart(2, '0')}` : `${h}h`
+}
+
+/** Número da mesa em destaque ("Mesa 5" → 05); nome próprio (Varanda) fica por extenso */
+function numeroGrande(mesa: any): string {
+  const m = /^mesa\s*(\d{1,3})$/i.exec((mesa?.nome_mesa || '').trim())
+  if (m) return m[1].padStart(2, '0')
+  return mesa?.nome_mesa ? '' : String(mesa?.numero ?? '').padStart(2, '0')
+}
+const rotuloMesa = (mesa: any) => numeroGrande(mesa) || mesa.nome_mesa
+
+const kickerMesa = computed(() => {
+  const m = mesaSelecionada.value
+  if (!m) return ''
+  const partes = [m.status === 'fechando' ? 'Pediu a conta' : `Aberta há ${formatarTempo(m.data_abertura)}`]
+  if (m.garcom?.nome && m.garcom_id !== authStore.usuario?.id) partes.push(`de ${m.garcom.nome.split(' ')[0]}`)
+  return partes.join(' · ')
+})
+
+// ── Filtro do salão ──────────────────────────────────────
+const filtro = ref<'todas' | 'minhas' | 'conta'>('todas')
+const filtros = computed(() => {
+  const eu = authStore.usuario?.id
+  return [
+    { id: 'todas' as const, label: 'Todas', n: mesasAbertas.value.length },
+    { id: 'minhas' as const, label: 'Minhas', n: mesasAbertas.value.filter(m => m.garcom_id === eu).length },
+    { id: 'conta' as const, label: 'Pediu a conta', n: mesasAbertas.value.filter(m => m.status === 'fechando').length },
+  ]
+})
+const mesasFiltradas = computed(() => {
+  if (filtro.value === 'minhas') return mesasAbertas.value.filter(m => m.garcom_id === authStore.usuario?.id)
+  if (filtro.value === 'conta') return mesasAbertas.value.filter(m => m.status === 'fechando')
+  return mesasAbertas.value
+})
+
+// ── Topo do layout: dentro da mesa a tela tem o próprio (voltar + consumo) ──
+const topo = useTopoMobile()
+watch(mesaSelecionada, (m) => { topo.value = !m }, { immediate: true })
 
 // ── Computeds ─────────────────────────────────────────────
 const categorias = computed(() => {
@@ -486,6 +361,17 @@ async function enviarPedido() {
   }
 }
 
+/** Quantas unidades do produto já estão na comanda da mesa */
+function qtdNaMesa(produtoId: string) {
+  return itensMesa.value.reduce((s, i) => s + (i.produto_id === produtoId ? i.quantidade : 0), 0)
+}
+
+/** "−" no cartão do produto: tira do lançamento mais recente desse produto */
+function tirarUm(p: any) {
+  const ultimo = [...itensMesa.value].reverse().find(i => i.produto_id === p.id)
+  if (ultimo) decrementarItem(ultimo)
+}
+
 const quantidadeItensMesa = computed(() =>
   itensMesa.value.reduce((s, i) => s + i.quantidade, 0)
 )
@@ -500,7 +386,7 @@ async function carregarMesas() {
     // GET /mesas → { nome, garcom: { id, nome }, aberta_em, … }; a tela usa nome_mesa/garcom_id/data_abertura
     mesasAbertas.value = (rows || [])
       .filter((m: any) => m.status === 'aberta' || m.status === 'fechando')
-      .map((m: any) => ({ ...m, nome_mesa: m.nome, garcom_id: m.garcom?.id ?? null, data_abertura: m.aberta_em }))
+      .map((m: any) => ({ ...m, nome_mesa: m.nome, garcom_id: m.garcom?.id ?? null, data_abertura: m.aberta_em, total: Number(m.total) || 0 }))
   } catch {}
   finally { loading.value = false; mesasCarregadas = true }
 }
@@ -708,32 +594,100 @@ onMounted(async () => {
   intervalo = setInterval(carregarMesas, 30000)
 })
 
-onUnmounted(() => { if (intervalo) clearInterval(intervalo) })
+onUnmounted(() => { if (intervalo) clearInterval(intervalo); topo.value = true })
 </script>
 
 <style scoped>
-.sheet-enter-active,
-.sheet-leave-active { transition: opacity 0.22s; }
-.sheet-enter-active .absolute.bottom-0,
-.sheet-leave-active .absolute.bottom-0 {
-  transition: transform 0.3s cubic-bezier(0.32, 0.72, 0, 1);
-}
-.sheet-enter-from,
-.sheet-leave-to { opacity: 0; }
-.sheet-enter-from .absolute.bottom-0,
-.sheet-leave-to .absolute.bottom-0 { transform: translateY(100%); }
+.msa { display: flex; flex-direction: column; min-height: 100%; }
+.msa-centro { display: flex; justify-content: center; padding: 48px 0; }
+.msa-nada { margin: 0; padding: 20px 22px; font: 500 15px var(--eq-texto); color: var(--eq-mudo); }
 
-.fab-enter-active { transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.2s ease; }
-.fab-leave-active { transition: transform 0.18s ease-in, opacity 0.18s ease; }
-.fab-enter-from, .fab-leave-to { transform: scale(0.4) translateY(10px); opacity: 0; }
+/* Salão */
+.msa-cab { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 22px 18px 0; }
+.msa-h1 { margin: 0; font-size: 34px; }
+.msa-nova { display: flex; align-items: center; gap: 6px; height: 42px; padding: 0 16px; border-radius: 14px; border: 0; cursor: pointer; background: var(--eq-marca); color: var(--eq-sobre-marca); font: 700 14px var(--eq-texto); box-shadow: 0 8px 22px rgba(255, 122, 0, .3); }
+.msa-nova:active { transform: scale(.96); }
+.msa-filtros { padding: 16px 18px 14px; }
+.msa-grade { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; padding: 6px 18px 0; }
+.msa-mesa { all: unset; box-sizing: border-box; position: relative; padding: 9px; cursor: pointer; transition: transform .1s; }
+.msa-mesa:active { transform: scale(.96); }
+.msa-mesa:focus-visible { outline: 2px solid var(--eq-marca-clara); outline-offset: 2px; border-radius: 20px; }
+/* Cadeiras em volta da mesa */
+.msa-mesa .cad { position: absolute; border-radius: 3px; background: rgba(247, 244, 239, .55); }
+.msa-mesa.conta .cad { background: var(--eq-marca); }
+.cad.t, .cad.b { left: 30%; right: 30%; height: 5px; }
+.cad.t { top: 0; } .cad.b { bottom: 0; }
+.cad.l, .cad.r { top: 30%; bottom: 30%; width: 5px; }
+.cad.l { left: 0; } .cad.r { right: 0; }
+.msa-mesa-corpo { display: flex; flex-direction: column; justify-content: space-between; height: 92px; border-radius: 20px; padding: 11px 12px; background: var(--eq-tinta); color: var(--eq-sobre-marca); }
+.msa-mesa.conta .msa-mesa-corpo { background: var(--eq-marca); animation: eq-brilho 2.4s ease-in-out infinite; }
+.msa-mesa-topo { display: flex; justify-content: space-between; align-items: flex-start; gap: 4px; min-width: 0; }
+.msa-mesa-num { font: 800 26px/1 var(--eq-titulo); letter-spacing: -.02em; min-width: 0; }
+.msa-mesa-num.longo { font-size: 15px; line-height: 1.15; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; word-break: break-word; }
+.msa-mesa-tempo { flex: none; font-size: 11px; font-weight: 700; opacity: .75; }
+.msa-mesa-valor { display: flex; justify-content: space-between; gap: 4px; font-size: 12px; font-weight: 700; opacity: .9; white-space: nowrap; min-width: 0; }
+.msa-legenda { display: flex; gap: 16px; padding: 18px 22px 0; font: 500 12px var(--eq-texto); color: var(--eq-mudo); }
+.msa-legenda span { display: flex; align-items: center; gap: 6px; }
+.msa-legenda i { width: 10px; height: 10px; border-radius: 3px; }
+.msa-legenda i.aberta { background: var(--eq-tinta); }
+.msa-legenda i.conta { background: var(--eq-marca); }
+.msa-vazio { flex: 1; display: flex; flex-direction: column; align-items: flex-start; padding: 40px 22px; }
+.msa-vazio-ic { width: 72px; height: 72px; border-radius: 24px; display: grid; place-items: center; background: var(--eq-cartao); border: 1px solid var(--eq-linha); color: var(--eq-mudo); }
+.msa-vazio h3 { margin: 24px 0 8px; font-size: 24px; letter-spacing: -.02em; }
+.msa-vazio p { margin: 0; max-width: 300px; font: 500 15px/1.5 var(--eq-texto); color: var(--eq-mudo); }
 
-@keyframes badge-pop {
-  0%   { transform: scale(1); }
-  45%  { transform: scale(1.5); }
-  100% { transform: scale(1); }
-}
-.badge-pop { animation: badge-pop 0.28s cubic-bezier(0.34, 1.56, 0.64, 1); }
+/* Mesa aberta */
+.msa-mesa-cab { display: flex; align-items: center; gap: 12px; padding: calc(10px + env(safe-area-inset-top)) 18px 0; }
+.msa-voltar { width: 48px; height: 48px; border-radius: 16px; }
+.msa-consumo { margin: 0; font-size: 16px; font-weight: 700; }
+.msa-titulo { display: flex; align-items: flex-end; gap: 12px; padding: 18px 18px 16px; min-width: 0; }
+.msa-numerao { font-size: 88px; line-height: .8; letter-spacing: -.05em; color: var(--eq-marca); }
+.msa-titulo-txt { padding-bottom: 4px; min-width: 0; }
+.msa-titulo-txt p { margin: 0; }
+.msa-titulo-txt .eq-titulo { font-size: 22px; }
+.msa-titulo-txt .eq-mudo { margin-top: 4px; font: 500 13px var(--eq-texto); }
+.msa-nome-longo { font-size: 34px !important; color: var(--eq-marca); overflow-wrap: anywhere; }
+.msa-filtro-prod { padding: 0 18px; }
+.msa-produtos { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 16px 18px 96px; }
+.msa-prod { position: relative; display: flex; flex-direction: column; gap: 10px; min-height: 168px; padding: 14px; border-radius: 22px; background: var(--eq-cartao); border: 1.5px solid var(--eq-linha); cursor: pointer; transition: border-color .15s; }
+.msa-prod.tem { border-color: var(--eq-marca); }
+.msa-prod-ic { width: 44px; height: 44px; border-radius: 14px; display: grid; place-items: center; background: var(--eq-marca-fundo); color: var(--eq-marca-clara); }
+.msa-prod-nome { margin: 0; font: 700 15px/1.25 var(--eq-texto); overflow-wrap: anywhere; }
+.msa-prod-cat { margin: 2px 0 0; font: 500 12px var(--eq-texto); color: var(--eq-apagado); }
+.msa-prod-pe { display: flex; align-items: center; justify-content: space-between; gap: 6px; }
+.msa-prod-preco { font-size: 14px; font-weight: 700; color: var(--eq-marca-clara); }
+.msa-mais { flex: none; width: 44px; height: 44px; border-radius: 14px; border: 0; display: grid; place-items: center; cursor: pointer; background: var(--eq-marca); color: var(--eq-sobre-marca); }
+.msa-mais:active { transform: scale(.9); }
+.msa-passo { display: flex; align-items: center; justify-content: space-between; padding: 3px; border-radius: 14px; background: var(--eq-fundo); cursor: default; }
+.msa-passo button { width: 44px; height: 40px; border-radius: 11px; border: 0; display: grid; place-items: center; cursor: pointer; background: transparent; color: var(--eq-tinta); }
+.msa-passo button.mais { background: var(--eq-marca); color: var(--eq-sobre-marca); }
+.msa-passo button:disabled { opacity: .45; }
+.msa-passo span { font-size: 17px; font-weight: 700; }
+.msa-ver { position: fixed; left: 16px; right: 16px; bottom: calc(96px + env(safe-area-inset-bottom)); z-index: 25; padding: 0 10px 0 12px; gap: 12px; max-width: 528px; margin: 0 auto; box-shadow: 0 16px 40px rgba(255, 122, 0, .35); }
+.msa-ver-qtd { min-width: 44px; height: 44px; padding: 0 8px; border-radius: 15px; display: grid; place-items: center; background: var(--eq-sobre-marca); color: var(--eq-marca); font-size: 16px; font-weight: 700; animation: eq-pop .28s cubic-bezier(.34, 1.56, .64, 1); }
+.msa-ver-total { font-size: 15px; padding: 0 10px; }
+@keyframes eq-pop { 0% { transform: scale(1); } 40% { transform: scale(1.25); } 100% { transform: scale(1); } }
+.msa-barra-enter-active { transition: transform .25s ease-out, opacity .2s; }
+.msa-barra-leave-active { transition: transform .18s ease-in, opacity .18s; }
+.msa-barra-enter-from, .msa-barra-leave-to { transform: translateY(16px); opacity: 0; }
 
-.scrollbar-none::-webkit-scrollbar { display: none; }
-.scrollbar-none { -ms-overflow-style: none; scrollbar-width: none; }
+/* Folhas */
+.msa-folha-cab { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 20px 12px; }
+.msa-folha-cab p { margin: 0; }
+.msa-folha-h3 { margin: 2px 0 0; font-size: 26px; line-height: 1.1; }
+.msa-folha-itens { overflow: auto; padding: 0 20px; }
+.msa-linha { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 1px dashed rgba(255, 255, 255, .1); }
+.msa-linha-qtd { min-width: 30px; font-size: 15px; font-weight: 700; color: var(--eq-marca-clara); }
+.msa-linha-nome { margin: 0; font: 600 15px var(--eq-texto); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.msa-linha-rasc { margin: 2px 0 0; font: 700 11px var(--eq-texto); letter-spacing: .06em; text-transform: uppercase; color: var(--eq-alerta); }
+.msa-linha-sub { font-size: 14px; font-weight: 700; }
+.msa-linha-btn { width: 44px; height: 44px; border-radius: 14px; }
+.msa-linha-btn:disabled { opacity: .45; }
+.msa-folha-total { display: flex; align-items: baseline; justify-content: space-between; padding: 18px 20px 14px; }
+.msa-folha-total > span:first-child { font: 600 14px var(--eq-texto); color: var(--eq-mudo); }
+.msa-folha-total .eq-titulo { font-size: 30px; letter-spacing: -.02em; }
+.msa-folha-acoes { display: flex; flex-direction: column; gap: 10px; padding: 0 16px 22px; }
+.msa-folha-dupla { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.msa-folha-dupla .eq-btn { gap: 8px; padding: 0 16px; }
+.msa-nova-folha .msa-folha-acoes { padding-top: 20px; }
 </style>

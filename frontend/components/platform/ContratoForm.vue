@@ -7,7 +7,7 @@
         <small v-if="planosVisiveis.length && !m.planoId" style="color:var(--pf-muted)">Toque no plano para escolher</small>
         <div v-if="planosVisiveis.length" class="pf-rotas">
           <button v-for="pl in planosVisiveis" :key="pl.id" type="button" :class="{ sel: m.planoId === pl.id }" @click="escolherPlano(pl)">
-            <span>{{ pl.nome }} · {{ moeda(pl.valor) }}/mês</span>
+            <span>{{ pl.nome }} · {{ moeda(pl.valor) }}/mês<template v-if="pl.valorAnual"> · {{ moeda(pl.valorAnual) }}/ano</template></span>
             <small>{{ resumoRecursos(pl) }}</small>
           </button>
         </div>
@@ -31,7 +31,7 @@
         <div class="pf-fld full">
           <span class="pf-lab">Ciclo de cobrança</span>
           <div class="pf-chips">
-            <button v-for="c in CICLOS" :key="c.value" type="button" class="pf-fc" :aria-pressed="m.ciclo === c.value" @click="m.ciclo = c.value">{{ c.label }}</button>
+            <button v-for="c in CICLOS" :key="c.value" type="button" class="pf-fc" :aria-pressed="m.ciclo === c.value" @click="m.ciclo = c.value; valorManual = false">{{ c.label }}</button>
           </div>
         </div>
         <div class="pf-fld">
@@ -146,9 +146,15 @@ function resumoRecursos(pl: Plano) {
   return r.length ? r.join(', ') : 'Sem recursos extras'
 }
 
-// ── Valor: segue o plano × meses do ciclo até alguém digitar outro (desconto) ──
+// ── Valor: segue o plano (× meses do ciclo, ou o valor anual dele) até alguém digitar outro (desconto). Trocar o ciclo volta para o valor do plano ──
 const valorManual = ref(props.modo === 'edicao')
-const valorDoPlano = computed(() => planoEscolhido.value ? Math.round(planoEscolhido.value.valor * mesesCiclo(m.value.ciclo) * 100) / 100 : null)
+// No anual, usa o valor anual do plano quando ele tem um (definido em Planos)
+const valorDoPlano = computed(() => {
+  const pl = planoEscolhido.value
+  if (!pl) return null
+  if (m.value.ciclo === 'anual' && Number(pl.valorAnual) > 0) return Number(pl.valorAnual)
+  return Math.round(pl.valor * mesesCiclo(m.value.ciclo) * 100) / 100
+})
 const desconto = computed(() => {
   const v = Number(m.value.valor), p = valorDoPlano.value
   return p && v > 0 && v < p ? Math.round((1 - v / p) * 100) : 0

@@ -1,5 +1,6 @@
 import { getTenantSlug } from '~/composables/useTenantSlug'
 import { ehPainel } from '~/lib/hosts'
+import { lerSuporte } from '~/lib/sessaoSuporte'
 
 const ROTAS_LIVRES = ['/acesso', '/ativacao', '/login', '/m', '/platform', '/cardapio', '/pedido', '/manual', '/assinar']
 const CACHE_TTL = 60 * 1000
@@ -11,7 +12,8 @@ export default defineNuxtRouteMiddleware(async (to) => {
 
   const config = useRuntimeConfig()
 
-  if (localStorage.getItem('suporte_token') || localStorage.getItem('suporte_pending_token')) return
+  // Aba de suporte: entra mesmo com licença vencida (para ajudar a regularizar)
+  if (lerSuporte()) return
 
   const cache = useState<{ valido: boolean | null; ts: number }>(
     'licenca_cache',

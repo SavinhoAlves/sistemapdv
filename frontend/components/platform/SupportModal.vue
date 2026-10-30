@@ -40,7 +40,6 @@
 
 <script setup lang="ts">
 import { Eye, MousePointer2, Loader2 } from 'lucide-vue-next'
-import { useAuthStore } from '~/stores/auth'
 import { ehPainel, urlDoHost } from '~/lib/hosts'
 
 interface Tenant {
@@ -57,7 +56,6 @@ const emit = defineEmits<{
   'update:modelValue': [value: boolean]
 }>()
 
-const authStore           = useAuthStore()
 const toast               = useToast()
 const { platformFetch }   = usePlatformFetch()
 
@@ -82,21 +80,15 @@ async function confirmar() {
   const novaAba = window.open('about:blank', '_blank')
   try {
     const res = await platformFetch<any>(`/platform/tenants/${props.tenant.id}/support-token`, { method: 'POST', body: '{}' })
-    authStore.entrarComoSuporte(res.access_token, res.tenantNome, {
-      id: res.usuario.id, nome: res.usuario.nome, cargo: res.usuario.cargo,
-    }, props.modo)
     emit('update:modelValue', false)
-    // A aba nova abre fora do roteador: precisa do baseURL
+    // A aba nova abre fora do roteador: precisa do baseURL. A sessão vai no link,
+    // depois do # (não chega ao servidor), e fica só naquela aba (lib/sessaoSuporte.ts)
     const caminho = useRuntimeConfig().app.baseURL + rota.value.replace(/^\//, '')
     if (novaAba) {
-      // No painel.<domínio> o restaurante abre em app.<domínio>, que não enxerga o
-      // armazenamento do painel: a sessão vai no link, depois do # (não chega ao servidor)
-      novaAba.location.href = ehPainel()
-        ? urlDoHost('app', caminho) + '#suporte=' + encodeURIComponent(JSON.stringify({
-            token: res.access_token, tenant: res.tenantNome, modo: props.modo,
-            nome: res.usuario.nome, cargo: res.usuario.cargo, id: res.usuario.id,
-          }))
-        : caminho
+      novaAba.location.href = (ehPainel() ? urlDoHost('app', caminho) : caminho) + '#suporte=' + encodeURIComponent(JSON.stringify({
+        token: res.access_token, tenant: res.tenantNome, modo: props.modo,
+        nome: res.usuario.nome, cargo: res.usuario.cargo, id: res.usuario.id,
+      }))
     }
   } catch (e: any) {
     novaAba?.close()

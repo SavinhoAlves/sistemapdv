@@ -2,6 +2,7 @@ import { navigateTo, useRuntimeConfig } from 'nuxt/app'
 import { defineStore } from 'pinia'
 import { noApp } from '~/lib/app'
 import { limparOperador } from '~/lib/operador'
+import { gravarSuporte, lerSuporte, type SessaoSuporte } from '~/lib/sessaoSuporte'
 
 export interface Usuario {
   id: string
@@ -44,6 +45,9 @@ export const useAuthStore = defineStore('auth', {
   actions: {
     restoreSession() {
       if (!process.client) return
+      // Aba de suporte: só a sessão dela (nunca a do localStorage, que é de todas as abas)
+      const suporte = lerSuporte()
+      if (suporte) return this.entrarNaAbaDeSuporte(suporte)
 
       const token        = localStorage.getItem('auth_token')
       const refreshToken = localStorage.getItem('auth_refresh_token')
@@ -59,42 +63,31 @@ export const useAuthStore = defineStore('auth', {
           this.logout()
         }
       }
-
-      const suporteToken  = localStorage.getItem('suporte_token')
-      const suporteTenant = localStorage.getItem('suporte_tenant')
-      const suporteModo   = localStorage.getItem('suporte_modo') as 'visualizacao' | 'auxiliar' | null
-      if (suporteToken && suporteTenant) {
-        this.modoSuporte   = suporteModo ?? 'auxiliar'
-        this.suporteTenant = suporteTenant
-      }
     },
 
-    entrarComoSuporte(access_token: string, tenantNome: string, usuario: Usuario, modo: 'visualizacao' | 'auxiliar' = 'auxiliar') {
+    /**
+     * Aba de suporte (lib/sessaoSuporte.ts): a sessão fica só na memória e no
+     * sessionStorage desta aba; a sessão normal das outras abas não muda.
+     */
+    entrarNaAbaDeSuporte(s: SessaoSuporte) {
       if (!process.client) return
-      // Grava em chaves temporárias; a nova aba lê e migra para as chaves de auth normais.
-      // A abertura da aba é responsabilidade do chamador (SupportModal) para evitar race condition.
-      localStorage.setItem('suporte_pending_token',  access_token)
-      localStorage.setItem('suporte_pending_tenant', tenantNome)
-      localStorage.setItem('suporte_pending_modo',   modo)
-      localStorage.setItem('suporte_pending_nome',   usuario.nome)
-      localStorage.setItem('suporte_pending_cargo',  usuario.cargo)
-      localStorage.setItem('suporte_pending_id',     usuario.id)
+      gravarSuporte(s)
+      this.modoSuporte   = s.modo
+      this.suporteTenant = s.tenant
+      this.token         = s.token
+      this.refreshToken  = null
+      this.usuario       = { id: s.id, nome: s.nome, cargo: s.cargo as Usuario['cargo'] }
     },
 
     alterarModoSuporte(modo: 'visualizacao' | 'auxiliar') {
-      if (!process.client) return
-      localStorage.setItem('suporte_modo', modo)
+      if (!process.client || !this.modoSuporte || !this.token || !this.usuario) return
       this.modoSuporte = modo
+      gravarSuporte({ token: this.token, tenant: this.suporteTenant ?? '', modo, nome: this.usuario.nome, cargo: this.usuario.cargo, id: this.usuario.id })
     },
 
     sairDoSuporte() {
       if (!process.client) return
-      localStorage.removeItem('suporte_token')
-      localStorage.removeItem('suporte_tenant')
-      localStorage.removeItem('suporte_modo')
-      localStorage.removeItem('auth_token')
-      localStorage.removeItem('auth_refresh_token')
-      localStorage.removeItem('auth_user')
+      gravarSuporte(null)
       this.token         = null
       this.refreshToken  = null
       this.usuario       = null
@@ -107,6 +100,8 @@ export const useAuthStore = defineStore('auth', {
       this.token        = token
       this.usuario      = usuario
       this.refreshToken = refreshToken ?? null
+      // Na aba de suporte nada vai para o localStorage (é de todas as abas)
+      if (this.modoSuporte) return
 
       localStorage.setItem('auth_token', token)
       localStorage.setItem('auth_user', JSON.stringify(usuario))
@@ -116,6 +111,8 @@ export const useAuthStore = defineStore('auth', {
 
     /** `navegar = false`: só limpa a sessão (quem chamou cuida do redirecionamento) */
     logout(navegar = true) {
+      // Aba de suporte: encerra só ela, sem derrubar a sessão normal das outras abas
+      if (this.modoSuporte) return this.sairDoSuporte()
       limparOperador()
       this.token        = null
       this.refreshToken = null
@@ -155,7 +152,7 @@ export const useAuthStore = defineStore('auth', {
             perfil_id:  resp.auth.perfilId ?? null,
             permissoes: resp.auth.permissoes ?? null,
           } as Usuario
-          localStorage.setItem('auth_user', JSON.stringify(this.usuario))
+          if (!this.modoSuporte) localStorage.setItem('auth_user', JSON.stringify(this.usuario))
           this.ultimoRefresh = agora
           return antes !== JSON.stringify([this.usuario?.cargo, this.usuario?.permissoes ?? null])
         }

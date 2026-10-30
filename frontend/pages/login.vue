@@ -109,7 +109,8 @@ import { ref, reactive, onMounted, onUnmounted, nextTick } from 'vue'
 import { useApi } from '~/services/api'
 import { useAuthStore } from '~/stores/auth'
 import { usePlatformAuthStore } from '~/stores/platformAuth'
-import { getTenantSlug, setTenantSlug } from '~/composables/useTenantSlug'
+import { setTenantSlug } from '~/composables/useTenantSlug'
+import { terminalLocal } from '~/composables/useTerminalLocal'
 
 definePageMeta({ layout: false })
 
@@ -150,8 +151,8 @@ const rfidBuffer   = ref('')
 const form         = reactive({ email: '', senha: '' })
 let rfidTimer: ReturnType<typeof setTimeout> | null = null
 
-// ── Restaurante do aparelho ─────────────────────────────────────────────
-// Não é digitado: vem do último login (ou do subdomínio) e só é usado pelo crachá RFID.
+// ── Crachá: só nos terminais em que o administrador liberou ──────────────
+// O restaurante vem do terminal (Admin › Terminais), nunca do que ficou salvo no aparelho.
 const slugAtual = ref('')
 
 async function carregarConfig() {
@@ -236,11 +237,11 @@ function concluirLogin(res: any, slug: string, texto: string) {
 
 async function loginRfid(cartao_rfid: string) {
   const slug = slugAtual.value
-  if (!slug) return showMsg('error', 'Informe o código do restaurante.')
+  if (!slug) return
   rfidReading.value = true
   hideMsg()
   try {
-    const res: any = await api.auth.rfid(cartao_rfid, slug)
+    const res: any = await api.auth.rfid(cartao_rfid)
     concluirLogin(res, slug, `Bem-vindo, ${res.usuario?.nome}!`)
   } catch (e: any) {
     if (/suspenso/i.test(e?.message || '') && await verificarLicenca(slug)) return
@@ -324,12 +325,11 @@ onMounted(async () => {
     if (authStore.isAuthenticated) return navigateTo(noApp() ? destinoNoCelular(authStore.usuario?.cargo) : '/')
   }
 
-  // Restaurante guardado no aparelho (para o crachá); se não existir mais, é descartado
-  slugAtual.value = getTenantSlug() || ''
-  if (slugAtual.value) {
-    await api.get(`/auth/restaurante?ref=${encodeURIComponent(slugAtual.value)}`).catch((e: any) => {
-      if (/não encontrado/i.test(e?.message || '')) slugAtual.value = ''
-    })
+  // Crachá aparece só se este aparelho é um terminal com crachá liberado
+  // (e o plano do restaurante inclui o crachá: carregarConfig)
+  if (perfil.value === 'cli') {
+    const t = await terminalLocal()
+    slugAtual.value = t?.cracha && t.slug ? t.slug : ''
   }
   await carregarConfig()
   if (rfidAtivo.value && perfil.value === 'cli') setModo('rfid')

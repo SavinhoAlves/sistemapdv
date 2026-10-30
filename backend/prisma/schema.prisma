@@ -652,9 +652,14 @@ model Terminal {
   id        String   @id @default(uuid())
   tenantId  String   @map("tenant_id")
   nome      String
-  ip        String
+  /// Terminal do modo local, identificado pelo IP fixo (null = aparelho autorizado por chave)
+  ip        String?
+  /// Hash da chave guardada no aparelho autorizado em Admin › Terminais (nuvem ou Host)
+  tokenHash String?  @unique @map("token_hash")
   /// caixa | garcom | cozinha | app
   funcao    String
+  /// Login por crachá liberado neste terminal
+  cracha    Boolean  @default(false)
   ativo     Boolean  @default(true)
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")

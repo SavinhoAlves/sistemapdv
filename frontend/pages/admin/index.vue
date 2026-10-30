@@ -234,9 +234,8 @@ const tabsBase = [
   { id: 'categorias',   label: 'Categorias',   icon: Tag },
   { id: 'metodos',      label: 'Métodos',       icon: CreditCard }
 ]
-// Aba Terminais só existe com o sistema rodando no Host (modo local)
-const modoLocal = ref(false)
-const tabs = computed(() => modoLocal.value ? [...tabsBase, { id: 'terminais', label: 'Terminais', icon: Monitor }] : tabsBase)
+// Terminais: aparelhos autorizados (crachá no login) e, no Host, os IPs da rede local
+const tabs = computed(() => [...tabsBase, { id: 'terminais', label: 'Terminais', icon: Monitor }])
 // ?aba=metodos (link de Configurações › Integrações) abre direto na aba
 const abaPedida = String(useRoute().query.aba ?? '')
 const abaAtiva = ref(tabs.value.some(t => t.id === abaPedida) ? abaPedida : 'funcionarios')
@@ -350,7 +349,6 @@ const qrFuncionario = ref<any>(null)
 function gerarQrMobile(f: any) { qrFuncionario.value = f }
 
 onMounted(async () => {
-  api.get<{ modoLocal: boolean }>('/terminais/rede').then(r => { modoLocal.value = !!r?.modoLocal }).catch(() => {})
   recarregarEquipe()
   carregarCategorias()
   carregarMetodos()

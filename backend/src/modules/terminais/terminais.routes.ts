@@ -4,19 +4,29 @@ import { requireTenant } from '../../middlewares/tenant.middleware'
 import { requirePermissao } from '../../middlewares/permission.middleware'
 import { prisma } from '../../lib/prisma'
 import { estadoRede, recarregarRede, normalizarIp, ehOProprioHost, ipValido, modoLocal } from '../../lib/redeLocal'
+import { terminalDaRequisicao, novaChaveTerminal, hashChaveTerminal } from '../../lib/terminal'
 
 /**
- * Terminais do modo local (Host): cada computador/celular da rede com IP fixo e
- * função. Só os IPs cadastrados aqui acessam o Host.
+ * Terminais: cada computador/celular do restaurante com nome, função e se aceita
+ * login por crachá. No modo local (Host) são cadastrados por IP fixo, e só esses
+ * IPs acessam o Host; em qualquer modo o administrador pode autorizar o próprio
+ * aparelho, que passa a se identificar por uma chave (ver lib/terminal.ts).
  */
 const FUNCOES = ['caixa', 'garcom', 'cozinha', 'app'] as const
 
-const terminalBody = z.object({
+const aparelhoBody = z.object({
   nome: z.string().trim().min(1, 'Informe o nome do terminal').max(40),
-  ip: z.string().trim().refine(ipValido, 'IP inválido (ex.: 10.0.0.3)'),
   funcao: z.enum(FUNCOES),
+  cracha: z.boolean().optional(),
   ativo: z.boolean().optional(),
 })
+const terminalBody = aparelhoBody.extend({
+  ip: z.string().trim().refine(ipValido, 'IP inválido (ex.: 10.0.0.3)'),
+})
+
+// A chave do aparelho nunca sai do servidor depois de criada
+const semChave = { id: true, nome: true, ip: true, funcao: true, cracha: true, ativo: true, tokenHash: true, createdAt: true } as const
+const publico = ({ tokenHash, ...t }: { tokenHash: string | null } & Record<string, unknown>) => ({ ...t, aparelho: !!tokenHash })
 
 const primeiro = (e: z.ZodError) => e.issues[0]?.message ?? 'Dados inválidos'
 
@@ -35,31 +45,55 @@ export async function terminaisRoutes(app: FastifyInstance) {
       : { modoLocal: true, bloqueado: e.bloqueado, noHost: false, meuIp: ip }
   })
 
-  // Qual terminal sou eu (pelo IP): o frontend abre na tela da função
+  // Qual terminal sou eu (chave do aparelho ou IP): o frontend abre na tela da
+  // função e só mostra o crachá no login se este terminal tiver crachá liberado
   app.get('/eu', { config: { public: true } }, async (request) => {
-    if (!modoLocal()) return { terminal: null }
+    const t = await terminalDaRequisicao(request)
+    if (t) return { terminal: { id: t.id, nome: t.nome, funcao: t.funcao, ip: t.ip, cracha: t.cracha, slug: t.tenant.slug } }
     const ip = normalizarIp(request.ip)
-    const t = await prisma.terminal.findFirst({ where: { ip, ativo: true }, select: { nome: true, funcao: true, ip: true } })
-    return { terminal: t ?? (ehOProprioHost(ip) ? { nome: 'Host', funcao: 'caixa', ip } : null) }
+    return { terminal: modoLocal() && ehOProprioHost(ip) ? { nome: 'Host', funcao: 'caixa', ip, cracha: false } : null }
   })
 
-  app.get('/', admin, async (request) =>
-    prisma.terminal.findMany({ where: { tenantId: request.tenantId! }, orderBy: { ip: 'asc' } }))
+  app.get('/', admin, async (request) => {
+    const lista = await prisma.terminal.findMany({ where: { tenantId: request.tenantId! }, orderBy: [{ ip: 'asc' }, { nome: 'asc' }], select: semChave })
+    return lista.map(publico)
+  })
 
+  // Autoriza o aparelho de quem está logado: a chave volta uma única vez e
+  // fica guardada no navegador
+  app.post('/aparelho', admin, async (request, reply) => {
+    const b = aparelhoBody.safeParse(request.body)
+    if (!b.success) return reply.status(400).send({ error: primeiro(b.error) })
+    const chave = novaChaveTerminal()
+    const t = await prisma.terminal.create({ data: { tenantId: request.tenantId!, ...b.data, tokenHash: hashChaveTerminal(chave) }, select: semChave })
+    return reply.status(201).send({ terminal: publico(t), chave })
+  })
+
+  // Terminal por IP: só existe no modo local
   app.post('/', admin, async (request, reply) => {
+    if (!modoLocal()) return reply.status(400).send({ error: 'Terminal por IP só no modo local. Autorize o aparelho.' })
     const b = terminalBody.safeParse(request.body)
     if (!b.success) return reply.status(400).send({ error: primeiro(b.error) })
     const existe = await prisma.terminal.findFirst({ where: { tenantId: request.tenantId!, ip: b.data.ip }, select: { id: true } })
     if (existe) return reply.status(409).send({ error: `O IP ${b.data.ip} já está cadastrado` })
-    const t = await prisma.terminal.create({ data: { tenantId: request.tenantId!, ...b.data } })
+    const t = await prisma.terminal.create({ data: { tenantId: request.tenantId!, ...b.data }, select: semChave })
     await recarregarRede()
-    return reply.status(201).send(t)
+    return reply.status(201).send(publico(t))
   })
 
   app.put('/:id', admin, async (request, reply) => {
+    const { id } = request.params as { id: string }
+    const atual = await prisma.terminal.findFirst({ where: { id, tenantId: request.tenantId! }, select: { tokenHash: true } })
+    if (!atual) return reply.status(404).send({ error: 'Terminal não encontrado' })
+    // Aparelho autorizado não tem IP: muda só nome, função, crachá e ativo
+    if (atual.tokenHash) {
+      const b = aparelhoBody.safeParse(request.body)
+      if (!b.success) return reply.status(400).send({ error: primeiro(b.error) })
+      await prisma.terminal.updateMany({ where: { id, tenantId: request.tenantId! }, data: b.data })
+      return { ok: true }
+    }
     const b = terminalBody.safeParse(request.body)
     if (!b.success) return reply.status(400).send({ error: primeiro(b.error) })
-    const { id } = request.params as { id: string }
     const outro = await prisma.terminal.findFirst({ where: { tenantId: request.tenantId!, ip: b.data.ip, NOT: { id } }, select: { id: true } })
     if (outro) return reply.status(409).send({ error: `O IP ${b.data.ip} já está cadastrado` })
     const r = await prisma.terminal.updateMany({ where: { id, tenantId: request.tenantId! }, data: b.data })

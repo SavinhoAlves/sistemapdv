@@ -37,7 +37,8 @@ export async function asaas<T = any>(caminho: string, init: { method?: string; b
   const json = texto ? JSON.parse(texto) : {}
   if (!r.ok) {
     const msg = json?.errors?.[0]?.description || `Asaas respondeu ${r.status}`
-    throw new AsaasErro(msg, r.status === 401 ? 503 : 502)
+    // 401 = chave errada (configuração); 404 segue como 404 (ex.: cliente de outra conta)
+    throw new AsaasErro(msg, r.status === 401 ? 503 : r.status === 404 ? 404 : 502)
   }
   return json as T
 }

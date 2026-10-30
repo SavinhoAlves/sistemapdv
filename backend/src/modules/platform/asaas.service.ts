@@ -30,7 +30,14 @@ async function dadosDoRestaurante(tenantId: string) {
 
 /** Cria o cliente no Asaas (uma vez) e devolve o id. */
 async function garantirCliente(t: Awaited<ReturnType<typeof dadosDoRestaurante>>) {
-  if (t.tenant.asaasClienteId) return t.tenant.asaasClienteId
+  // Cliente salvo de outra conta/ambiente (ex.: criado no sandbox): confere se existe nesta conta
+  if (t.tenant.asaasClienteId) {
+    const existe = await asaas(`/customers/${t.tenant.asaasClienteId}`).then((c: any) => !c?.deleted).catch((e: AsaasErro) => {
+      if (e.status === 404) return false
+      throw e
+    })
+    if (existe) return t.tenant.asaasClienteId
+  }
   const cpfCnpj = soDigitos(t.tenant.cnpj) || soDigitos(t.tenant.cpfResponsavel)
   if (cpfCnpj.length !== 11 && cpfCnpj.length !== 14) {
     throw new AsaasErro('Cadastre o CNPJ ou o CPF do responsável do restaurante (Editar dados) antes de ativar a cobrança', 400)

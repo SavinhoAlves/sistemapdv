@@ -181,6 +181,8 @@ interface NovoPagamento {
   pagoEm: string
   forma?: string | null
   observacao?: string | null
+  /** Cobrança do Asaas (pagamento automático); repetida, não registra de novo */
+  asaasPagamentoId?: string | null
 }
 
 /** Registra o pagamento do ciclo em aberto e empurra o vencimento um ciclo. */
@@ -202,6 +204,7 @@ export async function registrarPagamento(tenantId: string, p: NovoPagamento) {
         pagoEm: dataDe(p.pagoEm),
         forma: p.forma ?? null,
         observacao: p.observacao || null,
+        asaasPagamentoId: p.asaasPagamentoId ?? null,
         periodoInicio: dataDe(inicio),
         periodoFim: dataDe(fim),
       },

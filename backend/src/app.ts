@@ -27,6 +27,7 @@ import { deliveryRoutes, deliveryPublicoRoutes, entregadorRoutes } from './modul
 import { contaClienteRoutes } from './modules/clientes/clientes.routes'
 import { platformAuthRoutes } from './modules/platform/platform-auth.routes'
 import { platformTenantsRoutes } from './modules/platform/platform-tenants.routes'
+import { platformAsaasRoutes, webhookAsaasRoutes } from './modules/platform/platform-asaas.routes'
 import { platformTicketsRoutes } from './modules/platform/platform-tickets.routes'
 import { platformPlanosRoutes, planosPublicosRoutes } from './modules/platform/platform-planos.routes'
 import { platformCobrancaRoutes } from './modules/platform/platform-cobranca.routes'
@@ -163,6 +164,8 @@ export async function buildApp() {
   await app.register(contaClienteRoutes,    { prefix: '/api/publico' })
   await app.register(entregadorRoutes,    { prefix: '/api/entregador' })
   await app.register(platformTenantsRoutes, { prefix: '/api/platform/tenants' })
+  await app.register(platformAsaasRoutes,   { prefix: '/api/platform/tenants' })
+  await app.register(webhookAsaasRoutes,    { prefix: '/api/webhooks' })
   await app.register(platformTicketsRoutes, { prefix: '/api/platform/tickets' })
   await app.register(platformPlanosRoutes,  { prefix: '/api/platform/planos' })
   await app.register(platformCobrancaRoutes, { prefix: '/api/platform/cobranca' })

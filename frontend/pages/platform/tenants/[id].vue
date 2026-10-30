@@ -86,6 +86,39 @@
             </div>
           </div>
 
+          <!-- Cobrança automática (Asaas) -->
+          <div class="pf-card">
+            <div class="pf-card-h">
+              <div><h2>Cobrança automática</h2><p>O Asaas cobra o cliente (Pix, boleto ou cartão) e o pagamento libera o acesso sozinho</p></div>
+              <span v-if="cobranca?.ativa" class="pf-pill pf-r ok"><i />Ligada</span>
+              <span v-else-if="cobranca && cobranca.configurado" class="pf-pill pf-r mute"><i />Desligada</span>
+            </div>
+            <div class="pf-pad">
+              <p v-if="!cobranca" style="color:var(--pf-muted)">Carregando…</p>
+              <p v-else-if="!cobranca.configurado" style="color:var(--pf-muted)">
+                Falta configurar o Asaas no servidor (ASAAS_API_KEY e ASAAS_WEBHOOK_TOKEN no .env). Depois disso, ligue aqui.
+              </p>
+              <template v-else>
+                <p v-if="cobranca.ambiente === 'sandbox'" class="pf-note warn" style="margin-bottom:12px"><span>Ambiente de <b>teste</b> do Asaas (sandbox): nenhuma cobrança é real.</span></p>
+                <p v-if="cobranca.erro" class="pf-note bad" style="margin-bottom:12px"><span>{{ cobranca.erro }}</span></p>
+                <div v-if="cobranca.cobrancas?.length" class="pf-versoes" style="margin-bottom:12px">
+                  <div v-for="c in cobranca.cobrancas" :key="c.id" class="pf-versao">
+                    <span><b>{{ diaBR(c.vencimento) }}</b> · {{ formatCurrency(c.valor) }}<template v-if="c.forma"> · {{ c.forma }}</template></span>
+                    <span class="pf-versao-acts">
+                      <span class="pf-pill pf-r" :class="STATUS_ASAAS[c.status]?.tom ?? 'mute'"><i />{{ STATUS_ASAAS[c.status]?.rotulo ?? c.status }}</span>
+                      <a v-if="c.link" class="pf-link" :href="c.link" target="_blank" rel="noopener">Link de pagamento</a>
+                    </span>
+                  </div>
+                </div>
+                <div class="pf-acts">
+                  <button v-if="!cobranca.ativa" class="pf-btn s p" :disabled="cobrancaOcupada" @click="ligarCobranca">Ligar cobrança automática</button>
+                  <button v-else class="pf-btn s" :disabled="cobrancaOcupada" @click="desligarCobranca">Desligar</button>
+                  <button class="pf-btn s" :disabled="cobrancaOcupada" @click="carregarCobranca">Atualizar</button>
+                </div>
+              </template>
+            </div>
+          </div>
+
           <!-- Contrato (documento) -->
           <div class="pf-card">
             <div class="pf-card-h">
@@ -596,6 +629,36 @@ function formatDate(d: string | null | undefined) { if (!d) return '—'; return
 function formatCurrency(v: string | number) { return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(v)) }
 function showToast(type: 'success' | 'error', text: string) { toastMsg.type = type; toastMsg.text = text; setTimeout(() => { toastMsg.text = '' }, 3000) }
 
+// ── Cobrança automática (Asaas) ──
+interface Cobranca { configurado: boolean; ambiente: string; ativa: boolean; erro?: string; cobrancas: { id: string; valor: number; vencimento: string; status: string; forma: string | null; link: string | null }[] }
+const cobranca = ref<Cobranca | null>(null)
+const cobrancaOcupada = ref(false)
+const STATUS_ASAAS: Record<string, { rotulo: string; tom: string }> = {
+  PENDING: { rotulo: 'Aguardando', tom: 'warn' }, OVERDUE: { rotulo: 'Vencida', tom: 'bad' },
+  RECEIVED: { rotulo: 'Paga', tom: 'ok' }, CONFIRMED: { rotulo: 'Paga', tom: 'ok' }, RECEIVED_IN_CASH: { rotulo: 'Paga', tom: 'ok' },
+  REFUNDED: { rotulo: 'Estornada', tom: 'mute' }, REFUND_REQUESTED: { rotulo: 'Estorno pedido', tom: 'mute' },
+}
+async function carregarCobranca() {
+  try { cobranca.value = await platformFetch<Cobranca>(`/platform/tenants/${route.params.id}/cobranca-automatica`) }
+  catch (e: any) { cobranca.value = { configurado: true, ambiente: '', ativa: false, cobrancas: [], erro: e?.message } }
+}
+async function ligarCobranca() {
+  const ok = await showConfirm('Ligar a cobrança automática?', 'O restaurante passa a receber as cobranças do Asaas no valor e no vencimento do contrato. Pagou, o acesso é liberado sozinho.', 'success')
+  if (!ok) return
+  cobrancaOcupada.value = true
+  try { cobranca.value = await platformFetch<Cobranca>(`/platform/tenants/${route.params.id}/cobranca-automatica`, { method: 'POST' }); showToast('success', 'Cobrança automática ligada') }
+  catch (e: any) { showToast('error', e?.message || 'Não deu para ligar a cobrança') }
+  finally { cobrancaOcupada.value = false }
+}
+async function desligarCobranca() {
+  const ok = await showConfirm('Desligar a cobrança automática?', 'A assinatura no Asaas é cancelada e as próximas cobranças não são geradas. Os pagamentos voltam a ser registrados à mão.', 'danger')
+  if (!ok) return
+  cobrancaOcupada.value = true
+  try { cobranca.value = await platformFetch<Cobranca>(`/platform/tenants/${route.params.id}/cobranca-automatica`, { method: 'DELETE' }); showToast('success', 'Cobrança automática desligada') }
+  catch (e: any) { showToast('error', e?.message || 'Não deu para desligar') }
+  finally { cobrancaOcupada.value = false }
+}
+
 async function carregar() {
   loading.value = !tenant.value
   erro.value = ''
@@ -606,7 +669,7 @@ async function carregar() {
     ])
     tenant.value = t
     historico.value = h
-    await Promise.all([carregarAdmin(), carregarVersoes()])
+    await Promise.all([carregarAdmin(), carregarVersoes(), carregarCobranca()])
   }
   catch (e: any) { erro.value = e?.message || 'Erro ao carregar' }
   finally { loading.value = false }

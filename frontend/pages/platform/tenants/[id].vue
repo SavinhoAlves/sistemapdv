@@ -547,7 +547,7 @@ const recursos = computed<{ chave: 'rfid' | 'vendaMobile' | 'delivery'; rotulo: 
   return [
     { chave: 'rfid',        rotulo: 'RFID',               icone: CreditCard, ativo: t.rfidDisponivel,       manual: t.rfidManual },
     { chave: 'vendaMobile', rotulo: 'Venda pelo celular', icone: Smartphone, ativo: t.vendaMobilePermitida, manual: t.vendaMobileManual },
-    { chave: 'delivery',    rotulo: 'Delivery',           icone: Bike,       ativo: t.deliveryDisponivel,   manual: t.deliveryManual },
+    { chave: 'delivery',    rotulo: 'Delivery (entrega)',         icone: Bike,       ativo: t.deliveryDisponivel,   manual: t.deliveryManual },
   ]
 })
 async function definirRecurso(chave: 'rfid' | 'vendaMobile' | 'delivery', valor: boolean | null) {

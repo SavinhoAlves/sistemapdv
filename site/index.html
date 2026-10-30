@@ -443,9 +443,9 @@ footer a:hover{color:var(--ink)}
     var tabela = document.getElementById('comparar')
     var esc = function (t) { var d = document.createElement('div'); d.textContent = t == null ? '' : String(t); return d.innerHTML }
     var valor = function (v) { return v.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }
-    var incluso = ['Mesas, comandas e conta dividida', 'Tela da cozinha e impressão', 'Caixa com dinheiro, cartão e Pix', 'Cardápio digital com QR code', 'Relatórios de vendas']
+    var incluso = ['Mesas, comandas e conta dividida', 'Tela da cozinha e impressão', 'Caixa com dinheiro, cartão e Pix', 'Cardápio digital com pedido para retirada', 'Relatórios de vendas']
     // NFC-e fica fora até existir no PDV
-    var extras = [['vendaMobile', 'Garçom pelo celular'], ['rfid', 'Crachá RFID para a equipe'], ['delivery', 'Delivery com app do entregador']]
+    var extras = [['vendaMobile', 'Garçom pelo celular'], ['rfid', 'Crachá RFID para a equipe'], ['delivery', 'Delivery (entrega) com app do entregador']]
 
     function sobConsulta() {
       lista.innerHTML = '<article class="plano"><div class="plano-nome"><h3>Planos sob consulta</h3></div>' +

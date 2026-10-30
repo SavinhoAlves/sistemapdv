@@ -21,9 +21,9 @@
               :class="ip === ipAtual ? 'bg-orange-500 border-orange-500 text-white' : 'border-gray-200 dark:border-white/10 text-gray-500 dark:text-white/50'"
               @click="trocarIp(ip)">{{ ip }}</button>
           </div>
-          <img :src="dataUrl" alt="QR code de acesso" class="mx-auto rounded-2xl border border-gray-200 dark:border-white/10" />
+          <img :src="dataUrl" alt="QR code de acesso" width="280" height="280" class="mx-auto rounded-2xl border border-gray-200 dark:border-white/10 bg-white" />
           <p class="text-xs text-gray-600 dark:text-white/60 mt-3">Peça para {{ funcionario.nome.split(' ')[0] }} ler com o app RestaurantePDV (Ler QR code) ou com a câmera do celular.</p>
-          <p class="text-[11px] text-gray-400 dark:text-white/35 mt-1">{{ entregador ? 'Vale por até 10 horas.' : 'Vale enquanto o caixa estiver aberto (até 10 horas).' }}</p>
+          <p class="text-[11px] text-gray-400 dark:text-white/35 mt-1">{{ entregador ? 'Vale por até 8 horas.' : 'Vale enquanto o caixa estiver aberto (até 8 horas).' }}</p>
           <a :href="url" target="_blank" rel="noopener" class="block mt-3 text-[10px] font-mono text-orange-500 break-all">{{ url }}</a>
         </template>
 
@@ -42,7 +42,9 @@ import QRCode from 'qrcode'
 import { useApi } from '~/services/api'
 
 /**
- * QR que abre o PDV no celular já logado como o funcionário (/m?t=TOKEN).
+ * QR que abre o PDV no celular já logado como o funcionário (/m?t=CÓDIGO).
+ * O código é curto e assinado (backend lib/jwt.ts assinarCodigoQr); /m troca
+ * pelo token de acesso em POST /auth/mobile.
  * A API recusa (409) quando o plano não inclui, o admin desligou em
  * Configurações → Acesso ou o caixa está fechado; o motivo aparece aqui.
  */
@@ -62,7 +64,8 @@ const ipAtual = ref('')
 async function montar(ip: string) {
   const porta = window.location.port ? `:${window.location.port}` : ''
   url.value = `${window.location.protocol}//${ip}${porta}${useRuntimeConfig().app.baseURL}m?t=${token.value}`
-  dataUrl.value = await QRCode.toDataURL(url.value, { width: 240, margin: 2 })
+  // O link agora é curto (código assinado, ~90 caracteres): QR de 37×37, quadradinhos grandes
+  dataUrl.value = await QRCode.toDataURL(url.value, { width: 280, margin: 2, errorCorrectionLevel: 'M' })
 }
 async function trocarIp(ip: string) { ipAtual.value = ip; await montar(ip) }
 

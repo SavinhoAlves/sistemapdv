@@ -8,6 +8,7 @@ import { requireTenant } from '../../middlewares/tenant.middleware'
 import { prisma } from '../../lib/prisma'
 import { motivoSemAcessoPeloQr } from '../configuracoes/configuracoes.service'
 import { permissoesAtuais } from '../../lib/permissoesAtuais'
+import * as Usuarios from '../usuarios/usuarios.service'
 
 export async function authRoutes(app: FastifyInstance) {
   // POST /api/auth/login
@@ -141,7 +142,11 @@ export async function authRoutes(app: FastifyInstance) {
     const { token } = request.body as any
     if (!token) return reply.status(400).send({ error: 'Token obrigatório' })
     try {
-      const payload = verifyAccessToken(token)
+      // QR novo: código curto assinado (q1.…). QR antigo: o próprio token de acesso
+      const doCodigo = String(token).startsWith('q1.') ? await Usuarios.sessaoPeloCodigoQr(token) : null
+      if (String(token).startsWith('q1.') && !doCodigo) return reply.status(401).send({ error: 'QR inválido ou expirado' })
+      const payload = doCodigo?.payload ?? verifyAccessToken(token)
+      const acesso = doCodigo?.token ?? token
       if (payload.type !== 'tenant') return reply.status(401).send({ error: 'Token inválido' })
 
       // Mesmas regras de quando o QR foi gerado (o caixa pode ter fechado desde então)
@@ -149,7 +154,7 @@ export async function authRoutes(app: FastifyInstance) {
       if (motivo) return reply.status(403).send({ error: motivo })
 
       return reply.send({
-        token,
+        token: acesso,
         slug: payload.slug,
         usuario: {
           id:         payload.sub,

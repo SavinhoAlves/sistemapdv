@@ -145,7 +145,7 @@ const alertasVisiveis = computed(() => alertas.value.filter(a => filtro.value ==
 const recursos = computed<{ rotulo: string; icone: Component; qtd: number }[]>(() => [
   { rotulo: 'RFID',              icone: CreditCard, qtd: tenants.value.filter(t => t.rfidDisponivel).length },
   { rotulo: 'Venda pelo celular', icone: Smartphone, qtd: tenants.value.filter(t => t.vendaMobilePermitida).length },
-  { rotulo: 'Delivery',          icone: Bike,       qtd: tenants.value.filter(t => t.deliveryDisponivel).length },
+  { rotulo: 'Delivery (entrega)',        icone: Bike,       qtd: tenants.value.filter(t => t.deliveryDisponivel).length },
 ])
 
 const nDias = (n?: number) => `${n ?? 0} ${n === 1 ? 'dia' : 'dias'}`

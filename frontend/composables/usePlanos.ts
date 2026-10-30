@@ -23,7 +23,7 @@ export type ChaveRecurso = 'rfid' | 'vendaMobile' | 'delivery' | 'nfce'
 export const RECURSOS: { chave: ChaveRecurso; rotulo: string; descricao: string; noSistema: boolean }[] = [
   { chave: 'rfid',        rotulo: 'RFID',               descricao: 'Login e identificação por crachá', noSistema: true },
   { chave: 'vendaMobile', rotulo: 'Venda pelo celular', descricao: 'Acesso via QR Code',               noSistema: true },
-  { chave: 'delivery',    rotulo: 'Delivery',           descricao: 'Pedidos de entrega',               noSistema: true },
+  { chave: 'delivery',    rotulo: 'Delivery (entrega)', descricao: 'Entrega com app do entregador; o cardápio com retirada vale para todos',               noSistema: true },
   { chave: 'nfce',        rotulo: 'Nota fiscal',        descricao: 'Emissão de NFC-e',                 noSistema: false },
 ]
 

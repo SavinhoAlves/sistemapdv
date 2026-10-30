@@ -7,7 +7,7 @@
         <small v-if="planosVisiveis.length && !m.planoId" style="color:var(--pf-muted)">Toque no plano para escolher</small>
         <div v-if="planosVisiveis.length" class="pf-rotas">
           <button v-for="pl in planosVisiveis" :key="pl.id" type="button" :class="{ sel: m.planoId === pl.id }" @click="escolherPlano(pl)">
-            <span>{{ pl.nome }} · {{ moeda(pl.valor) }}/mês<template v-if="pl.valorAnual"> · {{ moeda(pl.valorAnual) }}/ano</template></span>
+            <span>{{ pl.nome }} · {{ moeda(pl.valor) }}/mês<template v-if="pl.valorAnual"> · {{ moeda(pl.valorAnual) }}/ano</template><template v-if="!pl.ativo"> · fora de venda</template></span>
             <small>{{ resumoRecursos(pl) }}</small>
           </button>
         </div>
@@ -138,7 +138,8 @@ const FORMAS = [
 const { planos, carregar } = usePlanos()
 carregar()
 // Planos à venda + o atual (mesmo fora de venda, para continuar aparecendo)
-const planosVisiveis = computed(() => planos.value.filter(pl => pl.ativo || pl.id === m.value.planoId))
+// Todos os planos: os à venda primeiro; os fora de venda (ex.: plano interno de teste) também podem ser escolhidos
+const planosVisiveis = computed(() => [...planos.value].sort((a, b) => Number(b.ativo) - Number(a.ativo)))
 const planoEscolhido = computed(() => planos.value.find(pl => pl.id === m.value.planoId) ?? null)
 
 function resumoRecursos(pl: Plano) {

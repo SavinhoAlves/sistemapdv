@@ -1,6 +1,6 @@
 import { prisma } from '../../lib/prisma'
 import { asaas, asaasConfigurado, asaasAmbiente, AsaasErro } from '../../lib/asaas'
-import { contratoAtual, registrarPagamento, hojeBR, ymd } from './assinatura'
+import { contratoAtual, registrarPagamento, desfazerPagamento, hojeBR, ymd } from './assinatura'
 
 /**
  * Cobrança automática da mensalidade pelo Asaas.
@@ -166,6 +166,7 @@ export async function processarEvento(evento: { event?: string; payment?: any })
   const tipo = evento.event
   const p = evento.payment
   if (!p?.id || !p.subscription) return { ignorado: true }
+  if (tipo && ESTORNO.has(tipo)) return estornar(p.id, tipo)
   if (tipo !== 'PAYMENT_RECEIVED' && tipo !== 'PAYMENT_CONFIRMED') return { ignorado: true }
 
   const ja = await prisma.pagamentoMensalidade.findUnique({ where: { asaasPagamentoId: p.id }, select: { id: true } })
@@ -189,4 +190,25 @@ export async function processarEvento(evento: { event?: string; payment?: any })
     throw e
   }
   return { registrado: true }
+}
+
+/** Eventos do Asaas que tiram o dinheiro de um pagamento já registrado. */
+const ESTORNO = new Set(['PAYMENT_REFUNDED', 'PAYMENT_PARTIALLY_REFUNDED', 'PAYMENT_CHARGEBACK_REQUESTED', 'PAYMENT_CHARGEBACK_DISPUTE', 'PAYMENT_RECEIVED_IN_CASH_UNDONE', 'PAYMENT_DELETED'])
+
+/**
+ * Estorno ou contestação de uma cobrança já registrada: desfaz o pagamento.
+ * O vencimento volta e o acesso segue a regra de sempre (tolerância e bloqueio).
+ * Só dá para desfazer o pagamento mais recente; se não for, fica registrado no log
+ * para acertar à mão no painel.
+ */
+async function estornar(asaasPagamentoId: string, tipo: string) {
+  const pag = await prisma.pagamentoMensalidade.findUnique({ where: { asaasPagamentoId }, select: { id: true, tenantId: true } })
+  if (!pag) return { ignorado: true }
+  try {
+    await desfazerPagamento(pag.id)
+    return { desfeito: true, motivo: tipo }
+  } catch (e: any) {
+    console.warn(`[asaas] ${tipo} da cobrança ${asaasPagamentoId} (restaurante ${pag.tenantId}) não desfeito sozinho: ${e.message}`)
+    return { pendente: true, motivo: e.message }
+  }
 }

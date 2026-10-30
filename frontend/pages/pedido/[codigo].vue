@@ -60,21 +60,9 @@
           <p class="mt-2 text-xs cdp-mudo">Informe este código ao entregador quando receber o pedido.</p>
         </section>
 
-        <!-- Mapa: do aceite até a entrega. Em rota, o entregador ao vivo e a rota até você -->
+        <!-- Mapa: do aceite até a entrega. Em rota, o entregador ao vivo e as paradas até você -->
         <section v-if="p.rota" class="mt-4 rounded-3xl cdp-cartao p-4">
-          <template v-if="p.rota.emRota">
-            <p class="text-sm font-black">{{ p.rota.entregador.nome }} está a caminho</p>
-            <p class="text-sm cdp-mudo mt-0.5">
-              {{ p.rota.paradasAntes === 0 ? 'Sua entrega é a próxima.' : p.rota.paradasAntes === 1 ? 'Falta 1 entrega antes da sua.' : `Faltam ${p.rota.paradasAntes} entregas antes da sua.` }}
-              <template v-if="p.rota.entregador.posicao"> Posição de {{ hora(p.rota.entregador.posicao.em) }}.</template>
-            </p>
-          </template>
-          <template v-else>
-            <p class="text-sm font-black">Caminho da entrega</p>
-            <p class="text-sm cdp-mudo mt-0.5">Quando o pedido sair, você acompanha o entregador aqui, ao vivo.</p>
-          </template>
-          <MapaDelivery v-if="marcadores.length" class="mt-3" :marcadores="marcadores" :rotas="rotas" altura="260px"
-            descricao="Mapa com a rota até o seu endereço" />
+          <AcompanharEntrega :rota="p.rota" :restaurante="p.restaurante.nome" />
         </section>
 
         <!-- Itens -->
@@ -101,7 +89,7 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { Check, Inbox, ChefHat, PackageCheck, Bike, Home, UtensilsCrossed } from 'lucide-vue-next'
 import { useTemaDoAparelho } from '~/composables/useTemaDoAparelho'
-import MapaDelivery from '~/components/MapaDelivery.vue'
+import AcompanharEntrega from '~/components/cardapio/AcompanharEntrega.vue'
 import PixQrCode from '~/components/PixQrCode.vue'
 
 definePageMeta({ layout: false })
@@ -151,26 +139,6 @@ function previsao(x: any) {
   const ini = new Date(x.linhaDoTempo.aceito ?? x.linhaDoTempo.recebido).getTime()
   return `${hora(new Date(ini + x.tempoMin * 60000).toISOString())} – ${hora(new Date(ini + (x.tempoMin + 15) * 60000).toISOString())}`
 }
-
-// Só o necessário: restaurante, o entregador e o endereço DESTE cliente (os outros nunca aparecem)
-const marcadores = computed(() => {
-  const r = p.value?.rota
-  if (!r) return []
-  const m: any[] = []
-  if (r.restaurante) m.push({ id: 'r', tipo: 'restaurante', ...r.restaurante, titulo: p.value.restaurante.nome })
-  if (r.destino) m.push({ id: 'd', tipo: 'destino', ...r.destino, rotulo: '★', titulo: 'Seu endereço' })
-  if (r.entregador?.posicao) m.push({ id: 'e', tipo: 'entregador', lat: r.entregador.posicao.lat, lng: r.entregador.posicao.lng, titulo: r.entregador.nome })
-  return m
-})
-// Rota destacada: do entregador (ou do restaurante, antes de sair) até o cliente.
-// Com entregas antes da sua, a linha fica cinza: ele ainda passa em outros endereços.
-const rotas = computed(() => {
-  const r = p.value?.rota
-  if (!r?.destino) return []
-  const de = r.entregador?.posicao ?? r.restaurante
-  if (!de) return []
-  return [{ id: 'cliente', pontos: [{ lat: de.lat, lng: de.lng }, r.destino], destaque: r.emRota && r.paradasAntes === 0 }]
-})
 
 let timer: ReturnType<typeof setInterval> | null = null
 async function carregar() {

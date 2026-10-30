@@ -280,8 +280,8 @@ function marcadoresCard(p: any) {
     if (!x.destino) return
     const n = x.ordemRota ?? i + 1
     m.push(x.id === p.id
-      ? { id: x.id, tipo: 'destino', ...x.destino, rotulo: varias ? String(n) : '★', titulo: `${x.codigo} · ${x.clienteNome}` }
-      : { id: x.id, tipo: 'parada', ...x.destino, rotulo: String(n), titulo: `${n}. ${x.codigo} · ${x.bairro ?? ''}` })
+      ? { id: x.id, tipo: 'destino', ...x.destino, rotulo: varias ? `${n}ª` : '★', titulo: `${x.codigo} · ${x.clienteNome}` }
+      : { id: x.id, tipo: 'parada', ...x.destino, rotulo: `${n}ª`, titulo: `${n}ª parada · ${x.codigo} · ${x.bairro ?? ''}` })
   })
   return m
 }

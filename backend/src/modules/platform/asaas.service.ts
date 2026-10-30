@@ -88,6 +88,30 @@ export async function ativarCobranca(tenantId: string) {
 }
 
 /**
+ * Assinatura feita pelo site: cria (ou reaproveita) a assinatura com a forma
+ * escolhida, Pix ou cartão (a cobrança do Asaas só oferece essa), vencendo hoje,
+ * e devolve o link de pagamento da primeira cobrança em aberto. O pagamento
+ * chega pelo webhook (processarEvento) e libera o acesso.
+ */
+export async function cobrancaDaAssinaturaOnline(tenantId: string, forma: 'PIX' | 'CREDIT_CARD') {
+  const t = await dadosDoRestaurante(tenantId)
+  const customer = await garantirCliente(t)
+  const corpo = { ...corpoAssinatura(t.contrato, t.tenant.nome), billingType: forma, nextDueDate: hojeBR() }
+  let assinaturaId = t.contrato.asaasAssinaturaId
+  if (assinaturaId) {
+    await asaas(`/subscriptions/${assinaturaId}`, { method: 'POST', body: { billingType: forma, updatePendingPayments: true } })
+  } else {
+    const ass = await asaas<{ id: string }>('/subscriptions', { method: 'POST', body: { ...corpo, customer } })
+    assinaturaId = ass.id
+    await prisma.contrato.update({ where: { id: t.contrato.id }, data: { asaasAssinaturaId: ass.id } })
+  }
+  const r = await asaas<{ data: any[] }>(`/subscriptions/${assinaturaId}/payments?status=PENDING&limit=1`)
+  const link = r.data?.[0]?.invoiceUrl as string | undefined
+  if (!link) throw new AsaasErro('O Asaas não devolveu o link de pagamento. Tente de novo em instantes.', 502)
+  return link
+}
+
+/**
  * Contrato editado (valor, ciclo, vencimento): leva a mudança para a assinatura.
  * Sem assinatura ou sem Asaas configurado, não faz nada. Erro vira aviso.
  */

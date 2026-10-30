@@ -14,6 +14,9 @@ export default defineNuxtConfig({
     families: {
       Sora: [300, 400, 500, 600, 700, 800, 900],
       'JetBrains Mono': [400, 500, 600, 700],
+      // App da equipe (assets/css/equipe.css)
+      'Bricolage Grotesque': [500, 700, 800],
+      Manrope: [400, 500, 600, 700],
     },
   },
 
@@ -59,7 +62,7 @@ export default defineNuxtConfig({
     }
   },
 
-  css: ['~/assets/css/tokens.css', '~/assets/css/main.css', '~/assets/css/auth.css', '~/assets/css/platform.css'],
+  css: ['~/assets/css/tokens.css', '~/assets/css/main.css', '~/assets/css/auth.css', '~/assets/css/platform.css', '~/assets/css/equipe.css'],
 
   ssr: false, // SPA mode para LAN
 

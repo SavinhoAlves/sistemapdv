@@ -1,67 +1,35 @@
 <template>
-  <div class="min-h-screen bg-neutral-950 flex items-center justify-center p-6">
-
+  <div class="eq m-st">
     <!-- LOADING -->
-    <div v-if="loading" class="flex flex-col items-center gap-4 text-center">
-      <div class="w-16 h-16 rounded-2xl bg-orange-500/10 border border-orange-500/20 flex items-center justify-center">
-        <Loader2 :size="28" class="animate-spin text-orange-400" />
-      </div>
-      <div>
-        <p class="text-sm font-black text-white">Autenticando...</p>
-        <p class="text-xs text-white/40 mt-1">Aguarde um momento</p>
-      </div>
+    <div v-if="loading" class="m-st-caixa" role="status">
+      <span class="m-st-ic m-st-ic-marca"><Loader2 :size="30" class="animate-spin" /></span>
+      <h2 class="eq-titulo">Entrando…</h2>
+      <p>Conferindo o seu acesso.</p>
     </div>
 
     <!-- MOBILE DESATIVADO -->
-    <div v-else-if="mobileDesativado" class="flex flex-col items-center gap-5 text-center max-w-xs">
-      <div class="w-16 h-16 rounded-2xl bg-orange-500/10 border border-orange-500/20 flex items-center justify-center">
-        <WifiOff :size="28" class="text-orange-400" />
-      </div>
-      <div>
-        <h2 class="text-lg font-black text-white">Acesso mobile desativado</h2>
-        <p class="text-sm text-white/50 mt-1.5 leading-relaxed">
-          O administrador desativou o acesso mobile neste sistema.
-        </p>
-      </div>
-      <div class="w-full h-px bg-white/[0.08]"></div>
-      <p class="text-[11px] text-white/20">PDV Mobile · Restaurante</p>
+    <div v-else-if="mobileDesativado" class="m-st-caixa">
+      <span class="m-st-ic"><WifiOff :size="30" /></span>
+      <h2 class="eq-titulo">Acesso pelo celular desligado</h2>
+      <p>O administrador desligou o acesso pelo celular neste restaurante.</p>
     </div>
 
     <!-- CAIXA FECHADO -->
-    <div v-else-if="caixaFechado" class="flex flex-col items-center gap-5 text-center max-w-xs">
-      <div class="w-16 h-16 rounded-2xl bg-orange-500/10 border border-orange-500/20 flex items-center justify-center">
-        <LockKeyhole :size="28" class="text-orange-400" />
-      </div>
-      <div>
-        <h2 class="text-lg font-black text-white">Caixa fechado</h2>
-        <p class="text-sm text-white/50 mt-1.5 leading-relaxed">
-          Aguarde o administrador abrir o caixa para iniciar o plantão.
-        </p>
-      </div>
-      <button v-if="app" class="h-11 px-6 rounded-xl border border-white/10 text-sm font-bold text-white/70" @click="voltar">Voltar ao início</button>
-      <div class="w-full h-px bg-white/[0.08]"></div>
-      <p class="text-[11px] text-white/20">PDV Mobile · Restaurante</p>
+    <div v-else-if="caixaFechado" class="m-st-caixa">
+      <span class="m-st-ic m-st-ic-marca"><LockKeyhole :size="30" /></span>
+      <h2 class="eq-titulo">Caixa fechado</h2>
+      <p>Aguarde o administrador abrir o caixa para começar o turno.</p>
+      <button v-if="app" class="eq-btn eq-btn-secundario m-st-btn" @click="voltar">Voltar ao início</button>
     </div>
 
     <!-- ERRO / SEM TOKEN -->
-    <div v-else-if="erro" class="flex flex-col items-center gap-5 text-center max-w-xs">
-      <div class="w-16 h-16 rounded-2xl bg-red-500/10 border border-red-500/20 flex items-center justify-center">
-        <AlertCircle :size="28" class="text-red-400" />
-      </div>
-      <div>
-        <h2 class="text-lg font-black text-white">Acesso negado</h2>
-        <p class="text-sm text-white/50 mt-1.5 leading-relaxed">
-          {{ erro }}
-        </p>
-      </div>
-      <p class="text-xs text-white/30 leading-relaxed">
-        Peça ao administrador para gerar um novo QR Code e escaneie novamente.
-      </p>
-      <button v-if="app" class="h-11 px-6 rounded-xl border border-white/10 text-sm font-bold text-white/70" @click="voltar">Voltar ao início</button>
-      <div class="w-full h-px bg-white/[0.08]"></div>
-      <p class="text-[11px] text-white/20">PDV Mobile · Restaurante</p>
+    <div v-else-if="erro" class="m-st-caixa">
+      <span class="m-st-ic m-st-ic-erro"><AlertCircle :size="30" /></span>
+      <h2 class="eq-titulo">Acesso negado</h2>
+      <p>{{ erro }}</p>
+      <p class="m-st-dica">Peça ao administrador para gerar um novo QR code e leia de novo.</p>
+      <button v-if="app" class="eq-btn eq-btn-secundario m-st-btn" @click="voltar">Voltar ao início</button>
     </div>
-
   </div>
 </template>
 
@@ -75,6 +43,7 @@ import { noApp } from '~/lib/app'
 import { setTenantSlug } from '~/composables/useTenantSlug'
 
 definePageMeta({ layout: false })
+useHead({ meta: [{ name: 'theme-color', content: '#0A0A0B' }] })
 
 const route     = useRoute()
 const authStore = useAuthStore()
@@ -160,3 +129,15 @@ onMounted(async () => {
   }
 })
 </script>
+
+<style scoped>
+.m-st { min-height: 100dvh; display: flex; align-items: center; justify-content: center; padding: calc(24px + env(safe-area-inset-top)) 24px calc(24px + env(safe-area-inset-bottom)); }
+.m-st-caixa { width: 100%; max-width: 340px; display: flex; flex-direction: column; align-items: flex-start; }
+.m-st-ic { width: 72px; height: 72px; border-radius: 24px; display: grid; place-items: center; background: var(--eq-cartao); border: 1px solid var(--eq-linha); color: var(--eq-mudo); }
+.m-st-ic-marca { background: var(--eq-marca); border-color: var(--eq-marca); color: var(--eq-sobre-marca); }
+.m-st-ic-erro { background: rgba(248, 113, 113, .12); border-color: rgba(248, 113, 113, .25); color: var(--eq-perigo); }
+.m-st h2 { margin: 22px 0 0; font-size: 34px; }
+.m-st p { margin: 10px 0 0; font: 500 16px/1.45 var(--eq-texto); color: var(--eq-mudo); }
+.m-st .m-st-dica { font-size: 14px; color: var(--eq-apagado); }
+.m-st-btn { width: 100%; margin-top: 28px; }
+</style>

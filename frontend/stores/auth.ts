@@ -114,7 +114,8 @@ export const useAuthStore = defineStore('auth', {
       else localStorage.removeItem('auth_refresh_token')
     },
 
-    logout() {
+    /** `navegar = false`: só limpa a sessão (quem chamou cuida do redirecionamento) */
+    logout(navegar = true) {
       limparOperador()
       this.token        = null
       this.refreshToken = null
@@ -127,7 +128,7 @@ export const useAuthStore = defineStore('auth', {
       }
 
       // No app da equipe a saída volta para a tela de ler o QR
-      navigateTo(noApp() ? '/acesso' : '/login')
+      if (navegar) navigateTo(noApp() ? '/acesso' : '/login')
     },
 
     /**

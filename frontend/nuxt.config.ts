@@ -47,9 +47,15 @@ export default defineNuxtConfig({
       meta: [
         { charset: 'utf-8' },
         { name: 'viewport', content: 'width=device-width, initial-scale=1' },
-        { name: 'description', content: 'Sistema PDV para Restaurante' }
+        { name: 'description', content: 'Sistema PDV para Restaurante' },
+        { name: 'theme-color', content: '#FF7A00' }
       ],
-      link: []
+      // Ícone da marca: garfo e faca cruzados, brancos no laranja (public/favicon.*)
+      link: [
+        { rel: 'icon', type: 'image/svg+xml', href: '/favicon.svg' },
+        { rel: 'icon', type: 'image/x-icon', href: '/favicon.ico', sizes: '48x48' },
+        { rel: 'apple-touch-icon', href: '/apple-touch-icon.png' }
+      ]
     }
   },
 

@@ -103,6 +103,7 @@
 
 <script setup lang="ts">
 import { navigateTo } from 'nuxt/app'
+import { AVISO_INATIVIDADE } from '~/lib/inatividade'
 import { noApp, destinoNoCelular } from '~/lib/app'
 import { ehApp, ehPainel, urlDoHost } from '~/lib/hosts'
 import { ref, reactive, onMounted, onUnmounted, nextTick } from 'vue'
@@ -317,6 +318,13 @@ function showMsg(type: 'error' | 'success', text: string) { msg.type = type; msg
 function hideMsg() { msg.text = ''; invalido.value = null }
 
 onMounted(async () => {
+  // Saída automática por 8h sem uso (plugins/inatividade.client.ts): avisa no fim,
+  // depois que a escolha do modo (crachá ou senha) já limpou as mensagens
+  let saiuPorInatividade = false
+  try {
+    saiuPorInatividade = !!sessionStorage.getItem(AVISO_INATIVIDADE)
+    sessionStorage.removeItem(AVISO_INATIVIDADE)
+  } catch { /* sem armazenamento: sem aviso */ }
   if (perfil.value === 'ges') {
     platformAuth.restore()
     if (platformAuth.isAuthenticated) return navigateTo('/platform')
@@ -334,6 +342,7 @@ onMounted(async () => {
   await carregarConfig()
   if (rfidAtivo.value && perfil.value === 'cli') setModo('rfid')
   else nextTick(() => emailRef.value?.focus())
+  if (saiuPorInatividade) showMsg('error', 'Sua sessão foi encerrada após 8 horas sem uso. Entre novamente.')
 })
 
 onUnmounted(() => {

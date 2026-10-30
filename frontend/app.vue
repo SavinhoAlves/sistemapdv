@@ -101,6 +101,8 @@
   <UiToastContainer />
   <CartaoGlobal />
   <OfertaBiometria />
+  <!-- Pedido do suporte para ver esta tela ao vivo (Central › Ver tela ao vivo) -->
+  <EspelhoSuporte />
 </template>
 
 <script setup lang="ts">

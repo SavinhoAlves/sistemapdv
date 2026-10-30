@@ -333,7 +333,7 @@ select.pf-inp { appearance: auto; }
 /* ── Planos ── */
 .pf-plans { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 20px; }
 .pf-pc {
-  --corte: 128px; /* furo na altura do tracejado: 20 (padding) + 94 (topo) + 6 (gap) + 8 (margem) */
+  --corte: 146px; /* furo na altura do tracejado: 20 (padding) + 112 (topo) + 6 (gap) + 8 (margem) */
   position: relative;
   display: flex; flex-direction: column; gap: 6px;
   padding: 20px 22px 22px;
@@ -347,11 +347,12 @@ select.pf-inp { appearance: auto; }
                 radial-gradient(circle 10px at 100% var(--corte), #0000 98%, #000) right / 51% 100% no-repeat;
 }
 .pf-pc h3 { font-size: 19px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.pf-pc-topo { height: 94px; display: flex; flex-direction: column; gap: 4px; overflow: hidden; }
+.pf-pc-topo { height: 112px; display: flex; flex-direction: column; gap: 4px; overflow: hidden; }
 .pf-pc-desc { margin: 0 0 10px; font-size: 14px; color: var(--pf-paper-muted); }
 .pf-pc .pf-use { color: var(--pf-paper-muted); }
 .pf-pc.inativo { opacity: .7; }
 .pf-pr { font: 600 26px/1.1 var(--fonte-numero); font-variant-numeric: tabular-nums; letter-spacing: -.03em; white-space: nowrap; }
+.pf-pr-anual { font: 500 13px var(--fonte-numero); color: var(--pf-paper-muted); }
 .pf-pr small { font: 400 13px var(--fonte-texto); color: var(--pf-paper-muted); letter-spacing: 0; }
 .pf-use { color: var(--pf-muted); font-size: 14px; }
 .pf-pc ul { list-style: none; padding: 14px 0 12px; margin: 8px 0 4px; border-top: 1.5px dashed var(--pf-paper-line); display: grid; gap: 8px; }

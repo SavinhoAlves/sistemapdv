@@ -339,7 +339,7 @@ footer a:hover{color:var(--ink)}
         <div style="display:flex;flex-direction:column;align-items:flex-end;gap:12px">
           <div class="ciclo" role="group" aria-label="Forma de pagamento">
             <button type="button" data-ciclo="mensal" aria-pressed="true">Mensal</button>
-            <button type="button" data-ciclo="anual" aria-pressed="false">Anual <span class="off">2 meses grátis</span></button>
+            <button type="button" data-ciclo="anual" aria-pressed="false">Anual <span class="off">economize</span></button>
           </div>
           <p class="lead" style="text-align:right">Preço fixo, sem taxa por pedido.</p>
         </div>
@@ -399,7 +399,7 @@ footer a:hover{color:var(--ink)}
         <details><summary>Dá para imprimir os pedidos na cozinha?</summary><p>Dá. Os pedidos podem ir para a tela da cozinha, para uma impressora térmica ou para as duas, e o caixa imprime o cupom da conta.</p></details>
         <details><summary>Quais formas de pagamento posso receber?</summary><p>Dinheiro, cartão de crédito e débito e Pix. Também é possível dividir a conta entre os clientes e aplicar a taxa de serviço.</p></details>
         <details><summary>Serve para delivery?</summary><p>Serve. Você recebe pedidos para entrega ou retirada, despacha para os entregadores pelo app e o cliente acompanha o pedido por um link.</p></details>
-        <details><summary>Como funciona o plano anual?</summary><p>Você paga 10 mensalidades e usa o sistema por 12 meses: são 2 meses grátis. O valor fica fixo durante os 12 meses.</p></details>
+        <details><summary>Como funciona o plano anual?</summary><p>Você paga o ano de uma vez, com desconto em relação a 12 mensalidades, e o valor fica fixo durante os 12 meses.</p></details>
         <details><summary>Posso trocar de plano depois?</summary><p>Pode. É só falar com a equipe de vendas e a mudança vale a partir da próxima mensalidade.</p></details>
         <details><summary>Como faço para contratar?</summary><p><a href="#demonstracao">Agende uma demonstração</a> ou <a class="js-whatsapp" href="#" target="_blank" rel="noopener">fale com a equipe de vendas</a> pelo WhatsApp. Mostramos o sistema funcionando e deixamos tudo pronto para o seu restaurante.</p></details>
       </div>
@@ -481,8 +481,9 @@ footer a:hover{color:var(--ink)}
     }
 
     var ciclo = 'mensal', ultimos = []
-    // Anual: paga 10 mensalidades e usa 12 (2 meses grátis)
-    var porMes = function (p) { return ciclo === 'anual' ? Math.round(p.valor * 10 / 12 * 100) / 100 : p.valor }
+    // Anual: valor próprio de cada plano, definido no painel (valorAnual, por ano)
+    var temAnual = function (p) { return Number(p.valorAnual) > 0 }
+    var porMes = function (p) { return ciclo === 'anual' && temAnual(p) ? Math.round(p.valorAnual / 12 * 100) / 100 : p.valor }
     document.querySelectorAll('.ciclo button').forEach(function (b) {
       b.addEventListener('click', function () {
         ciclo = b.dataset.ciclo
@@ -493,6 +494,10 @@ footer a:hover{color:var(--ink)}
 
     function render(planos) {
       ultimos = planos
+      // Sem nenhum plano anual cadastrado, o botão Mensal / Anual some
+      var algumAnual = planos.some(temAnual)
+      document.querySelector('.ciclo').hidden = !algumAnual
+      if (!algumAnual) ciclo = 'mensal'
       if (!planos.length) return sobConsulta()
       var meio = planos.length >= 3 ? Math.floor(planos.length / 2) : -1
       lista.innerHTML = planos.map(function (p, i) {
@@ -503,7 +508,7 @@ footer a:hover{color:var(--ink)}
           '<div class="plano-nome"><h3>' + esc(p.nome) + '</h3>' + (dest ? '<span class="badge">MAIS ESCOLHIDO</span>' : '') + '</div>' +
           '<p class="desc">' + esc(p.descricao || '') + '</p>' +
           '<div class="preco"><span class="rs">R$</span><b>' + valor(porMes(p)) + '</b><span class="mes">/mês</span></div>' +
-          '<p class="nota">' + (ciclo === 'anual' ? 'R$ ' + valor(p.valor * 10) + ' por ano · economia de R$ ' + valor(p.valor * 2) : 'Cobrado todo mês') + '</p>' +
+          '<p class="nota">' + (ciclo === 'anual' ? (temAnual(p) ? 'R$ ' + valor(p.valorAnual) + ' por ano' + (p.valor * 12 > p.valorAnual ? ' · economia de R$ ' + valor(p.valor * 12 - p.valorAnual) : '') : 'Só no mensal') : 'Cobrado todo mês') + '</p>' +
           '<a class="btn ' + (dest ? 'pri' : 'out') + '" href="' + zapHref('Olá! Quero contratar o plano ' + p.nome + (ciclo === 'anual' ? ' (anual)' : ' (mensal)') + ' do RestaurantePDV.') + '" target="_blank" rel="noopener">Quero este plano</a>' +
           '<ul class="itens">' + itens.join('') + '</ul></article>'
       }).join('')
@@ -513,7 +518,7 @@ footer a:hover{color:var(--ink)}
       var linha = function (nome, f) { return '<tr><td>' + nome + '</td>' + planos.map(function (p, i) { return '<td' + col(i) + '>' + f(p) + '</td>' }).join('') + '</tr>' }
       tabela.innerHTML = '<table><thead><tr><th>COMPARATIVO</th>' + planos.map(function (p, i) { return '<th' + col(i) + '>' + esc(p.nome) + '</th>' }).join('') + '</tr></thead><tbody>' +
         linha('Mensal', function (p) { return 'R$ ' + valor(p.valor) + '/mês' }) +
-        linha('Anual (2 meses grátis)', function (p) { return 'R$ ' + valor(p.valor * 10) + '/ano' }) +
+        (algumAnual ? linha('Anual', function (p) { return temAnual(p) ? 'R$ ' + valor(p.valorAnual) + '/ano' : '—' }) : '') +
         linha('Implantação, treinamento e suporte', function () { return '✓' }) +
         linha('Mesas, cozinha, caixa e Pix', function () { return '✓' }) +
         linha('Cardápio digital', function () { return '✓' }) +

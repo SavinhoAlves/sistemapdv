@@ -91,9 +91,17 @@ export async function loginComSenha(identificador: string, senha: string, slug?:
     if (await bcrypt.compare(senha, c.senhaHash!)) { usuario = c; break }
   }
   if (!usuario) throw new Error('Credenciais inválidas')
+  return abrirSessao(usuario, usuario.tenant)
+}
 
-  // Só revela o status do restaurante depois da senha conferida
-  const tenant = usuario.tenant
+/**
+ * Sessão de quem já provou ser a pessoa (senha certa ou biometria do aparelho).
+ * Só aqui o status do restaurante é revelado.
+ */
+export async function abrirSessao(
+  usuario: { id: string; nome: string; cargo: any; perfilId: string | null },
+  tenant: { id: string; codigo: number; slug: string; nome: string; status: string },
+) {
   if (tenant.status !== 'ativo') throw new Error('Restaurante suspenso')
   if (await aguardandoPrimeiroPagamento(tenant.id)) {
     throw new Error('O pagamento da assinatura ainda não foi confirmado. Assim que for, o acesso é liberado.')

@@ -129,7 +129,11 @@ export async function buildApp() {
       // em 1 minuto já davam erro e derrubavam o carregamento das telas.
       // A identificação de cartão (rfid-identify) exige a sessão do caixa e roda a cada
       // ação no salão: com 10/min por IP, vários caixas na mesma rede se bloqueavam.
-      allowList: (req) => req.method === 'GET' || req.url.startsWith('/api/auth/rfid-identify'),
+      // QR do celular (/auth/mobile) e biometria (/auth/biometria/login) trazem token
+      // ou assinatura que não dá para chutar; e todos os celulares do restaurante saem
+      // pelo mesmo IP: na troca de turno, 10 por minuto barrava os garçons
+      allowList: (req) => req.method === 'GET' || req.url.startsWith('/api/auth/rfid-identify')
+        || req.url.startsWith('/api/auth/mobile') || req.url.startsWith('/api/auth/biometria/login'),
       // `status` é o que o tratador de erros lê; sem ele o bloqueio saía como 500
       errorResponseBuilder: () => ({
         status: 429,

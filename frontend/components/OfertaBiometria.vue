@@ -1,15 +1,15 @@
 <template>
-  <!-- Depois de um PIN certo no celular: "Da próxima vez, usar Face ID / digital?" -->
+  <!-- Depois de um PIN ou senha certos: "Da próxima vez, usar o rosto / digital?" -->
   <Transition name="fade">
     <div v-if="ofertaBiometria" class="fixed inset-0 z-[99998] flex items-end sm:items-center justify-center bg-black/50 p-3">
       <div class="w-full max-w-md rounded-[28px] bg-white dark:bg-neutral-900 border border-gray-200 dark:border-white/[0.08] shadow-2xl p-6 text-center">
         <div class="size-16 rounded-full bg-orange-500/10 text-orange-500 flex items-center justify-center mx-auto">
           <ScanFace :size="34" :stroke-width="1.6" />
         </div>
-        <h2 class="mt-4 text-lg font-black text-gray-900 dark:text-white">Usar Face ID / digital?</h2>
+        <h2 class="mt-4 text-lg font-black text-gray-900 dark:text-white">Usar rosto ou digital?</h2>
         <p class="mt-2 text-sm text-gray-500 dark:text-white/50 leading-relaxed">
-          Da próxima vez, confirme com o rosto ou a digital deste celular no lugar do PIN.
-          A biometria não sai do aparelho.
+          Da próxima vez, entre no sistema e confirme ações com o rosto ou a digital deste aparelho,
+          sem digitar senha nem PIN. A biometria não sai do aparelho.
         </p>
         <p v-if="erro" class="mt-3 text-sm font-bold text-red-500">{{ erro }}</p>
         <div class="mt-5 flex gap-3">
@@ -68,7 +68,7 @@ async function ativar() {
     })
     lembrarBiometria(id, r.credentialId)
     ofertaBiometria.value = false
-    toastStore.success('Face ID / digital ativado neste celular')
+    toastStore.success('Rosto / digital ativado neste aparelho')
   } catch (e: any) {
     erro.value = mensagemDoErro(e)
   } finally {

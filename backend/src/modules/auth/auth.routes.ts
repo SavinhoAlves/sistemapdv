@@ -22,9 +22,32 @@ export async function authRoutes(app: FastifyInstance) {
         result.data.senha,
         result.data.slug
       )
+      // Senha certa agora: pode ativar a biometria deste aparelho em seguida
+      Biometria.marcarPinRecente(data.usuario.id)
       return reply.send(data)
     } catch (err: any) {
       return reply.status(401).send({ error: err.message })
+    }
+  })
+
+  // POST /api/auth/biometria/login/opcoes — desafio para entrar com o rosto/digital do aparelho
+  app.post('/biometria/login/opcoes', { config: { public: true } }, async (request, reply) => {
+    try {
+      return await Biometria.opcoesLogin(request.headers.origin)
+    } catch (err: any) {
+      return reply.status(err.status ?? 400).send({ error: err.message })
+    }
+  })
+
+  // POST /api/auth/biometria/login — entra com a chave (passkey) que o aparelho escolheu
+  app.post('/biometria/login', { config: { public: true } }, async (request, reply) => {
+    const { desafioId, resposta } = (request.body ?? {}) as { desafioId?: string; resposta?: any }
+    if (!desafioId || !resposta) return reply.status(400).send({ error: 'Dados incompletos' })
+    try {
+      const usuario = await Biometria.loginComBiometria(desafioId, resposta, request.headers.origin)
+      return reply.send(await AuthService.abrirSessao(usuario, usuario.tenant))
+    } catch (err: any) {
+      return reply.status(err.status ?? 401).send({ error: err.message })
     }
   })
 

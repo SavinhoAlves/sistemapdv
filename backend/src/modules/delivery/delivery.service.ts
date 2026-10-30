@@ -8,7 +8,8 @@ import { proximoNumero } from '../comandas/sequencia'
 import { calcularConta, includeParaConta } from '../comandas/conta'
 import { verificarAcessoTenant } from '../../middlewares/tenant.middleware'
 import { registrarPagamento } from '../pagamentos/pagamentos.service'
-import { geocodificar, distancia, type Coordenadas } from '../../lib/geocodificar'
+import { geocodificar, type Coordenadas } from '../../lib/geocodificar'
+import { ordenarParadas } from '../../lib/rota'
 import { hojeLocal, inicioDoDia } from '../../lib/fuso'
 import { vaiParaCozinha, camposCozinha } from '../../lib/cozinha'
 import { enviarPush } from '../../lib/push'
@@ -226,7 +227,8 @@ export async function acompanhar(codigo: string) {
     where: { tenantId: po.tenantId }, select: { nomeRestaurante: true, deliveryTempoMin: true, logoBase64: true, deliveryLat: true, deliveryLng: true, pixChave: true, pixNome: true, pixCidade: true },
   }))
   // Mapa do cliente: do aceite até a entrega. Em rota, onde está o entregador e
-  // quantas entregas faltam antes desta (só a contagem: os endereços dos outros nunca saem daqui)
+  // as paradas antes desta, numeradas na ordem da rota. Dos outros clientes sai
+  // só um ponto aproximado (grade de ~300 m), sem nome nem endereço.
   let rota: any = null
   if (po.tipo === 'entrega' && ['aceito', 'pronto', 'em_rota'].includes(po.status) && !po.entregaConfirmadaEm) {
     const emRota = po.status === 'em_rota' && po.entregadorId
@@ -235,14 +237,18 @@ export async function acompanhar(codigo: string) {
         where: { tenantId: po.tenantId, usuarioId: po.entregadorId!, createdAt: { gte: new Date(Date.now() - 15 * 60000) } },
         orderBy: { createdAt: 'desc' }, select: { lat: true, lng: true, createdAt: true },
       }),
-      prisma.pedidoOnline.count({
+      prisma.pedidoOnline.findMany({
         where: { tenantId: po.tenantId, entregadorId: po.entregadorId, status: 'em_rota', entregaConfirmadaEm: null, ordemRota: { lt: po.ordemRota ?? 0 } },
+        orderBy: { ordemRota: 'asc' }, select: { destinoLat: true, destinoLng: true },
       }),
-    ])) : [null, 0]
+    ])) : [null, []]
     rota = {
       emRota: Boolean(emRota),
       entregador: emRota ? { nome: po.entregador?.nome.split(' ')[0] ?? 'Entregador', posicao: posicao ? { lat: posicao.lat, lng: posicao.lng, em: posicao.createdAt } : null } : null,
-      paradasAntes: antes,
+      paradasAntes: antes.length,
+      // Esta entrega é a parada nº `minhaParada`; as anteriores vêm na ordem (1ª, 2ª…)
+      minhaParada: antes.length + 1,
+      paradas: antes.map((a, i) => ({ ordem: i + 1, local: aproximado(a.destinoLat, a.destinoLng) })),
       destino: po.destinoLat != null ? { lat: po.destinoLat, lng: po.destinoLng } : null,
       restaurante: cfg?.deliveryLat != null ? { lat: cfg.deliveryLat, lng: cfg.deliveryLng } : null,
     }
@@ -266,6 +272,14 @@ export async function acompanhar(codigo: string) {
     codigoEntrega: ['aceito', 'pronto', 'em_rota'].includes(po.status) && !po.entregaConfirmadaEm ? po.codigoEntrega : null,
     linhaDoTempo: { recebido: po.createdAt, aceito: po.aceitoEm, pronto: po.prontoEm ?? prontoPelaCozinha(po), em_rota: po.saiuEm, entregue: po.entregaConfirmadaEm ?? po.entregueEm },
   }
+}
+
+/** Ponto de outro cliente no mapa: arredondado numa grade de ~300 m (nunca a casa). */
+function aproximado(lat: number | null, lng: number | null) {
+  if (lat == null || lng == null) return null
+  const grade = 0.003
+  const fixa = (v: number) => Number((Math.round(v / grade) * grade).toFixed(3))
+  return { lat: fixa(lat), lng: fixa(lng) }
 }
 
 // ─── Caixa ─────────────────────────────────────────────────────────────────────
@@ -628,9 +642,11 @@ async function ultimaPosicao(tenantId: string, usuarioId: string, minutos = 15) 
 }
 
 /**
- * Ordem das paradas: vizinho mais próximo a partir de onde o entregador
- * está (ou do restaurante). Sem coordenadas, vai para o fim na ordem de
- * chegada. Recalculada a cada atribuição, início de rota e entrega.
+ * Ordem das paradas: a partir de onde o entregador está (ou do restaurante),
+ * o caminho mais curto passando por todas (lib/rota.ts: vizinho mais próximo
+ * + 2-opt, que encaixa na passagem quem fica no caminho da última entrega).
+ * Sem coordenadas, vai para o fim na ordem de chegada. Recalculada a cada
+ * atribuição, início de rota e entrega.
  */
 export async function recalcularRota(tenantId: string, entregadorId: string) {
   const [entregas, pos, cfg] = await Promise.all([
@@ -642,21 +658,11 @@ export async function recalcularRota(tenantId: string, entregadorId: string) {
     ultimaPosicao(tenantId, entregadorId),
     prisma.configuracoes.findFirst({ where: { tenantId }, select: { deliveryLat: true, deliveryLng: true } }),
   ])
-  let atual: Coordenadas | null = pos ? { lat: pos.lat, lng: pos.lng } : cfg?.deliveryLat != null ? { lat: cfg.deliveryLat, lng: cfg.deliveryLng! } : null
+  const inicio: Coordenadas | null = pos ? { lat: pos.lat, lng: pos.lng } : cfg?.deliveryLat != null ? { lat: cfg.deliveryLat, lng: cfg.deliveryLng! } : null
   const comCoord = entregas.filter((e) => e.destinoLat != null && e.destinoLng != null)
+    .map((e) => ({ id: e.id, lat: e.destinoLat!, lng: e.destinoLng! }))
   const semCoord = entregas.filter((e) => e.destinoLat == null || e.destinoLng == null)
-  const ordem: string[] = []
-  while (comCoord.length) {
-    let melhor = 0
-    if (atual) {
-      let menor = Infinity
-      comCoord.forEach((e, i) => { const d = distancia(atual!, { lat: e.destinoLat!, lng: e.destinoLng! }); if (d < menor) { menor = d; melhor = i } })
-    }
-    const [e] = comCoord.splice(melhor, 1)
-    ordem.push(e.id)
-    atual = { lat: e.destinoLat!, lng: e.destinoLng! }
-  }
-  ordem.push(...semCoord.map((e) => e.id))
+  const ordem = [...ordenarParadas(inicio, comCoord).map((e) => e.id), ...semCoord.map((e) => e.id)]
   await prisma.$transaction(ordem.map((id, i) => prisma.pedidoOnline.update({ where: { id }, data: { ordemRota: i + 1 } })))
 }
 

@@ -123,7 +123,7 @@
           <div class="grid gap-1.5 justify-items-start">
             <b>Pedido <span class="font-mono">{{ p.codigo }}</span></b>
             <small class="text-xs cdp-mudo">{{ dataHora(p.criadoEm) }}</small>
-            <span class="cdp-tag">{{ STATUS[p.status] ?? p.status }}</span>
+            <span class="cdp-tag">{{ STATUS[aoVivo[p.codigo]?.status ?? p.status] ?? p.status }}</span>
           </div>
           <ul class="grid gap-1.5 text-sm">
             <li v-for="(i, n) in p.itens" :key="n" class="flex justify-between gap-3"><span>{{ i.quantidade }}× {{ i.nome }}</span><span class="tabular-nums">{{ moeda(i.quantidade * i.preco) }}</span></li>
@@ -135,6 +135,10 @@
           <div class="flex justify-between border-t cdp-linha pt-3 text-base min-[900px]:border-t-0 min-[900px]:border-l min-[900px]:pt-0 min-[900px]:pl-6 min-[900px]:flex-col min-[900px]:items-end min-[900px]:gap-1">
             <span>Total</span><b class="tabular-nums">{{ moeda(p.total) }}</b>
           </div>
+          <!-- Entrega em andamento: o trajeto ao vivo, até o cliente receber -->
+          <div v-if="aoVivo[p.codigo]?.rota" class="border-t cdp-linha pt-3.5 min-[900px]:col-span-4">
+            <AcompanharEntrega :rota="aoVivo[p.codigo].rota" :restaurante="aoVivo[p.codigo].restaurante?.nome" altura="220px" />
+          </div>
         </article>
       </div>
     </template>
@@ -142,7 +146,8 @@
 </template>
 
 <script setup lang="ts">
-import { reactive, ref, computed, watch } from 'vue'
+import { reactive, ref, computed, watch, onUnmounted } from 'vue'
+import AcompanharEntrega from '~/components/cardapio/AcompanharEntrega.vue'
 import { ArrowLeft, UserRound, MapPin, Star, Pencil, Trash2, Plus, LocateFixed, LogOut, Receipt, ShoppingBag } from 'lucide-vue-next'
 
 const props = defineProps<{ pagina: 'perfil' | 'pedidos'; perfil: any; slug: string; token: string }>()
@@ -157,7 +162,28 @@ const msgErro = (e: any, padrao: string) => e?.data?.error || padrao
 
 const moeda = (v: number) => Number(v || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
 const dataHora = (iso: string) => new Date(iso).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })
-const STATUS: Record<string, string> = { recebido: 'Recebido', aceito: 'Em preparo', pronto: 'Pronto', em_rota: 'A caminho', entregue: 'Entregue', recusado: 'Não aceito', cancelado: 'Cancelado' }
+// ── Entregas em andamento: acompanhamento público de cada pedido, a cada 10 s ──
+const EM_ANDAMENTO = ['recebido', 'aceito', 'preparando', 'pronto', 'em_rota']
+const aoVivo = reactive<Record<string, any>>({})
+const ativos = computed(() => props.pagina === 'pedidos'
+  ? (props.perfil.pedidos ?? []).filter((p: any) => p.endereco && EM_ANDAMENTO.includes(aoVivo[p.codigo]?.status ?? p.status)).map((p: any) => p.codigo as string)
+  : [])
+async function atualizarAoVivo() {
+  if (document.hidden) return
+  await Promise.all(ativos.value.map(async (codigo: string) => {
+    try { aoVivo[codigo] = await $fetch<any>(`${config.public.apiUrl}/api/publico/pedidos/${encodeURIComponent(codigo)}`) } catch { /* tenta na próxima */ }
+  }))
+}
+let relogio: ReturnType<typeof setInterval> | null = null
+watch(() => ativos.value.join(','), (lista) => {
+  if (relogio) { clearInterval(relogio); relogio = null }
+  if (!lista) return
+  atualizarAoVivo()
+  relogio = setInterval(atualizarAoVivo, 10000)
+}, { immediate: true })
+onUnmounted(() => { if (relogio) clearInterval(relogio) })
+
+const STATUS: Record<string, string> = { recebido: 'Recebido', aceito: 'Em preparo', preparando: 'Em preparo', pronto: 'Pronto', em_rota: 'A caminho', entregue: 'Entregue', recusado: 'Não aceito', cancelado: 'Cancelado' }
 
 // Máscara simples: "0" é dígito, o resto é literal
 function mascara(v: string, padrao: string) {

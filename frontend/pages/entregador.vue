@@ -67,7 +67,7 @@
       <article v-for="(p, i) in pendentes" :key="p.id" class="ent-ticket eq-entra" :class="{ ativo: i === 0 && emRota }">
         <div class="ent-ticket-cab">
           <div class="ent-ticket-id">
-            <span v-if="varias" class="ent-parada" :aria-label="`Parada ${i + 1}`">{{ i + 1 }}</span>
+            <span v-if="varias" class="ent-parada" :aria-label="`${i + 1}ª parada`">{{ i + 1 }}ª</span>
             <span class="eq-mono">#{{ p.pedidoNumero ?? p.codigo }}</span>
           </div>
           <span class="ent-chip" :class="chipDe(p).cls">{{ chipDe(p).txt }}</span>
@@ -262,7 +262,7 @@ const marcadores = computed(() => {
   pendentes.value.forEach((p: any, i: number) => {
     if (!p.destino) return
     m.push(varias.value
-      ? { id: p.id, tipo: 'parada', ...p.destino, rotulo: String(i + 1), titulo: `${i + 1}. ${p.clienteNome}` }
+      ? { id: p.id, tipo: 'parada', ...p.destino, rotulo: `${i + 1}ª`, titulo: `${i + 1}ª parada · ${p.clienteNome}` }
       : { id: p.id, tipo: 'destino', ...p.destino, rotulo: '★', titulo: p.clienteNome })
   })
   return m
@@ -392,7 +392,7 @@ onUnmounted(() => { clearInterval(timer); desinscrever.forEach(f => f()) })
 .ent-ticket-cab { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 16px 18px 0; }
 .ent-ticket-id { display: flex; align-items: center; gap: 10px; min-width: 0; font-size: 22px; font-weight: 700; }
 .ent-ticket-id .eq-mono { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.ent-parada { flex: none; width: 30px; height: 30px; border-radius: 10px; display: grid; place-items: center; background: var(--eq-marca); color: var(--eq-sobre-marca); font: 800 15px var(--eq-titulo); }
+.ent-parada { flex: none; min-width: 30px; height: 30px; padding: 0 6px; border-radius: 10px; display: grid; place-items: center; background: var(--eq-marca); color: var(--eq-sobre-marca); font: 800 15px var(--eq-titulo); }
 .ent-chip { flex: none; padding: 6px 10px; border-radius: 999px; font: 700 11px var(--eq-texto); letter-spacing: .08em; text-transform: uppercase; background: var(--eq-cartao-2); color: var(--eq-mudo); }
 .ent-chip.pronto { background: rgba(52, 211, 153, .12); color: var(--eq-ok); }
 .ent-chip.rota { background: var(--eq-marca); color: var(--eq-sobre-marca); }

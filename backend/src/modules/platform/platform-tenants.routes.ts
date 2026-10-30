@@ -12,6 +12,7 @@ import {
   resumir, sincronizarLicenca, somarDias, somarMeses, ymd,
 } from './assinatura'
 import { registrarVersao } from './contrato'
+import { atualizarSeAtiva } from './asaas.service'
 
 /** Resumo da versão do contrato para a tela avisar quando precisa reenviar. */
 const versaoResp = (r: Awaited<ReturnType<typeof registrarVersao>>) =>
@@ -475,7 +476,9 @@ export async function platformTenantsRoutes(app: FastifyInstance) {
     })
     invalidateTenantCache(id)
     const versao = await registrarVersao(id, atual ? 'Contrato editado' : 'Contrato criado')
-    return reply.send({ ...contrato, contratoVersao: versaoResp(versao) })
+    // Cobrança automática ligada: leva valor, ciclo e vencimento para a assinatura do Asaas
+    const avisoAsaas = await atualizarSeAtiva(id)
+    return reply.send({ ...contrato, contratoVersao: versaoResp(versao), avisoAsaas })
   })
 
   // GET /:id/admin — retorna o usuário administrador do tenant

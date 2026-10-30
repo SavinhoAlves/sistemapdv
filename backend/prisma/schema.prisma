@@ -112,6 +112,8 @@ model Tenant {
   slug                  String                 @unique
   cnpj                  String?                @unique
   cpfResponsavel        String?                @map("cpf_responsavel")
+  /// Cliente no Asaas (cobrança automática da mensalidade)
+  asaasClienteId        String?                @unique @map("asaas_cliente_id")
   contato               String?
   responsavel           String?
   telefone              String?
@@ -788,6 +790,8 @@ model Contrato {
   isento            Boolean        @default(false)
   ajusteMotivo      String?        @map("ajuste_motivo")
   ajusteEm          DateTime?      @map("ajuste_em")
+  /// Assinatura no Asaas: ele gera as cobranças e avisa o pagamento pelo webhook
+  asaasAssinaturaId String?        @unique @map("asaas_assinatura_id")
   createdAt         DateTime       @default(now()) @map("created_at")
   updatedAt         DateTime       @updatedAt @map("updated_at")
 
@@ -852,6 +856,8 @@ model PagamentoMensalidade {
   /// Período coberto pelo pagamento: [início, fim), fim = próximo vencimento
   periodoInicio DateTime? @map("periodo_inicio") @db.Date
   periodoFim    DateTime? @map("periodo_fim") @db.Date
+  /// Cobrança do Asaas que gerou este pagamento (o webhook pode chegar mais de uma vez)
+  asaasPagamentoId String? @unique @map("asaas_pagamento_id")
   createdAt     DateTime  @default(now()) @map("created_at")
 
   tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)

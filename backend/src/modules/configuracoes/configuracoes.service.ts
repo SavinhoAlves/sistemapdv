@@ -125,10 +125,12 @@ export async function acesso(tenantId: string) {
     rfid:        { disponivel: Boolean(tenant?.rfidDisponivel),       ativo: Boolean(cfg?.rfidAtivo) },
     vendaMobile: { disponivel: Boolean(tenant?.vendaMobilePermitida), ativa: Boolean(cfg?.vendaMobileAtiva) },
     caixaAberto: Boolean(caixa),
+    /** Suporte entra sem pedir aceite (a faixa aparece do mesmo jeito) */
+    suporteSemAceite: Boolean(cfg?.suporteSemAceite),
   }
 }
 
-export async function atualizarAcesso(tenantId: string, data: { rfidAtivo?: boolean; vendaMobileAtiva?: boolean }) {
+export async function atualizarAcesso(tenantId: string, data: { rfidAtivo?: boolean; vendaMobileAtiva?: boolean; suporteSemAceite?: boolean }) {
   const atual = await acesso(tenantId)
   if (data.rfidAtivo && !atual.rfid.disponivel)
     throw Object.assign(new Error('RFID não está incluído no seu plano'), { status: 403 })
@@ -139,6 +141,7 @@ export async function atualizarAcesso(tenantId: string, data: { rfidAtivo?: bool
     data: {
       ...(data.rfidAtivo !== undefined ? { rfidAtivo: data.rfidAtivo } : {}),
       ...(data.vendaMobileAtiva !== undefined ? { vendaMobileAtiva: data.vendaMobileAtiva } : {}),
+      ...(data.suporteSemAceite !== undefined ? { suporteSemAceite: data.suporteSemAceite } : {}),
     },
   })
   return acesso(tenantId)

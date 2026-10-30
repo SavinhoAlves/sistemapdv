@@ -61,6 +61,20 @@ export const EVENTOS = {
     /** qualquer lado: encerra; servidor → os dois lados: acabou (com motivo) */
     encerrar: 'espelho:encerrar',
     encerrado: 'espelho:encerrado',
+    /** Central → servidor (com resposta): aparelhos logados agora no restaurante */
+    aparelhos: 'espelho:aparelhos',
+    /** aparelho → servidor: em qual tela está (para a lista de aparelhos) */
+    onde: 'espelho:onde',
+    /** servidor → aparelho: acesso sem aceite liberado pelo admin, já começa */
+    iniciar: 'espelho:iniciar',
+    /** Central → servidor → aparelho: o suporte quer controlar a tela */
+    pedirControle: 'espelho:pedir-controle',
+    /** aparelho → servidor → Central: controle permitido, recusado ou retomado */
+    controle: 'espelho:controle',
+    /** Central → servidor → aparelho: cursor, apontar, clique, tecla, texto, rolagem, opção de lista */
+    acao: 'espelho:acao',
+    /** os dois lados: mensagem do chat da sessão */
+    chat: 'espelho:chat',
   },
 } as const
 

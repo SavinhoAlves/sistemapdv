@@ -171,6 +171,7 @@ model Tenant {
   contratos            Contrato[]
   contratoVersoes      ContratoVersao[]
   tickets              TicketSuporte[]
+  sessoesRemotas       SessaoRemota[]
 
   // relações adicionadas pelas correções do PDV
   abatimentos Abatimento[]
@@ -614,6 +615,8 @@ model Configuracoes {
   rfidAtivo              Boolean @default(false) @map("rfid_ativo")
   /// Venda pelo celular (QR por funcionário). Só vale se o plano liberar; o admin pode desligar.
   vendaMobileAtiva       Boolean @default(true) @map("venda_mobile_ativa")
+  /// Suporte entra (ver e controlar) sem pedir aceite na tela; o aparelho sempre mostra a faixa
+  suporteSemAceite       Boolean @default(false) @map("suporte_sem_aceite")
   /// Cardápio online / delivery (o plano libera em Plano.delivery)
   deliveryAtivo          Boolean @default(false) @map("delivery_ativo")
   deliveryTaxa           Decimal @default(0) @map("delivery_taxa") @db.Decimal(10, 2)
@@ -1150,4 +1153,28 @@ model ClienteEndereco {
 
   @@index([tenantId, clienteId])
   @@map("cliente_enderecos")
+}
+
+/// Acesso remoto do suporte (Central › Ver tela ao vivo): uma linha por sessão aceita
+model SessaoRemota {
+  id          String    @id @default(uuid())
+  tenantId    String    @map("tenant_id")
+  suporteId   String?   @map("suporte_id")
+  suporteNome String    @map("suporte_nome")
+  /// Quem estava logado no aparelho espelhado
+  usuarioNome String?   @map("usuario_nome")
+  tela        String?
+  /// Entrou sem aceite (opção do restaurante)
+  semAceite   Boolean   @default(false) @map("sem_aceite")
+  /// O suporte controlou a tela em algum momento
+  controle    Boolean   @default(false)
+  mensagens   Int       @default(0)
+  inicio      DateTime  @default(now())
+  fim         DateTime?
+  motivoFim   String?   @map("motivo_fim")
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, inicio])
+  @@map("sessoes_remotas")
 }

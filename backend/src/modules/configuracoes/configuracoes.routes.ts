@@ -4,6 +4,7 @@ import { requireTenant } from '../../middlewares/tenant.middleware'
 import { requirePermissao } from '../../middlewares/permission.middleware'
 import type { TenantJwtPayload } from '../../lib/jwt'
 import * as Service from './configuracoes.service'
+import { prisma } from '../../lib/prisma'
 import { tipoValido } from '../../lib/tipoComercio'
 import { esquecerRfidDoTenant } from '../../middlewares/cartao.middleware'
 
@@ -102,9 +103,16 @@ export async function configuracoesRoutes(app: FastifyInstance) {
   // GET /api/configuracoes/acesso
   app.get('/acesso', { preHandler: [requireTenant, soAdmin] }, async (request) => Service.acesso(request.tenantId!))
 
+  // GET /api/configuracoes/acesso/sessoes-remotas — histórico de acessos do suporte a este restaurante
+  app.get('/acesso/sessoes-remotas', { preHandler: [requireTenant, soAdmin] }, async (request) =>
+    prisma.sessaoRemota.findMany({
+      where: { tenantId: request.tenantId! }, orderBy: { inicio: 'desc' }, take: 20,
+      select: { id: true, suporteNome: true, usuarioNome: true, semAceite: true, controle: true, mensagens: true, inicio: true, fim: true, motivoFim: true },
+    }))
+
   // PUT /api/configuracoes/acesso
   app.put('/acesso', { preHandler: [requireTenant, soAdmin] }, async (request, reply) => {
-    const body = z.object({ rfidAtivo: z.boolean().optional(), vendaMobileAtiva: z.boolean().optional() }).safeParse(request.body)
+    const body = z.object({ rfidAtivo: z.boolean().optional(), vendaMobileAtiva: z.boolean().optional(), suporteSemAceite: z.boolean().optional() }).safeParse(request.body)
     if (!body.success) return reply.status(400).send({ error: 'Dados inválidos' })
     try {
       const r = await Service.atualizarAcesso(request.tenantId!, body.data)

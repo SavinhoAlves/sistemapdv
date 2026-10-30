@@ -546,6 +546,12 @@ export async function platformTenantsRoutes(app: FastifyInstance) {
     return reply.status(201).send(created)
   })
 
+  // GET /:id/sessoes-remotas — acessos remotos (Ver tela ao vivo) a este restaurante
+  app.get('/:id/sessoes-remotas', { preHandler: requirePlatform }, async (request) => {
+    const { id } = request.params as { id: string }
+    return prisma.sessaoRemota.findMany({ where: { tenantId: id }, orderBy: { inicio: 'desc' }, take: 30 })
+  })
+
   // POST /:id/support-token — token de curta duração para acesso de suporte
   app.post('/:id/support-token', { preHandler: requirePlatform }, async (request, reply) => {
     const { id } = request.params as { id: string }

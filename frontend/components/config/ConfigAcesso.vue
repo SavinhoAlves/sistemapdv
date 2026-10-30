@@ -66,6 +66,34 @@
           </div>
         </div>
       </article>
+
+      <!-- Acesso remoto do suporte -->
+      <article class="rounded-2xl border border-gray-200 dark:border-white/[0.08] bg-white dark:bg-white/[0.03] p-5">
+        <div class="flex items-start gap-4">
+          <span class="size-11 rounded-xl flex items-center justify-center shrink-0 bg-orange-500/15 text-orange-600 dark:text-orange-300"><MonitorSmartphone :size="20" /></span>
+          <div class="flex-1 min-w-0">
+            <p class="text-sm font-black text-gray-900 dark:text-white">Acesso remoto do suporte sem pedir</p>
+            <p class="text-xs text-gray-500 dark:text-white/50 mt-1 leading-relaxed">
+              Ligado, o suporte RestaurantePDV entra na tela de um aparelho logado (ver e controlar) sem esperar alguém clicar em "Permitir".
+              Útil quando não há ninguém perto do computador. A faixa "o suporte está vendo sua tela" aparece do mesmo jeito,
+              qualquer pessoa pode encerrar, e todo acesso fica registrado abaixo.
+            </p>
+          </div>
+          <Chave :ligada="a.suporteSemAceite" :rotulo="'Acesso remoto do suporte sem pedir'" :ocupado="salvando === 'suporte'" @alternar="alternar('suporte')" />
+        </div>
+        <div class="mt-4 pt-4 border-t border-gray-100 dark:border-white/[0.06]">
+          <p class="cfg-rotulo">Últimos acessos do suporte</p>
+          <p v-if="!sessoes.length" class="text-xs text-gray-500 dark:text-white/50">Nenhum acesso registrado.</p>
+          <ul v-else class="divide-y divide-gray-100 dark:divide-white/[0.06]">
+            <li v-for="s in sessoes" :key="s.id" class="py-2 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-0.5 text-xs">
+              <span class="font-bold text-gray-800 dark:text-white/85">{{ quando(s.inicio) }} · {{ s.suporteNome }}</span>
+              <span class="text-gray-500 dark:text-white/50">
+                {{ s.usuarioNome ? `no aparelho de ${s.usuarioNome}` : '' }} · {{ s.controle ? 'controlou a tela' : 'só viu' }}{{ s.semAceite ? ' · sem pedir' : '' }} · {{ duracao(s.inicio, s.fim) }}
+              </span>
+            </li>
+          </ul>
+        </div>
+      </article>
     </template>
 
     <QrAcessoCelular :funcionario="qr" @fechar="qr = null" />
@@ -74,14 +102,15 @@
 
 <script setup lang="ts">
 import { ref, watch, onMounted, defineComponent, h } from 'vue'
-import { Nfc, Smartphone, QrCode, LockKeyhole } from 'lucide-vue-next'
+import { Nfc, Smartphone, QrCode, LockKeyhole, MonitorSmartphone } from 'lucide-vue-next'
 import QrAcessoCelular from '~/components/QrAcessoCelular.vue'
 import { useApi } from '~/services/api'
 import { useToastStore } from '~/stores/toast'
 import { useCaixaStore } from '~/stores/caixa'
 import { funcao } from '~/lib/permissoes'
 
-interface Acesso { plano: string | null; rfid: { disponivel: boolean; ativo: boolean }; vendaMobile: { disponivel: boolean; ativa: boolean }; caixaAberto: boolean }
+interface Acesso { plano: string | null; rfid: { disponivel: boolean; ativo: boolean }; vendaMobile: { disponivel: boolean; ativa: boolean }; caixaAberto: boolean; suporteSemAceite: boolean }
+interface SessaoRemota { id: string; suporteNome: string; usuarioNome: string | null; semAceite: boolean; controle: boolean; inicio: string; fim: string | null }
 
 const api = useApi()
 const toast = useToastStore()
@@ -103,7 +132,8 @@ const Chave = defineComponent({
 const a = ref<Acesso | null>(null)
 const carregando = ref(true)
 const erro = ref('')
-const salvando = ref<'' | 'rfid' | 'celular'>('')
+const salvando = ref<'' | 'rfid' | 'celular' | 'suporte'>('')
+const sessoes = ref<SessaoRemota[]>([])
 const equipe = ref<any[]>([])
 const escolhido = ref('')
 const qr = ref<any>(null)
@@ -121,15 +151,26 @@ async function carregar() {
   finally { carregando.value = false }
 }
 
-async function alternar(qual: 'rfid' | 'celular') {
+async function alternar(qual: 'rfid' | 'celular' | 'suporte') {
   if (!a.value) return
   salvando.value = qual
-  const corpo = qual === 'rfid' ? { rfidAtivo: !a.value.rfid.ativo } : { vendaMobileAtiva: !a.value.vendaMobile.ativa }
+  const corpo = qual === 'rfid' ? { rfidAtivo: !a.value.rfid.ativo }
+    : qual === 'celular' ? { vendaMobileAtiva: !a.value.vendaMobile.ativa }
+    : { suporteSemAceite: !a.value.suporteSemAceite }
   try {
     a.value = await api.put<Acesso>('/configuracoes/acesso', corpo)
-    toast.success(qual === 'rfid' ? `Cartão RFID ${a.value.rfid.ativo ? 'ligado' : 'desligado'}` : `Vendas pelo celular ${a.value.vendaMobile.ativa ? 'ligadas' : 'desligadas'}`)
+    toast.success(qual === 'rfid' ? `Cartão RFID ${a.value.rfid.ativo ? 'ligado' : 'desligado'}`
+      : qual === 'celular' ? `Vendas pelo celular ${a.value.vendaMobile.ativa ? 'ligadas' : 'desligadas'}`
+      : a.value.suporteSemAceite ? 'O suporte pode entrar sem pedir' : 'O suporte vai pedir antes de entrar')
   } catch (e: any) { toast.error(e?.message || 'Erro ao salvar') }
   finally { salvando.value = '' }
+}
+
+const quando = (s: string) => new Date(s).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })
+const duracao = (ini: string, fim: string | null) => {
+  if (!fim) return 'em andamento'
+  const min = Math.max(1, Math.round((+new Date(fim) - +new Date(ini)) / 60000))
+  return min < 60 ? `${min} min` : `${Math.floor(min / 60)} h ${min % 60} min`
 }
 
 function pedir(recurso: string) { navigateTo({ path: '/suporte', query: { assunto: `Quero incluir ${recurso} no meu plano` } }) }
@@ -137,6 +178,7 @@ function pedir(recurso: string) { navigateTo({ path: '/suporte', query: { assunt
 onMounted(async () => {
   await carregar()
   try { equipe.value = (await api.get<any[]>('/usuarios')).filter(f => f.ativo && f.cargo !== 'administrador') } catch {}
+  try { sessoes.value = await api.get<SessaoRemota[]>('/configuracoes/acesso/sessoes-remotas') } catch {}
 })
 watch(() => caixaStore.aberto, (v) => { if (a.value) a.value.caixaAberto = v })
 </script>

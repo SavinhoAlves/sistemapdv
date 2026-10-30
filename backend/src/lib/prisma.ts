@@ -60,6 +60,7 @@ const MODELOS_COM_TENANT = new Set([
   'biometria',
   'cliente',
   'clienteEndereco',
+  'sessaoRemota',
 ])
 
 const LEITURAS = new Set([

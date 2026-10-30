@@ -134,7 +134,7 @@
           <MousePointer2 :size="16" /><span>Ajudar<small>Entra e pode fazer alterações por ele</small></span>
         </button>
         <button @click="verAoVivo(menuSuporte.tenant)">
-          <MonitorPlay :size="16" /><span>Ver tela ao vivo<small>Acompanha o que o cliente faz (ele aceita antes)</small></span>
+          <MonitorPlay :size="16" /><span>Acesso remoto<small>Vê e controla a tela do cliente, com chat</small></span>
         </button>
       </div>
     </Teleport>

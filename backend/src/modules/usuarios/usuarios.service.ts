@@ -1,7 +1,7 @@
-import { prisma } from '../../lib/prisma'
+import { prisma, comTenant, semEscopoDeTenant } from '../../lib/prisma'
 import bcrypt from 'bcryptjs'
 import os from 'os'
-import { signAccessToken } from '../../lib/jwt'
+import { signAccessToken, assinarCodigoQr, lerCodigoQr } from '../../lib/jwt'
 import type { TenantJwtPayload } from '../../lib/jwt'
 import { getPermissoes } from '../auth/auth.service'
 import { motivoSemAcessoPeloQr } from '../configuracoes/configuracoes.service'
@@ -164,6 +164,38 @@ export async function toggleAtivo(tenantId: string, id: string, ativo: boolean) 
   })
 }
 
+/** Sessão do celular da própria pessoa (QR): o mesmo token de acesso de antes. */
+async function payloadDoCelular(tenantId: string, usuario: { id: string; nome: string; cargo: string; perfilId: string | null }): Promise<TenantJwtPayload> {
+  const tenant = await prisma.tenant.findUnique({ where: { id: tenantId }, select: { slug: true } })
+  return {
+    type: 'tenant',
+    sub: usuario.id,
+    nome: usuario.nome,
+    tenantId,
+    slug: tenant?.slug ?? '',
+    cargo: usuario.cargo,
+    perfilId: usuario.perfilId,
+    permissoes: await getPermissoes(usuario.cargo, usuario.perfilId, tenantId),
+    pessoal: true,
+  }
+}
+
+/**
+ * Código do QR → token de acesso. Recusa (401) código adulterado ou vencido e
+ * funcionário desativado ou removido; as regras do restaurante (plano, acesso
+ * pelo celular, caixa aberto) ficam com quem chama, como no token antigo.
+ */
+export async function sessaoPeloCodigoQr(codigo: string) {
+  const lido = lerCodigoQr(codigo)
+  if (!lido) return null
+  const usuario = await semEscopoDeTenant(async () => await prisma.usuario.findUnique({
+    where: { id: lido.usuarioId }, select: { id: true, nome: true, cargo: true, perfilId: true, ativo: true, tenantId: true },
+  }))
+  if (!usuario?.ativo) return null
+  const payload = await comTenant(usuario.tenantId, async () => await payloadDoCelular(usuario.tenantId, usuario))
+  return { payload, token: signAccessToken(payload) }
+}
+
 export async function gerarMobileToken(tenantId: string, id: string) {
   const usuario = await prisma.usuario.findFirst({
     where: { id, tenantId },
@@ -177,22 +209,9 @@ export async function gerarMobileToken(tenantId: string, id: string) {
   const motivo = await motivoSemAcessoPeloQr(tenantId, usuario.cargo)
   if (motivo) throw Object.assign(new Error(motivo), { status: 409 })
 
-  const tenant = await prisma.tenant.findUnique({ where: { id: tenantId }, select: { slug: true } })
-
-  const payload: TenantJwtPayload = {
-    type: 'tenant',
-    sub: usuario.id,
-    nome: usuario.nome,
-    tenantId,
-    slug: tenant?.slug ?? '',
-    cargo: usuario.cargo,
-    perfilId: usuario.perfilId,
-    permissoes: await getPermissoes(usuario.cargo, usuario.perfilId, tenantId),
-    pessoal: true,
-  }
-
-  // Token com validade de 10h para uso mobile
-  const token = signAccessToken(payload)
+  // No QR vai só o código curto assinado (lib/jwt.ts assinarCodigoQr): o celular
+  // troca pelo token de acesso em POST /auth/mobile (sessaoPeloCodigoQr)
+  const token = assinarCodigoQr(usuario.id)
 
   // Calcula IPs locais para o frontend montar a URL
   const networkInterfaces = os.networkInterfaces()

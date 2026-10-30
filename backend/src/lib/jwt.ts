@@ -61,6 +61,38 @@ export function signAccessToken(payload: JwtPayload): string {
   return jwt.sign(payload, ACCESS_SECRET, { expiresIn: ACCESS_TTL } as any)
 }
 
+// ── Código do QR de acesso pelo celular ─────────────────────────────────────
+// O QR levava o token de acesso inteiro (nome, restaurante, permissões): um link
+// de 500–900 caracteres, QR de ~90×90 quadradinhos que a câmera mal lê na tela.
+// Agora leva só quem é e até quando, assinado: "q1.<id+validade>.<assinatura>",
+// ~50 caracteres. POST /auth/mobile confere e entrega o token de acesso completo
+// (com as permissões de agora). Três partes separadas por ponto, como um JWT:
+// o leitor do app (lib/app.ts tokenDoQr) aceita os dois.
+const QR_CHAVE = crypto.createHmac('sha256', ACCESS_SECRET).update('codigo-qr-celular-v1').digest()
+const assinaturaQr = (corpo: string) => crypto.createHmac('sha256', QR_CHAVE).update(corpo).digest().subarray(0, 16).toString('base64url')
+
+export function assinarCodigoQr(usuarioId: string): string {
+  const id = Buffer.from(usuarioId.replace(/-/g, ''), 'hex')
+  if (id.length !== 16) throw new Error('Usuário inválido para o QR')
+  const validade = Buffer.alloc(4)
+  validade.writeUInt32BE(Math.floor(Date.now() / 1000) + parseTtlSeconds(RAW_TTL))
+  const corpo = Buffer.concat([id, validade]).toString('base64url')
+  return `q1.${corpo}.${assinaturaQr(corpo)}`
+}
+
+/** Usuário do código do QR, ou null se a assinatura não confere ou venceu. */
+export function lerCodigoQr(codigo: string): { usuarioId: string } | null {
+  const [versao, corpo, assinatura] = String(codigo).split('.')
+  if (versao !== 'q1' || !corpo || !assinatura) return null
+  const esperada = Buffer.from(assinaturaQr(corpo))
+  const recebida = Buffer.from(assinatura)
+  if (esperada.length !== recebida.length || !crypto.timingSafeEqual(esperada, recebida)) return null
+  const bytes = Buffer.from(corpo, 'base64url')
+  if (bytes.length !== 20 || bytes.readUInt32BE(16) < Date.now() / 1000) return null
+  const h = bytes.subarray(0, 16).toString('hex')
+  return { usuarioId: `${h.slice(0, 8)}-${h.slice(8, 12)}-${h.slice(12, 16)}-${h.slice(16, 20)}-${h.slice(20)}` }
+}
+
 export function verifyAccessToken(token: string): JwtPayload {
   return jwt.verify(token, ACCESS_SECRET) as JwtPayload
 }

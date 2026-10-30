@@ -68,10 +68,11 @@ export async function recarregarRede() {
   if (!modoLocal()) return
   const [cfg, terminais] = await semEscopoDeTenant(async () => Promise.all([
     prisma.configuracoes.findFirst({ select: { hostIp: true } }),
-    prisma.terminal.findMany({ where: { ativo: true }, select: { ip: true } }),
+    // Aparelhos autorizados por chave não têm IP e não entram na trava de rede
+    prisma.terminal.findMany({ where: { ativo: true, ip: { not: null } }, select: { ip: true } }),
   ]))
   estado.hostIp = cfg?.hostIp ?? null
-  estado.permitidos = new Set(terminais.map((t) => t.ip))
+  estado.permitidos = new Set(terminais.map((t) => t.ip!))
 
   const locais = ipsDoHost()
   if (!estado.hostIp) {

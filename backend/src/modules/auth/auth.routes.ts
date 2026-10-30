@@ -1,5 +1,6 @@
 import type { FastifyInstance } from 'fastify'
 import { loginSchema, loginRfidSchema, refreshSchema } from './auth.schema'
+import { terminalDaRequisicao } from '../../lib/terminal'
 import * as AuthService from './auth.service'
 import { verifyAccessToken, verifyOperadorToken, signOperadorToken, OPERADOR_CARTAO_S, OPERADOR_CELULAR_S, type TenantJwtPayload } from '../../lib/jwt'
 import * as Biometria from './biometria.service'
@@ -42,8 +43,14 @@ export async function authRoutes(app: FastifyInstance) {
     if (!result.success) {
       return reply.status(400).send({ error: result.error.errors[0].message })
     }
+    // Crachá só entra pelos terminais em que o administrador liberou o crachá,
+    // e sempre no restaurante dono do terminal
+    const terminal = await terminalDaRequisicao(request)
+    if (!terminal?.cracha) {
+      return reply.status(403).send({ error: 'Login por crachá não liberado neste aparelho. Peça ao administrador em Admin › Terminais.' })
+    }
     try {
-      const data = await AuthService.loginComRfid(result.data.cartaoRfid, result.data.slug)
+      const data = await AuthService.loginComRfid(result.data.cartaoRfid, terminal.tenant.slug)
       return reply.send(data)
     } catch (err: any) {
       return reply.status(401).send({ error: err.message })

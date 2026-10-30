@@ -19,7 +19,8 @@ export const loginSchema = z.object({
 export const loginRfidSchema = z.object({
   cartaoRfid: z.string().optional(),
   rfid:       z.string().optional(),
-  slug: z.string().min(1, 'Slug do restaurante obrigatório'),
+  // Ignorado: o restaurante é o do terminal (ver /auth/rfid)
+  slug: z.string().optional(),
 }).transform((d, ctx) => {
   const cartaoRfid = d.cartaoRfid || d.rfid || ''
   if (!cartaoRfid) {

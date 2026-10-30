@@ -1,6 +1,6 @@
 import { useAuthStore } from '../stores/auth'
 import { useRouter, useRuntimeConfig } from '#imports'
-import { getTenantSlug } from '~/composables/useTenantSlug'
+import { chaveDoTerminal } from '~/composables/useTerminalLocal'
 import { ajustarRelogio } from '~/lib/relogio'
 import { tokenOperador, pedirCartaoDeNovo } from '~/lib/operador'
 
@@ -121,9 +121,10 @@ export function useApi() {
       // Sem slug: o identificador (1001-3 ou nome de usuário) já indica o restaurante
       login: (identificador: string, senha: string) =>
         request('/auth/login', { method: 'POST', body: JSON.stringify({ identificador, senha }) }),
-      rfid: (rfid: string, slugOverride?: string) => {
-        const slug = slugOverride || getTenantSlug()
-        return request('/auth/rfid', { method: 'POST', body: JSON.stringify({ cartaoRfid: rfid, slug }) })
+      // Só nos terminais com crachá liberado: a chave do aparelho diz qual é o restaurante
+      rfid: (rfid: string) => {
+        const chave = chaveDoTerminal()
+        return request('/auth/rfid', { method: 'POST', body: JSON.stringify({ cartaoRfid: rfid }), headers: chave ? { 'X-Terminal': chave } : {} })
       },
       me: () => request('/auth/me')
     },

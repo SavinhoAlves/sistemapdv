@@ -20,7 +20,8 @@
             </div>
             <p class="text-xs text-gray-500 dark:text-white/50 mt-1 leading-relaxed">
               Funcionários entram e confirmam ações (abrir o PDV de vendas, cancelar item) passando o cartão na leitora.
-              O cartão de cada um é cadastrado em Admin → Funcionários.
+              O cartão de cada um é cadastrado em Admin → Funcionários. O login por cartão só aparece nos
+              aparelhos liberados em Admin → Terminais.
             </p>
           </div>
           <Chave v-if="a.rfid.disponivel" :ligada="a.rfid.ativo" :rotulo="'Cartão RFID'" :ocupado="salvando === 'rfid'" @alternar="alternar('rfid')" />

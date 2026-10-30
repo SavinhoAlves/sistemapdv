@@ -3,7 +3,7 @@ import { noApp, destinoNoCelular } from '~/lib/app'
 import { ehPainel } from '~/lib/hosts'
 import { PERMISSAO_POR_ROTA, DESTINO_PADRAO } from '~/lib/rotasPermissao'
 
-const ROTAS_PUBLICAS = ['/acesso', '/login', '/ativacao', '/logout', '/admin/login', '/m', '/platform', '/cardapio', '/pedido', '/manual']
+const ROTAS_PUBLICAS = ['/acesso', '/login', '/ativacao', '/logout', '/admin/login', '/m', '/platform', '/cardapio', '/pedido', '/manual', '/assinar']
 
 export default defineNuxtRouteMiddleware((to) => {
   if (ROTAS_PUBLICAS.some(r => to.path.startsWith(r)) || ehPainel()) return

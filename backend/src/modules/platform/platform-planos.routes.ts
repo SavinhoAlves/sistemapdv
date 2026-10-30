@@ -95,7 +95,8 @@ export async function planosPublicosRoutes(app: FastifyInstance) {
     const planos = await prisma.plano.findMany({
       where: { ativo: true },
       orderBy: [{ valor: 'asc' }, { nome: 'asc' }],
-      select: { nome: true, descricao: true, valor: true, valorAnual: true, rfid: true, vendaMobile: true, delivery: true, nfce: true },
+      // id: o botão "Quero este plano" do site leva para /assinar?plano=<id>
+      select: { id: true, nome: true, descricao: true, valor: true, valorAnual: true, rfid: true, vendaMobile: true, delivery: true, nfce: true },
     })
     return reply.send(planos.map((p) => ({ ...p, valor: Number(p.valor), valorAnual: p.valorAnual == null ? null : Number(p.valorAnual) })))
   })

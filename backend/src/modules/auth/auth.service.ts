@@ -1,6 +1,7 @@
 import bcrypt from 'bcryptjs'
 import { marcarPinRecente } from './biometria.service'
 import { prisma } from '../../lib/prisma'
+import { contratoAtual } from '../platform/assinatura'
 import { padroesFuncoes } from '../perfis/perfis.service'
 import {
   signAccessToken,
@@ -71,6 +72,17 @@ async function buscarCandidatos(identificador: string, slug?: string) {
   return prisma.usuario.findMany({ where: { ...base, login: valor }, include })
 }
 
+/**
+ * Assinatura pelo site ainda sem pagamento: contrato sem nenhum período pago
+ * (sem vencimento, sem teste) e nenhuma mensalidade registrada. Restaurante
+ * criado pela Central sempre nasce com vencimento, então não cai aqui.
+ */
+async function aguardandoPrimeiroPagamento(tenantId: string) {
+  const c = await contratoAtual(prisma, tenantId)
+  if (!c || c.isento || c.proximoVencimento || c.testeAte) return false
+  return (await prisma.pagamentoMensalidade.count({ where: { tenantId } })) === 0
+}
+
 export async function loginComSenha(identificador: string, senha: string, slug?: string) {
   const candidatos = await buscarCandidatos(identificador, slug)
 
@@ -83,6 +95,9 @@ export async function loginComSenha(identificador: string, senha: string, slug?:
   // Só revela o status do restaurante depois da senha conferida
   const tenant = usuario.tenant
   if (tenant.status !== 'ativo') throw new Error('Restaurante suspenso')
+  if (await aguardandoPrimeiroPagamento(tenant.id)) {
+    throw new Error('O pagamento da assinatura ainda não foi confirmado. Assim que for, o acesso é liberado.')
+  }
 
   await prisma.usuario.update({
     where: { id: usuario.id },

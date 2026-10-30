@@ -401,7 +401,7 @@ footer a:hover{color:var(--ink)}
         <details><summary>Serve para delivery?</summary><p>Serve. Você recebe pedidos para entrega ou retirada, despacha para os entregadores pelo app e o cliente acompanha o pedido por um link.</p></details>
         <details><summary>Como funciona o plano anual?</summary><p>Você paga o ano de uma vez, com desconto em relação a 12 mensalidades, e o valor fica fixo durante os 12 meses.</p></details>
         <details><summary>Posso trocar de plano depois?</summary><p>Pode. É só falar com a equipe de vendas e a mudança vale a partir da próxima mensalidade.</p></details>
-        <details><summary>Como faço para contratar?</summary><p><a href="#demonstracao">Agende uma demonstração</a> ou <a class="js-whatsapp" href="#" target="_blank" rel="noopener">fale com a equipe de vendas</a> pelo WhatsApp. Mostramos o sistema funcionando e deixamos tudo pronto para o seu restaurante.</p></details>
+        <details><summary>Como faço para contratar?</summary><p>Escolha o plano em <a href="#planos">Planos</a> e clique em <b>Quero este plano</b>: preencha seus dados e os da empresa (com CNPJ ou, se ainda não tiver, com o seu CPF) e pague com Pix ou cartão. O acesso é liberado assim que o pagamento é confirmado. Prefere conversar antes? <a href="#demonstracao">Agende uma demonstração</a> ou <a class="js-whatsapp" href="#" target="_blank" rel="noopener">fale com a equipe de vendas</a> pelo WhatsApp.</p></details>
       </div>
     </div>
   </section>
@@ -509,7 +509,10 @@ footer a:hover{color:var(--ink)}
           '<p class="desc">' + esc(p.descricao || '') + '</p>' +
           '<div class="preco"><span class="rs">R$</span><b>' + valor(porMes(p)) + '</b><span class="mes">/mês</span></div>' +
           '<p class="nota">' + (ciclo === 'anual' ? (temAnual(p) ? 'R$ ' + valor(p.valorAnual) + ' por ano' + (p.valor * 12 > p.valorAnual ? ' · economia de R$ ' + valor(p.valor * 12 - p.valorAnual) : '') : 'Só no mensal') : 'Cobrado todo mês') + '</p>' +
-          '<a class="btn ' + (dest ? 'pri' : 'out') + '" href="' + zapHref('Olá! Quero contratar o plano ' + p.nome + (ciclo === 'anual' ? ' (anual)' : ' (mensal)') + ' do RestaurantePDV.') + '" target="_blank" rel="noopener">Quero este plano</a>' +
+          // Contratação online: cadastro (responsável e empresa) → Pix ou cartão → acesso liberado
+          (p.id && p.valor > 0
+            ? '<a class="btn ' + (dest ? 'pri' : 'out') + '" href="' + base + '/assinar?plano=' + encodeURIComponent(p.id) + '&ciclo=' + (ciclo === 'anual' && temAnual(p) ? 'anual' : 'mensal') + '">Quero este plano</a>'
+            : '<a class="btn ' + (dest ? 'pri' : 'out') + '" href="' + zapHref('Olá! Quero contratar o plano ' + p.nome + (ciclo === 'anual' ? ' (anual)' : ' (mensal)') + ' do RestaurantePDV.') + '" target="_blank" rel="noopener">Quero este plano</a>') +
           '<ul class="itens">' + itens.join('') + '</ul></article>'
       }).join('')
 

@@ -28,7 +28,8 @@ export class AsaasErro extends Error {
 export async function asaas<T = any>(caminho: string, init: { method?: string; body?: unknown } = {}): Promise<T> {
   const chave = process.env.ASAAS_API_KEY
   if (!chave) throw new AsaasErro('Cobrança automática não configurada no servidor (ASAAS_API_KEY)', 503)
-  const r = await fetch(URLS[asaasAmbiente()] + caminho, {
+  // ASAAS_URL: só para testes locais (servidor falso no lugar do Asaas)
+  const r = await fetch((process.env.ASAAS_URL || URLS[asaasAmbiente()]) + caminho, {
     method: init.method ?? 'GET',
     headers: { 'Content-Type': 'application/json', 'User-Agent': 'RestaurantePDV', access_token: chave },
     body: init.body !== undefined ? JSON.stringify(init.body) : undefined,

@@ -121,6 +121,7 @@ import { usePlatformAuthStore } from '~/stores/platformAuth'
 import { setTenantSlug } from '~/composables/useTenantSlug'
 import { terminalLocal } from '~/composables/useTerminalLocal'
 import { biometriaSuportada, biometriaDoAparelho, lembrarBiometria, recusouBiometria, usarBiometria, ofertaBiometria } from '~/lib/biometria'
+import { semLeitorDeCartao as ehCelular } from '~/lib/identificacao'
 
 definePageMeta({ layout: false })
 
@@ -231,7 +232,9 @@ function onRfidEnter() {
 const app = noApp()
 
 // ── Rosto ou digital do aparelho (passkey) ─────────────────────────────────
-// O app da equipe (WebView) não tem passkey: lá segue QR ou senha
+// Só no celular (mesma regra do PIN e do Face ID de confirmação): no computador
+// do caixa entra com senha ou crachá. O app da equipe (WebView) não tem passkey:
+// lá segue QR ou senha
 const bioDisponivel = ref(false)
 const entrandoBio = ref(false)
 
@@ -260,7 +263,7 @@ async function entrarComBiometria() {
 
 /** Depois da senha: oferece ativar o rosto/digital deste aparelho para a próxima vez */
 async function oferecerBiometria(usuarioId: string) {
-  if (app || biometriaDoAparelho(usuarioId) || recusouBiometria(usuarioId)) return
+  if (app || !ehCelular() || biometriaDoAparelho(usuarioId) || recusouBiometria(usuarioId)) return
   if (await biometriaSuportada()) ofertaBiometria.value = true
 }
 
@@ -386,7 +389,7 @@ onMounted(async () => {
   if (rfidAtivo.value && perfil.value === 'cli') setModo('rfid')
   else nextTick(() => emailRef.value?.focus())
   if (saiuPorInatividade) showMsg('error', 'Sua sessão foi encerrada após 8 horas sem uso. Entre novamente.')
-  if (perfil.value === 'cli' && !app) bioDisponivel.value = await biometriaSuportada()
+  if (perfil.value === 'cli' && !app && ehCelular()) bioDisponivel.value = await biometriaSuportada()
 })
 
 onUnmounted(() => {

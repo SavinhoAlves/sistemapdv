@@ -133,6 +133,9 @@
         <button @click="suporte(menuSuporte.tenant, 'auxiliar')">
           <MousePointer2 :size="16" /><span>Ajudar<small>Entra e pode fazer alterações por ele</small></span>
         </button>
+        <button @click="verAoVivo(menuSuporte.tenant)">
+          <MonitorPlay :size="16" /><span>Ver tela ao vivo<small>Acompanha o que o cliente faz (ele aceita antes)</small></span>
+        </button>
       </div>
     </Teleport>
     <PlatformSupportModal v-model="suporteModal.aberto" :tenant="suporteModal.tenant" :modo="suporteModal.modo" />
@@ -141,7 +144,7 @@
 
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted, onUnmounted } from 'vue'
-import { Plus, Monitor, ChevronDown, ChevronUp, ChevronsUpDown, Eye, MousePointer2 } from 'lucide-vue-next'
+import { Plus, Monitor, ChevronDown, ChevronUp, ChevronsUpDown, Eye, MousePointer2, MonitorPlay } from 'lucide-vue-next'
 import { usePlatformAuthStore } from '~/stores/platformAuth'
 import { TIPOS_COMERCIO, rotuloTipoComercio } from '~/lib/tiposComercio'
 import {
@@ -200,7 +203,7 @@ function abrirModal(t: Tenant | null) { tenantEditando.value = t; modalAberto.va
 function abrirDetalhe(t: Tenant) { navigateTo(`/platform/tenants/${t.id}`) }
 
 const menuSuporte  = ref<{ tenant: Tenant; pos: Record<string, string> } | null>(null)
-const ALTURA_MENU = 140
+const ALTURA_MENU = 200
 function alternarMenu(t: Tenant, ev: MouseEvent) {
   if (menuSuporte.value?.tenant.id === t.id) { menuSuporte.value = null; return }
   const r = (ev.currentTarget as HTMLElement).getBoundingClientRect()
@@ -211,6 +214,10 @@ function alternarMenu(t: Tenant, ev: MouseEvent) {
   menuSuporte.value = { tenant: t, pos: { ...vertical, right: `${window.innerWidth - r.right}px` } }
 }
 const suporteModal = reactive({ aberto: false, tenant: null as Tenant | null, modo: 'auxiliar' as 'visualizacao' | 'auxiliar' })
+function verAoVivo(t: Tenant) {
+  menuSuporte.value = null
+  navigateTo(`/platform/espelho/${t.id}`)
+}
 function suporte(t: Tenant, modo: 'visualizacao' | 'auxiliar') {
   menuSuporte.value = null
   Object.assign(suporteModal, { tenant: t, modo, aberto: true })

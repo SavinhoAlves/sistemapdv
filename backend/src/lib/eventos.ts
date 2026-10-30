@@ -42,6 +42,26 @@ export const EVENTOS = {
     /** admin mudou permissões de função/perfil/pessoa: cada app relê as suas */
     permissoesAtualizadas: 'equipe:permissoes-atualizadas',
   },
+  /** Espelho ao vivo: o suporte vê a tela do cliente (que aceita antes) */
+  espelho: {
+    /** Central → servidor: pede para ver a tela de um restaurante */
+    pedir: 'espelho:pedir',
+    /** servidor → aparelhos do restaurante: o suporte quer ver a tela */
+    pedido: 'espelho:pedido',
+    /** aparelho → servidor: aceitou ou recusou */
+    responder: 'espelho:responder',
+    /** servidor → aparelhos: outro aparelho já respondeu, fecha o aviso */
+    atendido: 'espelho:atendido',
+    /** servidor → Central: o cliente aceitou (quem e em qual tela) */
+    aceito: 'espelho:aceito',
+    /** aparelho → servidor → Central: eventos da gravação (rrweb) */
+    gravacao: 'espelho:gravacao',
+    /** Central → servidor → aparelho: mande a tela inteira de novo */
+    quadroCompleto: 'espelho:quadro-completo',
+    /** qualquer lado: encerra; servidor → os dois lados: acabou (com motivo) */
+    encerrar: 'espelho:encerrar',
+    encerrado: 'espelho:encerrado',
+  },
 } as const
 
 /**

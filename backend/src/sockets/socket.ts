@@ -3,6 +3,7 @@ import { bloqueioPara } from '../lib/redeLocal'
 import type { FastifyInstance } from 'fastify'
 import { verifyAccessToken } from '../lib/jwt'
 import { verificarAcessoTenant } from '../middlewares/tenant.middleware'
+import { espelhoDaCentral, espelhoDoRestaurante } from './espelho'
 import {
   EVENTOS,
   salas,
@@ -44,6 +45,8 @@ export function initSocket(app: FastifyInstance): Server {
     },
     pingTimeout: 60_000,
     pingInterval: 25_000,
+    // Espelho ao vivo: a tela inteira gravada (rrweb, CSS embutido) passa de 1 MB
+    maxHttpBufferSize: 8e6,
   })
 
   // Modo local: só o Host e os terminais cadastrados
@@ -74,6 +77,11 @@ export function initSocket(app: FastifyInstance): Server {
 
     try {
       const payload = verifyAccessToken(token)
+      // Central (plataforma): só para o espelho ao vivo, sem salas de restaurante
+      if (payload.type === 'platform') {
+        ;(socket as any).user = { plataforma: true, nome: payload.nome, id: payload.sub }
+        return next()
+      }
       if (payload.type !== 'tenant') return next(new Error('Token não pertence a um tenant'))
       // Mesma regra do requireTenant: suporte da plataforma entra mesmo com licença vencida
       const acesso = await verificarAcessoTenant(payload.tenantId)
@@ -89,8 +97,10 @@ export function initSocket(app: FastifyInstance): Server {
 
   io.on('connection', (socket) => {
     const user = (socket as any).user
+    if (user?.plataforma) return espelhoDaCentral(io!, socket, user)
     const tenantId = user?.tenantId as string | undefined
     if (!tenantId) return socket.disconnect(true)
+    if (!user.somenteLeitura) espelhoDoRestaurante(io!, socket, user)
 
     socket.join(salas.todos(tenantId))
     if (user.cargo) socket.join(salas.cargo(tenantId, user.cargo))

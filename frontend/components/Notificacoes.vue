@@ -68,7 +68,8 @@ const config = useConfigStore()
 const toast = useToastStore()
 
 // Cada tipo só para quem cuida dele: delivery para o caixa/balcão (com delivery no plano), estoque para quem gerencia produtos
-const veDelivery = computed(() => config.delivery_disponivel && auth.temPermissao('gerenciarCaixa'))
+// Pedidos do cardápio online (todos os planos têm o cardápio, com ou sem entrega)
+const veDelivery = computed(() => auth.temPermissao('gerenciarCaixa'))
 const veEstoque  = computed(() => auth.temPermissao('gerenciarProdutos'))
 const ativo = computed(() => veDelivery.value || veEstoque.value)
 

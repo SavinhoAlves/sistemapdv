@@ -2,13 +2,12 @@
   <div class="space-y-4">
     <div v-if="!d" class="h-40 rounded-2xl bg-gray-100 dark:bg-white/[0.04] animate-pulse" />
 
-    <div v-else-if="!d.disponivel" class="rounded-2xl border border-dashed border-gray-300 dark:border-white/15 p-8 text-center">
-      <p class="text-sm font-black text-gray-800 dark:text-white/85">Delivery fora do seu plano</p>
-      <p class="text-xs text-gray-500 dark:text-white/45 mt-1 max-w-md mx-auto">Com o delivery, seus clientes pedem pelo cardápio online, o pedido chega no caixa e, aceito, vai para a cozinha.</p>
-      <button class="mt-4 h-9 px-4 rounded-xl border border-orange-500/40 text-orange-600 dark:text-orange-400 text-xs font-black" @click="navigateTo({ path: '/suporte', query: { assunto: 'Quero incluir o delivery no meu plano' } })">Quero incluir</button>
-    </div>
-
     <template v-else>
+      <!-- O cardápio vale para todos os planos; sem Delivery no plano só há retirada -->
+      <div v-if="!d.disponivel" class="rounded-2xl border border-dashed border-gray-300 dark:border-white/15 p-4 flex flex-wrap items-center justify-between gap-3">
+        <p class="text-xs text-gray-600 dark:text-white/60 max-w-xl"><b class="text-gray-900 dark:text-white">Cardápio com retirada.</b> Seus clientes veem o cardápio e pedem para retirar no balcão. A entrega, com o app do entregador, faz parte do Delivery.</p>
+        <button class="h-9 px-4 rounded-xl border border-orange-500/40 text-orange-600 dark:text-orange-400 text-xs font-black" @click="navigateTo({ path: '/suporte', query: { assunto: 'Quero incluir a entrega (delivery) no meu plano' } })">Quero incluir entrega</button>
+      </div>
       <!-- Link do cardápio -->
       <article class="rounded-2xl border border-gray-200 dark:border-white/[0.08] bg-white dark:bg-white/[0.03] p-5 flex flex-wrap gap-5 items-center">
         <img v-if="qr" :src="qr" alt="QR code do cardápio" class="size-28 rounded-xl border border-gray-200 dark:border-white/10 bg-white" />
@@ -83,11 +82,11 @@
       <article class="rounded-2xl border border-gray-200 dark:border-white/[0.08] bg-white dark:bg-white/[0.03] p-5">
         <p class="text-sm font-black text-gray-900 dark:text-white">Como o cliente recebe</p>
         <div class="mt-3 flex flex-wrap gap-2">
-          <label class="dlv-opcao"><input type="checkbox" v-model="f.entrega" class="accent-orange-500" /> Entrega</label>
+          <label v-if="d.disponivel" class="dlv-opcao"><input type="checkbox" v-model="f.entrega" class="accent-orange-500" /> Entrega</label>
           <label class="dlv-opcao"><input type="checkbox" v-model="f.retirada" class="accent-orange-500" /> Retirada no local</label>
         </div>
         <div class="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-3">
-          <label class="block"><span class="dlv-rotulo">Taxa de entrega (R$)</span><input v-model.number="f.taxaEntrega" type="number" min="0" step="0.5" class="dlv-campo" /></label>
+          <label v-if="d.disponivel" class="block"><span class="dlv-rotulo">Taxa de entrega (R$)</span><input v-model.number="f.taxaEntrega" type="number" min="0" step="0.5" class="dlv-campo" /></label>
           <label class="block"><span class="dlv-rotulo">Pedido mínimo (R$)</span><input v-model.number="f.pedidoMinimo" type="number" min="0" step="1" class="dlv-campo" /></label>
           <label class="block"><span class="dlv-rotulo">Tempo de preparo (min)</span><input v-model.number="f.tempoMin" type="number" min="5" max="240" step="5" class="dlv-campo" /></label>
         </div>
@@ -164,7 +163,7 @@ onMounted(async () => {
   try {
     d.value = await api.get('/delivery/config')
     preencher()
-    if (d.value.disponivel) qr.value = await QRCode.toDataURL(link.value, { width: 224, margin: 1 })
+    qr.value = await QRCode.toDataURL(link.value, { width: 224, margin: 1 })
   } catch (e: any) { toast.error(e?.message || 'Erro ao carregar o delivery') }
 })
 </script>

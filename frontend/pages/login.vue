@@ -71,6 +71,14 @@
                 <button type="button" class="link forgot" @click="abrirRecuperar">Esqueci minha senha</button>
                 <button class="btn" type="submit" :disabled="loading"><span class="spin" /><span>{{ loading ? 'Entrando…' : PERFIL[perfil].btn }}</span></button>
                 <button v-if="rfidAtivo && perfil === 'cli'" type="button" class="link sub-act" @click="setModo('rfid')">Usar crachá</button>
+                <!-- Rosto ou digital do próprio aparelho (passkey): sem digitar usuário nem senha -->
+                <template v-if="bioDisponivel && perfil === 'cli'">
+                  <div class="ou" aria-hidden="true"><span>ou</span></div>
+                  <button type="button" class="btn ghost bio" :disabled="entrandoBio" @click="entrarComBiometria">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2" /><path d="M8 14s1.5 2 4 2 4-2 4-2" /><path d="M9 9h.01M15 9h.01" /></svg>
+                    {{ entrandoBio ? 'Confirmando…' : 'Entrar com rosto ou digital' }}
+                  </button>
+                </template>
               </form>
               <NuxtLink v-if="app" to="/acesso" class="link sub-act">Entrar lendo o QR code</NuxtLink>
               <p class="help">{{ PERFIL[perfil].help }}</p>
@@ -114,6 +122,7 @@ import { useAuthStore } from '~/stores/auth'
 import { usePlatformAuthStore } from '~/stores/platformAuth'
 import { setTenantSlug } from '~/composables/useTenantSlug'
 import { terminalLocal } from '~/composables/useTerminalLocal'
+import { biometriaSuportada, biometriaDoAparelho, lembrarBiometria, recusouBiometria, usarBiometria, ofertaBiometria } from '~/lib/biometria'
 
 definePageMeta({ layout: false })
 
@@ -223,6 +232,40 @@ function onRfidEnter() {
 
 const app = noApp()
 
+// ── Rosto ou digital do aparelho (passkey) ─────────────────────────────────
+// O app da equipe (WebView) não tem passkey: lá segue QR ou senha
+const bioDisponivel = ref(false)
+const entrandoBio = ref(false)
+
+async function entrarComBiometria() {
+  hideMsg()
+  entrandoBio.value = true
+  const base = (runtimeConfig.public as any).apiUrl as string
+  try {
+    const { desafioId, ...opcoes } = await $fetch<any>(`${base}/api/auth/biometria/login/opcoes`, { method: 'POST', body: {} })
+    const resposta = await usarBiometria(opcoes)
+    const res: any = await $fetch(`${base}/api/auth/biometria/login`, { method: 'POST', body: { desafioId, resposta } })
+    lembrarBiometria(res.usuario.id, resposta.id)
+    concluirLogin(res, res.tenant?.slug ?? '', `Bem-vindo, ${res.usuario.nome}!`)
+  } catch (e: any) {
+    if (e?.name === 'NotAllowedError' || e?.name === 'AbortError') {
+      showMsg('error', 'Biometria não confirmada. Tente de novo ou entre com usuário e senha.')
+    } else {
+      const texto = e?.data?.error || e?.message || 'Não foi possível entrar com a biometria.'
+      if (/suspenso/i.test(texto)) { bloqueio.value = 'Este restaurante está suspenso. Entre em contato para regularizar o acesso.'; return }
+      showMsg('error', texto)
+    }
+  } finally {
+    entrandoBio.value = false
+  }
+}
+
+/** Depois da senha: oferece ativar o rosto/digital deste aparelho para a próxima vez */
+async function oferecerBiometria(usuarioId: string) {
+  if (app || biometriaDoAparelho(usuarioId) || recusouBiometria(usuarioId)) return
+  if (await biometriaSuportada()) ofertaBiometria.value = true
+}
+
 function concluirLogin(res: any, slug: string, texto: string) {
   const raw = res.usuario
   if (!(res.accessToken || res.access_token) || !raw) return false
@@ -269,7 +312,7 @@ async function handleManualLogin() {
   try {
     // O restaurante vem na resposta: código completo (1001-3) e nome de usuário já o identificam
     const res: any = await api.auth.login(form.email.trim(), form.senha)
-    concluirLogin(res, res.tenant?.slug ?? '', 'Acesso autorizado!')
+    if (concluirLogin(res, res.tenant?.slug ?? '', 'Acesso autorizado!')) oferecerBiometria(res.usuario.id)
   } catch (err: any) {
     const texto = err?.message || err?.data?.error || 'Falha ao conectar com o servidor.'
     if (/suspenso/i.test(texto)) {
@@ -345,6 +388,7 @@ onMounted(async () => {
   if (rfidAtivo.value && perfil.value === 'cli') setModo('rfid')
   else nextTick(() => emailRef.value?.focus())
   if (saiuPorInatividade) showMsg('error', 'Sua sessão foi encerrada após 8 horas sem uso. Entre novamente.')
+  if (perfil.value === 'cli' && !app) bioDisponivel.value = await biometriaSuportada()
 })
 
 onUnmounted(() => {
@@ -427,6 +471,9 @@ input.pw{padding-right:52px}
 .link{color:var(--brand-text);font-weight:600;text-decoration:none;border:0;background:none;padding:0;cursor:pointer;border-radius:6px;font-size:14px}
 .link:hover{text-decoration:underline}
 .forgot{align-self:flex-end;margin:-2px 0 6px}
+.ou{display:flex;align-items:center;gap:12px;margin:16px 0 4px;color:var(--muted);font-size:13px}
+.ou::before,.ou::after{content:'';flex:1;height:1px;background:var(--line)}
+.btn.bio{gap:10px}
 .sub-act{display:block;align-self:center;margin:10px auto 0;min-height:40px;padding:0 12px;color:var(--muted);font-weight:500;text-align:center;line-height:40px}
 .sub-act:hover{color:var(--ink);text-decoration:none}
 .btn{width:100%;min-height:52px;margin-top:6px;border:0;border-radius:14px;background:var(--brand);color:var(--ink) !important;font:600 15px var(--fonte-texto),sans-serif;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;transition:background .15s,transform .05s}

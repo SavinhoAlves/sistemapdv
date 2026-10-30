@@ -3,8 +3,11 @@
  * confere o rosto/digital e assina um desafio; aqui só guardamos a chave
  * pública de cada aparelho. Nenhum dado biométrico chega ao servidor.
  *
- * Cadastro: só logo depois de um PIN certo (quem pegar um celular desbloqueado
- * e logado não consegue cadastrar o próprio rosto sem saber o PIN).
+ * Cadastro: só logo depois de um PIN ou senha certos (quem pegar um aparelho
+ * desbloqueado e logado não consegue cadastrar o próprio rosto sem saber).
+ *
+ * Também serve para entrar no sistema (loginComBiometria): a chave fica no
+ * aparelho com o id do usuário (passkey), então não é preciso digitar nada.
  */
 import {
   generateAuthenticationOptions,
@@ -12,6 +15,7 @@ import {
   verifyAuthenticationResponse,
   verifyRegistrationResponse,
 } from '@simplewebauthn/server'
+import crypto from 'crypto'
 import { prisma } from '../../lib/prisma'
 import { getPermissoes } from './auth.service'
 
@@ -48,7 +52,7 @@ function usarDesafio(chave: string) {
   return d.desafio
 }
 
-// PIN certo há pouco libera o cadastro da biometria
+// PIN ou senha certos há pouco liberam o cadastro da biometria
 const PIN_RECENTE_MS = 3 * 60_000
 const pinRecente = new Map<string, number>()
 
@@ -59,7 +63,7 @@ export function marcarPinRecente(usuarioId: string) {
 export async function opcoesCadastro(usuarioId: string, tenantId: string, origin: string | undefined) {
   const { rpID } = origemDe(origin)
   if ((pinRecente.get(usuarioId) ?? 0) < Date.now()) {
-    throw erro(403, 'Confirme seu PIN antes de ativar o Face ID / digital')
+    throw erro(403, 'Confirme seu PIN (ou entre com a senha) antes de ativar o Face ID / digital')
   }
   const usuario = await prisma.usuario.findFirst({
     where: { id: usuarioId, tenantId, ativo: true },
@@ -74,8 +78,9 @@ export async function opcoesCadastro(usuarioId: string, tenantId: string, origin
     userName: usuario.login || usuario.nome,
     userDisplayName: usuario.nome,
     attestationType: 'none',
-    // Do próprio aparelho (Face ID, digital), conferindo a pessoa
-    authenticatorSelection: { authenticatorAttachment: 'platform', residentKey: 'preferred', userVerification: 'required' },
+    // Do próprio aparelho (Face ID, digital, Windows Hello), conferindo a pessoa.
+    // Guardada no aparelho (residentKey) para entrar sem digitar o usuário
+    authenticatorSelection: { authenticatorAttachment: 'platform', residentKey: 'required', userVerification: 'required' },
     excludeCredentials: usuario.biometrias.map((b) => ({ id: b.credentialId, transports: b.transportes as any })),
     timeout: 60_000,
   })
@@ -154,6 +159,50 @@ export async function identificarBiometria(usuarioId: string, tenantId: string, 
     data: { contador: BigInt(verificado.authenticationInfo.newCounter), usadoEm: new Date() },
   })
   return usuarioLiberado(usuarioId, tenantId)
+}
+
+/** Entrar no sistema: o aparelho escolhe a chave (sem usuário digitado) */
+export async function opcoesLogin(origin: string | undefined) {
+  const { rpID } = origemDe(origin)
+  const opcoes = await generateAuthenticationOptions({ rpID, userVerification: 'required', timeout: 60_000 })
+  const desafioId = crypto.randomUUID()
+  guardarDesafio(`login:${desafioId}`, opcoes.challenge)
+  return { ...opcoes, desafioId }
+}
+
+/** Confere a chave escolhida pelo aparelho e devolve de quem ela é */
+export async function loginComBiometria(desafioId: string, resposta: any, origin: string | undefined) {
+  const { origin: expectedOrigin, rpID } = origemDe(origin)
+  const expectedChallenge = usarDesafio(`login:${desafioId}`)
+  const bio = await prisma.biometria.findFirst({
+    where: { credentialId: String(resposta?.id ?? '') },
+    include: { usuario: { include: { tenant: true } } },
+  })
+  if (!bio || !bio.usuario.ativo) throw erro(401, 'Esta biometria não está ativa. Entre com usuário e senha')
+  // A chave guarda o id do usuário (userHandle): tem de ser o mesmo do cadastro
+  const dono = resposta?.response?.userHandle ? Buffer.from(String(resposta.response.userHandle), 'base64url').toString() : bio.usuarioId
+  if (dono !== bio.usuarioId) throw erro(401, 'Biometria não confere. Entre com usuário e senha')
+
+  let verificado
+  try {
+    verificado = await verifyAuthenticationResponse({
+      response: resposta,
+      expectedChallenge,
+      expectedOrigin,
+      expectedRPID: rpID,
+      credential: { id: bio.credentialId, publicKey: new Uint8Array(bio.chavePublica), counter: Number(bio.contador), transports: bio.transportes as any },
+      requireUserVerification: true,
+    })
+  } catch {
+    throw erro(401, 'Biometria não confirmada. Tente de novo ou entre com a senha')
+  }
+  if (!verificado.verified) throw erro(401, 'Biometria não confirmada. Tente de novo ou entre com a senha')
+
+  await prisma.biometria.update({
+    where: { id: bio.id },
+    data: { contador: BigInt(verificado.authenticationInfo.newCounter), usadoEm: new Date() },
+  })
+  return bio.usuario
 }
 
 /** Quem está logado, com as permissões atuais (para a liberação renovada) */

@@ -32,17 +32,24 @@ export default defineNuxtPlugin(() => {
 
   const expirou = () => logado() && ultima() > 0 && Date.now() - ultima() > LIMITE_MS
 
-  function encerrar() {
-    try { sessionStorage.setItem(AVISO_INATIVIDADE, '1') } catch { /* só o aviso se perde */ }
+  function encerrar(avisar = true) {
+    if (avisar) try { sessionStorage.setItem(AVISO_INATIVIDADE, '1') } catch { /* só o aviso se perde */ }
     try { localStorage.removeItem(CHAVE) } catch { /* idem */ }
     if (auth.token) auth.logout(false)
     if (plataforma.token) plataforma.logout()
     return noApp() ? '/acesso' : '/login'
   }
 
+  // Telas que abrem uma sessão nova: o QR do celular (/m?t=…), o login, a
+  // entrada do app e o cadastro. Com a sessão velha vencida, só limpa e segue
+  // (antes mandava para o login e o token do QR se perdia)
+  const abreSessaoNova = (to: { path: string; query: Record<string, unknown> }) =>
+    (to.path.replace(/\/$/, '') === '/m' && !!to.query.t) || ['/login', '/acesso', '/assinar'].includes(to.path)
+
   // Antes de abrir qualquer tela (inclusive a primeira)
   addRouteMiddleware('inatividade', (to) => {
     if (!expirou()) return
+    if (abreSessaoNova(to)) { encerrar(false); return }
     const destino = encerrar()
     if (to.path !== destino) return navigateTo(destino, { replace: true })
   }, { global: true })

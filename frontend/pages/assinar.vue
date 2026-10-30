@@ -51,6 +51,8 @@
               </li>
             </ol>
 
+            <p v-if="passo <= 3" class="ja-conta">Já tem uma conta? <NuxtLink to="/login">Entrar</NuxtLink></p>
+
             <p v-if="erro" class="msg err" role="alert">{{ erro }}</p>
 
             <!-- 1. Pessoa física: quem responde pelo restaurante e vai administrar o sistema -->
@@ -91,7 +93,11 @@
               </div>
               <p v-else class="hint nota">O contrato e a cobrança ficam no CPF {{ r.cpf || 'do responsável' }}. Quando tiver CNPJ, é só avisar o suporte.</p>
               <div class="grid3">
-                <div class="field"><label for="e-cep">CEP</label><input id="e-cep" :value="e.cep" inputmode="numeric" autocomplete="postal-code" placeholder="00000-000" :aria-invalid="inval === 'e-cep'" @input="e.cep = cepBR(($event.target as HTMLInputElement).value)"></div>
+                <div class="field">
+                  <label for="e-cep">CEP</label>
+                  <input id="e-cep" :value="e.cep" inputmode="numeric" autocomplete="postal-code" placeholder="00000-000" :aria-invalid="inval === 'e-cep'" aria-describedby="e-cep-info" @input="aoDigitarCep(($event.target as HTMLInputElement).value)">
+                  <p v-if="cepInfo" id="e-cep-info" class="hint" role="status">{{ cepInfo }}</p>
+                </div>
                 <div class="field span2"><label for="e-rua">Endereço</label><input id="e-rua" v-model.trim="e.logradouro" autocomplete="address-line1" placeholder="Rua, avenida…" :aria-invalid="inval === 'e-rua'"></div>
               </div>
               <div class="grid3">
@@ -183,12 +189,39 @@ const pendente = ref<Pendente | null>(null)
 const liberado = ref<{ restaurante: string; codigoAcesso: string | null } | null>(null)
 
 const r = reactive({ nome: '', cpf: '', celular: '', email: '', senha: '', senha2: '' })
+const cepInfo = ref('')
 const e = reactive({ nome: '', tipoComercio: '', temCnpj: true, cnpj: '', razaoSocial: '', cep: '', logradouro: '', numero: '', bairro: '', cidade: '', uf: '' })
 
 const temAnual = (p: Plano) => Number(p.valorAnual) > 0
 const valorCobrado = computed(() => plano.value ? (ciclo.value === 'anual' && temAnual(plano.value) ? Number(plano.value.valorAnual) : Number(plano.value.valor)) : 0)
 const travado = computed(() => passo.value >= 4)
 const moeda = (v: number | null) => Number(v ?? 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+
+// CEP completo: preenche cidade e UF (e rua e bairro, se ainda vazios) pelo ViaCEP.
+// Sem resposta, os campos continuam para preencher à mão.
+let cepConsultado = ''
+async function aoDigitarCep(v: string) {
+  e.cep = cepBR(v)
+  const cep = e.cep.replace(/\D/g, '')
+  if (cep.length !== 8) { cepInfo.value = ''; cepConsultado = ''; return }
+  if (cep === cepConsultado) return
+  cepConsultado = cep
+  cepInfo.value = 'Buscando o endereço…'
+  try {
+    const d = await $fetch<{ erro?: boolean; localidade?: string; uf?: string; logradouro?: string; bairro?: string }>(`https://viacep.com.br/ws/${cep}/json/`, { timeout: 6000 })
+    if (cep !== cepConsultado) return
+    if (d.erro || !d.localidade) { cepInfo.value = 'CEP não encontrado. Preencha cidade e UF.'; return }
+    e.cidade = d.localidade
+    e.uf = d.uf ?? e.uf
+    if (!e.logradouro && d.logradouro) e.logradouro = d.logradouro
+    if (!e.bairro && d.bairro) e.bairro = d.bairro
+    // Cidade e UF já aparecem nos campos: o aviso só fica para busca e erro
+    cepInfo.value = ''
+    if (inval.value === 'e-cidade' || inval.value === 'e-uf') { inval.value = ''; erro.value = '' }
+  } catch {
+    if (cep === cepConsultado) cepInfo.value = 'Não deu para buscar o CEP agora. Preencha cidade e UF.'
+  }
+}
 
 function escolher(p: Plano) {
   plano.value = p
@@ -353,6 +386,9 @@ onUnmounted(() => { if (timer) clearInterval(timer) })
 .center{flex:1;display:flex;align-items:flex-start;justify-content:center}
 .card{width:100%;max-width:520px;padding-top:clamp(0px,4vh,40px)}
 
+.ja-conta{margin:0 0 16px;font-size:14px;color:var(--muted)}
+.ja-conta a{color:var(--brand-text);font-weight:600;text-decoration:none}
+.ja-conta a:hover{text-decoration:underline}
 .passos{list-style:none;margin:0 0 24px;padding:0;display:flex;gap:6px;flex-wrap:wrap}
 .passos li{display:flex;align-items:center;gap:8px;padding:6px 12px 6px 6px;border-radius:999px;background:var(--panel);color:var(--muted);font-size:13.5px;font-weight:600}
 .passos li span{width:22px;height:22px;border-radius:50%;display:grid;place-items:center;background:var(--bg);font-size:12px}

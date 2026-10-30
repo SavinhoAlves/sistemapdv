@@ -74,6 +74,8 @@
               </form>
               <NuxtLink v-if="app" to="/acesso" class="link sub-act">Entrar lendo o QR code</NuxtLink>
               <p class="help">{{ PERFIL[perfil].help }}</p>
+              <!-- Quem ainda não é cliente contrata por aqui (não no app da equipe nem no login do gestor) -->
+              <p v-if="perfil === 'cli' && !app" class="novo">Ainda não tem conta? <NuxtLink to="/assinar">Contratar o RestaurantePDV</NuxtLink></p>
             </div>
 
             <div v-else class="blocked" role="alert">
@@ -439,6 +441,9 @@ input.pw{padding-right:52px}
 .msg{display:flex;align-items:center;gap:10px;margin:0 0 16px;padding:12px 14px;border-radius:14px;font-size:14px}
 .msg.err{color:var(--danger);background:#FDECEC;border:1px solid #F3B9BC}
 .msg.ok{color:var(--ok);background:#E7F6EF;border:1px solid #A6DCC4}
+.novo{margin:12px 0 0;text-align:center;font-size:14px;color:var(--muted)}
+.novo a{color:var(--brand-text);font-weight:600;text-decoration:none}
+.novo a:hover{text-decoration:underline}
 .help{margin:24px 0 0;text-align:center;font-size:13.5px;color:var(--muted)}
 a:focus-visible,button:focus-visible{outline:2px solid var(--brand);outline-offset:2px}
 

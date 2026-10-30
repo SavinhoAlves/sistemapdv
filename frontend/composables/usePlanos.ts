@@ -5,6 +5,8 @@ export interface Plano {
   nome: string
   descricao: string | null
   valor: number
+  /** Valor do plano anual (por ano); vazio = não vende no anual */
+  valorAnual: number | null
   rfid: boolean
   vendaMobile: boolean
   delivery: boolean

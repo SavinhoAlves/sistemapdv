@@ -140,6 +140,20 @@ section.sec{padding:96px 0}
 .planos-topo{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-end;gap:24px;margin-bottom:44px}
 .planos-topo .head{margin-bottom:0}
 .planos-topo .lead{max-width:380px}
+/* Mensal / Anual */
+.ciclo{display:inline-flex;padding:4px;border-radius:999px;background:var(--surface-2);border:1px solid var(--line)}
+.ciclo button{border:0;background:none;cursor:pointer;font:600 15px var(--sans);padding:9px 18px;border-radius:999px;color:var(--muted)}
+.ciclo button[aria-pressed=true]{background:var(--ink);color:var(--bg)}
+.ciclo .off{font:700 12px var(--mono);margin-left:6px;color:var(--brand-text)}
+.ciclo button[aria-pressed=true] .off{color:var(--brand)}
+.plano .nota{font-size:13px;opacity:.7;margin-top:-14px;min-height:18px}
+/* O que vem em todo plano */
+.inclui{margin-top:18px;display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--line);border:1px solid var(--line);border-radius:var(--r);overflow:hidden}
+.inclui div{background:var(--surface);padding:20px 22px;display:flex;flex-direction:column;gap:4px}
+.inclui b{font-size:15px;font-weight:700}
+.inclui span{font-size:14px;color:var(--muted)}
+@media (max-width:860px){.inclui{grid-template-columns:1fr 1fr}}
+@media (max-width:480px){.inclui{grid-template-columns:1fr}}
 .planos{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,280px),1fr));gap:18px;align-items:stretch}
 .plano{display:flex;flex-direction:column;gap:22px;padding:30px;border-radius:22px;background:var(--surface);border:1px solid var(--line)}
 .plano.dest{background:var(--deep);color:var(--deep-ink);border-color:var(--deep)}
@@ -322,10 +336,22 @@ footer a:hover{color:var(--ink)}
           <span class="kicker">Planos</span>
           <h2 class="h2">Escolha o plano do tamanho da sua casa.</h2>
         </div>
-        <p class="lead">Mensalidade fixa, sem taxa por pedido. Implantação e treinamento da equipe incluídos.</p>
+        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:12px">
+          <div class="ciclo" role="group" aria-label="Forma de pagamento">
+            <button type="button" data-ciclo="mensal" aria-pressed="true">Mensal</button>
+            <button type="button" data-ciclo="anual" aria-pressed="false">Anual <span class="off">economize</span></button>
+          </div>
+          <p class="lead" style="text-align:right">Preço fixo, sem taxa por pedido.</p>
+        </div>
       </div>
       <div class="planos" id="lista-planos">
         <article class="plano"><h3>Carregando planos…</h3></article>
+      </div>
+      <div class="inclui" aria-label="Incluído em todos os planos">
+        <div><b>Implantação</b><span>Cadastramos cardápio, mesas e impressoras com você.</span></div>
+        <div><b>Treinamento</b><span>Equipe treinada no caixa, no salão e na cozinha.</span></div>
+        <div><b>Suporte</b><span>Chamado aberto pelo próprio sistema, com a nossa equipe.</span></div>
+        <div><b>Atualizações</b><span>Novos recursos entram sem custo a mais.</span></div>
       </div>
       <div class="comparar" id="comparar" hidden></div>
       <div class="sob">
@@ -373,6 +399,7 @@ footer a:hover{color:var(--ink)}
         <details><summary>Dá para imprimir os pedidos na cozinha?</summary><p>Dá. Os pedidos podem ir para a tela da cozinha, para uma impressora térmica ou para as duas, e o caixa imprime o cupom da conta.</p></details>
         <details><summary>Quais formas de pagamento posso receber?</summary><p>Dinheiro, cartão de crédito e débito e Pix. Também é possível dividir a conta entre os clientes e aplicar a taxa de serviço.</p></details>
         <details><summary>Serve para delivery?</summary><p>Serve. Você recebe pedidos para entrega ou retirada, despacha para os entregadores pelo app e o cliente acompanha o pedido por um link.</p></details>
+        <details><summary>Como funciona o plano anual?</summary><p>Você paga o ano de uma vez, com desconto em relação a 12 mensalidades, e o valor fica fixo durante os 12 meses.</p></details>
         <details><summary>Posso trocar de plano depois?</summary><p>Pode. É só falar com a equipe de vendas e a mudança vale a partir da próxima mensalidade.</p></details>
         <details><summary>Como faço para contratar?</summary><p><a href="#demonstracao">Agende uma demonstração</a> ou <a class="js-whatsapp" href="#" target="_blank" rel="noopener">fale com a equipe de vendas</a> pelo WhatsApp. Mostramos o sistema funcionando e deixamos tudo pronto para o seu restaurante.</p></details>
       </div>
@@ -453,7 +480,24 @@ footer a:hover{color:var(--ink)}
         '<a class="btn pri" href="' + zapHref('Olá! Quero saber os planos do RestaurantePDV.') + '" target="_blank" rel="noopener">Falar com vendas</a></article>'
     }
 
+    var ciclo = 'mensal', ultimos = []
+    // Anual: valor próprio de cada plano, definido no painel (valorAnual, por ano)
+    var temAnual = function (p) { return Number(p.valorAnual) > 0 }
+    var porMes = function (p) { return ciclo === 'anual' && temAnual(p) ? Math.round(p.valorAnual / 12 * 100) / 100 : p.valor }
+    document.querySelectorAll('.ciclo button').forEach(function (b) {
+      b.addEventListener('click', function () {
+        ciclo = b.dataset.ciclo
+        document.querySelectorAll('.ciclo button').forEach(function (x) { x.setAttribute('aria-pressed', String(x === b)) })
+        if (ultimos.length) render(ultimos)
+      })
+    })
+
     function render(planos) {
+      ultimos = planos
+      // Sem nenhum plano anual cadastrado, o botão Mensal / Anual some
+      var algumAnual = planos.some(temAnual)
+      document.querySelector('.ciclo').hidden = !algumAnual
+      if (!algumAnual) ciclo = 'mensal'
       if (!planos.length) return sobConsulta()
       var meio = planos.length >= 3 ? Math.floor(planos.length / 2) : -1
       lista.innerHTML = planos.map(function (p, i) {
@@ -463,8 +507,9 @@ footer a:hover{color:var(--ink)}
         return '<article class="plano' + (dest ? ' dest' : '') + '">' +
           '<div class="plano-nome"><h3>' + esc(p.nome) + '</h3>' + (dest ? '<span class="badge">MAIS ESCOLHIDO</span>' : '') + '</div>' +
           '<p class="desc">' + esc(p.descricao || '') + '</p>' +
-          '<div class="preco"><span class="rs">R$</span><b>' + valor(p.valor) + '</b><span class="mes">/mês</span></div>' +
-          '<a class="btn ' + (dest ? 'pri' : 'out') + '" href="' + zapHref('Olá! Quero contratar o plano ' + p.nome + ' do RestaurantePDV.') + '" target="_blank" rel="noopener">Quero este plano</a>' +
+          '<div class="preco"><span class="rs">R$</span><b>' + valor(porMes(p)) + '</b><span class="mes">/mês</span></div>' +
+          '<p class="nota">' + (ciclo === 'anual' ? (temAnual(p) ? 'R$ ' + valor(p.valorAnual) + ' por ano' + (p.valor * 12 > p.valorAnual ? ' · economia de R$ ' + valor(p.valor * 12 - p.valorAnual) : '') : 'Só no mensal') : 'Cobrado todo mês') + '</p>' +
+          '<a class="btn ' + (dest ? 'pri' : 'out') + '" href="' + zapHref('Olá! Quero contratar o plano ' + p.nome + (ciclo === 'anual' ? ' (anual)' : ' (mensal)') + ' do RestaurantePDV.') + '" target="_blank" rel="noopener">Quero este plano</a>' +
           '<ul class="itens">' + itens.join('') + '</ul></article>'
       }).join('')
 
@@ -472,7 +517,9 @@ footer a:hover{color:var(--ink)}
       var col = function (i) { return i === meio ? ' class="c-dest"' : '' }
       var linha = function (nome, f) { return '<tr><td>' + nome + '</td>' + planos.map(function (p, i) { return '<td' + col(i) + '>' + f(p) + '</td>' }).join('') + '</tr>' }
       tabela.innerHTML = '<table><thead><tr><th>COMPARATIVO</th>' + planos.map(function (p, i) { return '<th' + col(i) + '>' + esc(p.nome) + '</th>' }).join('') + '</tr></thead><tbody>' +
-        linha('Mensalidade', function (p) { return 'R$ ' + valor(p.valor) }) +
+        linha('Mensal', function (p) { return 'R$ ' + valor(p.valor) + '/mês' }) +
+        (algumAnual ? linha('Anual', function (p) { return temAnual(p) ? 'R$ ' + valor(p.valorAnual) + '/ano' : '—' }) : '') +
+        linha('Implantação, treinamento e suporte', function () { return '✓' }) +
         linha('Mesas, cozinha, caixa e Pix', function () { return '✓' }) +
         linha('Cardápio digital', function () { return '✓' }) +
         extras.map(function (e) { return linha(e[1], function (p) { return p[e[0]] ? '✓' : '—' }) }).join('') +

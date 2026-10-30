@@ -19,6 +19,7 @@ const planoBody = z.object({
   nome:        z.string().trim().min(1, 'Informe o nome do plano').max(60),
   descricao:   z.string().trim().max(300).nullish(),
   valor:       z.coerce.number().min(0, 'Valor não pode ser negativo').max(1_000_000),
+  valorAnual:  z.coerce.number().min(0, 'Valor anual não pode ser negativo').max(10_000_000).nullish(),
   rfid:        z.boolean().default(false),
   vendaMobile: z.boolean().default(false),
   delivery:    z.boolean().default(false),
@@ -28,7 +29,7 @@ const planoBody = z.object({
 
 
 function formatar(p: any) {
-  return { ...p, valor: Number(p.valor), qtdRestaurantes: p._count?.tenants ?? 0, _count: undefined }
+  return { ...p, valor: Number(p.valor), valorAnual: p.valorAnual == null ? null : Number(p.valorAnual), qtdRestaurantes: p._count?.tenants ?? 0, _count: undefined }
 }
 
 export async function platformPlanosRoutes(app: FastifyInstance) {
@@ -94,8 +95,8 @@ export async function planosPublicosRoutes(app: FastifyInstance) {
     const planos = await prisma.plano.findMany({
       where: { ativo: true },
       orderBy: [{ valor: 'asc' }, { nome: 'asc' }],
-      select: { nome: true, descricao: true, valor: true, rfid: true, vendaMobile: true, delivery: true, nfce: true },
+      select: { nome: true, descricao: true, valor: true, valorAnual: true, rfid: true, vendaMobile: true, delivery: true, nfce: true },
     })
-    return reply.send(planos.map((p) => ({ ...p, valor: Number(p.valor) })))
+    return reply.send(planos.map((p) => ({ ...p, valor: Number(p.valor), valorAnual: p.valorAnual == null ? null : Number(p.valorAnual) })))
   })
 }

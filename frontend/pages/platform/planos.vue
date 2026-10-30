@@ -27,6 +27,7 @@
           </div>
           <h3>{{ p.nome }}</h3>
           <div class="pf-pr">{{ moeda(p.valor) }} <small>por mês</small></div>
+          <div class="pf-pr-anual">{{ p.valorAnual ? `${moeda(p.valorAnual)} por ano` : 'Sem plano anual' }}</div>
         </div>
         <ul>
           <li v-for="r in RECURSOS" :key="r.chave" :class="{ off: !p[r.chave] }">
@@ -65,6 +66,13 @@
         <div class="pf-fld">
           <label class="pf-lab" for="pl-valor">Valor mensal (R$) *</label>
           <input id="pl-valor" v-model="form.valor" class="pf-inp" type="number" min="0" step="0.01" placeholder="0,00" :aria-invalid="erroForm === 'valor'">
+        </div>
+        <div class="pf-fld">
+          <label class="pf-lab" for="pl-anual">Valor anual (R$) <small>(por ano; vazio = sem plano anual)</small></label>
+          <input id="pl-anual" v-model="form.valorAnual" class="pf-inp" type="number" min="0" step="0.01" placeholder="Ex.: 9600,00" :aria-invalid="erroForm === 'valorAnual'">
+          <small v-if="Number(form.valor) > 0 && Number(form.valorAnual) > 0" style="color:var(--pf-muted)">
+            Equivale a {{ moeda(Number(form.valorAnual) / 12) }} por mês ({{ Math.round((Number(form.valorAnual) / (Number(form.valor) * 12)) * 100) }}% de 12 mensalidades)
+          </small>
         </div>
         <div class="pf-fld">
           <label class="pf-lab" for="pl-desc">Descrição <small>(opcional)</small></label>
@@ -142,18 +150,18 @@ const modal    = ref(false)
 const editando = ref<Plano | null>(null)
 const salvando = ref(false)
 const msgErro  = ref('')
-const erroForm = ref<'nome' | 'valor' | null>(null)
+const erroForm = ref<'nome' | 'valor' | 'valorAnual' | null>(null)
 const confirmarExclusao = ref(false)
 
-const form = reactive({ nome: '', valor: '' as string | number, descricao: '', rfid: false, vendaMobile: false, delivery: false, nfce: false, ativo: true })
+const form = reactive({ nome: '', valor: '' as string | number, valorAnual: '' as string | number, descricao: '', rfid: false, vendaMobile: false, delivery: false, nfce: false, ativo: true })
 
 function abrir(p: Plano | null) {
   editando.value = p
   msgErro.value = ''
   erroForm.value = null
   Object.assign(form, p
-    ? { nome: p.nome, valor: p.valor, descricao: p.descricao ?? '', rfid: p.rfid, vendaMobile: p.vendaMobile, delivery: p.delivery, nfce: p.nfce, ativo: p.ativo }
-    : { nome: '', valor: '', descricao: '', rfid: false, vendaMobile: false, delivery: false, nfce: false, ativo: true })
+    ? { nome: p.nome, valor: p.valor, valorAnual: p.valorAnual ?? '', descricao: p.descricao ?? '', rfid: p.rfid, vendaMobile: p.vendaMobile, delivery: p.delivery, nfce: p.nfce, ativo: p.ativo }
+    : { nome: '', valor: '', valorAnual: '', descricao: '', rfid: false, vendaMobile: false, delivery: false, nfce: false, ativo: true })
   modal.value = true
 }
 
@@ -163,11 +171,13 @@ async function salvarPlano() {
   const valor = Number(String(form.valor).replace(',', '.'))
   if (!form.nome.trim()) { msgErro.value = 'Informe o nome do plano.'; erroForm.value = 'nome'; return }
   if (form.valor === '' || Number.isNaN(valor) || valor < 0) { msgErro.value = 'Informe um valor válido.'; erroForm.value = 'valor'; return }
+  const valorAnual = form.valorAnual === '' || form.valorAnual == null ? null : Number(String(form.valorAnual).replace(',', '.'))
+  if (valorAnual != null && (Number.isNaN(valorAnual) || valorAnual < 0)) { msgErro.value = 'Informe um valor anual válido ou deixe vazio.'; erroForm.value = 'valorAnual'; return }
 
   salvando.value = true
   try {
     await salvar({
-      nome: form.nome.trim(), valor, descricao: form.descricao.trim() || null,
+      nome: form.nome.trim(), valor, valorAnual, descricao: form.descricao.trim() || null,
       rfid: form.rfid, vendaMobile: form.vendaMobile, delivery: form.delivery, nfce: form.nfce, ativo: form.ativo,
     }, editando.value?.id)
     modal.value = false

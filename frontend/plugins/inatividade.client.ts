@@ -44,7 +44,7 @@ export default defineNuxtPlugin(() => {
   // entrada do app e o cadastro. Com a sessão velha vencida, só limpa e segue
   // (antes mandava para o login e o token do QR se perdia)
   const abreSessaoNova = (to: { path: string; query: Record<string, unknown> }) =>
-    (to.path.replace(/\/$/, '') === '/m' && !!to.query.t) || ['/login', '/acesso', '/assinar'].includes(to.path)
+    (to.path.replace(/\/$/, '') === '/m' && !!to.query.t) || ['/login', '/acesso', '/assinar', '/confirmar-email'].includes(to.path)
 
   // Antes de abrir qualquer tela (inclusive a primeira)
   addRouteMiddleware('inatividade', (to) => {

@@ -224,6 +224,9 @@ model Usuario {
   login       String?   @unique
   nome        String
   email       String?
+  /// Cadastro pelo site: só entra depois de clicar no link enviado ao e-mail
+  emailPendente     Boolean   @default(false) @map("email_pendente")
+  emailConfirmadoEm DateTime? @map("email_confirmado_em")
   senhaHash   String?   @map("senha_hash")
   cartaoRfid  String?   @map("cartao_rfid")
   cargo       UserCargo

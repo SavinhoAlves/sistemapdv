@@ -35,6 +35,10 @@
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex:none" aria-hidden="true"><circle cx="12" cy="12" r="9" /><path d="M12 8v5M12 16.5v.1" /></svg>
                 {{ msg.text }}
               </p>
+              <!-- Cadastro pelo site com o e-mail ainda não confirmado -->
+              <button v-if="podeReenviar" type="button" class="link reenviar" :disabled="reenviando" @click="reenviarConfirmacao">
+                {{ reenviando ? 'Enviando…' : 'Não recebeu? Reenviar o e-mail de confirmação' }}
+              </button>
 
               <!-- Crachá RFID: recurso de plano, só aparece quando liberado -->
               <div v-if="perfil === 'cli' && modo === 'rfid'" class="rfid-wrap">
@@ -148,6 +152,8 @@ const saudacao = (hora < 12 ? 'Bom dia' : hora < 18 ? 'Boa tarde' : 'Boa noite')
 const rfidAtivo = ref(false)
 const modo      = ref<'rfid' | 'manual'>('manual')
 const loading   = ref(false)
+const podeReenviar = ref(false)
+const reenviando   = ref(false)
 const showPass  = ref(false)
 const capsLock  = ref(false)
 const invalido  = ref<'email' | 'senha' | null>(null)
@@ -315,6 +321,7 @@ async function handleManualLogin() {
     if (concluirLogin(res, res.tenant?.slug ?? '', 'Acesso autorizado!')) oferecerBiometria(res.usuario.id)
   } catch (err: any) {
     const texto = err?.message || err?.data?.error || 'Falha ao conectar com o servidor.'
+    podeReenviar.value = /confirme o seu e-mail/i.test(texto)
     if (/suspenso/i.test(texto)) {
       bloqueio.value = 'Este restaurante está suspenso. Entre em contato para regularizar o acesso.'
       return
@@ -360,7 +367,24 @@ function falhar(texto: string, campo: 'email' | 'senha' | null) {
 }
 
 function showMsg(type: 'error' | 'success', text: string) { msg.type = type; msg.text = text }
-function hideMsg() { msg.text = ''; invalido.value = null }
+function hideMsg() { msg.text = ''; invalido.value = null; podeReenviar.value = false }
+
+// Mesmo código/usuário e senha do login: só o dono da conta pede o link de novo
+async function reenviarConfirmacao() {
+  reenviando.value = true
+  try {
+    const { email } = await $fetch<{ email: string }>(`${(runtimeConfig.public as any).apiUrl}/api/auth/reenviar-confirmacao`, {
+      method: 'POST',
+      body: { identificador: form.email.trim(), senha: form.senha },
+    })
+    podeReenviar.value = false
+    showMsg('success', `Enviamos um novo link para ${email}. Abra-o e depois entre de novo.`)
+  } catch (err: any) {
+    showMsg('error', err?.data?.error || 'Não foi possível reenviar o e-mail. Tente de novo.')
+  } finally {
+    reenviando.value = false
+  }
+}
 
 onMounted(async () => {
   // Saída automática por 8h sem uso (plugins/inatividade.client.ts): avisa no fim,
@@ -470,6 +494,8 @@ input.pw{padding-right:52px}
 .hint.show{display:block}
 .link{color:var(--brand-text);font-weight:600;text-decoration:none;border:0;background:none;padding:0;cursor:pointer;border-radius:6px;font-size:14px}
 .link:hover{text-decoration:underline}
+.reenviar{display:block;margin:-6px 0 16px}
+.reenviar:disabled{opacity:.6;cursor:default}
 .forgot{align-self:flex-end;margin:-2px 0 6px}
 .ou{display:flex;align-items:center;gap:12px;margin:16px 0 4px;color:var(--muted);font-size:13px}
 .ou::before,.ou::after{content:'';flex:1;height:1px;background:var(--line)}

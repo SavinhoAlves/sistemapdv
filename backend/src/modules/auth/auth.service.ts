@@ -2,6 +2,7 @@ import bcrypt from 'bcryptjs'
 import { marcarPinRecente } from './biometria.service'
 import { prisma } from '../../lib/prisma'
 import { contratoAtual } from '../platform/assinatura'
+import { enviarConfirmacao } from './confirmar-email.service'
 import { padroesFuncoes } from '../perfis/perfis.service'
 import {
   signAccessToken,
@@ -95,6 +96,24 @@ export async function loginComSenha(identificador: string, senha: string, slug?:
 }
 
 /**
+ * Reenvia o link de confirmação do e-mail. Pede a mesma senha do login: só o
+ * dono da conta consegue disparar e-mails para ela.
+ */
+export async function reenviarConfirmacao(identificador: string, senha: string, slug?: string) {
+  const candidatos = await buscarCandidatos(identificador, slug)
+  for (const c of candidatos) {
+    if (!(await bcrypt.compare(senha, c.senhaHash!))) continue
+    if (!c.emailPendente) throw new Error('Este e-mail já foi confirmado. Pode entrar.')
+    try {
+      return { email: await enviarConfirmacao(c.id) }
+    } catch (causa) {
+      throw Object.assign(new Error('Não foi possível enviar o e-mail agora. Tente de novo em alguns minutos.'), { status: 502, causa })
+    }
+  }
+  throw new Error('Credenciais inválidas')
+}
+
+/**
  * Sessão de quem já provou ser a pessoa (senha certa ou biometria do aparelho).
  * Só aqui o status do restaurante é revelado.
  */
@@ -103,6 +122,10 @@ export async function abrirSessao(
   tenant: { id: string; codigo: number; slug: string; nome: string; status: string },
 ) {
   if (tenant.status !== 'ativo') throw new Error('Restaurante suspenso')
+  const conta = await prisma.usuario.findUnique({ where: { id: usuario.id }, select: { emailPendente: true, email: true } })
+  if (conta?.emailPendente) {
+    throw new Error(`Confirme o seu e-mail para entrar: abra o link que enviamos para ${conta.email}.`)
+  }
   if (await aguardandoPrimeiroPagamento(tenant.id)) {
     throw new Error('O pagamento da assinatura ainda não foi confirmado. Assim que for, o acesso é liberado.')
   }

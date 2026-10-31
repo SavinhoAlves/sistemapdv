@@ -1,7 +1,7 @@
 import { getTenantSlug } from '~/composables/useTenantSlug'
 import { ehPainel } from '~/lib/hosts'
 
-const ROTAS_LIVRES = ['/acesso', '/ativacao', '/login', '/m', '/platform', '/cardapio', '/pedido', '/assinar']
+const ROTAS_LIVRES = ['/acesso', '/ativacao', '/login', '/m', '/platform', '/cardapio', '/pedido', '/assinar', '/confirmar-email']
 const POLL_MS = 30_000
 
 export default defineNuxtPlugin(() => {

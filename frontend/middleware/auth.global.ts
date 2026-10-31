@@ -12,7 +12,7 @@ export default defineNuxtRouteMiddleware((to) => {
   if (to.path.startsWith('/cardapio') || to.path.startsWith('/pedido') || to.path === '/manual') return
 
   // Assinatura pelo site (cadastro e pagamento): sem login
-  if (to.path === '/assinar') return
+  if (to.path === '/assinar' || to.path === '/confirmar-email') return
 
   // Página de autenticação mobile (/m ou /m/) — deixa passar sempre,
   // ela cuida da autenticação via token QR por conta própria.

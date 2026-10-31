@@ -30,6 +30,18 @@ export async function authRoutes(app: FastifyInstance) {
     }
   })
 
+  // POST /api/auth/reenviar-confirmacao — novo link de confirmação do e-mail (mesmos dados do login)
+  app.post('/reenviar-confirmacao', { config: { public: true, rateLimit: { max: 5, timeWindow: '10 minutes' } } }, async (request, reply) => {
+    const result = loginSchema.safeParse(request.body)
+    if (!result.success) return reply.status(400).send({ error: result.error.errors[0].message })
+    try {
+      return reply.send(await AuthService.reenviarConfirmacao(result.data.identificador, result.data.senha, result.data.slug))
+    } catch (err: any) {
+      if (err.causa) request.log.error({ err: err.causa }, 'reenviar confirmação de e-mail')
+      return reply.status(err.status ?? 401).send({ error: err.message })
+    }
+  })
+
   // POST /api/auth/biometria/login/opcoes — desafio para entrar com o rosto/digital do aparelho
   app.post('/biometria/login/opcoes', { config: { public: true } }, async (request, reply) => {
     try {

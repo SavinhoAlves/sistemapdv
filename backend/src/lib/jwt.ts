@@ -128,3 +128,21 @@ export function verifyClienteToken(token: string): ClienteJwtPayload | null {
     return p?.tipo === 'cliente' && typeof p.sub === 'string' && typeof p.tid === 'string' ? p : null
   } catch { return null }
 }
+
+// ── Link de confirmação do e-mail (cadastro pelo site) ──────────────────────
+// Chave derivada; vale 7 dias e só para o endereço que recebeu o link: se o
+// e-mail do usuário mudar, o link antigo deixa de valer.
+const CONFIRMAR_EMAIL_SECRET = crypto.createHmac('sha256', ACCESS_SECRET).update('confirmar-email').digest('hex')
+
+export interface ConfirmarEmailPayload { tipo: 'confirmar-email'; sub: string; email: string }
+
+export function signConfirmarEmailToken(usuarioId: string, email: string): string {
+  return jwt.sign({ tipo: 'confirmar-email', sub: usuarioId, email } satisfies ConfirmarEmailPayload, CONFIRMAR_EMAIL_SECRET, { expiresIn: '7d' })
+}
+
+export function verifyConfirmarEmailToken(token: string): ConfirmarEmailPayload | null {
+  try {
+    const p = jwt.verify(token, CONFIRMAR_EMAIL_SECRET) as any
+    return p?.tipo === 'confirmar-email' && typeof p.sub === 'string' && typeof p.email === 'string' ? p : null
+  } catch { return null }
+}

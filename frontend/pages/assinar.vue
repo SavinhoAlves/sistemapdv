@@ -137,6 +137,7 @@
               <span class="anel-wrap" aria-hidden="true"><span class="anel" /><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2" /><path d="M2 10h20" /></svg></span>
               <h1>Aguardando o pagamento</h1>
               <p>Abrimos o pagamento numa nova aba. Assim que for confirmado, o acesso é liberado aqui mesmo. Pode deixar esta página aberta.</p>
+              <p v-if="pendente?.confirmarEmail" class="aviso-email">Enviamos também um link para <b>{{ pendente.email }}</b>. Abra-o para confirmar o seu e-mail: sem a confirmação não dá para entrar no sistema.</p>
               <a class="btn" :href="pendente?.link" target="_blank" rel="noopener">Abrir o pagamento</a>
               <button type="button" class="link sub" @click="recomecar">Corrigir dados ou trocar a forma de pagamento</button>
             </div>
@@ -146,6 +147,7 @@
               <span class="ok-ic" aria-hidden="true"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5" /></svg></span>
               <h1>Pagamento confirmado!</h1>
               <p>O <b>{{ liberado?.restaurante }}</b> já pode usar o sistema. Entre com o seu e-mail <b>{{ pendente?.email }}</b> e a senha que você criou<template v-if="liberado?.codigoAcesso">, ou com o código <b>{{ liberado.codigoAcesso }}</b></template>.</p>
+              <p v-if="pendente?.confirmarEmail" class="aviso-email">Antes de entrar, confirme o seu e-mail pelo link que enviamos para <b>{{ pendente.email }}</b>. Não chegou? Veja a caixa de spam ou peça outro na tela de login.</p>
               <NuxtLink class="btn" to="/login" @click="esquecer">Entrar no sistema</NuxtLink>
             </div>
           </div>
@@ -164,7 +166,7 @@ import { ehApp, urlDoHost } from '~/lib/hosts'
 definePageMeta({ layout: false })
 
 interface Plano { id: string; nome: string; descricao: string | null; valor: number; valorAnual: number | null; rfid: boolean; vendaMobile: boolean; delivery: boolean }
-interface Pendente { id: string; link: string; email: string }
+interface Pendente { id: string; link: string; email: string; confirmarEmail?: boolean }
 
 const UFS = ['AC', 'AL', 'AP', 'AM', 'BA', 'CE', 'DF', 'ES', 'GO', 'MA', 'MT', 'MS', 'MG', 'PA', 'PB', 'PR', 'PE', 'PI', 'RJ', 'RN', 'RS', 'RO', 'RR', 'SC', 'SP', 'SE', 'TO']
 // Assinatura em andamento: volta direto para a espera se a página recarregar
@@ -273,7 +275,7 @@ async function pagar() {
   // Abre a aba já no clique (depois do await o navegador bloquearia o pop-up)
   const aba = window.open('about:blank', '_blank')
   try {
-    const res = await $fetch<{ id: string; link: string }>(`${api}/api/publico/assinar`, {
+    const res = await $fetch<{ id: string; link: string; confirmarEmail?: boolean }>(`${api}/api/publico/assinar`, {
       method: 'POST',
       body: {
         planoId: plano.value!.id, ciclo: ciclo.value, forma: forma.value, aceite: true,
@@ -284,7 +286,7 @@ async function pagar() {
         },
       },
     })
-    pendente.value = { id: res.id, link: res.link, email: r.email }
+    pendente.value = { id: res.id, link: res.link, email: r.email, confirmarEmail: !!res.confirmarEmail }
     try { localStorage.setItem(GUARDADO, JSON.stringify(pendente.value)) } catch { /* só não volta sozinho */ }
     if (aba) aba.location.href = res.link
     passo.value = 4
@@ -443,6 +445,7 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--brand);outline-offs
 .estado{display:flex;flex-direction:column;align-items:flex-start;gap:12px;padding-top:24px}
 .estado p{margin:0 0 6px;color:var(--muted);font-size:15px}
 .estado b{color:var(--ink)}
+.estado .aviso-email{padding:12px 14px;border-radius:14px;background:var(--tint);color:var(--ink);font-size:14.5px}
 .anel-wrap{position:relative;width:56px;height:56px;border-radius:18px;background:var(--tint);color:var(--brand-text);display:grid;place-items:center;margin-bottom:6px}
 .anel{position:absolute;inset:0;border-radius:18px;border:2px solid var(--brand);animation:aguardo 1.8s ease-out infinite}
 @keyframes aguardo{0%{transform:scale(1);opacity:.6}100%{transform:scale(1.6);opacity:0}}

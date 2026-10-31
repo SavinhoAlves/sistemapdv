@@ -10,6 +10,8 @@ import { cpfValido, cnpjValido, cpfFormatado, cnpjFormatado, soDigitos } from '.
 import { aplicarRecursos, sincronizarLicenca, contratoAtual, hojeBR, dataDe } from '../platform/assinatura'
 import { registrarVersao } from '../platform/contrato'
 import { cobrancaDaAssinaturaOnline, atualizarSeAtiva } from '../platform/asaas.service'
+import { emailConfigurado } from '../../lib/email'
+import { enviarConfirmacao, confirmarEmail } from '../auth/confirmar-email.service'
 
 /**
  * Assinatura pelo site: plano → cadastro do responsável e da empresa →
@@ -21,6 +23,9 @@ import { cobrancaDaAssinaturaOnline, atualizarSeAtiva } from '../platform/asaas.
  *
  * Quem fecha o pagamento sem pagar pode voltar: o mesmo documento com o mesmo
  * e-mail e senha reaproveita o cadastro e gera o link de novo.
+ *
+ * O administrador também precisa confirmar o e-mail (link enviado no cadastro)
+ * antes de entrar. Sem SMTP configurado, a confirmação não é exigida.
  */
 
 const texto = (min: number, max: number, campo: string) => z.string().trim().min(min, `Informe ${campo}`).max(max)
@@ -104,16 +109,20 @@ export async function assinaturaOnlineRoutes(app: FastifyInstance) {
     const condicoes = { plano: plano.nome, valor, ciclo: b.ciclo } as const
 
     let tenantId: string
+    let adminId: string
+    let pedirConfirmacao = false
     const existente = await cadastroDoDocumento(b)
     if (existente) {
       // Retoma só cadastro sem nenhum pagamento, e só com o mesmo e-mail e senha
       const pagos = await prisma.pagamentoMensalidade.count({ where: { tenantId: existente.id } })
-      const admin = await prisma.usuario.findFirst({ where: { tenantId: existente.id, cargo: 'administrador', email: b.responsavel.email }, select: { senhaHash: true } })
+      const admin = await prisma.usuario.findFirst({ where: { tenantId: existente.id, cargo: 'administrador', email: b.responsavel.email }, select: { id: true, senhaHash: true, emailPendente: true } })
       const confere = !!admin?.senhaHash && (await bcrypt.compare(b.responsavel.senha, admin.senhaHash))
       if (pagos > 0 || !confere) {
         return reply.status(409).send({ error: 'Já existe um restaurante cadastrado com este documento. Entre no sistema ou fale com o suporte.' })
       }
       tenantId = existente.id
+      adminId = admin!.id
+      pedirConfirmacao = admin!.emailPendente
       // Pode ter trocado de plano, ciclo ou dados antes de pagar
       const contrato = await contratoAtual(prisma, tenantId)
       await prisma.tenant.update({ where: { id: tenantId }, data: { ...dadosDaEmpresa(b), planoId: plano.id } })
@@ -126,7 +135,7 @@ export async function assinaturaOnlineRoutes(app: FastifyInstance) {
       const slug = await slugLivre(b.empresa.nome)
       const tipo = b.empresa.tipoComercio && tipoValido(b.empresa.tipoComercio) ? b.empresa.tipoComercio : null
       try {
-        const t = await prisma.$transaction(async (tx) => {
+        const criado = await prisma.$transaction(async (tx) => {
           const t = await tx.tenant.create({
             data: {
               ...dadosDaEmpresa(b), slug, planoId: plano.id, tipoComercio: tipo,
@@ -139,14 +148,19 @@ export async function assinaturaOnlineRoutes(app: FastifyInstance) {
           await tx.contrato.create({
             data: { tenantId: t.id, ...condicoes, dataInicio: dataDe(hojeBR()), diaVencimento: Math.min(Number(hojeBR().slice(8, 10)), 28), observacoes: 'Contratado pelo site' },
           })
-          await tx.usuario.create({
-            data: { tenantId: t.id, nome: b.responsavel.nome, email: b.responsavel.email, senhaHash, cargo: 'administrador', ativo: true },
+          const admin = await tx.usuario.create({
+            data: {
+              tenantId: t.id, nome: b.responsavel.nome, email: b.responsavel.email, senhaHash, cargo: 'administrador', ativo: true,
+              emailPendente: emailConfigurado(),
+            },
           })
           await aplicarRecursos(t.id, tx)
           await sincronizarLicenca(t.id, tx)
-          return t
+          return { t, admin }
         })
-        tenantId = t.id
+        tenantId = criado.t.id
+        adminId = criado.admin.id
+        pedirConfirmacao = criado.admin.emailPendente
       } catch (e: any) {
         if (e?.code === 'P2002') return reply.status(409).send({ error: 'Já existe um restaurante cadastrado com este documento. Entre no sistema ou fale com o suporte.' })
         throw e
@@ -154,14 +168,29 @@ export async function assinaturaOnlineRoutes(app: FastifyInstance) {
       await registrarVersao(tenantId, 'Assinatura pelo site')
     }
 
+    // Em segundo plano, sem atrasar o pagamento; se falhar, o login oferece reenviar o link
+    if (pedirConfirmacao) {
+      enviarConfirmacao(adminId).catch((e) => request.log.error({ err: e, tenantId }, 'assinatura online: e-mail de confirmação'))
+    }
+
     try {
       const link = await cobrancaDaAssinaturaOnline(tenantId, b.forma)
-      return reply.send({ id: tenantId, link })
+      return reply.send({ id: tenantId, link, confirmarEmail: pedirConfirmacao })
     } catch (e: any) {
       // O cadastro fica salvo: enviar de novo (mesmo documento, e-mail e senha) gera o link
       request.log.error({ err: e, tenantId }, 'assinatura online: cobrança')
       const msg = e instanceof AsaasErro ? e.message : 'Falha ao gerar a cobrança'
       return reply.status(502).send({ error: `Cadastro salvo, mas não deu para gerar o pagamento: ${msg}. Tente de novo.`, id: tenantId })
+    }
+  })
+
+  // POST /api/publico/confirmar-email — link do e-mail enviado no cadastro
+  app.post('/confirmar-email', { config: { public: true, rateLimit: { max: 20, timeWindow: '10 minutes' } } }, async (request, reply) => {
+    const token = String((request.body as any)?.token ?? '')
+    try {
+      return await confirmarEmail(token)
+    } catch (e: any) {
+      return reply.status(e.status ?? 400).send({ error: e.message })
     }
   })
 

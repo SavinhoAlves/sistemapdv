@@ -2,7 +2,7 @@ import { getTenantSlug } from '~/composables/useTenantSlug'
 import { ehPainel } from '~/lib/hosts'
 import { lerSuporte } from '~/lib/sessaoSuporte'
 
-const ROTAS_LIVRES = ['/acesso', '/ativacao', '/login', '/m', '/platform', '/cardapio', '/pedido', '/manual', '/assinar']
+const ROTAS_LIVRES = ['/acesso', '/ativacao', '/login', '/m', '/platform', '/cardapio', '/pedido', '/manual', '/assinar', '/confirmar-email']
 const CACHE_TTL = 60 * 1000
 
 export default defineNuxtRouteMiddleware(async (to) => {
